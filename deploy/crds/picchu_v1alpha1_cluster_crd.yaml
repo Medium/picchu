@@ -23,8 +23,59 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            account:
+              properties:
+                az:
+                  type: string
+                id:
+                  type: string
+                region:
+                  type: string
+              required:
+              - id
+              - region
+              type: object
+            config:
+              properties:
+                server:
+                  type: string
+              required:
+              - server
+              type: object
+            enabled:
+              type: boolean
+            weight:
+              format: int64
+              type: integer
+          required:
+          - enabled
+          - weight
           type: object
         status:
+          properties:
+            conditions:
+              items:
+                properties:
+                  name:
+                    type: string
+                  status:
+                    type: string
+                required:
+                - name
+                - status
+                type: object
+              type: array
+            kubernetes:
+              properties:
+                version:
+                  type: string
+              required:
+              - version
+              type: object
+          required:
+          - kubernetes
+          - conditions
           type: object
   version: v1alpha1
   versions:
