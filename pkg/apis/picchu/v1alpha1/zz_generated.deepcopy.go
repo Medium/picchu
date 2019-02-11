@@ -109,7 +109,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = new(ConfigSpec)
 		(*in).DeepCopyInto(*out)
 	}
-	out.Account = in.Account
+	if in.Account != nil {
+		in, out := &in.Account, &out.Account
+		*out = new(AccountSpec)
+		**out = **in
+	}
 	return
 }
 

@@ -14,10 +14,10 @@ import (
 // ClusterSpec defines the desired state of Cluster
 // +k8s:openapi-gen=true
 type ClusterSpec struct {
-	Enabled bool        `json:"enabled"`
-	Config  *ConfigSpec `json:"endpoint,omitempty"`
-	Weight  int         `json:"weight"`
-	Account AccountSpec `json:"account"`
+	Enabled bool         `json:"enabled"`
+	Config  *ConfigSpec  `json:"config,omitempty"`
+	Weight  int          `json:"weight"`
+	Account *AccountSpec `json:"account,omitempty"`
 }
 
 type ConfigSpec struct {
