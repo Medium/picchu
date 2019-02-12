@@ -13,12 +13,9 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Cluster":        schema_pkg_apis_picchu_v1alpha1_Cluster(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSpec":    schema_pkg_apis_picchu_v1alpha1_ClusterSpec(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterStatus":  schema_pkg_apis_picchu_v1alpha1_ClusterStatus(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Revision":       schema_pkg_apis_picchu_v1alpha1_Revision(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionSpec":   schema_pkg_apis_picchu_v1alpha1_RevisionSpec(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionStatus": schema_pkg_apis_picchu_v1alpha1_RevisionStatus(ref),
+		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Cluster":           schema_pkg_apis_picchu_v1alpha1_Cluster(ref),
+		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeployment": schema_pkg_apis_picchu_v1alpha1_ClusterDeployment(ref),
+		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Revision":          schema_pkg_apis_picchu_v1alpha1_Revision(ref),
 	}
 }
 
@@ -65,72 +62,46 @@ func schema_pkg_apis_picchu_v1alpha1_Cluster(ref common.ReferenceCallback) commo
 	}
 }
 
-func schema_pkg_apis_picchu_v1alpha1_ClusterSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_picchu_v1alpha1_ClusterDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterSpec defines the desired state of Cluster",
+				Description: "ClusterDeployment is the Schema for the clusterdeployments API",
 				Properties: map[string]spec.Schema{
-					"enabled": {
+					"kind": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
-					"config": {
+					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ConfigSpec"),
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
-					"weight": {
+					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
-					"account": {
+					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.AccountSpec"),
+							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentStatus"),
 						},
 					},
 				},
-				Required: []string{"enabled", "weight"},
 			},
 		},
 		Dependencies: []string{
-			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.AccountSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ConfigSpec"},
-	}
-}
-
-func schema_pkg_apis_picchu_v1alpha1_ClusterStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ClusterStatus defines the observed state of Cluster",
-				Properties: map[string]spec.Schema{
-					"kubernetes": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.KubernetesStatus"),
-						},
-					},
-					"conditions": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ConditionStatus"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"kubernetes", "conditions"},
-			},
-		},
-		Dependencies: []string{
-			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ConditionStatus", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.KubernetesStatus"},
+			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -174,29 +145,5 @@ func schema_pkg_apis_picchu_v1alpha1_Revision(ref common.ReferenceCallback) comm
 		},
 		Dependencies: []string{
 			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_picchu_v1alpha1_RevisionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "RevisionSpec defines the desired state of Revision",
-				Properties:  map[string]spec.Schema{},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_pkg_apis_picchu_v1alpha1_RevisionStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "RevisionStatus defines the observed state of Revision",
-				Properties:  map[string]spec.Schema{},
-			},
-		},
-		Dependencies: []string{},
 	}
 }

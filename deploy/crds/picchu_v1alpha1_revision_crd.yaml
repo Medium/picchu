@@ -23,8 +23,143 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            app:
+              properties:
+                name:
+                  type: string
+                ref:
+                  type: string
+                tag:
+                  type: string
+              required:
+              - name
+              - ref
+              - tag
+              type: object
+            ports:
+              items:
+                properties:
+                  containerPort:
+                    type: string
+                  name:
+                    type: string
+                required:
+                - name
+                - containerPort
+                type: object
+              type: array
+            releaseEligible:
+              properties:
+                eligible:
+                  type: boolean
+              required:
+              - eligible
+              type: object
+            targets:
+              items:
+                properties:
+                  fleet:
+                    type: string
+                  metrics:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        objective:
+                          format: double
+                          type: number
+                        queries:
+                          properties:
+                            acceptable:
+                              type: string
+                            total:
+                              type: string
+                          required:
+                          - acceptable
+                          - total
+                          type: object
+                      required:
+                      - name
+                      - queries
+                      - objective
+                      type: object
+                    type: array
+                  name:
+                    type: string
+                  release:
+                    properties:
+                      max:
+                        type: string
+                      rate:
+                        type: string
+                      schedule:
+                        type: string
+                    required:
+                    - max
+                    - rate
+                    - schedule
+                    type: object
+                  scale:
+                    properties:
+                      max:
+                        format: int64
+                        type: integer
+                      min:
+                        format: int64
+                        type: integer
+                      resources:
+                        properties:
+                          cpu:
+                            type: string
+                        required:
+                        - cpu
+                        type: object
+                    required:
+                    - min
+                    - max
+                    - resources
+                    type: object
+                required:
+                - name
+                - fleet
+                - scale
+                - release
+                - metrics
+                type: object
+              type: array
+          required:
+          - app
+          - releaseEligible
+          - ports
+          - targets
           type: object
         status:
+          properties:
+            targets:
+              items:
+                properties:
+                  deployments:
+                    items:
+                      properties:
+                        cluster:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                      - cluster
+                      type: object
+                    type: array
+                  name:
+                    type: string
+                required:
+                - name
+                - deployments
+                type: object
+              type: array
+          required:
+          - targets
           type: object
   version: v1alpha1
   versions:
