@@ -12,26 +12,26 @@ type ClusterDeploymentSpec struct {
 	Release CDSpecRelease `json:"release"`
 }
 
-type CDSpecApp struct {
+type DeploymentApp struct {
 	Name string `json:"name"`
 	Tag  string `json:"tag"`
 }
 
-type CDSpecCluster struct {
+type DeploymentAssignment struct {
 	Name string `json:"name"`
 }
 
-type CDSpecScale struct {
+type DeploymentScale struct {
 	Min       int             `json:"min"`
 	Max       int             `json:"max"`
 	Resources CDSpecResources `json:"resources"`
 }
 
-type CDSpecResources struct {
+type DeploymentResources struct {
 	CPU string `json:"cpu"`
 }
 
-type CDSpecRelease struct {
+type DeploymentRelease struct {
 	Max      int    `json:"max"`
 	Rate     string `json:"rate"`
 	Schedule string `json:"schedule"`
@@ -45,31 +45,31 @@ type ClusterDeploymentStatus struct {
 	Resources []CDStatusResource `json:"resources"`
 }
 
-type CDStatusHealth struct {
+type DeploymentHealthStatus struct {
 	Healthy bool             `json:"healthy"`
 	Metrics []CDStatusMetric `json:"metrics"`
 }
 
-type CDStatusMetric struct {
+type DeploymentMetricStatus struct {
 	Name      string  `json:"name"`
 	Objective float64 `json:"objective"`
 	Actual    float64 `json:"actual"`
 }
 
-type CDStatusRelease struct {
+type DeploymentReleaseStatus struct {
 	PeakPercent    int `json:"peakPercent"`
 	CurrentPercent int `json:"currentPercent"`
 }
 
-type CDStatusScale struct {
+type DeploymentScaleStatus struct {
 	Current int `json:"current"`
 	Desired int `json:"desired"`
 }
 
-type CDStatusResource struct {
+type DeployedResource struct {
 	ApiVersion string           `json:"apiVersion"`
 	Kind       string           `json:"kind"`
-	Metadata   CDStatusMetadata `json:"metadata"`
+	Metadata   types.NamespacedName `json:"metadata"`
 	Status     string           `json:"status"`
 }
 

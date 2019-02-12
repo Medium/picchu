@@ -19,13 +19,13 @@ type ClusterSpec struct {
 	Account *CSpecAccount `json:"account,omitempty"`
 }
 
-type CSpecConfig struct {
+type ClusterConfig struct {
 	Server                   string `json:"server"`
 	CertificateAuthorityData []byte `json:"certificate-authority-data"`
 }
 
 // Account is needed for Cluster to provision EKS clusters
-type CSpecAccount struct {
+type AWSAccount struct {
 	ID     string `json:"id"`
 	Region string `json:"region"`
 	AZ     string `json:"az,omitempty"`
@@ -37,11 +37,11 @@ type ClusterStatus struct {
 	Conditions []CStatusCondition `json:"conditions"`
 }
 
-type CStatusKubernetes struct {
+type KubernetesClusterStatus struct {
 	Version string `json:"version"`
 }
 
-type CStatusCondition struct {
+type ClusterCondition struct {
 	Name   string `json:"name"`
 	Status string `json:"status"`
 }
