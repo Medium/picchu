@@ -16,7 +16,7 @@ import (
 type ClusterSpec struct {
 	Enabled bool         `json:"enabled"`
 	Config  *ConfigSpec  `json:"config,omitempty"`
-	Weight  int          `json:"weight"`
+	Weight  float64      `json:"weight"`
 	Account *AccountSpec `json:"account,omitempty"`
 }
 

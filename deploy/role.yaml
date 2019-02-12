@@ -43,5 +43,6 @@ rules:
   - picchu.medium.engineering
   resources:
   - '*'
+  - revisions
   verbs:
   - '*'
