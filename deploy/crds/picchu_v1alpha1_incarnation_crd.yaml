@@ -2,14 +2,14 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  name: clusterdeployments.picchu.medium.engineering
+  name: incarnations.picchu.medium.engineering
 spec:
   group: picchu.medium.engineering
   names:
-    kind: ClusterDeployment
-    listKind: ClusterDeploymentList
-    plural: clusterdeployments
-    singular: clusterdeployment
+    kind: Incarnation
+    listKind: IncarnationList
+    plural: incarnations
+    singular: incarnation
   scope: Namespaced
   subresources:
     status: {}
@@ -34,7 +34,7 @@ spec:
               - name
               - tag
               type: object
-            cluster:
+            assignment:
               properties:
                 name:
                   type: string
@@ -64,12 +64,14 @@ spec:
                   format: int64
                   type: integer
                 resources:
-                  properties:
-                    cpu:
-                      type: string
-                  required:
-                  - cpu
-                  type: object
+                  items:
+                    properties:
+                      cpu:
+                        type: string
+                    required:
+                    - cpu
+                    type: object
+                  type: array
               required:
               - min
               - max
@@ -77,7 +79,7 @@ spec:
               type: object
           required:
           - app
-          - cluster
+          - assignment
           - scale
           - release
           type: object
@@ -128,14 +130,6 @@ spec:
                   kind:
                     type: string
                   metadata:
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                    required:
-                    - namespace
-                    - name
                     type: object
                   status:
                     type: string

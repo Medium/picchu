@@ -1,7 +1,8 @@
 apiVersion: picchu.medium.engineering/v1alpha1
-kind: ClusterDeployment
-  name: 'lite-production-24e07cb7399-655917fc'
-  labels: # lots of ways to query Deployments
+kind: Incarnation
+metadata:
+  name: example-incarnation
+  labels:
     medium.build/app: 'lite'
     medium.build/target: 'production'
     medium.build/fleet: 'legacy'
@@ -12,6 +13,6 @@ kind: ClusterDeployment
     app.kubernetes.io/managed-by: 'picchu'
 spec: # The Revision operator will copy most of this from the Revision
   app: {name: lite, tag: 'master-20190301-130000-24e07cb7399'}
-  cluster: {name: 'legacy-us-east-2c-1.11-2019-03-01'}
+  assignment: {name: 'legacy-us-east-2c-1.11-2019-03-01'}
   scale: {min: 6, max: 18, resources: {cpu: 500m}}
   release: {max: 100, rate: TK, schedule: humane}
