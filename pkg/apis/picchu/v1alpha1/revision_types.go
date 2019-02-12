@@ -5,87 +5,74 @@ import (
 )
 
 // RevisionSpec defines the desired state of Revision
-// +k8s:openapi-gen=true
 type RevisionSpec struct {
-	App             AppSpec             `json:"app"`
-	ReleaseEligible ReleaseEligibleSpec `json:"releaseEligible"`
-	Ports           []PortSpec          `json:"ports"`
-	Targets         []TargetSpec        `json:"targets"`
+	App             RSpecApp             `json:"app"`
+	ReleaseEligible RSpecReleaseEligible `json:"releaseEligible"`
+	Ports           []RSpecPort          `json:"ports"`
+	Targets         []RSpecTarget        `json:"targets"`
 }
 
-// +k8s:openapi-gen=true
-type AppSpec struct {
+type RSpecApp struct {
 	Name string `json:"name"`
 	Ref  string `json:"ref"`
 	Tag  string `json:"tag"`
 }
 
-// +k8s:openapi-gen=true
-type ReleaseEligibleSpec struct {
+type RSpecReleaseEligible struct {
 	Eligible bool `json:"eligible"`
 }
 
-// +k8s:openapi-gen=true
-type PortSpec struct {
+type RSpecPort struct {
 	Name          string `json:"name"`
 	ContainerPort string `json:"containerPort"`
 }
 
-// +k8s:openapi-gen=true
-type TargetSpec struct {
-	Name    string        `json:"name"`
-	Fleet   string        `json:"fleet"`
-	Scale   ScaleSpec     `json:"scale"`
-	Release *ReleaseSpec  `json:"releaseSpec"`
-	Metrics *[]MetricSpec `json:"metrics"`
+type RSpecTarget struct {
+	Name    string         `json:"name"`
+	Fleet   string         `json:"fleet"`
+	Scale   RSpecScale     `json:"scale"`
+	Release *RSpecRelease  `json:"release"`
+	Metrics *[]RSpecMetric `json:"metrics"`
 }
 
-// +k8s:openapi-gen=true
-type ScaleSpec struct {
-	Min       int           `json:"min"`
-	Max       int           `json:"max"`
-	Resources ResourcesSpec `json:"resources"`
+type RSpecScale struct {
+	Min       int            `json:"min"`
+	Max       int            `json:"max"`
+	Resources RSpecResources `json:"resources"`
 }
 
-// +k8s:openapi-gen=true
-type ResourcesSpec struct {
+type RSpecResources struct {
 	CPU string `json:"cpu"`
 }
 
-// +k8s:openapi-gen=true
-type ReleaseSpec struct {
+type RSpecRelease struct {
 	Max      string `json:"max"`
 	Rate     string `json:"rate"`
 	Schedule string `json:"schedule"`
 }
 
-// +k8s:openapi-gen=true
-type MetricSpec struct {
-	Name      string      `json:"name"`
-	Queries   QueriesSpec `json:"queries"`
-	Objective float64     `json:"objective"`
+type RSpecMetric struct {
+	Name      string       `json:"name"`
+	Queries   RSpecQueries `json:"queries"`
+	Objective float64      `json:"objective"`
 }
 
-// +k8s:openapi-gen=true
-type QueriesSpec struct {
+type RSpecQueries struct {
 	Acceptable string `json:"acceptable"`
 	Total      string `json:"total"`
 }
 
 // RevisionStatus defines the observed state of Revision
-// +k8s:openapi-gen=true
 type RevisionStatus struct {
-	Targets []TargetStatus `json:"targets"`
+	Targets []RStatusTarget `json:"targets"`
 }
 
-// +k8s:openapi-gen=true
-type TargetStatus struct {
-	Name        string             `json:"name"`
-	Deployments []DeploymentStatus `json:"deployments"`
+type RStatusTarget struct {
+	Name        string              `json:"name"`
+	Deployments []RStatusDeployment `json:"deployments"`
 }
 
-// +k8s:openapi-gen=true
-type DeploymentStatus struct {
+type RStatusDeployment struct {
 	Name    string `json:"name"`
 	Cluster string `json:"cluster"`
 }

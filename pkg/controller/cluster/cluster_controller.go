@@ -117,11 +117,11 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		reqLogger.Info("Setting status")
 		instance.Status = picchuv1alpha1.ClusterStatus{
-			Kubernetes: picchuv1alpha1.KubernetesStatus{
+			Kubernetes: picchuv1alpha1.CStatusKubernetes{
 				Version: FormatVersion(version),
 			},
-			Conditions: []picchuv1alpha1.ConditionStatus{
-				picchuv1alpha1.ConditionStatus{"Ready", ready},
+			Conditions: []picchuv1alpha1.CStatusCondition{
+				picchuv1alpha1.CStatusCondition{"Ready", ready},
 			},
 		}
 	}

@@ -12,38 +12,36 @@ import (
 )
 
 // ClusterSpec defines the desired state of Cluster
-// +k8s:openapi-gen=true
 type ClusterSpec struct {
-	Enabled bool         `json:"enabled"`
-	Config  *ConfigSpec  `json:"config,omitempty"`
-	Weight  float64      `json:"weight"`
-	Account *AccountSpec `json:"account,omitempty"`
+	Enabled bool          `json:"enabled"`
+	Config  *CSpecConfig  `json:"config,omitempty"`
+	Weight  float64       `json:"weight"`
+	Account *CSpecAccount `json:"account,omitempty"`
 }
 
-type ConfigSpec struct {
+type ClusterConfig struct {
 	Server                   string `json:"server"`
 	CertificateAuthorityData []byte `json:"certificate-authority-data"`
 }
 
-// AccountSpec is needed for Cluster to provision EKS clusters
-type AccountSpec struct {
+// Account is needed for Cluster to provision EKS clusters
+type AWSAccount struct {
 	ID     string `json:"id"`
 	Region string `json:"region"`
 	AZ     string `json:"az,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster
-// +k8s:openapi-gen=true
 type ClusterStatus struct {
-	Kubernetes KubernetesStatus  `json:"kubernetes"`
-	Conditions []ConditionStatus `json:"conditions"`
+	Kubernetes CStatusKubernetes  `json:"kubernetes"`
+	Conditions []CStatusCondition `json:"conditions"`
 }
 
-type KubernetesStatus struct {
+type KubernetesClusterStatus struct {
 	Version string `json:"version"`
 }
 
-type ConditionStatus struct {
+type ClusterCondition struct {
 	Name   string `json:"name"`
 	Status string `json:"status"`
 }
@@ -74,7 +72,7 @@ func init() {
 }
 
 // Config creates a rest.Config for the Cluster, whether it be remote or
-// incluster. Secret is expected to contain "auth-info" if ConfigSpec is
+// incluster. Secret is expected to contain "auth-info" if Config is
 // specified.
 func (c *Cluster) Config(secret *corev1.Secret) (*rest.Config, error) {
 	if secret == nil && c.Spec.Config == nil {

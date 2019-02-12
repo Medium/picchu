@@ -46,8 +46,8 @@ spec:
             enabled:
               type: boolean
             weight:
-              format: int64
-              type: integer
+              format: double
+              type: number
           required:
           - enabled
           - weight

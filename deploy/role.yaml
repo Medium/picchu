@@ -44,5 +44,6 @@ rules:
   resources:
   - '*'
   - revisions
+  - clusterdeployments
   verbs:
   - '*'
