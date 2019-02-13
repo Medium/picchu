@@ -129,7 +129,6 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.Revision) ([]*picchuv1alpha1.Incarnation, error) {
 	var incarnations []*picchuv1alpha1.Incarnation
 	for _, target := range revision.Spec.Targets {
-		// TODO(bob): Get clusters by fleet
 		clusters, err := r.getClustersByFleet(target.Fleet)
 		if err != nil {
 			return incarnations, err
