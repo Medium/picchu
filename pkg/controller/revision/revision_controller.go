@@ -139,9 +139,10 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 				"medium.build/commit":   commit,
 			}
 
-			name := fmt.Sprintf("%s-%s-%s",
+			name := fmt.Sprintf("%s-%s-%s-%s",
 				app,
 				target.Name,
+				cluster.Name,
 				commit[0:11],
 			)
 
