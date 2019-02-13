@@ -45,15 +45,15 @@ type RevisionReleaseEligible struct {
 
 type RevisionPort struct {
 	Name          string `json:"name"`
-	ContainerPort string `json:"containerPort"`
+	ContainerPort int    `json:"containerPort"`
 }
 
 type RevisionTarget struct {
 	Name    string                  `json:"name"`
 	Fleet   string                  `json:"fleet"`
 	Scale   RevisionTargetScale     `json:"scale"`
-	Release *RevisionTargetRelease  `json:"release"`
-	Metrics *[]RevisionTargetMetric `json:"metrics"`
+	Release *RevisionTargetRelease  `json:"release,omitempty"`
+	Metrics *[]RevisionTargetMetric `json:"metrics,omitempty"`
 }
 
 type RevisionTargetScale struct {
@@ -67,7 +67,7 @@ type RevisionTargetScaleResources struct {
 }
 
 type RevisionTargetRelease struct {
-	Max      string `json:"max"`
+	Max      int    `json:"max"`
 	Rate     string `json:"rate"`
 	Schedule string `json:"schedule"`
 }
