@@ -11,41 +11,6 @@ import (
 	clientapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-// ClusterSpec defines the desired state of Cluster
-type ClusterSpec struct {
-	Enabled bool          `json:"enabled"`
-	Config  *CSpecConfig  `json:"config,omitempty"`
-	Weight  float64       `json:"weight"`
-	Account *CSpecAccount `json:"account,omitempty"`
-}
-
-type ClusterConfig struct {
-	Server                   string `json:"server"`
-	CertificateAuthorityData []byte `json:"certificate-authority-data"`
-}
-
-// Account is needed for Cluster to provision EKS clusters
-type AWSAccount struct {
-	ID     string `json:"id"`
-	Region string `json:"region"`
-	AZ     string `json:"az,omitempty"`
-}
-
-// ClusterStatus defines the observed state of Cluster
-type ClusterStatus struct {
-	Kubernetes CStatusKubernetes  `json:"kubernetes"`
-	Conditions []CStatusCondition `json:"conditions"`
-}
-
-type KubernetesClusterStatus struct {
-	Version string `json:"version"`
-}
-
-type ClusterCondition struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Cluster is the Schema for the clusters API
@@ -65,6 +30,41 @@ type ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Cluster `json:"items"`
+}
+
+// ClusterSpec defines the desired state of Cluster
+type ClusterSpec struct {
+	Enabled    bool               `json:"enabled"`
+	Config     *ClusterConfig     `json:"config,omitempty"`
+	Weight     float64            `json:"weight"`
+	AWSAccount *ClusterAWSAccount `json:"awsAccount,omitempty"`
+}
+
+type ClusterConfig struct {
+	Server                   string `json:"server"`
+	CertificateAuthorityData []byte `json:"certificate-authority-data"`
+}
+
+// Account is needed for Cluster to provision EKS clusters
+type ClusterAWSAccount struct {
+	ID     string `json:"id"`
+	Region string `json:"region"`
+	AZ     string `json:"az,omitempty"`
+}
+
+// ClusterStatus defines the observed state of Cluster
+type ClusterStatus struct {
+	Kubernetes ClusterKubernetesStatus  `json:"kubernetes"`
+	Conditions []ClusterConditionStatus `json:"conditions"`
+}
+
+type ClusterKubernetesStatus struct {
+	Version string `json:"version"`
+}
+
+type ClusterConditionStatus struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
 }
 
 func init() {

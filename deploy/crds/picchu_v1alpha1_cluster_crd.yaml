@@ -24,7 +24,7 @@ spec:
           type: object
         spec:
           properties:
-            account:
+            awsAccount:
               properties:
                 az:
                   type: string
