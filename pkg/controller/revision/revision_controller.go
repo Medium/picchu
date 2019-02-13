@@ -3,7 +3,6 @@ package revision
 import (
 	"context"
 	"fmt"
-	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -140,10 +139,9 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 				"medium.build/commit":   commit,
 			}
 
-			name := fmt.Sprintf("%s-%s-%d-%s",
+			name := fmt.Sprintf("%s-%s-%s",
 				app,
 				target.Name,
-				time.Now().Unix(),
 				commit[0:11],
 			)
 
