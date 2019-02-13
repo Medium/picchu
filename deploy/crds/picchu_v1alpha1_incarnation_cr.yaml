@@ -1,0 +1,18 @@
+apiVersion: picchu.medium.engineering/v1alpha1
+kind: Incarnation
+metadata:
+  name: example-incarnation
+  labels:
+    medium.build/app: 'lite'
+    medium.build/target: 'production'
+    medium.build/fleet: 'legacy'
+    medium.build/cluster: 'legacy-us-east-2c-1.11-2019-03-01'
+    medium.build/revision: 'lite-master-20190301-130000-24e07cb7399'
+    medium.build/tag: 'master-20190301-130000-24e07cb7399'
+    medium.build/commit: '24e07cb7399e1e76de6103a0548a0ef2e471e43f'
+    app.kubernetes.io/managed-by: 'picchu'
+spec: # The Revision operator will copy most of this from the Revision
+  app: {name: lite, tag: 'master-20190301-130000-24e07cb7399'}
+  assignment: {name: 'legacy-us-east-2c-1.11-2019-03-01'}
+  scale: {min: 6, max: 18, resources: {cpu: 500m}}
+  release: {max: 100, rate: TK, schedule: humane}

@@ -43,7 +43,5 @@ rules:
   - picchu.medium.engineering
   resources:
   - '*'
-  - revisions
-  - clusterdeployments
   verbs:
   - '*'

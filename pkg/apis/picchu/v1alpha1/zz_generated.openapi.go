@@ -13,9 +13,9 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Cluster":           schema_pkg_apis_picchu_v1alpha1_Cluster(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeployment": schema_pkg_apis_picchu_v1alpha1_ClusterDeployment(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Revision":          schema_pkg_apis_picchu_v1alpha1_Revision(ref),
+		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Cluster":     schema_pkg_apis_picchu_v1alpha1_Cluster(ref),
+		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Incarnation": schema_pkg_apis_picchu_v1alpha1_Incarnation(ref),
+		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Revision":    schema_pkg_apis_picchu_v1alpha1_Revision(ref),
 	}
 }
 
@@ -62,11 +62,11 @@ func schema_pkg_apis_picchu_v1alpha1_Cluster(ref common.ReferenceCallback) commo
 	}
 }
 
-func schema_pkg_apis_picchu_v1alpha1_ClusterDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_picchu_v1alpha1_Incarnation(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterDeployment is the Schema for the clusterdeployments API",
+				Description: "Incarnation is the Schema for the incarnation API",
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -89,19 +89,19 @@ func schema_pkg_apis_picchu_v1alpha1_ClusterDeployment(ref common.ReferenceCallb
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentSpec"),
+							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentStatus"),
+							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterDeploymentStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
