@@ -141,7 +141,7 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 			labels := map[string]string{
 				"medium.build/target":   target.Name,
 				"medium.build/fleet":    target.Fleet,
-				"medium.build/cluster":  cluster.ObjectMeta.Name,
+				"medium.build/cluster":  cluster.Name,
 				"medium.build/revision": revision.ObjectMeta.Name,
 				"medium.build/tag":      tag,
 				"medium.build/app":      app,
