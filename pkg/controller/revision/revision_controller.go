@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -104,22 +103,15 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err := controllerutil.SetControllerReference(instance, incarnation, r.scheme); err != nil {
 			return reconcile.Result{}, err
 		}
-
-		// Check if this Incarnation already exists
-		found := &picchuv1alpha1.Incarnation{}
-		err = r.client.Get(context.TODO(), types.NamespacedName{Name: incarnation.Name, Namespace: incarnation.Namespace}, found)
-		if err != nil && errors.IsNotFound(err) {
-			reqLogger.Info("Creating a new Incarnation", "Incarnation.Namespace", incarnation.Namespace, "Incarnation.Name", incarnation.Name)
-			err = r.client.Create(context.TODO(), incarnation)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-		} else if err != nil {
+		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, incarnation, func(existing runtime.Object) error {
+			i := existing.(*picchuv1alpha1.Incarnation)
+			reqLogger.Info("Skip reconcile: Incarnation already exists", "Incarnation.Namespace", i.Namespace, "Incarnation.Name", i.Name)
+			return nil
+		})
+		if err != nil {
 			return reconcile.Result{}, err
-		} else {
-			// Incarnation already exists - don't requeue
-			reqLogger.Info("Skip reconcile: Incarnation already exists", "Incarnation.Namespace", found.Namespace, "Incarnation.Name", found.Name)
 		}
+		reqLogger.Info("Incarnation reconciled", "Operation", op)
 	}
 
 	return reconcile.Result{}, nil
