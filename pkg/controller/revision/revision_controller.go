@@ -134,9 +134,9 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 			return incarnations, err
 		}
 		for _, cluster := range clusters.Items {
-			app := revision.ObjectMeta.Labels["medium.build/app"]
-			commit := revision.ObjectMeta.Labels["medium.build/commit"]
-			tag := revision.ObjectMeta.Labels["medium.build/tag"]
+			app := revision.Spec.App.Name
+			commit := revision.Labels["medium.build/commit"]
+			tag := revision.Labels["medium.build/tag"]
 
 			labels := map[string]string{
 				"medium.build/target":   target.Name,
