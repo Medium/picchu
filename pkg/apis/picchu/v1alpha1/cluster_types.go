@@ -11,6 +11,7 @@ import (
 	clientapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Cluster is the Schema for the clusters API

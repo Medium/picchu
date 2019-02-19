@@ -5,6 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Incarnation is the Schema for the incarnation API
