@@ -41,16 +41,22 @@ spec:
               items:
                 properties:
                   containerPort:
-                    format: int64
+                    format: int32
                     type: integer
+                  mode:
+                    type: string
                   name:
                     type: string
+                  port:
+                    format: int32
+                    type: integer
+                  protocol:
+                    type: string
                 required:
-                - name
-                - containerPort
+                - mode
                 type: object
               type: array
-            releaseEligible:
+            release:
               properties:
                 eligible:
                   type: boolean
@@ -104,23 +110,20 @@ spec:
                     type: object
                   scale:
                     properties:
+                      default:
+                        format: int32
+                        type: integer
                       max:
-                        format: int64
+                        format: int32
                         type: integer
                       min:
-                        format: int64
+                        format: int32
                         type: integer
                       resources:
                         properties:
                           cpu:
-                            type: string
-                        required:
-                        - cpu
+                            type: object
                         type: object
-                    required:
-                    - min
-                    - max
-                    - resources
                     type: object
                 required:
                 - name
@@ -130,7 +133,7 @@ spec:
               type: array
           required:
           - app
-          - releaseEligible
+          - release
           - ports
           - targets
           type: object
