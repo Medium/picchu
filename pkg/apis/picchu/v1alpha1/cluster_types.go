@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +39,7 @@ type ClusterSpec struct {
 	Enabled    bool               `json:"enabled"`
 	Config     *ClusterConfig     `json:"config,omitempty"`
 	Weight     float64            `json:"weight"`
-	AWSAccount *ClusterAWSAccount `json:"awsAccount,omitempty"`
+	AWS     *ClusterAWSInfo `json:"aws,omitempty"`
 }
 
 type ClusterConfig struct {
@@ -46,9 +47,8 @@ type ClusterConfig struct {
 	CertificateAuthorityData []byte `json:"certificate-authority-data"`
 }
 
-// Account is needed for Cluster to provision EKS clusters
-type ClusterAWSAccount struct {
-	ID     string `json:"id"`
+type ClusterAWSInfo struct {
+	AccountID string `json:"accountId,id"`
 	Region string `json:"region"`
 	AZ     string `json:"az,omitempty"`
 }
@@ -56,6 +56,7 @@ type ClusterAWSAccount struct {
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
 	Kubernetes ClusterKubernetesStatus  `json:"kubernetes"`
+	AWS        *ClusterAWSInfo          `json:"aws,omitempty"`
 	Conditions []ClusterConditionStatus `json:"conditions"`
 }
 
@@ -112,4 +113,35 @@ func (c *Cluster) Config(secret *corev1.Secret) (*rest.Config, error) {
 		CurrentContext: "cluster",
 	}, &clientcmd.ConfigOverrides{})
 	return conf.ClientConfig()
+}
+
+func (c *Cluster) Fleet() string {
+	fleet, _ := c.Labels["medium.build/fleet"]
+	return fleet
+}
+
+// Region gets the region/az the cluster is in based on spec and status. This
+// shouldn't be used to *discover* the region/az of a InClusterConfig, but only
+// see what region was already discovered by some other process.
+func (c *Cluster) RegionAZ() string {
+	region, az := "", ""
+	if c.Spec.AWS != nil {
+		region = c.Spec.AWS.Region
+		az = c.Spec.AWS.AZ
+	}
+	if c.Status.AWS != nil {
+		region = c.Status.AWS.Region
+		az = c.Status.AWS.AZ
+	}
+	return fmt.Sprintf("%s%s", region, az)
+}
+
+func (c *Cluster) DefaultDomain() string {
+	fleet := c.Fleet()
+	location := c.RegionAZ()
+	if location != "" && fleet != "" {
+		return fmt.Sprintf("%s.%s.medm.io", c.Fleet(), location)
+	} else {
+		return ""
+	}
 }

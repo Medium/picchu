@@ -2,24 +2,29 @@ package incarnation
 
 import (
 	"context"
+	"fmt"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
+	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
+	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var log = logf.Log.WithName("controller_incarnation")
-
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+var copyAnnotations = []string{"git-scm.com/ref", "github.com/repository"}
 
 // Add creates a new Incarnation Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -56,6 +61,257 @@ type ReconcileIncarnation struct {
 	scheme *runtime.Scheme
 }
 
+func CopyAnnotations(source map[string]string) map[string]string {
+	copy := map[string]string{}
+
+	for _, k := range copyAnnotations {
+		if v, ok := source[k]; ok {
+			copy[k] = v
+		}
+	}
+
+	return copy
+}
+
+type IncarnationResources struct {
+	Incarnation      *picchuv1alpha1.Incarnation
+	Cluster          *picchuv1alpha1.Cluster
+	SourceSecrets    *corev1.SecretList
+	SourceConfigMaps *corev1.ConfigMapList
+}
+
+func (b *IncarnationResources) Namespaces() []runtime.Object {
+	return []runtime.Object{
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: b.Incarnation.Spec.App.Name,
+				Labels: map[string]string{
+					"istio-injection": "enabled",
+				},
+			},
+		},
+	}
+}
+
+func (b *IncarnationResources) GetConfigObjects() (secrets []*corev1.Secret, configMaps []*corev1.ConfigMap) {
+	for _, item := range b.SourceSecrets.Items {
+		secrets = append(secrets, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        item.Name,
+				Namespace:   b.Incarnation.Spec.App.Name,
+				Labels:      item.Labels,
+				Annotations: CopyAnnotations(item.Annotations),
+			},
+			Data: item.Data,
+		})
+	}
+	for _, item := range b.SourceConfigMaps.Items {
+		configMaps = append(configMaps, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        item.Name,
+				Namespace:   b.Incarnation.Spec.App.Name,
+				Labels:      item.Labels,
+				Annotations: CopyAnnotations(item.Annotations),
+			},
+			Data: item.Data,
+		})
+	}
+	return
+}
+
+func (b *IncarnationResources) ReplicaSets() []runtime.Object {
+	var r []runtime.Object
+	secrets, configMaps := b.GetConfigObjects()
+	for _, secret := range secrets {
+		r = append(r, secret)
+	}
+	for _, configMap := range configMaps {
+		r = append(r, configMap)
+	}
+
+	appName := b.Incarnation.Spec.App.Name
+	tag := b.Incarnation.Spec.App.Tag
+	image := b.Incarnation.Spec.App.Image
+
+	var ports []corev1.ContainerPort
+	for _, port := range b.Incarnation.Spec.Ports {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          port.Name,
+			Protocol:      port.Protocol,
+			ContainerPort: port.ContainerPort,
+		})
+	}
+	var envs []corev1.EnvFromSource
+	for _, item := range secrets {
+		envs = append(envs, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: item.Name},
+			},
+		})
+	}
+	for _, item := range configMaps {
+		envs = append(envs, corev1.EnvFromSource{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: item.Name},
+			},
+		})
+	}
+	// Used to label ReplicaSet, Container and for Container selector
+	labels := map[string]string{
+		"medium.build/app": appName,
+		"medium.build/tag": tag,
+	}
+	r = append(r, &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tag,
+			Namespace: appName,
+			Labels:    labels,
+		},
+		Spec: appsv1.ReplicaSetSpec{
+			Replicas: &b.Incarnation.Spec.Scale.Min,
+			Selector: metav1.SetAsLabelSelector(labels),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      tag,
+					Namespace: appName,
+					Labels:    labels,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						corev1.Container{
+							EnvFrom:         envs,
+							Image:           image,
+							ImagePullPolicy: "IfNotPresent",
+							Name:            appName,
+							Ports:           ports,
+						},
+					},
+				},
+			},
+		},
+	})
+	return r
+}
+
+func (b *IncarnationResources) GetService() *corev1.Service {
+	appName := b.Incarnation.Spec.App.Name
+	tag := b.Incarnation.Spec.App.Tag
+	var ports []corev1.ServicePort
+	for _, port := range b.Incarnation.Spec.Ports {
+		ports = append(ports, corev1.ServicePort{
+			Name:       port.Name,
+			Protocol:   port.Protocol,
+			Port:       port.Port,
+			TargetPort: intstr.FromInt(int(port.ContainerPort)),
+		})
+	}
+	// Used to label Service and selector
+	labels := map[string]string{
+		"medium.build/app": appName,
+		"medium.build/tag": tag,
+	}
+
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tag,
+			Namespace: appName,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports:    ports,
+			Selector: labels,
+		},
+	}
+}
+
+func (b *IncarnationResources) VirtualServices() []runtime.Object {
+	service := b.GetService()
+	appName := b.Incarnation.Spec.App.Name
+	tag := b.Incarnation.Spec.App.Tag
+	defaultDomain := b.Cluster.DefaultDomain()
+	labels := map[string]string{
+		"medium.build/app": appName,
+		"medium.build/tag": tag,
+	}
+	r := []runtime.Object{service}
+
+	for _, port := range b.Incarnation.Spec.Ports {
+		var gateway, host string
+
+		switch mode := port.Mode; mode {
+		case picchuv1alpha1.PortPrivate:
+			gateway = "private-ingressgateway-cert-merge.istio-system.svc.cluster.local"
+			host = fmt.Sprintf("%s-%s.%s", tag, port.Name, defaultDomain)
+		case picchuv1alpha1.PortPublic:
+			continue
+			// gateway = "public-ingressgateway-cert-merge.istio-system.svc.cluster.local"
+			// TODO(bob) what is the public hoot?
+			// host = ""
+		case picchuv1alpha1.PortLocal:
+			continue
+		}
+
+		portNumber := uint32(port.Port)
+		desthost := fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace)
+
+		r = append(r, &istiov1alpha3.VirtualService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tag,
+				Namespace: appName,
+				Labels:    labels,
+			},
+			Spec: istiov1alpha3.VirtualServiceSpec{
+				Hosts:    []string{host},
+				Gateways: []string{"mesh", gateway},
+				Http: []istiov1alpha3.HTTPRoute{
+					istiov1alpha3.HTTPRoute{
+						Match: []istiov1alpha3.HTTPMatchRequest{
+							istiov1alpha3.HTTPMatchRequest{
+								Uri: &istiocommonv1alpha1.StringMatch{
+									Prefix: "/",
+								},
+							},
+						},
+						Route: []istiov1alpha3.DestinationWeight{
+							istiov1alpha3.DestinationWeight{
+								Destination: istiov1alpha3.Destination{
+									Host: desthost,
+									Port: istiov1alpha3.PortSelector{Number: portNumber},
+								},
+							},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	return r
+}
+
+func (b *IncarnationResources) Resources() []runtime.Object {
+	resources := b.Namespaces()
+	resources = append(resources, b.ReplicaSets()...)
+	return append(resources, b.VirtualServices()...)
+}
+
+func (b *IncarnationResources) Client(reconciler *ReconcileIncarnation) (client.Client, error) {
+	namespacedName := types.NamespacedName{b.Cluster.Namespace, b.Cluster.Name}
+	secret := &corev1.Secret{}
+	err := reconciler.client.Get(context.TODO(), namespacedName, secret)
+	if err != nil {
+		return nil, err
+	}
+	config, err := b.Cluster.Config(secret)
+	if err != nil {
+		return nil, err
+	}
+	if config != nil {
+		return client.New(config, client.Options{})
+	}
+	return nil, nil
+}
+
 // Reconcile reads that state of the cluster for a Incarnation object and makes changes based on the state read
 // and what is in the Incarnation.Spec
 // Note:
@@ -66,8 +322,8 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	reqLogger.Info("Reconciling Incarnation")
 
 	// Fetch the Incarnation instance
-	instance := &picchuv1alpha1.Incarnation{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	incarnation := &picchuv1alpha1.Incarnation{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, incarnation)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -77,6 +333,56 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	configOpts := client.MatchingLabels(map[string]string{
+		"medium.build/tag":              incarnation.Spec.App.Tag,
+		"medium.build/app":              incarnation.Spec.App.Name,
+		"medium.build/target":           incarnation.Spec.Assignment.Target,
+		"config.kbfd.medium.build/type": "environment",
+		"kbfd.medium.build/role":        "config",
+	})
+	clusterOpts := types.NamespacedName{request.Namespace, incarnation.Spec.Assignment.Name}
+
+	cluster := &picchuv1alpha1.Cluster{}
+	secrets := &corev1.SecretList{}
+	configMaps := &corev1.ConfigMapList{}
+
+	if err = r.client.Get(context.TODO(), clusterOpts, cluster); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = r.client.List(context.TODO(), configOpts, secrets); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err = r.client.List(context.TODO(), configOpts, configMaps); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if !cluster.Spec.Enabled {
+		return reconcile.Result{}, nil
+	}
+
+	ic := IncarnationResources{
+		Incarnation:      incarnation,
+		Cluster:          cluster,
+		SourceSecrets:    secrets,
+		SourceConfigMaps: configMaps,
+	}
+	remoteClient, err := ic.Client(r)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Create All
+	for i, resource := range ic.Resources() {
+		reqLogger.Info("visiting", "Resource", resource)
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), remoteClient, resource, func(existing runtime.Object) error {
+			reqLogger.Info("Skip reconcile: Resource already exists", "Number", i)
+			return nil
+		})
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	return reconcile.Result{}, nil
