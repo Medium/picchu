@@ -69,11 +69,11 @@ type RevisionPort struct {
 }
 
 type RevisionTarget struct {
-	Name    string                  `json:"name"`
-	Fleet   string                  `json:"fleet"`
-	Scale   RevisionTargetScale     `json:"scale"`
-	Release *RevisionTargetRelease  `json:"release,omitempty"`
-	Metrics *[]RevisionTargetMetric `json:"metrics,omitempty"`
+	Name    string                 `json:"name"`
+	Fleet   string                 `json:"fleet"`
+	Scale   RevisionTargetScale    `json:"scale"`
+	Release *RevisionTargetRelease `json:"release,omitempty"`
+	Metrics []RevisionTargetMetric `json:"metrics,omitempty"`
 }
 
 type RevisionTargetScale struct {
