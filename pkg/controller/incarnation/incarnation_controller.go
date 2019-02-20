@@ -245,7 +245,7 @@ func (b *IncarnationResources) VirtualServices() []runtime.Object {
 		case picchuv1alpha1.PortPublic:
 			continue
 			// gateway = "public-ingressgateway-cert-merge.istio-system.svc.cluster.local"
-			// TODO(bob) what is the public hoot?
+			// TODO(bob) what is the public host?
 			// host = ""
 		case picchuv1alpha1.PortLocal:
 			continue
