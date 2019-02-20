@@ -651,12 +651,8 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 	}
 	if in.Metrics != nil {
 		in, out := &in.Metrics, &out.Metrics
-		*out = new([]RevisionTargetMetric)
-		if **in != nil {
-			in, out := *in, *out
-			*out = make([]RevisionTargetMetric, len(*in))
-			copy(*out, *in)
-		}
+		*out = make([]RevisionTargetMetric, len(*in))
+		copy(*out, *in)
 	}
 	return
 }
