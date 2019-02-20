@@ -122,7 +122,7 @@ spec:
                       resources:
                         properties:
                           cpu:
-                            type: object
+                            type: string
                         type: object
                     type: object
                 required:

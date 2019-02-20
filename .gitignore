@@ -1,6 +1,9 @@
+/vendor
+
 # Temporary Build Files
 build/_output
 build/_test
+/generators
 # Created by https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
 ### Emacs ###
 # -*- mode: gitignore; -*-

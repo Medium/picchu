@@ -1,3 +1,2 @@
 **/zz_generated.*.go linguist-generated=true
-/openapi/** linguist-generated=true
-/cilent/** linguist-generated=true
+/pkg/client/** linguist-generated=true
