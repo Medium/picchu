@@ -96,7 +96,7 @@ type IncarnationScaleStatus struct {
 type IncarnationResourceStatus struct {
 	ApiVersion string                `json:"apiVersion"`
 	Kind       string                `json:"kind"`
-	Metadata   *types.NamespacedName `json:"metadata, omitempty"`
+	Metadata   *types.NamespacedName `json:"metadata,omitempty"`
 	Status     string                `json:"status"`
 }
 
