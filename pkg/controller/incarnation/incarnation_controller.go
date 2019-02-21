@@ -429,8 +429,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	replicaset := &appsv1.ReplicaSet{}
-	e := remoteClient.Get(context.TODO(), ic.ReplicaSetSelector(), replicaset)
-	if e != nil {
+	if e := remoteClient.Get(context.TODO(), ic.ReplicaSetSelector(), replicaset); e != nil {
 		reqLogger.Error(e, "Failed to get replicaset")
 	}
 	reqLogger.Info("Status", "Status", replicaset.Status)
@@ -452,8 +451,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		},
 		Resources: resourceStatus,
 	}
-	e = r.client.Status().Update(context.TODO(), incarnation)
-	if err != nil {
+	if e := r.client.Status().Update(context.TODO(), incarnation); e != nil {
 		reqLogger.Error(e, "Failed to update Cluster status")
 	}
 
