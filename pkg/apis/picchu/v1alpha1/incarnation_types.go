@@ -38,8 +38,8 @@ type IncarnationSpec struct {
 
 type IncarnationApp struct {
 	Name  string `json:"name"`
-	Ref   string `json:"ref"`
 	Tag   string `json:"tag"`
+	Ref   string `json:"ref"`
 	Image string `json:"image"`
 }
 
@@ -67,7 +67,7 @@ type IncarnationRelease struct {
 // IncarnationStatus defines the observed state of Incarnation
 type IncarnationStatus struct {
 	Health    IncarnationHealthStatus     `json:"health"`
-	Release   IncarnationReleaseStatus    `json:"release"`
+	Release   *IncarnationReleaseStatus   `json:"release,omitempty"`
 	Scale     IncarnationScaleStatus      `json:"scale"`
 	Resources []IncarnationResourceStatus `json:"resources"`
 }
@@ -84,20 +84,20 @@ type IncarnationHealthMetricStatus struct {
 }
 
 type IncarnationReleaseStatus struct {
-	PeakPercent    int `json:"peakPercent"`
-	CurrentPercent int `json:"currentPercent"`
+	PeakPercent    int32 `json:"peakPercent"`
+	CurrentPercent int32 `json:"currentPercent"`
 }
 
 type IncarnationScaleStatus struct {
-	Current int `json:"current"`
-	Desired int `json:"desired"`
+	Current int32 `json:"current"`
+	Desired int32 `json:"desired"`
 }
 
 type IncarnationResourceStatus struct {
-	ApiVersion string               `json:"apiVersion"`
-	Kind       string               `json:"kind"`
-	Metadata   types.NamespacedName `json:"metadata"`
-	Status     string               `json:"status"`
+	ApiVersion string                `json:"apiVersion"`
+	Kind       string                `json:"kind"`
+	Metadata   *types.NamespacedName `json:"metadata, omitempty"`
+	Status     string                `json:"status"`
 }
 
 func init() {
