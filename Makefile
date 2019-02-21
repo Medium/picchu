@@ -1,5 +1,5 @@
 # Copyright © 2019 A Medium Corporation.
-# Licensed under the Apache License, Version 2.0; see the LICENSE file.
+# Licensed under the Apache License, Version 2.0; see the NOTICE file.
 
 PACKAGE := go.medium.engineering/picchu/pkg
 API_PACKAGE := $(PACKAGE)/apis
