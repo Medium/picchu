@@ -37,14 +37,14 @@ type IncarnationSpec struct {
 }
 
 type IncarnationApp struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
 	Ref   string `json:"ref"`
-	Tag  string `json:"tag"`
+	Tag   string `json:"tag"`
 	Image string `json:"image"`
 }
 
 type IncarnationAssignment struct {
-	Name string `json:"name"`
+	Name   string `json:"name"`
 	Target string `json:"target"`
 }
 

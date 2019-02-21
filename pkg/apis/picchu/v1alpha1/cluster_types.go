@@ -36,9 +36,9 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled    bool               `json:"enabled"`
-	Config     *ClusterConfig     `json:"config,omitempty"`
-	Weight     float64            `json:"weight"`
+	Enabled bool            `json:"enabled"`
+	Config  *ClusterConfig  `json:"config,omitempty"`
+	Weight  float64         `json:"weight"`
 	AWS     *ClusterAWSInfo `json:"aws,omitempty"`
 }
 
@@ -49,8 +49,8 @@ type ClusterConfig struct {
 
 type ClusterAWSInfo struct {
 	AccountID string `json:"accountId,id"`
-	Region string `json:"region"`
-	AZ     string `json:"az,omitempty"`
+	Region    string `json:"region"`
+	AZ        string `json:"az,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster

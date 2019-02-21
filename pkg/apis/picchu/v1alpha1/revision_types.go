@@ -36,9 +36,9 @@ type RevisionSpec struct {
 }
 
 type RevisionApp struct {
-	Name string `json:"name"`
-	Ref  string `json:"ref"`
-	Tag  string `json:"tag"`
+	Name  string `json:"name"`
+	Ref   string `json:"ref"`
+	Tag   string `json:"tag"`
 	Image string `json:"image"`
 }
 
