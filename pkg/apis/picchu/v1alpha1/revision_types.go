@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,41 +31,19 @@ type RevisionList struct {
 type RevisionSpec struct {
 	App     RevisionApp      `json:"app"`
 	Release RevisionRelease  `json:"release"`
-	Ports   []RevisionPort   `json:"ports"`
+	Ports   []PortInfo       `json:"ports"`
 	Targets []RevisionTarget `json:"targets"`
 }
 
 type RevisionApp struct {
-	Name string `json:"name"`
-	Ref  string `json:"ref"`
-	Tag  string `json:"tag"`
+	Name  string `json:"name"`
+	Ref   string `json:"ref"`
+	Tag   string `json:"tag"`
+	Image string `json:"image"`
 }
 
 type RevisionRelease struct {
 	Eligible bool `json:"eligible"`
-}
-
-type PortMode string
-
-var (
-	// PortPublic sets a port to be published to the Internet.
-	PortPublic PortMode = "public"
-
-	// PortPrivate sets a port to be published on a private gateway, making it available to other
-	// clusters and users on our private networks (including VPN), but not on the Internet.
-	PortPrivate PortMode = "private"
-
-	// PortInternal sets the port to not be published to any gateway, making it only available within
-	// the local Kubernetes cluster.
-	PortLocal PortMode = "local"
-)
-
-type RevisionPort struct {
-	Name          string          `json:"name,omitempty"`
-	Port          int32           `json:"port,omitempty"`
-	ContainerPort int32           `json:"containerPort,omitempty"`
-	Protocol      corev1.Protocol `json:"protocol,omitempty"`
-	Mode          PortMode        `json:"mode"`
 }
 
 type RevisionTarget struct {

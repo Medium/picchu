@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -22,6 +23,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_cluster")
+var hostPattern = regexp.MustCompile(`https://[0-9A-F]+\.[^.]+\.([^.]+)\.eks\.amazonaws\.com`)
 
 // Add creates a new Cluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -85,7 +87,6 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		reqLogger.Info("Disabled, no status")
 		instance.Status = picchuv1alpha1.ClusterStatus{}
 	} else {
-		// TODO(bob): get status of cluster with API call
 		secret := &corev1.Secret{}
 		selector := types.NamespacedName{
 			Name:      instance.Name,
@@ -94,30 +95,40 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		err = r.client.Get(context.TODO(), selector, secret)
 		if err != nil {
 			secret = nil
-		} else {
-			for k, _ := range secret.Data {
-				reqLogger.Info(fmt.Sprintf("Secret data %s", k))
+		}
+		if secret != nil {
+			config, err := instance.Config(secret)
+			if err != nil {
+				reqLogger.Error(err, "Failed to create kube config")
+				return reconcile.Result{}, err
 			}
-		}
-		config, err := instance.Config(secret)
-		if err != nil {
-			reqLogger.Error(err, "Failed to create kube config")
-			return reconcile.Result{}, err
-		}
-		ready := "True"
-		version, err := ServerVersion(config)
-		if err != nil {
-			ready = "False"
-		}
+			ready := "True"
+			version, err := ServerVersion(config)
+			if err != nil {
+				ready = "False"
+			}
 
-		reqLogger.Info("Setting status")
-		instance.Status = picchuv1alpha1.ClusterStatus{
-			Kubernetes: picchuv1alpha1.ClusterKubernetesStatus{
-				Version: FormatVersion(version),
-			},
-			Conditions: []picchuv1alpha1.ClusterConditionStatus{
-				picchuv1alpha1.ClusterConditionStatus{"Ready", ready},
-			},
+			reqLogger.Info("Setting status")
+			awsStatus := instance.Status.AWS
+			if awsStatus == nil {
+				awsStatus = instance.Spec.AWS
+			}
+			if awsStatus == nil {
+				awsStatus = &picchuv1alpha1.ClusterAWSInfo{
+					AccountID: DiscoverAccountID(instance),
+					Region:    DiscoverRegion(instance),
+					AZ:        DiscoverAZ(instance),
+				}
+			}
+			instance.Status = picchuv1alpha1.ClusterStatus{
+				Kubernetes: picchuv1alpha1.ClusterKubernetesStatus{
+					Version: FormatVersion(version),
+				},
+				Conditions: []picchuv1alpha1.ClusterConditionStatus{
+					picchuv1alpha1.ClusterConditionStatus{"Ready", ready},
+				},
+				AWS: awsStatus,
+			}
 		}
 	}
 	err = r.client.Status().Update(context.TODO(), instance)
@@ -144,4 +155,30 @@ func ServerVersion(config *rest.Config) (*version.Info, error) {
 		return nil, err
 	}
 	return disco.ServerVersion()
+}
+
+func DiscoverRegion(cluster *picchuv1alpha1.Cluster) string {
+	// TODO(bob) Better way...
+	if cluster.Spec.Config != nil {
+		matches := hostPattern.FindSubmatch([]byte(cluster.Spec.Config.Server))
+		if matches != nil {
+			return string(matches[1])
+		}
+	}
+	return ""
+}
+
+func DiscoverAZ(cluster *picchuv1alpha1.Cluster) string {
+	// TODO(bob) Using Spec might be the only way?
+	if cluster.Spec.AWS != nil {
+		return cluster.Spec.AWS.AZ
+	}
+	return ""
+}
+
+func DiscoverAccountID(cluster *picchuv1alpha1.Cluster) string {
+	if cluster.Spec.AWS != nil {
+		return cluster.Spec.AWS.AccountID
+	}
+	return ""
 }

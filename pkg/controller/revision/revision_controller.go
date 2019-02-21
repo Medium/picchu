@@ -114,38 +114,48 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 		for _, cluster := range clusters.Items {
 			app := revision.Spec.App.Name
 			tag := revision.Spec.App.Tag
+			ref := revision.Spec.App.Ref
+			image := revision.Spec.App.Image
 			commit := revision.Labels["medium.build/commit"]
+
+			annotations := map[string]string{
+				"git-scm.com/ref":       ref,
+				"github.com/repository": revision.Annotations["github.com/repository"],
+			}
 
 			labels := map[string]string{
 				"medium.build/target":   target.Name,
 				"medium.build/fleet":    target.Fleet,
 				"medium.build/cluster":  cluster.Name,
-				"medium.build/revision": revision.ObjectMeta.Name,
+				"medium.build/revision": revision.Name,
 				"medium.build/tag":      tag,
 				"medium.build/app":      app,
 				"medium.build/commit":   commit,
 			}
 
-			name := fmt.Sprintf("%s-%s-%s-%s",
-				app,
+			name := fmt.Sprintf("%s-%s-%s",
+				tag,
 				target.Name,
 				cluster.Name,
-				commit[0:11],
 			)
 
 			incarnations = append(incarnations, &picchuv1alpha1.Incarnation{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: revision.Namespace,
-					Labels:    labels,
+					Name:        name,
+					Namespace:   revision.Namespace,
+					Labels:      labels,
+					Annotations: annotations,
 				},
 				Spec: picchuv1alpha1.IncarnationSpec{
 					App: picchuv1alpha1.IncarnationApp{
-						Name: app,
-						Tag:  tag,
+						Name:  app,
+						Tag:   tag,
+						Ref:   ref,
+						Image: image,
 					},
 					Assignment: picchuv1alpha1.IncarnationAssignment{
-						Name: cluster.ObjectMeta.Name,
+						Name:   cluster.ObjectMeta.Name,
+						Target: target.Name,
 					},
 					Scale: picchuv1alpha1.IncarnationScale{
 						Min: 1,
@@ -161,6 +171,7 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 						Rate:     "TX",
 						Schedule: "Humane",
 					},
+					Ports: revision.Spec.Ports,
 				},
 			})
 		}

@@ -270,6 +270,18 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:ab496a186c1f3a46d32ddf7307953dea9e07dbb47af3f68fd3662d03ddad20d4"
+  name = "github.com/knative/pkg"
+  packages = [
+    "apis/istio",
+    "apis/istio/common/v1alpha1",
+    "apis/istio/v1alpha3",
+  ]
+  pruneopts = "NT"
+  revision = "737c4a42f3c168347ce46311e1c774885423899f"
+
+[[projects]]
+  branch = "master"
   digest = "1:7d9fcac7f1228470c4ea0ee31cdfb662a758c44df691e39b3e76c11d3e12ba8f"
   name = "github.com/mailru/easyjson"
   packages = [
@@ -918,12 +930,15 @@
   analyzer-version = 1
   input-imports = [
     "github.com/go-openapi/spec",
+    "github.com/knative/pkg/apis/istio/common/v1alpha1",
+    "github.com/knative/pkg/apis/istio/v1alpha3",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
     "github.com/operator-framework/operator-sdk/pkg/leader",
     "github.com/operator-framework/operator-sdk/pkg/log/zap",
     "github.com/operator-framework/operator-sdk/pkg/metrics",
     "github.com/operator-framework/operator-sdk/version",
     "github.com/spf13/pflag",
+    "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/resource",
@@ -933,6 +948,7 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/version",
     "k8s.io/apimachinery/pkg/watch",

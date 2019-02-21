@@ -33,20 +33,24 @@ type IncarnationSpec struct {
 	Assignment IncarnationAssignment `json:"assignment"`
 	Scale      IncarnationScale      `json:"scale"`
 	Release    IncarnationRelease    `json:"release"`
+	Ports      []PortInfo            `json:"ports,omitempty"`
 }
 
 type IncarnationApp struct {
-	Name string `json:"name"`
-	Tag  string `json:"tag"`
+	Name  string `json:"name"`
+	Ref   string `json:"ref"`
+	Tag   string `json:"tag"`
+	Image string `json:"image"`
 }
 
 type IncarnationAssignment struct {
-	Name string `json:"name"`
+	Name   string `json:"name"`
+	Target string `json:"target"`
 }
 
 type IncarnationScale struct {
-	Min       int                        `json:"min"`
-	Max       int                        `json:"max"`
+	Min       int32                      `json:"min"`
+	Max       int32                      `json:"max"`
 	Resources []IncarnationScaleResource `json:"resources"`
 }
 

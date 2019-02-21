@@ -26,21 +26,49 @@ spec:
           properties:
             app:
               properties:
+                image:
+                  type: string
                 name:
+                  type: string
+                ref:
                   type: string
                 tag:
                   type: string
               required:
               - name
+              - ref
               - tag
+              - image
               type: object
             assignment:
               properties:
                 name:
                   type: string
+                target:
+                  type: string
               required:
               - name
+              - target
               type: object
+            ports:
+              items:
+                properties:
+                  containerPort:
+                    format: int32
+                    type: integer
+                  mode:
+                    type: string
+                  name:
+                    type: string
+                  port:
+                    format: int32
+                    type: integer
+                  protocol:
+                    type: string
+                required:
+                - mode
+                type: object
+              type: array
             release:
               properties:
                 max:
@@ -58,10 +86,10 @@ spec:
             scale:
               properties:
                 max:
-                  format: int64
+                  format: int32
                   type: integer
                 min:
-                  format: int64
+                  format: int32
                   type: integer
                 resources:
                   items:

@@ -24,16 +24,16 @@ spec:
           type: object
         spec:
           properties:
-            awsAccount:
+            aws:
               properties:
-                az:
+                accountId:
                   type: string
-                id:
+                az:
                   type: string
                 region:
                   type: string
               required:
-              - id
+              - accountId
               - region
               type: object
             config:
@@ -54,6 +54,18 @@ spec:
           type: object
         status:
           properties:
+            aws:
+              properties:
+                accountId:
+                  type: string
+                az:
+                  type: string
+                region:
+                  type: string
+              required:
+              - accountId
+              - region
+              type: object
             conditions:
               items:
                 properties:
