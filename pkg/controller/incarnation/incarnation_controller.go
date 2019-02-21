@@ -28,7 +28,6 @@ import (
 var (
 	log             = logf.Log.WithName("controller_incarnation")
 	copyAnnotations = []string{"git-scm.com/ref", "github.com/repository"}
-	metaAccessor    = apimeta.NewAccessor()
 )
 
 type Identity interface {
