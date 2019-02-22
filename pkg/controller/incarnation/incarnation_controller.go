@@ -451,7 +451,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		Resources: resourceStatus,
 	}
 	if e := r.client.Status().Update(context.TODO(), incarnation); e != nil {
-		reqLogger.Error(e, "Failed to update Cluster status")
+		reqLogger.Error(e, "Failed to update Incarnation status")
 	}
 
 	return reconcile.Result{}, err
