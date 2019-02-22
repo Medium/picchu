@@ -11,10 +11,12 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -23,8 +25,14 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var log = logf.Log.WithName("controller_incarnation")
-var copyAnnotations = []string{"git-scm.com/ref", "github.com/repository"}
+var (
+	log             = logf.Log.WithName("controller_incarnation")
+	copyAnnotations = []string{"git-scm.com/ref", "github.com/repository"}
+)
+
+type Identity interface {
+	GetAPIVersion() string
+}
 
 // Add creates a new Incarnation Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -191,6 +199,13 @@ func (b *IncarnationResources) ReplicaSets() []runtime.Object {
 		},
 	})
 	return r
+}
+
+func (b *IncarnationResources) ReplicaSetSelector() types.NamespacedName {
+	return types.NamespacedName{
+		b.Incarnation.Spec.App.Name,
+		b.Incarnation.Spec.App.Tag,
+	}
 }
 
 func (b *IncarnationResources) GetService() *corev1.Service {
@@ -373,17 +388,71 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
+	resourceStatus := []picchuv1alpha1.IncarnationResourceStatus{}
+
+	// Create statuses for all resources
+	for _, resource := range ic.Resources() {
+		status := "unknown"
+		apiVersion := ""
+		kind := ""
+
+		kinds, _, _ := scheme.Scheme.ObjectKinds(resource)
+		if len(kinds) == 1 {
+			apiVersion, kind = kinds[0].ToAPIVersionAndKind()
+		}
+
+		metadata, _ := apimeta.Accessor(resource)
+		namespace := metadata.GetNamespace()
+		name := metadata.GetName()
+
+		resourceStatus = append(resourceStatus, picchuv1alpha1.IncarnationResourceStatus{
+			ApiVersion: apiVersion,
+			Kind:       kind,
+			Metadata:   &types.NamespacedName{name, namespace},
+			Status:     status,
+		})
+	}
+
 	// Create All
+	err = nil
 	for i, resource := range ic.Resources() {
-		reqLogger.Info("visiting", "Resource", resource)
+		resourceStatus[i].Status = "creating"
 		_, err = controllerutil.CreateOrUpdate(context.TODO(), remoteClient, resource, func(existing runtime.Object) error {
-			reqLogger.Info("Skip reconcile: Resource already exists", "Number", i)
+			resourceStatus[i].Status = "created"
 			return nil
 		})
 		if err != nil {
-			return reconcile.Result{}, err
+			resourceStatus[i].Status = "error"
+			break
 		}
+
 	}
 
-	return reconcile.Result{}, nil
+	replicaset := &appsv1.ReplicaSet{}
+	if e := remoteClient.Get(context.TODO(), ic.ReplicaSetSelector(), replicaset); e != nil {
+		reqLogger.Error(e, "Failed to get replicaset")
+	}
+
+	health := true
+	if replicaset.Status.ReadyReplicas == 0 {
+		health = false
+	}
+
+	incarnation.Status = picchuv1alpha1.IncarnationStatus{
+		Health: picchuv1alpha1.IncarnationHealthStatus{
+			// TODO(bob): when we get metrics, evaluate actual health
+			Healthy: health,
+			Metrics: []picchuv1alpha1.IncarnationHealthMetricStatus{},
+		},
+		Scale: picchuv1alpha1.IncarnationScaleStatus{
+			Current: replicaset.Status.ReadyReplicas,
+			Desired: replicaset.Status.Replicas,
+		},
+		Resources: resourceStatus,
+	}
+	if e := r.client.Status().Update(context.TODO(), incarnation); e != nil {
+		reqLogger.Error(e, "Failed to update Cluster status")
+	}
+
+	return reconcile.Result{}, err
 }

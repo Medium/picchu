@@ -36,8 +36,8 @@ spec:
                   type: string
               required:
               - name
-              - ref
               - tag
+              - ref
               - image
               type: object
             assignment:
@@ -141,10 +141,10 @@ spec:
             release:
               properties:
                 currentPercent:
-                  format: int64
+                  format: int32
                   type: integer
                 peakPercent:
-                  format: int64
+                  format: int32
                   type: integer
               required:
               - peakPercent
@@ -157,24 +157,21 @@ spec:
                     type: string
                   kind:
                     type: string
-                  metadata:
-                    type: object
                   status:
                     type: string
                 required:
                 - apiVersion
                 - kind
-                - metadata
                 - status
                 type: object
               type: array
             scale:
               properties:
                 current:
-                  format: int64
+                  format: int32
                   type: integer
                 desired:
-                  format: int64
+                  format: int32
                   type: integer
               required:
               - current
@@ -182,7 +179,6 @@ spec:
               type: object
           required:
           - health
-          - release
           - scale
           - resources
           type: object
