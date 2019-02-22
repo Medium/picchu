@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -62,7 +61,7 @@ type RevisionTargetScale struct {
 }
 
 type ScaleResources struct {
-	CPU resource.Quantity `json:"cpu,omitempty"`
+	CPU string `json:"cpu,omitempty"`
 }
 
 type RevisionTargetRelease struct {
@@ -88,13 +87,14 @@ type RevisionStatus struct {
 }
 
 type RevisionTargetStatus struct {
-	Name        string                           `json:"name"`
-	Deployments []RevisionTargetDeploymentStatus `json:"deployments"`
+	Name         string                            `json:"name"`
+	Incarnations []RevisionTargetIncarnationStatus `json:"incarnations"`
 }
 
-type RevisionTargetDeploymentStatus struct {
+type RevisionTargetIncarnationStatus struct {
 	Name    string `json:"name"`
 	Cluster string `json:"cluster"`
+	Status  string `json:"status"`
 }
 
 func init() {

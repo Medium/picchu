@@ -84,23 +84,33 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
+	statusBuilder := NewStatusBuilder(incarnations)
+
 	// Set Revision instance as the owner and controller
 	for _, incarnation := range incarnations {
-		if err := controllerutil.SetControllerReference(instance, incarnation, r.scheme); err != nil {
-			return reconcile.Result{}, err
+		statusBuilder.UpdateStatus(incarnation, "creating")
+		if err = controllerutil.SetControllerReference(instance, incarnation, r.scheme); err != nil {
+			reqLogger.Error(err, "Failed to SetControllerReference for incarnation", "Incarnation.Name", incarnation.Name)
+			break
 		}
-		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, incarnation, func(existing runtime.Object) error {
-			i := existing.(*picchuv1alpha1.Incarnation)
-			reqLogger.Info("Skip reconcile: Incarnation already exists", "Incarnation.Namespace", i.Namespace, "Incarnation.Name", i.Name)
+		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, incarnation, func(existing runtime.Object) error {
+			statusBuilder.UpdateStatus(incarnation, "created")
 			return nil
 		})
 		if err != nil {
-			return reconcile.Result{}, err
+			reqLogger.Error(err, "Failed to CreateOrUpdate incarnation", "Incarnation.Name", incarnation.Name)
+			statusBuilder.UpdateStatus(incarnation, "failed")
+			break
 		}
-		reqLogger.Info("Incarnation reconciled", "Operation", op)
 	}
 
-	return reconcile.Result{}, nil
+	instance.Status = *statusBuilder.Status()
+	reqLogger.Info("Updating Revision status")
+	if e := r.client.Status().Update(context.TODO(), instance); e != nil {
+		reqLogger.Error(e, "Failed to update Revision status")
+	}
+
+	return reconcile.Result{}, err
 }
 
 // newIncarnationsForRevision returns incarnations for all target clusters  for a Revision
@@ -184,4 +194,51 @@ func (r *ReconcileRevision) getClustersByFleet(fleet string) (*picchuv1alpha1.Cl
 	opts := client.MatchingLabels(map[string]string{"medium.build/fleet": fleet})
 	err := r.client.List(context.TODO(), opts, clusters)
 	return clusters, err
+}
+
+type StatusBuilder struct {
+	TargetStatuses map[string]picchuv1alpha1.RevisionTargetStatus
+}
+
+func NewStatusBuilder(incarnations []*picchuv1alpha1.Incarnation) *StatusBuilder {
+	targetStatuses := map[string]picchuv1alpha1.RevisionTargetStatus{}
+	for _, incarnation := range incarnations {
+		target := incarnation.Spec.Assignment.Target
+		targetStatus, ok := targetStatuses[target]
+		if !ok {
+			targetStatus = picchuv1alpha1.RevisionTargetStatus{
+				Name:         target,
+				Incarnations: []picchuv1alpha1.RevisionTargetIncarnationStatus{},
+			}
+		}
+		targetStatus.Incarnations = append(targetStatus.Incarnations, picchuv1alpha1.RevisionTargetIncarnationStatus{
+			Name:    incarnation.Name,
+			Cluster: incarnation.Spec.Assignment.Name,
+			Status:  "unknown",
+		})
+		targetStatuses[target] = targetStatus
+	}
+	return &StatusBuilder{targetStatuses}
+}
+
+func (s *StatusBuilder) UpdateStatus(incarnation *picchuv1alpha1.Incarnation, status string) {
+	targetStatus := s.TargetStatuses[incarnation.Spec.Assignment.Target]
+	for i, incStatus := range targetStatus.Incarnations {
+		if incStatus.Name == incarnation.Name {
+			targetStatus.Incarnations[i].Status = status
+			s.TargetStatuses[targetStatus.Name] = targetStatus
+			return
+		}
+	}
+	return
+}
+
+func (s *StatusBuilder) Status() *picchuv1alpha1.RevisionStatus {
+	targets := make([]picchuv1alpha1.RevisionTargetStatus, len(s.TargetStatuses))
+	var i int
+	for _, v := range s.TargetStatuses {
+		targets[i] = v
+		i++
+	}
+	return &picchuv1alpha1.RevisionStatus{targets}
 }

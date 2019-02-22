@@ -125,7 +125,7 @@ spec:
                       resources:
                         properties:
                           cpu:
-                            type: object
+                            type: string
                         type: object
                     type: object
                 required:
@@ -145,23 +145,26 @@ spec:
             targets:
               items:
                 properties:
-                  deployments:
+                  incarnations:
                     items:
                       properties:
                         cluster:
                           type: string
                         name:
                           type: string
+                        status:
+                          type: string
                       required:
                       - name
                       - cluster
+                      - status
                       type: object
                     type: array
                   name:
                     type: string
                 required:
                 - name
-                - deployments
+                - incarnations
                 type: object
               type: array
           required:
