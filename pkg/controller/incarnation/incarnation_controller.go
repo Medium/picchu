@@ -432,7 +432,6 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	if e := remoteClient.Get(context.TODO(), ic.ReplicaSetSelector(), replicaset); e != nil {
 		reqLogger.Error(e, "Failed to get replicaset")
 	}
-	reqLogger.Info("Status", "Status", replicaset.Status)
 
 	health := true
 	if replicaset.Status.ReadyReplicas == 0 {
