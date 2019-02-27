@@ -31,8 +31,8 @@ type IncarnationList struct {
 type IncarnationSpec struct {
 	App        IncarnationApp        `json:"app"`
 	Assignment IncarnationAssignment `json:"assignment"`
-	Scale      IncarnationScale      `json:"scale"`
-	Release    IncarnationRelease    `json:"release"`
+	Scale      ScaleInfo             `json:"scale"`
+	Release    ReleaseInfo           `json:"release,omitempty"`
 	Ports      []PortInfo            `json:"ports,omitempty"`
 }
 
@@ -46,22 +46,6 @@ type IncarnationApp struct {
 type IncarnationAssignment struct {
 	Name   string `json:"name"`
 	Target string `json:"target"`
-}
-
-type IncarnationScale struct {
-	Min       int32                      `json:"min"`
-	Max       int32                      `json:"max"`
-	Resources []IncarnationScaleResource `json:"resources"`
-}
-
-type IncarnationScaleResource struct {
-	CPU string `json:"cpu"`
-}
-
-type IncarnationRelease struct {
-	Max      int    `json:"max"`
-	Rate     string `json:"rate"`
-	Schedule string `json:"schedule"`
 }
 
 // IncarnationStatus defines the observed state of Incarnation

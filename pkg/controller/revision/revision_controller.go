@@ -167,21 +167,9 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 						Name:   cluster.ObjectMeta.Name,
 						Target: target.Name,
 					},
-					Scale: picchuv1alpha1.IncarnationScale{
-						Min: 1,
-						Max: 10,
-						Resources: []picchuv1alpha1.IncarnationScaleResource{
-							picchuv1alpha1.IncarnationScaleResource{
-								CPU: "200m",
-							},
-						},
-					},
-					Release: picchuv1alpha1.IncarnationRelease{
-						Max:      100,
-						Rate:     "TX",
-						Schedule: "Humane",
-					},
-					Ports: revision.Spec.Ports,
+					Scale:   target.Scale,
+					Release: target.Release,
+					Ports:   revision.Spec.Ports,
 				},
 			})
 		}

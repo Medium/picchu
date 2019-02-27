@@ -48,26 +48,9 @@ type RevisionRelease struct {
 type RevisionTarget struct {
 	Name    string                 `json:"name"`
 	Fleet   string                 `json:"fleet"`
-	Scale   RevisionTargetScale    `json:"scale"`
-	Release *RevisionTargetRelease `json:"release,omitempty"`
+	Scale   ScaleInfo              `json:"scale"`
+	Release ReleaseInfo            `json:"release,omitempty"`
 	Metrics []RevisionTargetMetric `json:"metrics,omitempty"`
-}
-
-type RevisionTargetScale struct {
-	Min       int32          `json:"min,omitempty"`
-	Default   int32          `json:"default,omitempty"`
-	Max       int32          `json:"max,omitempty"`
-	Resources ScaleResources `json:"resources,omitempty"`
-}
-
-type ScaleResources struct {
-	CPU string `json:"cpu,omitempty"`
-}
-
-type RevisionTargetRelease struct {
-	Max      int    `json:"max"`
-	Rate     string `json:"rate"`
-	Schedule string `json:"schedule"`
 }
 
 type RevisionTargetMetric struct {
