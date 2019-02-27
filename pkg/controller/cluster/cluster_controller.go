@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/dns/route53"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -124,10 +125,8 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 				Kubernetes: picchuv1alpha1.ClusterKubernetesStatus{
 					Version: FormatVersion(version),
 				},
-				Conditions: []picchuv1alpha1.ClusterConditionStatus{
-					picchuv1alpha1.ClusterConditionStatus{"Ready", ready},
-				},
-				AWS: awsStatus,
+				Conditions: []picchuv1alpha1.ClusterConditionStatus{{"Ready", ready}},
+				AWS:        awsStatus,
 			}
 		}
 	}
@@ -137,6 +136,8 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		reqLogger.Error(err, "Failed to update Cluster status")
 		return reconcile.Result{}, err
 	}
+
+	route53.Sync(instance)
 
 	return reconcile.Result{}, nil
 }
