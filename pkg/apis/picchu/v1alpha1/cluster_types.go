@@ -36,10 +36,12 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled bool            `json:"enabled"`
-	Config  *ClusterConfig  `json:"config,omitempty"`
-	Weight  float64         `json:"weight"`
-	AWS     *ClusterAWSInfo `json:"aws,omitempty"`
+	Enabled   bool              `json:"enabled"`
+	Config    *ClusterConfig    `json:"config,omitempty"`
+	Weight    float64           `json:"weight"`
+	AWS       *ClusterAWSInfo   `json:"aws,omitempty"`
+	DNS       []ClusterDNSGroup `json:"dns,omitempty"`
+	Ingresses ClusterIngresses  `json:"ingresses"`
 }
 
 type ClusterConfig struct {
@@ -51,6 +53,29 @@ type ClusterAWSInfo struct {
 	AccountID string `json:"accountId,id"`
 	Region    string `json:"region"`
 	AZ        string `json:"az,omitempty"`
+}
+
+const (
+	Route53Provider    = "route53"
+	CloudflareProvider = "cloudflare"
+	PrivateIngressName = "private"
+	PublicIngressName  = "public"
+)
+
+type ClusterDNSGroup struct {
+	Hosts    []string `json:"hosts,omitempty"`
+	Provider string   `json:"provider,omitempty"`
+	Ingress  string   `json:"ingress,omitempty"`
+}
+
+type ClusterIngresses struct {
+	Public  IngressInfo `json:"public"`
+	Private IngressInfo `json:"private"`
+}
+
+type IngressInfo struct {
+	HostedZoneId string `json:"hosted-zone-id"`
+	DNSName      string `json:"dns-name"`
 }
 
 // ClusterStatus defines the observed state of Cluster

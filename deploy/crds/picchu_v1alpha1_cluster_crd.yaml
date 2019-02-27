@@ -43,14 +43,38 @@ spec:
               required:
               - server
               type: object
+            dns:
+              items:
+                properties:
+                  hosts:
+                    items:
+                      type: string
+                    type: array
+                  ingress:
+                    type: string
+                  provider:
+                    type: string
+                type: object
+              type: array
             enabled:
               type: boolean
+            ingresses:
+              properties:
+                private:
+                  type: object
+                public:
+                  type: object
+              required:
+              - public
+              - private
+              type: object
             weight:
               format: double
               type: number
           required:
           - enabled
           - weight
+          - ingresses
           type: object
         status:
           properties:
