@@ -43,5 +43,7 @@ rules:
   - picchu.medium.engineering
   resources:
   - '*'
+  - appmanagers
+  - releasemanagers
   verbs:
   - '*'

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"go.medium.engineering/picchu/pkg/apis"
 	"go.medium.engineering/picchu/pkg/controller"
@@ -26,8 +27,9 @@ import (
 
 // Change below variables to serve metrics on different host or port.
 var (
-	metricsHost       = "0.0.0.0"
-	metricsPort int32 = 8383
+	metricsHost             = "0.0.0.0"
+	metricsPort       int32 = 8383
+	syncPeriodSeconds int   = 30
 )
 var log = logf.Log.WithName("cmd")
 
@@ -82,10 +84,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	resyncPeriod := time.Duration(syncPeriodSeconds) * time.Second
+
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{
 		Namespace:          namespace,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
+		SyncPeriod:         &resyncPeriod,
 	})
 	if err != nil {
 		log.Error(err, "")

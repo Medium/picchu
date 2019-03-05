@@ -36,6 +36,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		WithManager(mgr).
 		ForType(&picchuv1alpha1.Revision{}).
 		Owns(&picchuv1alpha1.Incarnation{}).
+		Owns(&picchuv1alpha1.ReleaseManager{}).
 		Build(r)
 
 	if err != nil {
@@ -110,6 +111,39 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		reqLogger.Error(e, "Failed to update Revision status")
 	}
 
+	// Sync releasemanagers
+	appName := instance.Spec.App.Name
+	for _, target := range instance.Spec.Targets {
+		targetName := target.Name
+		clusters, err := r.getClustersByFleet(target.Fleet)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		for _, cluster := range clusters.Items {
+			clusterName := cluster.Name
+			rmName := fmt.Sprintf("%s-%s-%s", appName, targetName, clusterName)
+			rm := &picchuv1alpha1.ReleaseManager{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      rmName,
+					Namespace: instance.Namespace,
+				},
+			}
+			if err := controllerutil.SetControllerReference(instance, rm, r.scheme); err != nil {
+				return reconcile.Result{}, err
+			}
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rm, func(runtime.Object) error {
+				rm.Spec.Cluster = clusterName
+				rm.Spec.App = appName
+				rm.Spec.Target = targetName
+				return nil
+			})
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			reqLogger.Info("ReleaseManager sync'd", "Op", op)
+		}
+	}
+
 	return reconcile.Result{}, err
 }
 
@@ -129,8 +163,9 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 			commit := revision.Labels["medium.build/commit"]
 
 			annotations := map[string]string{
-				"git-scm.com/ref":       ref,
-				"github.com/repository": revision.Annotations["github.com/repository"],
+				"git-scm.com/ref":                 ref,
+				"git-scm.com/committer-timestamp": revision.Annotations["git-scm.com/committer-timestamp"],
+				"github.com/repository":           revision.Annotations["github.com/repository"],
 			}
 
 			labels := map[string]string{
@@ -149,7 +184,7 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 				cluster.Name,
 			)
 
-			incarnations = append(incarnations, &picchuv1alpha1.Incarnation{
+			incarnation := &picchuv1alpha1.Incarnation{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        name,
 					Namespace:   revision.Namespace,
@@ -171,7 +206,9 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 					Release: target.Release,
 					Ports:   revision.Spec.Ports,
 				},
-			})
+			}
+			incarnation.Spec.Release.Eligible = revision.Spec.Release.Eligible
+			incarnations = append(incarnations, incarnation)
 		}
 	}
 	return incarnations, nil

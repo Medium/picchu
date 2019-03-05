@@ -2,12 +2,10 @@ package incarnation
 
 import (
 	"context"
-	"fmt"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 
-	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
-	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -15,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,19 +83,6 @@ type IncarnationResources struct {
 	Cluster          *picchuv1alpha1.Cluster
 	SourceSecrets    *corev1.SecretList
 	SourceConfigMaps *corev1.ConfigMapList
-}
-
-func (b *IncarnationResources) Namespaces() []runtime.Object {
-	return []runtime.Object{
-		&corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: b.Incarnation.Spec.App.Name,
-				Labels: map[string]string{
-					"istio-injection": "enabled",
-				},
-			},
-		},
-	}
 }
 
 func (b *IncarnationResources) GetConfigObjects() (secrets []*corev1.Secret, configMaps []*corev1.ConfigMap) {
@@ -208,123 +192,8 @@ func (b *IncarnationResources) ReplicaSetSelector() types.NamespacedName {
 	}
 }
 
-func (b *IncarnationResources) GetService() *corev1.Service {
-	appName := b.Incarnation.Spec.App.Name
-	tag := b.Incarnation.Spec.App.Tag
-	var ports []corev1.ServicePort
-	for _, port := range b.Incarnation.Spec.Ports {
-		ports = append(ports, corev1.ServicePort{
-			Name:       port.Name,
-			Protocol:   port.Protocol,
-			Port:       port.Port,
-			TargetPort: intstr.FromInt(int(port.ContainerPort)),
-		})
-	}
-	// Used to label Service and selector
-	labels := map[string]string{
-		"medium.build/app": appName,
-		"medium.build/tag": tag,
-	}
-
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      tag,
-			Namespace: appName,
-			Labels:    labels,
-		},
-		Spec: corev1.ServiceSpec{
-			Ports:    ports,
-			Selector: labels,
-		},
-	}
-}
-
-func (b *IncarnationResources) VirtualServices() []runtime.Object {
-	service := b.GetService()
-	appName := b.Incarnation.Spec.App.Name
-	tag := b.Incarnation.Spec.App.Tag
-	defaultDomain := b.Cluster.DefaultDomain()
-	labels := map[string]string{
-		"medium.build/app": appName,
-		"medium.build/tag": tag,
-	}
-	r := []runtime.Object{service}
-
-	for _, port := range b.Incarnation.Spec.Ports {
-		var gateway, host string
-
-		switch mode := port.Mode; mode {
-		case picchuv1alpha1.PortPrivate:
-			gateway = "private-ingressgateway-cert-merge.istio-system.svc.cluster.local"
-			host = fmt.Sprintf("%s-%s.%s", tag, port.Name, defaultDomain)
-		case picchuv1alpha1.PortPublic:
-			continue
-			// gateway = "public-ingressgateway-cert-merge.istio-system.svc.cluster.local"
-			// TODO(bob) what is the public host?
-			// host = ""
-		case picchuv1alpha1.PortLocal:
-			continue
-		}
-
-		portNumber := uint32(port.Port)
-		desthost := fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace)
-
-		r = append(r, &istiov1alpha3.VirtualService{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      tag,
-				Namespace: appName,
-				Labels:    labels,
-			},
-			Spec: istiov1alpha3.VirtualServiceSpec{
-				Hosts:    []string{host},
-				Gateways: []string{"mesh", gateway},
-				Http: []istiov1alpha3.HTTPRoute{
-					istiov1alpha3.HTTPRoute{
-						Match: []istiov1alpha3.HTTPMatchRequest{
-							istiov1alpha3.HTTPMatchRequest{
-								Uri: &istiocommonv1alpha1.StringMatch{
-									Prefix: "/",
-								},
-							},
-						},
-						Route: []istiov1alpha3.DestinationWeight{
-							istiov1alpha3.DestinationWeight{
-								Destination: istiov1alpha3.Destination{
-									Host: desthost,
-									Port: istiov1alpha3.PortSelector{Number: portNumber},
-								},
-							},
-						},
-					},
-				},
-			},
-		})
-	}
-
-	return r
-}
-
 func (b *IncarnationResources) Resources() []runtime.Object {
-	resources := b.Namespaces()
-	resources = append(resources, b.ReplicaSets()...)
-	return append(resources, b.VirtualServices()...)
-}
-
-func (b *IncarnationResources) Client(reconciler *ReconcileIncarnation) (client.Client, error) {
-	namespacedName := types.NamespacedName{b.Cluster.Namespace, b.Cluster.Name}
-	secret := &corev1.Secret{}
-	err := reconciler.client.Get(context.TODO(), namespacedName, secret)
-	if err != nil {
-		return nil, err
-	}
-	config, err := b.Cluster.Config(secret)
-	if err != nil {
-		return nil, err
-	}
-	if config != nil {
-		return client.New(config, client.Options{})
-	}
-	return nil, nil
+	return b.ReplicaSets()
 }
 
 // Reconcile reads that state of the cluster for a Incarnation object and makes changes based on the state read
@@ -383,7 +252,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		SourceSecrets:    secrets,
 		SourceConfigMaps: configMaps,
 	}
-	remoteClient, err := ic.Client(r)
+	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -438,21 +307,12 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		health = false
 	}
 
-	incarnation.Status = picchuv1alpha1.IncarnationStatus{
-		Health: picchuv1alpha1.IncarnationHealthStatus{
-			// TODO(bob): when we get metrics, evaluate actual health
-			Healthy: health,
-			Metrics: []picchuv1alpha1.IncarnationHealthMetricStatus{},
-		},
-		Scale: picchuv1alpha1.IncarnationScaleStatus{
-			Current: replicaset.Status.ReadyReplicas,
-			Desired: replicaset.Status.Replicas,
-		},
-		Resources: resourceStatus,
-	}
+	incarnation.Status.Health.Healthy = health
+	incarnation.Status.Scale.Current = replicaset.Status.ReadyReplicas
+	incarnation.Status.Scale.Desired = replicaset.Status.Replicas
+	incarnation.Status.Resources = resourceStatus
 	if e := r.client.Status().Update(context.TODO(), incarnation); e != nil {
 		reqLogger.Error(e, "Failed to update Incarnation status")
 	}
-
 	return reconcile.Result{}, err
 }

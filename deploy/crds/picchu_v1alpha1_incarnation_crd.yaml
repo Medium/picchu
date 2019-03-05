@@ -56,6 +56,10 @@ spec:
                   containerPort:
                     format: int32
                     type: integer
+                  hosts:
+                    items:
+                      type: string
+                    type: array
                   mode:
                     type: string
                   name:
@@ -71,20 +75,28 @@ spec:
               type: array
             release:
               properties:
+                eligible:
+                  type: boolean
                 max:
-                  format: int64
+                  format: int32
                   type: integer
                 rate:
-                  type: string
+                  properties:
+                    delaySeconds:
+                      format: int32
+                      type: integer
+                    increment:
+                      format: int32
+                      type: integer
+                  type: object
                 schedule:
                   type: string
-              required:
-              - max
-              - rate
-              - schedule
               type: object
             scale:
               properties:
+                default:
+                  format: int32
+                  type: integer
                 max:
                   format: int32
                   type: integer
@@ -92,24 +104,15 @@ spec:
                   format: int32
                   type: integer
                 resources:
-                  items:
-                    properties:
-                      cpu:
-                        type: string
-                    required:
-                    - cpu
-                    type: object
-                  type: array
-              required:
-              - min
-              - max
-              - resources
+                  properties:
+                    cpu:
+                      type: string
+                  type: object
               type: object
           required:
           - app
           - assignment
           - scale
-          - release
           type: object
         status:
           properties:
@@ -128,27 +131,19 @@ spec:
                       objective:
                         format: double
                         type: number
-                    required:
-                    - name
-                    - objective
-                    - actual
                     type: object
                   type: array
-              required:
-              - healthy
-              - metrics
               type: object
             release:
               properties:
                 currentPercent:
                   format: int32
                   type: integer
+                lastUpdate:
+                  type: string
                 peakPercent:
                   format: int32
                   type: integer
-              required:
-              - peakPercent
-              - currentPercent
               type: object
             resources:
               items:
@@ -179,10 +174,6 @@ spec:
               - current
               - desired
               type: object
-          required:
-          - health
-          - scale
-          - resources
           type: object
   version: v1alpha1
   versions:

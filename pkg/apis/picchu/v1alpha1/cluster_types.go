@@ -163,9 +163,8 @@ func (c *Cluster) RegionAZ() string {
 
 func (c *Cluster) DefaultDomain() string {
 	fleet := c.Fleet()
-	location := c.RegionAZ()
-	if location != "" && fleet != "" {
-		return fmt.Sprintf("%s.%s.medm.io", c.Fleet(), location)
+	if fleet != "" {
+		return fmt.Sprintf("%s.medm.io", c.Fleet())
 	} else {
 		return ""
 	}
