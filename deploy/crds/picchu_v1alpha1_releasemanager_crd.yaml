@@ -1,0 +1,44 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: releasemanagers.picchu.medium.engineering
+spec:
+  group: picchu.medium.engineering
+  names:
+    kind: ReleaseManager
+    listKind: ReleaseManagerList
+    plural: releasemanagers
+    singular: releasemanager
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            app:
+              type: string
+            cluster:
+              type: string
+            target:
+              type: string
+          required:
+          - cluster
+          - app
+          - target
+          type: object
+        status:
+          type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true

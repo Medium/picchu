@@ -307,8 +307,7 @@
   version = "v1.1.5"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ab496a186c1f3a46d32ddf7307953dea9e07dbb47af3f68fd3662d03ddad20d4"
+  digest = "1:571c78668337b5090b4a2e05ee7be54869380f6acd2c9fd3d2e8f5f981afad26"
   name = "github.com/knative/pkg"
   packages = [
     "apis/istio",
@@ -316,7 +315,8 @@
     "apis/istio/v1alpha3",
   ]
   pruneopts = "NT"
-  revision = "737c4a42f3c168347ce46311e1c774885423899f"
+  revision = "bd54d6114d079e7347e79e41e440284c55cf2de4"
+  source = "github.com/dokipen/pkg"
 
 [[projects]]
   branch = "master"
@@ -1015,12 +1015,15 @@
     "sigs.k8s.io/controller-runtime/pkg/builder",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
+    "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
     "sigs.k8s.io/controller-runtime/pkg/reconcile",
     "sigs.k8s.io/controller-runtime/pkg/runtime/log",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
+    "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/controller-tools/pkg/crd/generator",
   ]
   solver-name = "gps-cdcl"

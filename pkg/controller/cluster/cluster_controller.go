@@ -83,6 +83,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(instance)
 
 	if !instance.Spec.Enabled {
 		reqLogger.Info("Disabled, no status")
@@ -139,7 +140,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	route53.Sync(instance)
 
-	return reconcile.Result{}, nil
+	return reconcile.Result{Requeue: true}, nil
 }
 
 func FormatVersion(version *version.Info) string {

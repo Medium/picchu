@@ -7,7 +7,7 @@ GROUPS := picchu/v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 
-.PHONY: all build generate deepcopy clientset lister informer
+.PHONY: all build generate
 
 all: deps generate build
 
@@ -18,19 +18,22 @@ build:
 deps:
 	dep ensure -v
 
-generate: deepcopy openapi clientset lister informer
+generate: deepcopy defaulter openapi clientset lister informer
 
-deepcopy:
-	operator-sdk generate k8s
+deepcopy: generators/deepcopy
+	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).deepcopy -h $(BOILERPLATE)
 
-openapi:
-	operator-sdk generate openapi
+defaulter: generators/defaulter
+	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).defaults -h $(BOILERPLATE)
+
+openapi: generators/openapi
+	$< -i $(API_PACKAGE)/$(GROUPS) -O openapi -p $(PACKAGE)/openapi -h $(BOILERPLATE)
 
 clientset: generators/client
-	generators/client -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
+	$< -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
 
 lister: generators/lister
-	generators/lister -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/listers -h $(BOILERPLATE)
+	$< -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/listers -h $(BOILERPLATE)
 
 informer: generators/informer clientset lister
 	generators/informer -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/informers --versioned-clientset-package $(PACKAGE)/client --listers-package $(PACKAGE)/client/listers -h $(BOILERPLATE)
@@ -38,3 +41,7 @@ informer: generators/informer clientset lister
 generators/%: Gopkg.lock
 	@mkdir -p generators
 	go build -o $@ ./vendor/k8s.io/code-generator/cmd/$*-gen
+
+generators/openapi: Gopkg.lock
+	@mkdir -p generators
+	go build -o generators/openapi ./vendor/k8s.io/kube-openapi/cmd/openapi-gen

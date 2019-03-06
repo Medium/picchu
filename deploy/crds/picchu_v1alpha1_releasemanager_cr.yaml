@@ -1,0 +1,7 @@
+apiVersion: picchu.medium.engineering/v1alpha1
+kind: ReleaseManager
+metadata:
+  name: example-releasemanager
+spec:
+  # Add fields here
+  size: 3

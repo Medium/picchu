@@ -36,6 +36,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		WithManager(mgr).
 		ForType(&picchuv1alpha1.Revision{}).
 		Owns(&picchuv1alpha1.Incarnation{}).
+		Owns(&picchuv1alpha1.ReleaseManager{}).
 		Build(r)
 
 	if err != nil {
@@ -77,6 +78,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(instance)
 
 	// Define new Incarnation objects for the Revision
 	incarnations, err := r.newIncarnationsForRevision(instance)
@@ -110,7 +112,40 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		reqLogger.Error(e, "Failed to update Revision status")
 	}
 
-	return reconcile.Result{}, err
+	// Sync releasemanagers
+	appName := instance.Spec.App.Name
+	for _, target := range instance.Spec.Targets {
+		targetName := target.Name
+		clusters, err := r.getClustersByFleet(target.Fleet)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		for _, cluster := range clusters.Items {
+			clusterName := cluster.Name
+			rmName := fmt.Sprintf("%s-%s-%s", appName, targetName, clusterName)
+			rm := &picchuv1alpha1.ReleaseManager{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      rmName,
+					Namespace: instance.Namespace,
+				},
+			}
+			if err := controllerutil.SetControllerReference(instance, rm, r.scheme); err != nil {
+				return reconcile.Result{}, err
+			}
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rm, func(runtime.Object) error {
+				rm.Spec.Cluster = clusterName
+				rm.Spec.App = appName
+				rm.Spec.Target = targetName
+				return nil
+			})
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			reqLogger.Info("ReleaseManager sync'd", "Op", op)
+		}
+	}
+
+	return reconcile.Result{Requeue: true}, err
 }
 
 // newIncarnationsForRevision returns incarnations for all target clusters  for a Revision
@@ -129,8 +164,9 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 			commit := revision.Labels["medium.build/commit"]
 
 			annotations := map[string]string{
-				"git-scm.com/ref":       ref,
-				"github.com/repository": revision.Annotations["github.com/repository"],
+				"git-scm.com/ref":                 ref,
+				"git-scm.com/committer-timestamp": revision.Annotations["git-scm.com/committer-timestamp"],
+				"github.com/repository":           revision.Annotations["github.com/repository"],
 			}
 
 			labels := map[string]string{
@@ -149,7 +185,7 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 				cluster.Name,
 			)
 
-			incarnations = append(incarnations, &picchuv1alpha1.Incarnation{
+			incarnation := &picchuv1alpha1.Incarnation{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        name,
 					Namespace:   revision.Namespace,
@@ -167,23 +203,13 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 						Name:   cluster.ObjectMeta.Name,
 						Target: target.Name,
 					},
-					Scale: picchuv1alpha1.IncarnationScale{
-						Min: 1,
-						Max: 10,
-						Resources: []picchuv1alpha1.IncarnationScaleResource{
-							picchuv1alpha1.IncarnationScaleResource{
-								CPU: "200m",
-							},
-						},
-					},
-					Release: picchuv1alpha1.IncarnationRelease{
-						Max:      100,
-						Rate:     "TX",
-						Schedule: "Humane",
-					},
-					Ports: revision.Spec.Ports,
+					Scale:   target.Scale,
+					Release: target.Release,
+					Ports:   revision.Spec.Ports,
 				},
-			})
+			}
+			incarnation.Spec.Release.Eligible = revision.Spec.Release.Eligible
+			incarnations = append(incarnations, incarnation)
 		}
 	}
 	return incarnations, nil
@@ -193,6 +219,7 @@ func (r *ReconcileRevision) getClustersByFleet(fleet string) (*picchuv1alpha1.Cl
 	clusters := &picchuv1alpha1.ClusterList{}
 	opts := client.MatchingLabels(map[string]string{"medium.build/fleet": fleet})
 	err := r.client.List(context.TODO(), opts, clusters)
+	r.scheme.Default(clusters)
 	return clusters, err
 }
 
