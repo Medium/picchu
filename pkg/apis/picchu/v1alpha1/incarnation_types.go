@@ -41,7 +41,7 @@ func (i *Incarnation) CurrentPercentTarget(max int32) int32 {
 		deadline := releaseStatus.LastUpdateTime().Add(delay)
 
 		if deadline.Before(time.Now()) {
-			current = current + increment
+			current += increment
 			if current > max {
 				return max
 			}
@@ -150,11 +150,11 @@ type IncarnationResourceStatus struct {
 func (i *Incarnation) GitTimestamp() time.Time {
 	gt, ok := i.Annotations[annotationGitTimestamp]
 	if !ok {
-		return time.Unix(0, 0)
+		return time.Time{}
 	}
 	t, err := time.Parse(time.RFC3339, gt)
 	if err != nil {
-		return time.Unix(0, 0)
+		return time.Time{}
 	}
 	return t
 }

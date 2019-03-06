@@ -23,9 +23,9 @@ var (
 const (
 	HumaneSchedule = "humane"
 
-	RateIncrementDefault   = int32(10)
+	RateIncrementDefault int32  = 10
 	RateDelayDefault       = time.Duration(6) * time.Second
-	ReleaseMaxDefault      = int32(100)
+	ReleaseMaxDefault int32     = 100
 	ReleaseScheduleDefault = HumaneSchedule
 )
 
@@ -65,7 +65,7 @@ func (r *ReleaseInfo) GetMax() int32 {
 
 type RateInfo struct {
 	Increment    int32 `json:"increment,omitempty"`
-	DelaySeconds int32 `json:"delaySeconds,omitempty"`
+	Delay meta.Duration `json:"delay,omitempty"`
 }
 
 func (r *RateInfo) GetIncrement() int32 {
