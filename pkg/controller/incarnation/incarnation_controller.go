@@ -112,6 +112,7 @@ func (b *IncarnationResources) GetConfigObjects() (secrets []*corev1.Secret, con
 }
 
 func (b *IncarnationResources) ReplicaSets() []runtime.Object {
+	// TODO(bob): Refactor to createorupdate
 	var r []runtime.Object
 	secrets, configMaps := b.GetConfigObjects()
 	for _, secret := range secrets {
@@ -218,6 +219,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(incarnation)
 
 	configOpts := client.MatchingLabels(map[string]string{
 		"medium.build/tag":              incarnation.Spec.App.Tag,
@@ -235,6 +237,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	if err = r.client.Get(context.TODO(), clusterOpts, cluster); err != nil {
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(cluster)
 	if err = r.client.List(context.TODO(), configOpts, secrets); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -314,5 +317,5 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	if e := r.client.Status().Update(context.TODO(), incarnation); e != nil {
 		reqLogger.Error(e, "Failed to update Incarnation status")
 	}
-	return reconcile.Result{}, err
+	return reconcile.Result{Requeue: true}, err
 }

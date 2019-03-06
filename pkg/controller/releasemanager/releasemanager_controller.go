@@ -3,7 +3,6 @@ package releasemanager
 import (
 	"context"
 	"fmt"
-	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
@@ -102,12 +101,14 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(instance)
 
 	cluster := &picchuv1alpha1.Cluster{}
 	key := client.ObjectKey{request.Namespace, instance.Spec.Cluster}
 	if err := r.client.Get(context.TODO(), key, cluster); err != nil {
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(cluster)
 	incarnationList := &picchuv1alpha1.IncarnationList{}
 	labelSelector := client.MatchingLabels(map[string]string{
 		"medium.build/app":     instance.Spec.App,
@@ -116,13 +117,13 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	if err := r.client.List(context.TODO(), labelSelector, incarnationList); err != nil {
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(incarnationList)
 
 	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
 		reqLogger.Error(err, "Failed to create remote client", "Cluster.Key", key)
 		return reconcile.Result{}, err
 	}
-	reqLogger.Info("Created remote client", "Cluster.Key", key)
 	manager := ReleaseManager{
 		Instance:        instance,
 		IncarnationList: incarnationList,
@@ -143,7 +144,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{}, nil
+	return reconcile.Result{Requeue: true}, nil
 }
 
 type ReleaseManager struct {
@@ -337,27 +338,33 @@ func (r *ReleaseManager) SyncVirtualService() error {
 	percRemaining := int32(100)
 	// Tracking one route per port number
 	releaseRoutes := map[uint32]istiov1alpha3.HTTPRoute{}
-	for _, incarnation := range r.IncarnationList.SortedReleases() {
+	incarnations, err := r.IncarnationList.SortedReleases()
+	if err != nil {
+		return err
+	}
+	count := len(incarnations)
+	for i, incarnation := range incarnations {
 		oldCurrent := incarnation.Status.Release.CurrentPercent
 		peak := incarnation.Status.Release.PeakPercent
-		log.Info("Finding target perc", "incarnation.Name", incarnation.Name, "percRemaining", percRemaining, "gitTimestamp", incarnation.GitTimestamp(), "annotations", incarnation.Annotations)
 		current := incarnation.CurrentPercentTarget(percRemaining)
-		if current > percRemaining {
-			log.Info("Impossible")
-			return fmt.Errorf("WTF")
+		if i+1 == count {
+			// TODO(bob): confirm we want to give remaining bandwidth to oldest
+			// instance
+			// Make sure we use all available bandwidth
+			current = percRemaining
 		}
 		if current > peak {
 			peak = current
 		}
 		percRemaining = percRemaining - current
-		log.Info("Found release incarnation", "incarnation.Name", incarnation.Name, "targetPercent", current)
 
 		tag := incarnation.Spec.App.Tag
 
 		if oldCurrent != current {
+			now := metav1.Now()
 			incarnation.Status.Release.CurrentPercent = current
 			incarnation.Status.Release.PeakPercent = peak
-			incarnation.Status.Release.LastUpdate = time.Now().Format(time.RFC3339)
+			incarnation.Status.Release.LastUpdate = &now
 			if err := r.PicchuClient.Status().Update(context.TODO(), &incarnation); err != nil {
 				return err
 			}
@@ -392,7 +399,6 @@ func (r *ReleaseManager) SyncVirtualService() error {
 	}
 
 	for _, route := range releaseRoutes {
-		log.Info("Adding release route")
 		http = append(http, route)
 	}
 

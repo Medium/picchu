@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -28,27 +29,32 @@ type Incarnation struct {
 // CurrentPercentTarget returns the percent of traffic this incarnation would
 // like to recieve at any given moment, with respect to max available
 func (i *Incarnation) CurrentPercentTarget(max int32) int32 {
+	// TODO(bob): gate increment on current time for "humane" scheduled
+	// deployments that are currently at 0 percent of traffic
 	releaseStatus := i.Status.Release
 	releaseSpec := i.Spec.Release
 	current := releaseStatus.CurrentPercent
-	if max > 0 {
-		delay := releaseSpec.Rate.GetDelay()
-		increment := releaseSpec.Rate.GetIncrement()
-		specMax := releaseSpec.GetMax()
-		if specMax < max {
-			max = specMax
-		}
-		deadline := releaseStatus.LastUpdateTime().Add(delay)
-
-		if deadline.Before(time.Now()) {
-			current += increment
-			if current > max {
-				return max
-			}
-			return current
-		}
+	if max <= 0 {
+		return 0
 	}
-	return 0
+	delay := releaseSpec.Rate.Delay
+	increment := releaseSpec.Rate.Increment
+	if releaseSpec.Max < max {
+		max = releaseSpec.Max
+	}
+	deadline := time.Time{}
+	if releaseStatus.LastUpdate != nil {
+		deadline = releaseStatus.LastUpdate.Add(delay)
+	}
+
+	if deadline.After(time.Now()) {
+		return current
+	}
+	current = current + increment
+	if current > max {
+		return max
+	}
+	return current
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -60,25 +66,42 @@ type IncarnationList struct {
 	Items           []Incarnation `json:"items"`
 }
 
-func (i *IncarnationList) LatestRelease() *Incarnation {
-	releases := i.SortedReleases()
-	if len(releases) > 0 {
-		return &releases[0]
+func (i *IncarnationList) LatestRelease() (*Incarnation, error) {
+	releases, err := i.SortedReleases()
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	if len(releases) > 0 {
+		return &releases[0], nil
+	}
+	return nil, nil
 }
 
-func (i *IncarnationList) SortedReleases() []Incarnation {
+// SortedReleases returns all release enabled incarnations in reverse
+// chronological order. Requires all releases to be annotated with the
+// annotationGitTimestamp annotation, which should be an RFC3339 timestamp
+func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 	releases := []Incarnation{}
 	for _, incarnation := range i.Items {
 		if incarnation.Spec.Release.Eligible {
 			releases = append(releases, incarnation)
 		}
 	}
+
+	var err error
+
 	sort.Slice(releases, func(i, j int) bool {
-		return releases[i].GitTimestamp().After(releases[j].GitTimestamp())
+		a := releases[i].GitTimestamp()
+		b := releases[j].GitTimestamp()
+		if a.IsZero() || b.IsZero() {
+			err = fmt.Errorf(
+				"Release is missing the '%s' RFC3339 timestamp annotation",
+				annotationGitTimestamp,
+			)
+		}
+		return a.After(b)
 	})
-	return releases
+	return releases, err
 }
 
 // IncarnationSpec defines the desired state of Incarnation
@@ -122,17 +145,9 @@ type IncarnationHealthMetricStatus struct {
 }
 
 type IncarnationReleaseStatus struct {
-	PeakPercent    int32  `json:"peakPercent,omitempty"`
-	CurrentPercent int32  `json:"currentPercent,omitempty"`
-	LastUpdate     string `json:"lastUpdate,omitempty"`
-}
-
-func (irs *IncarnationReleaseStatus) LastUpdateTime() time.Time {
-	lu, err := time.Parse(time.RFC3339, irs.LastUpdate)
-	if err != nil {
-		return time.Unix(0, 0)
-	}
-	return lu
+	PeakPercent    int32        `json:"peakPercent,omitempty"`
+	CurrentPercent int32        `json:"currentPercent,omitempty"`
+	LastUpdate     *metav1.Time `json:"lastUpdate,omitempty"`
 }
 
 type IncarnationScaleStatus struct {

@@ -22,11 +22,7 @@ var (
 
 const (
 	HumaneSchedule = "humane"
-
-	RateIncrementDefault int32  = 10
-	RateDelayDefault       = time.Duration(6) * time.Second
-	ReleaseMaxDefault int32     = 100
-	ReleaseScheduleDefault = HumaneSchedule
+	AlwaysSchedule = "always"
 )
 
 type PortInfo struct {
@@ -56,28 +52,7 @@ type ReleaseInfo struct {
 	Schedule string   `json:"schedule,omitempty"`
 }
 
-func (r *ReleaseInfo) GetMax() int32 {
-	if r.Max == 0 {
-		return ReleaseMaxDefault
-	}
-	return r.Max
-}
-
 type RateInfo struct {
-	Increment    int32 `json:"increment,omitempty"`
-	Delay meta.Duration `json:"delay,omitempty"`
-}
-
-func (r *RateInfo) GetIncrement() int32 {
-	if r.Increment == 0 {
-		return RateIncrementDefault
-	}
-	return r.Increment
-}
-
-func (r *RateInfo) GetDelay() time.Duration {
-	if r.DelaySeconds == 0 {
-		return RateDelayDefault
-	}
-	return time.Duration(r.DelaySeconds) * time.Second
+	Increment int32         `json:"increment,omitempty"`
+	Delay     time.Duration `json:"delay,omitempty"`
 }

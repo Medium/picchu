@@ -78,6 +78,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(instance)
 
 	// Define new Incarnation objects for the Revision
 	incarnations, err := r.newIncarnationsForRevision(instance)
@@ -144,7 +145,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	return reconcile.Result{}, err
+	return reconcile.Result{Requeue: true}, err
 }
 
 // newIncarnationsForRevision returns incarnations for all target clusters  for a Revision
@@ -218,6 +219,7 @@ func (r *ReconcileRevision) getClustersByFleet(fleet string) (*picchuv1alpha1.Cl
 	clusters := &picchuv1alpha1.ClusterList{}
 	opts := client.MatchingLabels(map[string]string{"medium.build/fleet": fleet})
 	err := r.client.List(context.TODO(), opts, clusters)
+	r.scheme.Default(clusters)
 	return clusters, err
 }
 

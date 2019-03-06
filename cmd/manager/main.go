@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go.medium.engineering/picchu/pkg/apis"
+	"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller"
 
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
@@ -101,6 +102,10 @@ func main() {
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+	if err := v1alpha1.RegisterDefaults(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
