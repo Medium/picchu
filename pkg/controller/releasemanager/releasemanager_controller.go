@@ -356,7 +356,7 @@ func (r *ReleaseManager) SyncVirtualService() error {
 		if current > peak {
 			peak = current
 		}
-		percRemaining = percRemaining - current
+		percRemaining -= current
 
 		tag := incarnation.Spec.App.Tag
 
