@@ -124,7 +124,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		reqLogger.Error(err, "Failed to create remote client", "Cluster.Key", key)
 		return reconcile.Result{}, err
 	}
-	manager := ReleaseManager{
+	manager := ResourceSyncer{
 		Instance:        instance,
 		IncarnationList: incarnationList,
 		Cluster:         cluster,
@@ -147,7 +147,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	return reconcile.Result{Requeue: true}, nil
 }
 
-type ReleaseManager struct {
+type ResourceSyncer struct {
 	Instance        *picchuv1alpha1.ReleaseManager
 	IncarnationList *picchuv1alpha1.IncarnationList
 	Cluster         *picchuv1alpha1.Cluster
@@ -155,7 +155,7 @@ type ReleaseManager struct {
 	PicchuClient    client.Client
 }
 
-func (r *ReleaseManager) SyncNamespace() error {
+func (r *ResourceSyncer) SyncNamespace() error {
 	labels := map[string]string{
 		"istio-injection": "enabled",
 	}
@@ -174,7 +174,7 @@ func (r *ReleaseManager) SyncNamespace() error {
 	return err
 }
 
-func (r *ReleaseManager) SyncService() error {
+func (r *ResourceSyncer) SyncService() error {
 	portMap := map[string]corev1.ServicePort{}
 	for _, incarnation := range r.IncarnationList.Items {
 		for _, port := range incarnation.Spec.Ports {
@@ -217,7 +217,7 @@ func (r *ReleaseManager) SyncService() error {
 	return err
 }
 
-func (r *ReleaseManager) SyncDestinationRule() error {
+func (r *ResourceSyncer) SyncDestinationRule() error {
 	labels := map[string]string{
 		"medium.build/app": r.Instance.Spec.App,
 	}
@@ -250,7 +250,7 @@ func (r *ReleaseManager) SyncDestinationRule() error {
 	return err
 }
 
-func (r *ReleaseManager) SyncVirtualService() error {
+func (r *ResourceSyncer) SyncVirtualService() error {
 	appName := r.Instance.Spec.App
 	defaultDomain := r.Cluster.DefaultDomain()
 	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, appName)
