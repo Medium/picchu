@@ -280,7 +280,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		resourceStatus = append(resourceStatus, picchuv1alpha1.IncarnationResourceStatus{
 			ApiVersion: apiVersion,
 			Kind:       kind,
-			Metadata:   &types.NamespacedName{name, namespace},
+			Metadata:   &types.NamespacedName{namespace, name},
 			Status:     status,
 		})
 	}
