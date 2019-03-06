@@ -189,11 +189,9 @@ func (r *ReleaseManager) SyncService() error {
 			}
 		}
 	}
-	ports := make([]corev1.ServicePort, len(portMap))
-	i := 0
+	ports := make([]corev1.ServicePort, 0, len(portMap))
 	for _, port := range portMap {
-		ports[i] = port
-		i++
+		ports = append(ports, port)
 	}
 
 	// Used to label Service and selector
