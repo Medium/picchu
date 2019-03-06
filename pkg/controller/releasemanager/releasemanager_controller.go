@@ -161,7 +161,7 @@ func (r *ResourceSyncer) SyncNamespace() error {
 	}
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   r.Instance.Spec.App,
+			Name:   r.Instance.TargetNamespace(),
 			Labels: labels,
 		},
 	}
@@ -202,7 +202,7 @@ func (r *ResourceSyncer) SyncService() error {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.Instance.Spec.App,
-			Namespace: r.Instance.Spec.App,
+			Namespace: r.Instance.TargetNamespace(),
 			Labels:    labels,
 		},
 	}
@@ -226,7 +226,7 @@ func (r *ResourceSyncer) SyncDestinationRule() error {
 	drule := &istiov1alpha3.DestinationRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.Instance.Spec.App,
-			Namespace: r.Instance.Spec.App,
+			Namespace: r.Instance.TargetNamespace(),
 			Labels:    labels,
 		},
 		Spec: istiov1alpha3.DestinationRuleSpec{
@@ -268,7 +268,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	vs := &istiov1alpha3.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
-			Namespace: appName,
+			Namespace: r.Instance.TargetNamespace(),
 			Labels:    labels,
 		},
 	}

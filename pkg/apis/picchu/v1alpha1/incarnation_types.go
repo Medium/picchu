@@ -174,6 +174,10 @@ func (i *Incarnation) GitTimestamp() time.Time {
 	return t
 }
 
+func (i *Incarnation) TargetNamespace() string {
+	return fmt.Sprintf("%s-%s", i.Spec.App.Name, i.Spec.Assignment.Target)
+}
+
 func init() {
 	SchemeBuilder.Register(&Incarnation{}, &IncarnationList{})
 }

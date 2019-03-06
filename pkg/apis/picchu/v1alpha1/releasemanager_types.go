@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,6 +37,10 @@ type ReleaseManagerSpec struct {
 // ReleaseManagerStatus defines the observed state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
+}
+
+func (r *ReleaseManager) TargetNamespace() string {
+	return fmt.Sprintf("%s-%s", r.Spec.App, r.Spec.Target)
 }
 
 func init() {
