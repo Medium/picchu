@@ -9,10 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	annotationGitTimestamp = "git-scm.com/committer-timestamp"
-)
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -79,7 +75,7 @@ func (i *IncarnationList) LatestRelease() (*Incarnation, error) {
 
 // SortedReleases returns all release enabled incarnations in reverse
 // chronological order. Requires all releases to be annotated with the
-// annotationGitTimestamp annotation, which should be an RFC3339 timestamp
+// AnnotationGitCommitterTimestamp annotation, which should be an RFC3339 timestamp
 func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 	releases := []Incarnation{}
 	for _, incarnation := range i.Items {
@@ -96,7 +92,7 @@ func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 		if a.IsZero() || b.IsZero() {
 			err = fmt.Errorf(
 				"Release is missing the '%s' RFC3339 timestamp annotation",
-				annotationGitTimestamp,
+				AnnotationGitCommitterTimestamp,
 			)
 		}
 		return a.After(b)
@@ -106,11 +102,12 @@ func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 
 // IncarnationSpec defines the desired state of Incarnation
 type IncarnationSpec struct {
-	App        IncarnationApp        `json:"app"`
-	Assignment IncarnationAssignment `json:"assignment"`
-	Scale      ScaleInfo             `json:"scale"`
-	Release    ReleaseInfo           `json:"release,omitempty"`
-	Ports      []PortInfo            `json:"ports,omitempty"`
+	App            IncarnationApp        `json:"app"`
+	Assignment     IncarnationAssignment `json:"assignment"`
+	Scale          ScaleInfo             `json:"scale"`
+	Release        ReleaseInfo           `json:"release,omitempty"`
+	Ports          []PortInfo            `json:"ports,omitempty"`
+	ConfigSelector *metav1.LabelSelector `json:"configSelector,omitempty"`
 }
 
 type IncarnationApp struct {
@@ -163,7 +160,7 @@ type IncarnationResourceStatus struct {
 }
 
 func (i *Incarnation) GitTimestamp() time.Time {
-	gt, ok := i.Annotations[annotationGitTimestamp]
+	gt, ok := i.Annotations[AnnotationGitCommitterTimestamp]
 	if !ok {
 		return time.Time{}
 	}

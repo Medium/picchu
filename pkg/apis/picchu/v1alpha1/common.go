@@ -21,8 +21,15 @@ const (
 )
 
 const (
-	HumaneSchedule = "humane"
-	AlwaysSchedule = "always"
+	HumaneSchedule                  = "humane"
+	AlwaysSchedule                  = "always"
+	LabelApp                        = "picchu.medium.engineering/app"
+	LabelTag                        = "picchu.medium.engineering/tag"
+	LabelCluster                    = "picchu.medium.engineering/cluster"
+	LabelFleet                      = "picchu.medium.engineering/fleet"
+	LabelRevision                   = "picchu.medium.engineering/revision"
+	LabelTarget                     = "picchu.medium.engineering/target"
+	AnnotationGitCommitterTimestamp = "git-scm.com/committer-timestamp"
 )
 
 type PortInfo struct {

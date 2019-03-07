@@ -2,23 +2,27 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
   name: revisions.picchu.medium.engineering
 spec:
   group: picchu.medium.engineering
   names:
     kind: Revision
-    listKind: RevisionList
     plural: revisions
-    singular: revision
   scope: Namespaced
-  subresources:
-    status: {}
   validation:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -50,6 +54,9 @@ spec:
                     items:
                       type: string
                     type: array
+                  ingressPort:
+                    format: int32
+                    type: integer
                   mode:
                     type: string
                   name:
@@ -60,6 +67,7 @@ spec:
                   protocol:
                     type: string
                 required:
+                - name
                 - mode
                 type: object
               type: array
@@ -73,6 +81,8 @@ spec:
             targets:
               items:
                 properties:
+                  configSelector:
+                    type: object
                   fleet:
                     type: string
                   metrics:
@@ -110,8 +120,8 @@ spec:
                         type: integer
                       rate:
                         properties:
-                          delaySeconds:
-                            format: int32
+                          delay:
+                            format: int64
                             type: integer
                           increment:
                             format: int32
@@ -151,36 +161,31 @@ spec:
           type: object
         status:
           properties:
-            targets:
+            incarnations:
               items:
                 properties:
-                  incarnations:
-                    items:
-                      properties:
-                        cluster:
-                          type: string
-                        name:
-                          type: string
-                        status:
-                          type: string
-                      required:
-                      - name
-                      - cluster
-                      - status
-                      type: object
-                    type: array
+                  cluster:
+                    type: string
                   name:
+                    type: string
+                  status:
+                    type: string
+                  target:
                     type: string
                 required:
                 - name
-                - incarnations
+                - cluster
+                - status
+                - target
                 type: object
               type: array
           required:
-          - targets
+          - incarnations
           type: object
   version: v1alpha1
-  versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

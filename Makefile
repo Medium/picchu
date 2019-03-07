@@ -1,13 +1,14 @@
 # Copyright © 2019 A Medium Corporation.
 # Licensed under the Apache License, Version 2.0; see the NOTICE file.
 
-PACKAGE := go.medium.engineering/picchu/pkg
+DOMAIN := medium.engineering
+PACKAGE := go.$(DOMAIN)/picchu/pkg
 API_PACKAGE := $(PACKAGE)/apis
 GROUPS := picchu/v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 
-.PHONY: all build generate
+.PHONY: all build generate deepcopy defaulter openapi clientset lister informer crds
 
 all: deps generate build
 
@@ -18,7 +19,7 @@ build:
 deps:
 	dep ensure -v
 
-generate: deepcopy defaulter openapi clientset lister informer
+generate: deepcopy defaulter openapi clientset lister informer crds
 
 deepcopy: generators/deepcopy
 	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).deepcopy -h $(BOILERPLATE)
@@ -35,6 +36,10 @@ clientset: generators/client
 lister: generators/lister
 	$< -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/listers -h $(BOILERPLATE)
 
+crds: generators/crd
+	@mkdir -p deploy/crds
+	$< generate --output-dir deploy/crds --domain $(DOMAIN)
+
 informer: generators/informer clientset lister
 	generators/informer -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/informers --versioned-clientset-package $(PACKAGE)/client --listers-package $(PACKAGE)/client/listers -h $(BOILERPLATE)
 
@@ -45,3 +50,7 @@ generators/%: Gopkg.lock
 generators/openapi: Gopkg.lock
 	@mkdir -p generators
 	go build -o generators/openapi ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
+
+generators/crd: Gopkg.lock
+	go get sigs.k8s.io/controller-tools/cmd/crd
+	cp $(shell which crd) generators/crd

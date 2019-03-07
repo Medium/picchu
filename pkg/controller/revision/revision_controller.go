@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,103 +81,43 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	r.scheme.Default(instance)
 
-	// Define new Incarnation objects for the Revision
-	incarnations, err := r.newIncarnationsForRevision(instance)
-	if err != nil {
+	if err = r.SyncIncarnationsForRevision(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	statusBuilder := NewStatusBuilder(incarnations)
-
-	// Set Revision instance as the owner and controller
-	for _, incarnation := range incarnations {
-		statusBuilder.UpdateStatus(incarnation, "creating")
-		if err = controllerutil.SetControllerReference(instance, incarnation, r.scheme); err != nil {
-			reqLogger.Error(err, "Failed to SetControllerReference for incarnation", "Incarnation.Name", incarnation.Name)
-			break
-		}
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, incarnation, func(existing runtime.Object) error {
-			statusBuilder.UpdateStatus(incarnation, "created")
-			return nil
-		})
-		if err != nil {
-			reqLogger.Error(err, "Failed to CreateOrUpdate incarnation", "Incarnation.Name", incarnation.Name)
-			statusBuilder.UpdateStatus(incarnation, "failed")
-			break
-		}
-	}
-
-	instance.Status = *statusBuilder.Status()
-	reqLogger.Info("Updating Revision status")
-	if e := r.client.Status().Update(context.TODO(), instance); e != nil {
-		reqLogger.Error(e, "Failed to update Revision status")
-	}
-
-	// Sync releasemanagers
-	appName := instance.Spec.App.Name
-	for _, target := range instance.Spec.Targets {
-		targetName := target.Name
-		clusters, err := r.getClustersByFleet(target.Fleet)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-		for _, cluster := range clusters.Items {
-			clusterName := cluster.Name
-			rmName := fmt.Sprintf("%s-%s-%s", appName, targetName, clusterName)
-			rm := &picchuv1alpha1.ReleaseManager{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      rmName,
-					Namespace: instance.Namespace,
-				},
-			}
-			if err := controllerutil.SetControllerReference(instance, rm, r.scheme); err != nil {
-				return reconcile.Result{}, err
-			}
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rm, func(runtime.Object) error {
-				rm.Spec.Cluster = clusterName
-				rm.Spec.App = appName
-				rm.Spec.Target = targetName
-				return nil
-			})
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			reqLogger.Info("ReleaseManager sync'd", "Op", op)
-		}
+	if err = r.SyncReleaseManagersForRevision(instance); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{Requeue: true}, err
 }
 
 // newIncarnationsForRevision returns incarnations for all target clusters  for a Revision
-func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.Revision) ([]*picchuv1alpha1.Incarnation, error) {
-	var incarnations []*picchuv1alpha1.Incarnation
+func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1.Revision) error {
+	targetStatuses := []picchuv1alpha1.RevisionTargetIncarnationStatus{}
 	for _, target := range revision.Spec.Targets {
 		clusters, err := r.getClustersByFleet(target.Fleet)
 		if err != nil {
-			return incarnations, err
+			return err
 		}
 		for _, cluster := range clusters.Items {
 			app := revision.Spec.App.Name
 			tag := revision.Spec.App.Tag
 			ref := revision.Spec.App.Ref
 			image := revision.Spec.App.Image
-			commit := revision.Labels["medium.build/commit"]
 
+			agct := picchuv1alpha1.AnnotationGitCommitterTimestamp
 			annotations := map[string]string{
-				"git-scm.com/ref":                 ref,
-				"git-scm.com/committer-timestamp": revision.Annotations["git-scm.com/committer-timestamp"],
-				"github.com/repository":           revision.Annotations["github.com/repository"],
+				agct: revision.Annotations[agct],
 			}
 
 			labels := map[string]string{
-				"medium.build/target":   target.Name,
-				"medium.build/fleet":    target.Fleet,
-				"medium.build/cluster":  cluster.Name,
-				"medium.build/revision": revision.Name,
-				"medium.build/tag":      tag,
-				"medium.build/app":      app,
-				"medium.build/commit":   commit,
+				picchuv1alpha1.LabelTarget:   target.Name,
+				picchuv1alpha1.LabelFleet:    target.Fleet,
+				picchuv1alpha1.LabelCluster:  cluster.Name,
+				picchuv1alpha1.LabelRevision: revision.Name,
+				picchuv1alpha1.LabelTag:      tag,
+				picchuv1alpha1.LabelApp:      app,
 			}
 
 			name := fmt.Sprintf("%s-%s-%s-%s",
@@ -188,12 +129,19 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 
 			incarnation := &picchuv1alpha1.Incarnation{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        name,
-					Namespace:   revision.Namespace,
-					Labels:      labels,
-					Annotations: annotations,
+					Name:      name,
+					Namespace: revision.Namespace,
 				},
-				Spec: picchuv1alpha1.IncarnationSpec{
+			}
+
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, incarnation, func(runtime.Object) error {
+				if err := controllerutil.SetControllerReference(revision, incarnation, r.scheme); err != nil {
+					log.Error(err, "Failed to SetControllerReference for incarnation", "Incarnation.Name", incarnation.Name)
+					return err
+				}
+				incarnation.ObjectMeta.Labels = labels
+				incarnation.ObjectMeta.Annotations = annotations
+				incarnation.Spec = picchuv1alpha1.IncarnationSpec{
 					App: picchuv1alpha1.IncarnationApp{
 						Name:  app,
 						Tag:   tag,
@@ -204,69 +152,84 @@ func (r *ReconcileRevision) newIncarnationsForRevision(revision *picchuv1alpha1.
 						Name:   cluster.ObjectMeta.Name,
 						Target: target.Name,
 					},
-					Scale:   target.Scale,
-					Release: target.Release,
-					Ports:   revision.Spec.Ports,
-				},
+					Scale:          target.Scale,
+					Release:        target.Release,
+					Ports:          revision.Spec.Ports,
+					ConfigSelector: target.ConfigSelector,
+				}
+				incarnation.Spec.Release.Eligible = revision.Spec.Release.Eligible
+				return nil
+			})
+			status := NewIncarnationStatus(incarnation)
+			if err != nil {
+				status.Status = "failed"
+				log.Error(err, "Failed to sync incarnation")
+				return err
 			}
-			incarnation.Spec.Release.Eligible = revision.Spec.Release.Eligible
-			incarnations = append(incarnations, incarnation)
+			targetStatuses = append(targetStatuses, status)
+			log.Info("Sync'd incarnation", "Op", op)
 		}
 	}
-	return incarnations, nil
+	revision.Status.Incarnations = targetStatuses
+	log.Info("Updating Revision status")
+	if err := utils.UpdateStatus(context.TODO(), r.client, revision); err != nil {
+		log.Error(err, "Failed to update revision status")
+		return err
+	}
+	return nil
+}
+
+func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) error {
+	// Sync releasemanagers
+	appName := revision.Spec.App.Name
+	for _, target := range revision.Spec.Targets {
+		log.Info("In RM target", "Target.Name", target.Name, "Target.Fleet", target.Fleet)
+		targetName := target.Name
+		clusters, err := r.getClustersByFleet(target.Fleet)
+		if err != nil {
+			return err
+		}
+		for _, cluster := range clusters.Items {
+			log.Info("In RM cluster", "Cluster.Name", cluster.Name)
+			clusterName := cluster.Name
+			name := fmt.Sprintf("%s-%s-%s", appName, targetName, clusterName)
+			rm := &picchuv1alpha1.ReleaseManager{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: revision.Namespace,
+				},
+			}
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rm, func(runtime.Object) error {
+				rm.Spec.Cluster = clusterName
+				rm.Spec.App = appName
+				rm.Spec.Target = targetName
+				return nil
+			})
+			if err != nil {
+				log.Error(err, "Failed to sync releaseManager")
+				return err
+			}
+			log.Info("ReleaseManager sync'd", "Op", op)
+		}
+		if len(clusters.Items) == 0 {
+			log.Info("No clusters found in target fleet", "Target.Fleet", target.Fleet)
+		}
+	}
+	return nil
 }
 
 func (r *ReconcileRevision) getClustersByFleet(fleet string) (*picchuv1alpha1.ClusterList, error) {
 	clusters := &picchuv1alpha1.ClusterList{}
-	opts := client.MatchingLabels(map[string]string{"medium.build/fleet": fleet})
+	opts := client.MatchingLabels(map[string]string{picchuv1alpha1.LabelFleet: fleet})
 	err := r.client.List(context.TODO(), opts, clusters)
 	r.scheme.Default(clusters)
 	return clusters, err
 }
 
-type StatusBuilder struct {
-	TargetStatuses map[string]picchuv1alpha1.RevisionTargetStatus
-}
-
-func NewStatusBuilder(incarnations []*picchuv1alpha1.Incarnation) *StatusBuilder {
-	targetStatuses := map[string]picchuv1alpha1.RevisionTargetStatus{}
-	for _, incarnation := range incarnations {
-		target := incarnation.Spec.Assignment.Target
-		targetStatus, ok := targetStatuses[target]
-		if !ok {
-			targetStatus = picchuv1alpha1.RevisionTargetStatus{
-				Name:         target,
-				Incarnations: []picchuv1alpha1.RevisionTargetIncarnationStatus{},
-			}
-		}
-		targetStatus.Incarnations = append(targetStatus.Incarnations, picchuv1alpha1.RevisionTargetIncarnationStatus{
-			Name:    incarnation.Name,
-			Cluster: incarnation.Spec.Assignment.Name,
-			Status:  "unknown",
-		})
-		targetStatuses[target] = targetStatus
+func NewIncarnationStatus(incarnation *picchuv1alpha1.Incarnation) picchuv1alpha1.RevisionTargetIncarnationStatus {
+	return picchuv1alpha1.RevisionTargetIncarnationStatus{
+		Name:    incarnation.Name,
+		Cluster: incarnation.Spec.Assignment.Name,
+		Status:  "created",
 	}
-	return &StatusBuilder{targetStatuses}
-}
-
-func (s *StatusBuilder) UpdateStatus(incarnation *picchuv1alpha1.Incarnation, status string) {
-	targetStatus := s.TargetStatuses[incarnation.Spec.Assignment.Target]
-	for i, incStatus := range targetStatus.Incarnations {
-		if incStatus.Name == incarnation.Name {
-			targetStatus.Incarnations[i].Status = status
-			s.TargetStatuses[targetStatus.Name] = targetStatus
-			return
-		}
-	}
-	return
-}
-
-func (s *StatusBuilder) Status() *picchuv1alpha1.RevisionStatus {
-	targets := make([]picchuv1alpha1.RevisionTargetStatus, len(s.TargetStatuses))
-	var i int
-	for _, v := range s.TargetStatuses {
-		targets[i] = v
-		i++
-	}
-	return &picchuv1alpha1.RevisionStatus{targets}
 }

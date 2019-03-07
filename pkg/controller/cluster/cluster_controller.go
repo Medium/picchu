@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/dns/route53"
 
 	corev1 "k8s.io/api/core/v1"
@@ -131,9 +132,8 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			}
 		}
 	}
-	err = r.client.Status().Update(context.TODO(), instance)
+	err = utils.UpdateStatus(context.TODO(), r.client, instance)
 	if err != nil {
-		// Error reading the object - requeue the request.
 		reqLogger.Error(err, "Failed to update Cluster status")
 		return reconcile.Result{}, err
 	}

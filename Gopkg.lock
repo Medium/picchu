@@ -307,7 +307,8 @@
   version = "v1.1.5"
 
 [[projects]]
-  digest = "1:571c78668337b5090b4a2e05ee7be54869380f6acd2c9fd3d2e8f5f981afad26"
+  branch = "master"
+  digest = "1:6773d3d3799c3025a96120c73a6f75fff48d94fa0892a85a9ae7ae0957a6f672"
   name = "github.com/knative/pkg"
   packages = [
     "apis/istio",
@@ -315,8 +316,7 @@
     "apis/istio/v1alpha3",
   ]
   pruneopts = "NT"
-  revision = "bd54d6114d079e7347e79e41e440284c55cf2de4"
-  source = "github.com/dokipen/pkg"
+  revision = "2b411285d2b94b39dc7580c5406be7a05c119d6a"
 
 [[projects]]
   branch = "master"
