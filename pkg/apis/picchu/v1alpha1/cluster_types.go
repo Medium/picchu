@@ -76,6 +76,7 @@ type ClusterIngresses struct {
 type IngressInfo struct {
 	HostedZoneId string `json:"hosted-zone-id"`
 	DNSName      string `json:"dns-name"`
+	Gateway      string `json:"gateway,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster

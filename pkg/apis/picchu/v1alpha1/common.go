@@ -7,7 +7,7 @@ import (
 
 type PortMode string
 
-var (
+const (
 	// PortPublic sets a port to be published to the Internet.
 	PortPublic PortMode = "public"
 
@@ -26,8 +26,9 @@ const (
 )
 
 type PortInfo struct {
-	Name          string          `json:"name,omitempty"`
+	Name          string          `json:"name"`
 	Hosts         []string        `json:"hosts,omitempty"`
+	IngressPort   int32           `json:"ingressPort,omitempty"`
 	Port          int32           `json:"port,omitempty"`
 	ContainerPort int32           `json:"containerPort,omitempty"`
 	Protocol      corev1.Protocol `json:"protocol,omitempty"`

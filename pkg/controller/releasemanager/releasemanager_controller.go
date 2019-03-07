@@ -124,7 +124,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		reqLogger.Error(err, "Failed to create remote client", "Cluster.Key", key)
 		return reconcile.Result{}, err
 	}
-	manager := ReleaseManager{
+	manager := ResourceSyncer{
 		Instance:        instance,
 		IncarnationList: incarnationList,
 		Cluster:         cluster,
@@ -147,7 +147,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	return reconcile.Result{Requeue: true}, nil
 }
 
-type ReleaseManager struct {
+type ResourceSyncer struct {
 	Instance        *picchuv1alpha1.ReleaseManager
 	IncarnationList *picchuv1alpha1.IncarnationList
 	Cluster         *picchuv1alpha1.Cluster
@@ -155,13 +155,13 @@ type ReleaseManager struct {
 	PicchuClient    client.Client
 }
 
-func (r *ReleaseManager) SyncNamespace() error {
+func (r *ResourceSyncer) SyncNamespace() error {
 	labels := map[string]string{
 		"istio-injection": "enabled",
 	}
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   r.Instance.Spec.App,
+			Name:   r.Instance.TargetNamespace(),
 			Labels: labels,
 		},
 	}
@@ -174,7 +174,7 @@ func (r *ReleaseManager) SyncNamespace() error {
 	return err
 }
 
-func (r *ReleaseManager) SyncService() error {
+func (r *ResourceSyncer) SyncService() error {
 	portMap := map[string]corev1.ServicePort{}
 	for _, incarnation := range r.IncarnationList.Items {
 		for _, port := range incarnation.Spec.Ports {
@@ -189,11 +189,9 @@ func (r *ReleaseManager) SyncService() error {
 			}
 		}
 	}
-	ports := make([]corev1.ServicePort, len(portMap))
-	i := 0
+	ports := make([]corev1.ServicePort, 0, len(portMap))
 	for _, port := range portMap {
-		ports[i] = port
-		i++
+		ports = append(ports, port)
 	}
 
 	// Used to label Service and selector
@@ -204,7 +202,7 @@ func (r *ReleaseManager) SyncService() error {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.Instance.Spec.App,
-			Namespace: r.Instance.Spec.App,
+			Namespace: r.Instance.TargetNamespace(),
 			Labels:    labels,
 		},
 	}
@@ -219,20 +217,17 @@ func (r *ReleaseManager) SyncService() error {
 	return err
 }
 
-func (r *ReleaseManager) SyncDestinationRule() error {
+func (r *ResourceSyncer) SyncDestinationRule() error {
 	labels := map[string]string{
 		"medium.build/app": r.Instance.Spec.App,
 	}
 	appName := r.Instance.Spec.App
-	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, appName)
+	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
 	drule := &istiov1alpha3.DestinationRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.Instance.Spec.App,
-			Namespace: r.Instance.Spec.App,
+			Namespace: r.Instance.TargetNamespace(),
 			Labels:    labels,
-		},
-		Spec: istiov1alpha3.DestinationRuleSpec{
-			Host: service,
 		},
 	}
 	subsets := []istiov1alpha3.Subset{}
@@ -243,34 +238,42 @@ func (r *ReleaseManager) SyncDestinationRule() error {
 			Labels: map[string]string{"medium.build/tag": tag},
 		})
 	}
+	spec := istiov1alpha3.DestinationRuleSpec{
+		Host:    service,
+		Subsets: subsets,
+	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, drule, func(runtime.Object) error {
-		drule.Spec.Subsets = subsets
+		drule.Spec = spec
 		return nil
 	})
 	log.Info("DestinationRule sync'd", "Op", op)
 	return err
 }
 
-func (r *ReleaseManager) SyncVirtualService() error {
+func (r *ResourceSyncer) SyncVirtualService() error {
 	appName := r.Instance.Spec.App
 	defaultDomain := r.Cluster.DefaultDomain()
-	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, appName)
+	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
 	labels := map[string]string{"medium.build/app": appName}
-	defaultHost := fmt.Sprintf("%s.%s", appName, defaultDomain)
-	hosts := []string{defaultHost}
+	defaultHost := fmt.Sprintf("%s.%s", r.Instance.TargetNamespace(), defaultDomain)
+	// keep a set of hosts
+	hosts := map[string]bool{defaultHost: true}
 	// TODO(bob): figure out public and private ingressgateway names and make sure they exist
 	// publicIngress := "public-ingressgateway-cert-merge.istio-system.svc.cluster.local"
-	privateIngress := "private-ingressgateway-cert-merge.istio-system.svc.cluster.local"
-	gateways := []string{
-		"mesh",
-		// publicIngress,
-		privateIngress,
+	publicGateway := r.Cluster.Spec.Ingresses.Public.Gateway
+	privateGateway := r.Cluster.Spec.Ingresses.Private.Gateway
+	gateways := []string{"mesh"}
+	if publicGateway != "" {
+		gateways = append(gateways, publicGateway)
+	}
+	if privateGateway != "" {
+		gateways = append(gateways, privateGateway)
 	}
 	vs := &istiov1alpha3.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
-			Namespace: appName,
+			Namespace: r.Instance.TargetNamespace(),
 			Labels:    labels,
 		},
 	}
@@ -284,38 +287,41 @@ func (r *ReleaseManager) SyncVirtualService() error {
 	// as <port.Name>-<tag>-<app>.<fleet>.medm.io
 	for _, incarnation := range r.IncarnationList.Items {
 		tag := incarnation.Spec.App.Tag
-		host := fmt.Sprintf("%s-%s.%s", tag, appName, defaultDomain)
-		hosts = append(hosts, host)
-
 		for _, port := range incarnation.Spec.Ports {
-			route := istiov1alpha3.HTTPRoute{
-				Match: []istiov1alpha3.HTTPMatchRequest{
-					{
+			matches := []istiov1alpha3.HTTPMatchRequest{{
+				// mesh traffic from same tag'd service with and test tag
+				SourceLabels: map[string]string{
+					"medium.build/app": appName,
+					"medium.build/tag": tag,
+					// TODO(bob): formalize what tag should be routed
+					"medium.build/test": "1",
+				},
+				Port:     uint32(port.Port),
+				Gateways: []string{"mesh"},
+			}}
+			if privateGateway != "" {
+				host := fmt.Sprintf("%s-%s", tag, defaultHost)
+				hosts[host] = true
+				matches = append(matches,
+					istiov1alpha3.HTTPMatchRequest{
 						// internal traffic with MEDIUM-TAG header
 						Headers: map[string]istiocommonv1alpha1.StringMatch{
 							"Medium-Tag": {Exact: tag},
 						},
-						Port:     uint32(port.Port),
-						Gateways: []string{privateIngress},
+						Port:     uint32(port.IngressPort),
+						Gateways: []string{privateGateway},
 					},
-					{
+					istiov1alpha3.HTTPMatchRequest{
 						// internal traffic with :authority host header
 						Authority: &istiocommonv1alpha1.StringMatch{Exact: host},
-						Port:      uint32(port.Port),
-						Gateways:  []string{privateIngress},
+						Port:      uint32(port.IngressPort),
+						Gateways:  []string{privateGateway},
 					},
-					{
-						// mesh traffic from same tag'd service with and test tag
-						SourceLabels: map[string]string{
-							"medium.build/app": appName,
-							"medium.build/tag": tag,
-							// TODO(bob): formalize what tag should be routed
-							"medium.build/test": "1",
-						},
-						Port:     uint32(port.Port),
-						Gateways: []string{"mesh"},
-					},
-				},
+				)
+			}
+
+			http = append(http, istiov1alpha3.HTTPRoute{
+				Match: matches,
 				Route: []istiov1alpha3.DestinationWeight{
 					{
 						Destination: istiov1alpha3.Destination{
@@ -326,8 +332,7 @@ func (r *ReleaseManager) SyncVirtualService() error {
 						Weight: 100,
 					},
 				},
-			}
-			http = append(http, route)
+			})
 		}
 	}
 
@@ -337,7 +342,7 @@ func (r *ReleaseManager) SyncVirtualService() error {
 	// to take from oldest fnord release.
 	percRemaining := int32(100)
 	// Tracking one route per port number
-	releaseRoutes := map[uint32]istiov1alpha3.HTTPRoute{}
+	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
 	incarnations, err := r.IncarnationList.SortedReleases()
 	if err != nil {
 		return err
@@ -373,15 +378,36 @@ func (r *ReleaseManager) SyncVirtualService() error {
 		if current > 0 {
 			for _, port := range incarnation.Spec.Ports {
 				portNumber := uint32(port.Port)
-				releaseRoute, ok := releaseRoutes[portNumber]
+				filterHosts := port.Hosts
+				gateway := []string{"mesh"}
+				switch port.Mode {
+				case picchuv1alpha1.PortPublic:
+					if publicGateway == "" {
+						log.Info("Can't configure publicGateway, undefined in Cluster")
+						continue
+					}
+					gateway = []string{publicGateway}
+					portNumber = uint32(port.IngressPort)
+				case picchuv1alpha1.PortPrivate:
+					if privateGateway == "" {
+						log.Info("Can't configure privateGateway, undefined in Cluster")
+						continue
+					}
+					gateway = []string{privateGateway}
+					filterHosts = append(filterHosts, defaultHost)
+					portNumber = uint32(port.IngressPort)
+				}
+				releaseRoute, ok := releaseRoutes[port.Name]
 				if !ok {
-					releaseRoute = istiov1alpha3.HTTPRoute{
-						Match: []istiov1alpha3.HTTPMatchRequest{{
+					releaseRoute = istiov1alpha3.HTTPRoute{}
+					for _, filterHost := range filterHosts {
+						hosts[filterHost] = true
+						releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{
 							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
-							Authority: &istiocommonv1alpha1.StringMatch{Exact: defaultHost},
-							Port:      uint32(port.Port),
-							Gateways:  []string{privateIngress},
-						}},
+							Authority: &istiocommonv1alpha1.StringMatch{Exact: filterHost},
+							Port:      portNumber,
+							Gateways:  gateway,
+						})
 					}
 				}
 
@@ -393,7 +419,7 @@ func (r *ReleaseManager) SyncVirtualService() error {
 					},
 					Weight: int(current),
 				})
-				releaseRoutes[portNumber] = releaseRoute
+				releaseRoutes[port.Name] = releaseRoute
 			}
 		}
 	}
@@ -403,7 +429,11 @@ func (r *ReleaseManager) SyncVirtualService() error {
 	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, vs, func(runtime.Object) error {
-		vs.Spec.Hosts = hosts
+		hostSlice := make([]string, 0, len(hosts))
+		for h, _ := range hosts {
+			hostSlice = append(hostSlice, h)
+		}
+		vs.Spec.Hosts = hostSlice
 		vs.Spec.Gateways = gateways
 		vs.Spec.Http = http
 		return nil

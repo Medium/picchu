@@ -90,7 +90,7 @@ func (b *IncarnationResources) GetConfigObjects() (secrets []*corev1.Secret, con
 		secrets = append(secrets, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        item.Name,
-				Namespace:   b.Incarnation.Spec.App.Name,
+				Namespace:   b.Incarnation.TargetNamespace(),
 				Labels:      item.Labels,
 				Annotations: CopyAnnotations(item.Annotations),
 			},
@@ -101,7 +101,7 @@ func (b *IncarnationResources) GetConfigObjects() (secrets []*corev1.Secret, con
 		configMaps = append(configMaps, &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        item.Name,
-				Namespace:   b.Incarnation.Spec.App.Name,
+				Namespace:   b.Incarnation.TargetNamespace(),
 				Labels:      item.Labels,
 				Annotations: CopyAnnotations(item.Annotations),
 			},
@@ -157,7 +157,7 @@ func (b *IncarnationResources) ReplicaSets() []runtime.Object {
 	r = append(r, &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      tag,
-			Namespace: appName,
+			Namespace: b.Incarnation.TargetNamespace(),
 			Labels:    labels,
 		},
 		Spec: appsv1.ReplicaSetSpec{
@@ -166,7 +166,7 @@ func (b *IncarnationResources) ReplicaSets() []runtime.Object {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      tag,
-					Namespace: appName,
+					Namespace: b.Incarnation.TargetNamespace(),
 					Labels:    labels,
 				},
 				Spec: corev1.PodSpec{
@@ -188,7 +188,7 @@ func (b *IncarnationResources) ReplicaSets() []runtime.Object {
 
 func (b *IncarnationResources) ReplicaSetSelector() types.NamespacedName {
 	return types.NamespacedName{
-		b.Incarnation.Spec.App.Name,
+		b.Incarnation.TargetNamespace(),
 		b.Incarnation.Spec.App.Tag,
 	}
 }
@@ -280,7 +280,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		resourceStatus = append(resourceStatus, picchuv1alpha1.IncarnationResourceStatus{
 			ApiVersion: apiVersion,
 			Kind:       kind,
-			Metadata:   &types.NamespacedName{name, namespace},
+			Metadata:   &types.NamespacedName{namespace, name},
 			Status:     status,
 		})
 	}
