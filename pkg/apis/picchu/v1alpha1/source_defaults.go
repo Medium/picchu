@@ -51,7 +51,7 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 		release.Rate.Increment = defaultReleaseRateIncrement
 	}
 	if release.Rate.Delay == 0 {
-		release.Rate.Increment = defaultReleaseRateIncrement
+		release.Rate.Delay = defaultReleaseRateDelay
 	}
 }
 
