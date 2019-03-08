@@ -40,6 +40,28 @@ spec:
           - target
           type: object
         status:
+          properties:
+            releases:
+              items:
+                properties:
+                  currentPercent:
+                    format: int32
+                    type: integer
+                  lastUpdated:
+                    format: date-time
+                    type: string
+                  peakPercent:
+                    format: int32
+                    type: integer
+                  tag:
+                    type: string
+                required:
+                - tag
+                - lastUpdated
+                - currentPercent
+                - peakPercent
+                type: object
+              type: array
           type: object
   version: v1alpha1
 status:

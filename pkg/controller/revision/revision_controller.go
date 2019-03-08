@@ -96,7 +96,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1.Revision) error {
 	targetStatuses := []picchuv1alpha1.RevisionTargetIncarnationStatus{}
 	for _, target := range revision.Spec.Targets {
-		clusters, err := r.getClustersByFleet(target.Fleet)
+		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
 		if err != nil {
 			return err
 		}
@@ -185,7 +185,7 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 	for _, target := range revision.Spec.Targets {
 		log.Info("In RM target", "Target.Name", target.Name, "Target.Fleet", target.Fleet)
 		targetName := target.Name
-		clusters, err := r.getClustersByFleet(target.Fleet)
+		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
 		if err != nil {
 			return err
 		}
@@ -218,9 +218,11 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 	return nil
 }
 
-func (r *ReconcileRevision) getClustersByFleet(fleet string) (*picchuv1alpha1.ClusterList, error) {
+func (r *ReconcileRevision) getClustersByFleet(namespace string, fleet string) (*picchuv1alpha1.ClusterList, error) {
 	clusters := &picchuv1alpha1.ClusterList{}
-	opts := client.MatchingLabels(map[string]string{picchuv1alpha1.LabelFleet: fleet})
+	opts := client.
+		MatchingLabels(map[string]string{picchuv1alpha1.LabelFleet: fleet}).
+		InNamespace(namespace)
 	err := r.client.List(context.TODO(), opts, clusters)
 	r.scheme.Default(clusters)
 	return clusters, err

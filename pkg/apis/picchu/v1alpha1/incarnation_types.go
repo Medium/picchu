@@ -24,12 +24,10 @@ type Incarnation struct {
 
 // CurrentPercentTarget returns the percent of traffic this incarnation would
 // like to recieve at any given moment, with respect to max available
-func (i *Incarnation) CurrentPercentTarget(max int32) int32 {
+func (i *Incarnation) CurrentPercentTarget(lastUpdate *metav1.Time, current uint32, max uint32) uint32 {
 	// TODO(bob): gate increment on current time for "humane" scheduled
 	// deployments that are currently at 0 percent of traffic
-	releaseStatus := i.Status.Release
 	releaseSpec := i.Spec.Release
-	current := releaseStatus.CurrentPercent
 	if max <= 0 {
 		return 0
 	}
@@ -39,8 +37,8 @@ func (i *Incarnation) CurrentPercentTarget(max int32) int32 {
 		max = releaseSpec.Max
 	}
 	deadline := time.Time{}
-	if releaseStatus.LastUpdate != nil {
-		deadline = releaseStatus.LastUpdate.Add(delay)
+	if lastUpdate != nil {
+		deadline = lastUpdate.Add(delay)
 	}
 
 	if deadline.After(time.Now()) {
@@ -125,7 +123,6 @@ type IncarnationAssignment struct {
 // IncarnationStatus defines the observed state of Incarnation
 type IncarnationStatus struct {
 	Health    IncarnationHealthStatus     `json:"health,omitempty"`
-	Release   IncarnationReleaseStatus    `json:"release,omitempty"`
 	Scale     IncarnationScaleStatus      `json:"scale,omitempty"`
 	Resources []IncarnationResourceStatus `json:"resources,omitempty"`
 }
@@ -139,12 +136,6 @@ type IncarnationHealthMetricStatus struct {
 	Name      string  `json:"name,omitempty"`
 	Objective float64 `json:"objective,omitempty"`
 	Actual    float64 `json:"actual,omitempty"`
-}
-
-type IncarnationReleaseStatus struct {
-	PeakPercent    int32        `json:"peakPercent,omitempty"`
-	CurrentPercent int32        `json:"currentPercent,omitempty"`
-	LastUpdate     *metav1.Time `json:"lastUpdate,omitempty"`
 }
 
 type IncarnationScaleStatus struct {

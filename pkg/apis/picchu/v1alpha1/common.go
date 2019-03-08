@@ -55,12 +55,12 @@ type ResourceInfo struct {
 
 type ReleaseInfo struct {
 	Eligible bool     `json:"eligible,omitempty"`
-	Max      int32    `json:"max,omitempty"`
+	Max      uint32   `json:"max,omitempty"`
 	Rate     RateInfo `json:"rate,omitempty"`
 	Schedule string   `json:"schedule,omitempty"`
 }
 
 type RateInfo struct {
-	Increment int32         `json:"increment,omitempty"`
+	Increment uint32        `json:"increment,omitempty"`
 	Delay     time.Duration `json:"delay,omitempty"`
 }

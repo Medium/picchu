@@ -339,7 +339,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// incrementing their weight if enough time has passed since their last
 	// update, and stopping when we reach 100%. This will cause newer releases
 	// to take from oldest fnord release.
-	percRemaining := int32(100)
+	var percRemaining uint32 = 100
 	// Tracking one route per port number
 	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
 	incarnations, err := r.IncarnationList.SortedReleases()
@@ -348,15 +348,17 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	}
 	count := len(incarnations)
 	for i, incarnation := range incarnations {
-		oldCurrent := incarnation.Status.Release.CurrentPercent
-		peak := incarnation.Status.Release.PeakPercent
-		current := incarnation.CurrentPercentTarget(percRemaining)
+		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
+		oldCurrent := releaseStatus.CurrentPercent
+		peak := releaseStatus.PeakPercent
+		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
 		if i+1 == count {
 			// TODO(bob): confirm we want to give remaining bandwidth to oldest
 			// instance
 			// Make sure we use all available bandwidth
 			current = percRemaining
 		}
+		log.Info("CurrentPercentage Update", "Incarnation.Name", incarnation.Name, "Old", oldCurrent, "Current", current)
 		if current > peak {
 			peak = current
 		}
@@ -366,13 +368,10 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 
 		if oldCurrent != current {
 			now := metav1.Now()
-			incarnation.Status.Release.CurrentPercent = current
-			incarnation.Status.Release.PeakPercent = peak
-			incarnation.Status.Release.LastUpdate = &now
-			if err := utils.UpdateStatus(context.TODO(), r.PicchuClient, &incarnation); err != nil {
-				log.Error(err, "Failed to update incarnation status")
-				return err
-			}
+			releaseStatus.CurrentPercent = current
+			releaseStatus.PeakPercent = peak
+			releaseStatus.LastUpdate = &now
+			r.Instance.UpdateReleaseStatus(releaseStatus)
 		}
 
 		if current > 0 {
@@ -438,6 +437,14 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		vs.Spec.Http = http
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
 	log.Info("VirtualService sync'd", "Op", op)
-	return err
+	if err := utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
+		log.Error(err, "Failed to update releasemanager status")
+		return err
+	}
+	return nil
 }

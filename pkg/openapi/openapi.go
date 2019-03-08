@@ -191,10 +191,24 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref common.ReferenceCa
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "ReleaseManagerStatus defines the observed state of ReleaseManager",
-				Properties:  map[string]spec.Schema{},
+				Properties: map[string]spec.Schema{
+					"releases": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerReleaseStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerReleaseStatus"},
 	}
 }
 
