@@ -273,16 +273,25 @@ func (r *ResourceSyncer) Sync() error {
 	}
 	resourceStatus = append(resourceStatus, status)
 
+	inc := &picchuv1alpha1.Incarnation{}
+	key, err := client.ObjectKeyFromObject(r.Instance)
+	if err != nil {
+		return err
+	}
+	if err := r.PicchuClient.Get(context.TODO(), key, inc); err != nil {
+		return err
+	}
+
 	health := true
 	if replicaSet.Status.ReadyReplicas == 0 {
 		health = false
 	}
 
-	r.Instance.Status.Health.Healthy = health
-	r.Instance.Status.Scale.Current = replicaSet.Status.ReadyReplicas
-	r.Instance.Status.Scale.Desired = replicaSet.Status.Replicas
-	r.Instance.Status.Resources = resourceStatus
-	if err = utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
+	inc.Status.Health.Healthy = health
+	inc.Status.Scale.Current = replicaSet.Status.ReadyReplicas
+	inc.Status.Scale.Desired = replicaSet.Status.Replicas
+	inc.Status.Resources = resourceStatus
+	if err = utils.UpdateStatus(context.TODO(), r.PicchuClient, inc); err != nil {
 		log.Error(err, "Failed to update Incarnation status")
 		return err
 	}
