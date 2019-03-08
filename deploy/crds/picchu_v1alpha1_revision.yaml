@@ -144,7 +144,7 @@ spec:
                       resources:
                         properties:
                           cpu:
-                            type: string
+                            type: object
                         type: object
                     type: object
                 required:

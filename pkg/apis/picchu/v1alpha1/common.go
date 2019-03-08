@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"time"
 )
 
@@ -50,7 +51,7 @@ type ScaleInfo struct {
 }
 
 type ResourceInfo struct {
-	CPU string `json:"cpu,omitempty"`
+	CPU resource.Quantity `json:"cpu,omitempty"`
 }
 
 type ReleaseInfo struct {
