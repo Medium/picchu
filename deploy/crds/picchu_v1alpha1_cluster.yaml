@@ -2,23 +2,27 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
   name: clusters.picchu.medium.engineering
 spec:
   group: picchu.medium.engineering
   names:
     kind: Cluster
-    listKind: ClusterList
     plural: clusters
-    singular: cluster
   scope: Namespaced
-  subresources:
-    status: {}
   validation:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -43,6 +47,8 @@ spec:
               required:
               - server
               type: object
+            defaultDomain:
+              type: string
             dns:
               items:
                 properties:
@@ -61,8 +67,14 @@ spec:
             ingresses:
               properties:
                 private:
+                  properties:
+                    gateway:
+                      type: string
                   type: object
                 public:
+                  properties:
+                    gateway:
+                      type: string
                   type: object
               required:
               - public
@@ -75,6 +87,7 @@ spec:
           - enabled
           - weight
           - ingresses
+          - defaultDomain
           type: object
         status:
           properties:
@@ -114,7 +127,9 @@ spec:
           - conditions
           type: object
   version: v1alpha1
-  versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

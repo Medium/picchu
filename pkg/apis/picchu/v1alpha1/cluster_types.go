@@ -36,12 +36,13 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled   bool              `json:"enabled"`
-	Config    *ClusterConfig    `json:"config,omitempty"`
-	Weight    float64           `json:"weight"`
-	AWS       *ClusterAWSInfo   `json:"aws,omitempty"`
-	DNS       []ClusterDNSGroup `json:"dns,omitempty"`
-	Ingresses ClusterIngresses  `json:"ingresses"`
+	Enabled       bool              `json:"enabled"`
+	Config        *ClusterConfig    `json:"config,omitempty"`
+	Weight        float64           `json:"weight"`
+	AWS           *ClusterAWSInfo   `json:"aws,omitempty"`
+	DNS           []ClusterDNSGroup `json:"dns,omitempty"`
+	Ingresses     ClusterIngresses  `json:"ingresses"`
+	DefaultDomain string            `json:"defaultDomain"`
 }
 
 type ClusterConfig struct {
@@ -142,7 +143,7 @@ func (c *Cluster) Config(secret *corev1.Secret) (*rest.Config, error) {
 }
 
 func (c *Cluster) Fleet() string {
-	fleet, _ := c.Labels["medium.build/fleet"]
+	fleet, _ := c.Labels[LabelFleet]
 	return fleet
 }
 
@@ -160,13 +161,4 @@ func (c *Cluster) RegionAZ() string {
 		az = c.Status.AWS.AZ
 	}
 	return fmt.Sprintf("%s%s", region, az)
-}
-
-func (c *Cluster) DefaultDomain() string {
-	fleet := c.Fleet()
-	if fleet != "" {
-		return fmt.Sprintf("%s.medm.io", c.Fleet())
-	} else {
-		return ""
-	}
 }

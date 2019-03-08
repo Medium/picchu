@@ -46,11 +46,12 @@ type RevisionRelease struct {
 }
 
 type RevisionTarget struct {
-	Name    string                 `json:"name"`
-	Fleet   string                 `json:"fleet"`
-	Scale   ScaleInfo              `json:"scale"`
-	Release ReleaseInfo            `json:"release,omitempty"`
-	Metrics []RevisionTargetMetric `json:"metrics,omitempty"`
+	Name           string                 `json:"name"`
+	Fleet          string                 `json:"fleet"`
+	Scale          ScaleInfo              `json:"scale"`
+	Release        ReleaseInfo            `json:"release,omitempty"`
+	Metrics        []RevisionTargetMetric `json:"metrics,omitempty"`
+	ConfigSelector *metav1.LabelSelector  `json:"configSelector,omitempty"`
 }
 
 type RevisionTargetMetric struct {
@@ -66,11 +67,6 @@ type RevisionTargetMetricQueries struct {
 
 // RevisionStatus defines the observed state of Revision
 type RevisionStatus struct {
-	Targets []RevisionTargetStatus `json:"targets"`
-}
-
-type RevisionTargetStatus struct {
-	Name         string                            `json:"name"`
 	Incarnations []RevisionTargetIncarnationStatus `json:"incarnations"`
 }
 
@@ -78,6 +74,7 @@ type RevisionTargetIncarnationStatus struct {
 	Name    string `json:"name"`
 	Cluster string `json:"cluster"`
 	Status  string `json:"status"`
+	Target  string `json:"target"`
 }
 
 func init() {

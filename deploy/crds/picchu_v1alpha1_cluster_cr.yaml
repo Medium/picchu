@@ -1,8 +1,0 @@
-apiVersion: picchu.medium.engineering/v1alpha1
-kind: Cluster
-metadata:
-  name: self
-  namespace: picchu
-spec:
-  enabled: true
-  weight: 1

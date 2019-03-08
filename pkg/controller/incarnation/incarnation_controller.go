@@ -23,8 +23,7 @@ import (
 )
 
 var (
-	log             = logf.Log.WithName("controller_incarnation")
-	copyAnnotations = []string{"git-scm.com/ref", "github.com/repository"}
+	log = logf.Log.WithName("controller_incarnation")
 )
 
 type Identity interface {
@@ -66,137 +65,6 @@ type ReconcileIncarnation struct {
 	scheme *runtime.Scheme
 }
 
-func CopyAnnotations(source map[string]string) map[string]string {
-	copy := map[string]string{}
-
-	for _, k := range copyAnnotations {
-		if v, ok := source[k]; ok {
-			copy[k] = v
-		}
-	}
-
-	return copy
-}
-
-type IncarnationResources struct {
-	Incarnation      *picchuv1alpha1.Incarnation
-	Cluster          *picchuv1alpha1.Cluster
-	SourceSecrets    *corev1.SecretList
-	SourceConfigMaps *corev1.ConfigMapList
-}
-
-func (b *IncarnationResources) GetConfigObjects() (secrets []*corev1.Secret, configMaps []*corev1.ConfigMap) {
-	for _, item := range b.SourceSecrets.Items {
-		secrets = append(secrets, &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        item.Name,
-				Namespace:   b.Incarnation.TargetNamespace(),
-				Labels:      item.Labels,
-				Annotations: CopyAnnotations(item.Annotations),
-			},
-			Data: item.Data,
-		})
-	}
-	for _, item := range b.SourceConfigMaps.Items {
-		configMaps = append(configMaps, &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        item.Name,
-				Namespace:   b.Incarnation.TargetNamespace(),
-				Labels:      item.Labels,
-				Annotations: CopyAnnotations(item.Annotations),
-			},
-			Data: item.Data,
-		})
-	}
-	return
-}
-
-func (b *IncarnationResources) ReplicaSets() []runtime.Object {
-	// TODO(bob): Refactor to createorupdate
-	var r []runtime.Object
-	secrets, configMaps := b.GetConfigObjects()
-	for _, secret := range secrets {
-		r = append(r, secret)
-	}
-	for _, configMap := range configMaps {
-		r = append(r, configMap)
-	}
-
-	appName := b.Incarnation.Spec.App.Name
-	tag := b.Incarnation.Spec.App.Tag
-	image := b.Incarnation.Spec.App.Image
-
-	var ports []corev1.ContainerPort
-	for _, port := range b.Incarnation.Spec.Ports {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          port.Name,
-			Protocol:      port.Protocol,
-			ContainerPort: port.ContainerPort,
-		})
-	}
-	var envs []corev1.EnvFromSource
-	for _, item := range secrets {
-		envs = append(envs, corev1.EnvFromSource{
-			SecretRef: &corev1.SecretEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: item.Name},
-			},
-		})
-	}
-	for _, item := range configMaps {
-		envs = append(envs, corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: item.Name},
-			},
-		})
-	}
-	// Used to label ReplicaSet, Container and for Container selector
-	labels := map[string]string{
-		"medium.build/app": appName,
-		"medium.build/tag": tag,
-	}
-	r = append(r, &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      tag,
-			Namespace: b.Incarnation.TargetNamespace(),
-			Labels:    labels,
-		},
-		Spec: appsv1.ReplicaSetSpec{
-			Replicas: &b.Incarnation.Spec.Scale.Min,
-			Selector: metav1.SetAsLabelSelector(labels),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      tag,
-					Namespace: b.Incarnation.TargetNamespace(),
-					Labels:    labels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						corev1.Container{
-							EnvFrom:         envs,
-							Image:           image,
-							ImagePullPolicy: "IfNotPresent",
-							Name:            appName,
-							Ports:           ports,
-						},
-					},
-				},
-			},
-		},
-	})
-	return r
-}
-
-func (b *IncarnationResources) ReplicaSetSelector() types.NamespacedName {
-	return types.NamespacedName{
-		b.Incarnation.TargetNamespace(),
-		b.Incarnation.Spec.App.Tag,
-	}
-}
-
-func (b *IncarnationResources) Resources() []runtime.Object {
-	return b.ReplicaSets()
-}
-
 // Reconcile reads that state of the cluster for a Incarnation object and makes changes based on the state read
 // and what is in the Incarnation.Spec
 // Note:
@@ -221,101 +89,202 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	}
 	r.scheme.Default(incarnation)
 
-	configOpts := client.MatchingLabels(map[string]string{
-		"medium.build/tag":              incarnation.Spec.App.Tag,
-		"medium.build/app":              incarnation.Spec.App.Name,
-		"medium.build/target":           incarnation.Spec.Assignment.Target,
-		"config.kbfd.medium.build/type": "environment",
-		"kbfd.medium.build/role":        "config",
-	})
-	clusterOpts := types.NamespacedName{request.Namespace, incarnation.Spec.Assignment.Name}
-
+	opts := types.NamespacedName{request.Namespace, incarnation.Spec.Assignment.Name}
 	cluster := &picchuv1alpha1.Cluster{}
-	secrets := &corev1.SecretList{}
-	configMaps := &corev1.ConfigMapList{}
-
-	if err = r.client.Get(context.TODO(), clusterOpts, cluster); err != nil {
+	if err = r.client.Get(context.TODO(), opts, cluster); err != nil {
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(cluster)
-	if err = r.client.List(context.TODO(), configOpts, secrets); err != nil {
-		return reconcile.Result{}, err
-	}
-	if err = r.client.List(context.TODO(), configOpts, configMaps); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if !cluster.Spec.Enabled {
-		return reconcile.Result{}, nil
-	}
-
-	ic := IncarnationResources{
-		Incarnation:      incarnation,
-		Cluster:          cluster,
-		SourceSecrets:    secrets,
-		SourceConfigMaps: configMaps,
-	}
 	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
+		reqLogger.Error(err, "Failed to create remote client")
 		return reconcile.Result{}, err
 	}
+	syncer := ResourceSyncer{
+		Instance:     incarnation,
+		Client:       remoteClient,
+		PicchuClient: r.client,
+	}
+	if err := syncer.Sync(); err != nil {
+		return reconcile.Result{Requeue: true}, err
+	}
+	return reconcile.Result{Requeue: true}, err
+}
 
-	resourceStatus := []picchuv1alpha1.IncarnationResourceStatus{}
+func NewIncarnationResourceStatus(resource runtime.Object) picchuv1alpha1.IncarnationResourceStatus {
+	status := "created"
+	apiVersion := ""
+	kind := ""
 
-	// Create statuses for all resources
-	for _, resource := range ic.Resources() {
-		status := "unknown"
-		apiVersion := ""
-		kind := ""
-
-		kinds, _, _ := scheme.Scheme.ObjectKinds(resource)
-		if len(kinds) == 1 {
-			apiVersion, kind = kinds[0].ToAPIVersionAndKind()
-		}
-
-		metadata, _ := apimeta.Accessor(resource)
-		namespace := metadata.GetNamespace()
-		name := metadata.GetName()
-
-		resourceStatus = append(resourceStatus, picchuv1alpha1.IncarnationResourceStatus{
-			ApiVersion: apiVersion,
-			Kind:       kind,
-			Metadata:   &types.NamespacedName{namespace, name},
-			Status:     status,
-		})
+	kinds, _, _ := scheme.Scheme.ObjectKinds(resource)
+	if len(kinds) == 1 {
+		apiVersion, kind = kinds[0].ToAPIVersionAndKind()
 	}
 
-	// Create All
-	err = nil
-	for i, resource := range ic.Resources() {
-		resourceStatus[i].Status = "creating"
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), remoteClient, resource, func(existing runtime.Object) error {
-			resourceStatus[i].Status = "created"
+	metadata, _ := apimeta.Accessor(resource)
+	namespace := metadata.GetNamespace()
+	name := metadata.GetName()
+
+	return picchuv1alpha1.IncarnationResourceStatus{
+		ApiVersion: apiVersion,
+		Kind:       kind,
+		Metadata:   &types.NamespacedName{namespace, name},
+		Status:     status,
+	}
+}
+
+type ResourceSyncer struct {
+	Instance     *picchuv1alpha1.Incarnation
+	Client       client.Client
+	PicchuClient client.Client
+}
+
+// SyncConfig syncs ConfigMaps and Secrets
+func (r *ResourceSyncer) Sync() error {
+	var envs []corev1.EnvFromSource
+	resourceStatus := []picchuv1alpha1.IncarnationResourceStatus{}
+	selector, err := metav1.LabelSelectorAsSelector(r.Instance.Spec.ConfigSelector)
+	if err != nil {
+		return err
+	}
+	configOpts := &client.ListOptions{
+		LabelSelector: selector,
+		Namespace:     r.Instance.Namespace,
+	}
+
+	secrets := &corev1.SecretList{}
+	configMaps := &corev1.ConfigMapList{}
+
+	if err := r.PicchuClient.List(context.TODO(), configOpts, secrets); err != nil {
+		return err
+	}
+	if err := r.PicchuClient.List(context.TODO(), configOpts, configMaps); err != nil {
+		return err
+	}
+
+	// It'd be nice if we could combine the following two blocks.
+	for _, item := range secrets.Items {
+		remote := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      item.Name,
+				Namespace: r.Instance.TargetNamespace(),
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, remote, func(runtime.Object) error {
+			remote.ObjectMeta.Labels = item.Labels
+			remote.Data = item.Data
 			return nil
 		})
+		status := NewIncarnationResourceStatus(remote)
 		if err != nil {
-			resourceStatus[i].Status = "error"
-			break
+			status.Status = "failed"
+			log.Error(err, "Failed to sync secret")
+			return err
 		}
-
+		resourceStatus = append(resourceStatus, status)
+		log.Info("Secret sync'd", "Op", op)
+		envs = append(envs, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: remote.Name},
+			},
+		})
+	}
+	for _, item := range configMaps.Items {
+		remote := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      item.Name,
+				Namespace: r.Instance.TargetNamespace(),
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, remote, func(runtime.Object) error {
+			remote.ObjectMeta.Labels = item.Labels
+			remote.Data = item.Data
+			return nil
+		})
+		status := NewIncarnationResourceStatus(remote)
+		if err != nil {
+			status.Status = "failed"
+			log.Error(err, "Failed to sync configMap")
+			return err
+		}
+		resourceStatus = append(resourceStatus, status)
+		log.Info("ConfigMap sync'd", "Op", op)
+		envs = append(envs, corev1.EnvFromSource{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: remote.Name},
+			},
+		})
 	}
 
-	replicaset := &appsv1.ReplicaSet{}
-	if e := remoteClient.Get(context.TODO(), ic.ReplicaSetSelector(), replicaset); e != nil {
-		reqLogger.Error(e, "Failed to get replicaset")
+	appName := r.Instance.Spec.App.Name
+	tag := r.Instance.Spec.App.Tag
+
+	var ports []corev1.ContainerPort
+	for _, port := range r.Instance.Spec.Ports {
+		ports = append(ports, corev1.ContainerPort{
+			Name:          port.Name,
+			Protocol:      port.Protocol,
+			ContainerPort: port.ContainerPort,
+		})
 	}
+	// Used to label ReplicaSet, Container and for Container selector
+	labels := map[string]string{
+		picchuv1alpha1.LabelApp: appName,
+		picchuv1alpha1.LabelTag: tag,
+	}
+	replicaSet := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tag,
+			Namespace: r.Instance.TargetNamespace(),
+		},
+	}
+
+	status := NewIncarnationResourceStatus(replicaSet)
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, replicaSet, func(runtime.Object) error {
+		replicaSet.ObjectMeta.Labels = labels
+		replicaSet.Spec = appsv1.ReplicaSetSpec{
+			Replicas: &r.Instance.Spec.Scale.Min,
+			Selector: metav1.SetAsLabelSelector(labels),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      tag,
+					Namespace: r.Instance.TargetNamespace(),
+					Labels:    labels,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						corev1.Container{
+							EnvFrom: envs,
+							Image:   r.Instance.Spec.App.Image,
+							Name:    r.Instance.Spec.App.Name,
+							Ports:   ports,
+						},
+					},
+				},
+			},
+		}
+		return nil
+	})
+	log.Info("ReplicaSet sync'd", "Op", op)
+	if err != nil {
+		status.Status = "failed"
+		log.Error(err, "Failed to sync replicaSet")
+		return err
+	}
+	resourceStatus = append(resourceStatus, status)
 
 	health := true
-	if replicaset.Status.ReadyReplicas == 0 {
+	if replicaSet.Status.ReadyReplicas == 0 {
 		health = false
 	}
 
-	incarnation.Status.Health.Healthy = health
-	incarnation.Status.Scale.Current = replicaset.Status.ReadyReplicas
-	incarnation.Status.Scale.Desired = replicaset.Status.Replicas
-	incarnation.Status.Resources = resourceStatus
-	if e := r.client.Status().Update(context.TODO(), incarnation); e != nil {
-		reqLogger.Error(e, "Failed to update Incarnation status")
+	r.Instance.Status.Health.Healthy = health
+	r.Instance.Status.Scale.Current = replicaSet.Status.ReadyReplicas
+	r.Instance.Status.Scale.Desired = replicaSet.Status.Replicas
+	r.Instance.Status.Resources = resourceStatus
+	if err = utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
+		log.Error(err, "Failed to update Incarnation status")
+		return err
 	}
-	return reconcile.Result{Requeue: true}, err
+	return nil
 }

@@ -37,6 +37,41 @@ type ReleaseManagerSpec struct {
 // ReleaseManagerStatus defines the observed state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
+	Releases []ReleaseManagerReleaseStatus `json:"releases,omitempty"`
+}
+
+type ReleaseManagerReleaseStatus struct {
+	Tag            string       `json:"tag"`
+	LastUpdate     *metav1.Time `json:"lastUpdated"`
+	CurrentPercent uint32       `json:"currentPercent"`
+	PeakPercent    uint32       `json:"peakPercent"`
+}
+
+func (r *ReleaseManager) ReleaseStatus(tag string) *ReleaseManagerReleaseStatus {
+	for _, s := range r.Status.Releases {
+		if s.Tag == tag {
+			return &s
+		}
+	}
+	now := metav1.Now()
+	s := ReleaseManagerReleaseStatus{
+		Tag:            tag,
+		LastUpdate:     &now,
+		CurrentPercent: 0,
+		PeakPercent:    0,
+	}
+	r.Status.Releases = append(r.Status.Releases, s)
+	return &s
+}
+
+func (r *ReleaseManager) UpdateReleaseStatus(u *ReleaseManagerReleaseStatus) {
+	for i, s := range r.Status.Releases {
+		if s.Tag == u.Tag {
+			r.Status.Releases[i].LastUpdate = u.LastUpdate
+			r.Status.Releases[i].CurrentPercent = u.CurrentPercent
+			r.Status.Releases[i].PeakPercent = u.PeakPercent
+		}
+	}
 }
 
 func (r *ReleaseManager) TargetNamespace() string {

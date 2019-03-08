@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"time"
 )
 
@@ -21,8 +22,15 @@ const (
 )
 
 const (
-	HumaneSchedule = "humane"
-	AlwaysSchedule = "always"
+	HumaneSchedule                  = "humane"
+	AlwaysSchedule                  = "always"
+	LabelApp                        = "picchu.medium.engineering/app"
+	LabelTag                        = "picchu.medium.engineering/tag"
+	LabelCluster                    = "picchu.medium.engineering/cluster"
+	LabelFleet                      = "picchu.medium.engineering/fleet"
+	LabelRevision                   = "picchu.medium.engineering/revision"
+	LabelTarget                     = "picchu.medium.engineering/target"
+	AnnotationGitCommitterTimestamp = "git-scm.com/committer-timestamp"
 )
 
 type PortInfo struct {
@@ -43,17 +51,17 @@ type ScaleInfo struct {
 }
 
 type ResourceInfo struct {
-	CPU string `json:"cpu,omitempty"`
+	CPU resource.Quantity `json:"cpu,omitempty"`
 }
 
 type ReleaseInfo struct {
 	Eligible bool     `json:"eligible,omitempty"`
-	Max      int32    `json:"max,omitempty"`
+	Max      uint32   `json:"max,omitempty"`
 	Rate     RateInfo `json:"rate,omitempty"`
 	Schedule string   `json:"schedule,omitempty"`
 }
 
 type RateInfo struct {
-	Increment int32         `json:"increment,omitempty"`
+	Increment uint32        `json:"increment,omitempty"`
 	Delay     time.Duration `json:"delay,omitempty"`
 }

@@ -111,8 +111,8 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	r.scheme.Default(cluster)
 	incarnationList := &picchuv1alpha1.IncarnationList{}
 	labelSelector := client.MatchingLabels(map[string]string{
-		"medium.build/app":     instance.Spec.App,
-		"medium.build/cluster": instance.Spec.Cluster,
+		picchuv1alpha1.LabelApp:     instance.Spec.App,
+		picchuv1alpha1.LabelCluster: instance.Spec.Cluster,
 	})
 	if err := r.client.List(context.TODO(), labelSelector, incarnationList); err != nil {
 		return reconcile.Result{}, err
@@ -124,23 +124,23 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		reqLogger.Error(err, "Failed to create remote client", "Cluster.Key", key)
 		return reconcile.Result{}, err
 	}
-	manager := ResourceSyncer{
+	syncer := ResourceSyncer{
 		Instance:        instance,
 		IncarnationList: incarnationList,
 		Cluster:         cluster,
 		Client:          remoteClient,
 		PicchuClient:    r.client,
 	}
-	if err := manager.SyncNamespace(); err != nil {
+	if err := syncer.SyncNamespace(); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err := manager.SyncService(); err != nil {
+	if err := syncer.SyncService(); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err := manager.SyncDestinationRule(); err != nil {
+	if err := syncer.SyncDestinationRule(); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err := manager.SyncVirtualService(); err != nil {
+	if err := syncer.SyncVirtualService(); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -196,7 +196,7 @@ func (r *ResourceSyncer) SyncService() error {
 
 	// Used to label Service and selector
 	labels := map[string]string{
-		"medium.build/app": r.Instance.Spec.App,
+		picchuv1alpha1.LabelApp: r.Instance.Spec.App,
 	}
 
 	service := &corev1.Service{
@@ -219,7 +219,7 @@ func (r *ResourceSyncer) SyncService() error {
 
 func (r *ResourceSyncer) SyncDestinationRule() error {
 	labels := map[string]string{
-		"medium.build/app": r.Instance.Spec.App,
+		picchuv1alpha1.LabelApp: r.Instance.Spec.App,
 	}
 	appName := r.Instance.Spec.App
 	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
@@ -235,7 +235,7 @@ func (r *ResourceSyncer) SyncDestinationRule() error {
 		tag := incarnation.Spec.App.Tag
 		subsets = append(subsets, istiov1alpha3.Subset{
 			Name:   tag,
-			Labels: map[string]string{"medium.build/tag": tag},
+			Labels: map[string]string{picchuv1alpha1.LabelTag: tag},
 		})
 	}
 	spec := istiov1alpha3.DestinationRuleSpec{
@@ -253,9 +253,9 @@ func (r *ResourceSyncer) SyncDestinationRule() error {
 
 func (r *ResourceSyncer) SyncVirtualService() error {
 	appName := r.Instance.Spec.App
-	defaultDomain := r.Cluster.DefaultDomain()
+	defaultDomain := r.Cluster.Spec.DefaultDomain
 	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
-	labels := map[string]string{"medium.build/app": appName}
+	labels := map[string]string{picchuv1alpha1.LabelApp: appName}
 	defaultHost := fmt.Sprintf("%s.%s", r.Instance.TargetNamespace(), defaultDomain)
 	// keep a set of hosts
 	hosts := map[string]bool{defaultHost: true}
@@ -284,17 +284,16 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// of readability
 
 	// Incarnation specific releases are made for each port on private ingress
-	// as <port.Name>-<tag>-<app>.<fleet>.medm.io
+	// as <port.Name>-<tag>-<app>.<defaultDomain>
 	for _, incarnation := range r.IncarnationList.Items {
 		tag := incarnation.Spec.App.Tag
 		for _, port := range incarnation.Spec.Ports {
 			matches := []istiov1alpha3.HTTPMatchRequest{{
 				// mesh traffic from same tag'd service with and test tag
 				SourceLabels: map[string]string{
-					"medium.build/app": appName,
-					"medium.build/tag": tag,
-					// TODO(bob): formalize what tag should be routed
-					"medium.build/test": "1",
+					picchuv1alpha1.LabelApp:          appName,
+					picchuv1alpha1.LabelTag:          tag,
+					"picchu.medium.engineering/test": "1",
 				},
 				Port:     uint32(port.Port),
 				Gateways: []string{"mesh"},
@@ -340,7 +339,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// incrementing their weight if enough time has passed since their last
 	// update, and stopping when we reach 100%. This will cause newer releases
 	// to take from oldest fnord release.
-	percRemaining := int32(100)
+	var percRemaining uint32 = 100
 	// Tracking one route per port number
 	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
 	incarnations, err := r.IncarnationList.SortedReleases()
@@ -349,15 +348,17 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	}
 	count := len(incarnations)
 	for i, incarnation := range incarnations {
-		oldCurrent := incarnation.Status.Release.CurrentPercent
-		peak := incarnation.Status.Release.PeakPercent
-		current := incarnation.CurrentPercentTarget(percRemaining)
+		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
+		oldCurrent := releaseStatus.CurrentPercent
+		peak := releaseStatus.PeakPercent
+		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
 		if i+1 == count {
 			// TODO(bob): confirm we want to give remaining bandwidth to oldest
 			// instance
 			// Make sure we use all available bandwidth
 			current = percRemaining
 		}
+		log.Info("CurrentPercentage Update", "Incarnation.Name", incarnation.Name, "Old", oldCurrent, "Current", current)
 		if current > peak {
 			peak = current
 		}
@@ -367,12 +368,10 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 
 		if oldCurrent != current {
 			now := metav1.Now()
-			incarnation.Status.Release.CurrentPercent = current
-			incarnation.Status.Release.PeakPercent = peak
-			incarnation.Status.Release.LastUpdate = &now
-			if err := r.PicchuClient.Status().Update(context.TODO(), &incarnation); err != nil {
-				return err
-			}
+			releaseStatus.CurrentPercent = current
+			releaseStatus.PeakPercent = peak
+			releaseStatus.LastUpdate = &now
+			r.Instance.UpdateReleaseStatus(releaseStatus)
 		}
 
 		if current > 0 {
@@ -438,6 +437,14 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		vs.Spec.Http = http
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
 	log.Info("VirtualService sync'd", "Op", op)
-	return err
+	if err := utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
+		log.Error(err, "Failed to update releasemanager status")
+		return err
+	}
+	return nil
 }

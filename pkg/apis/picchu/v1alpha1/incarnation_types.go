@@ -9,10 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	annotationGitTimestamp = "git-scm.com/committer-timestamp"
-)
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -28,12 +24,10 @@ type Incarnation struct {
 
 // CurrentPercentTarget returns the percent of traffic this incarnation would
 // like to recieve at any given moment, with respect to max available
-func (i *Incarnation) CurrentPercentTarget(max int32) int32 {
+func (i *Incarnation) CurrentPercentTarget(lastUpdate *metav1.Time, current uint32, max uint32) uint32 {
 	// TODO(bob): gate increment on current time for "humane" scheduled
 	// deployments that are currently at 0 percent of traffic
-	releaseStatus := i.Status.Release
 	releaseSpec := i.Spec.Release
-	current := releaseStatus.CurrentPercent
 	if max <= 0 {
 		return 0
 	}
@@ -43,8 +37,8 @@ func (i *Incarnation) CurrentPercentTarget(max int32) int32 {
 		max = releaseSpec.Max
 	}
 	deadline := time.Time{}
-	if releaseStatus.LastUpdate != nil {
-		deadline = releaseStatus.LastUpdate.Add(delay)
+	if lastUpdate != nil {
+		deadline = lastUpdate.Add(delay)
 	}
 
 	if deadline.After(time.Now()) {
@@ -79,7 +73,7 @@ func (i *IncarnationList) LatestRelease() (*Incarnation, error) {
 
 // SortedReleases returns all release enabled incarnations in reverse
 // chronological order. Requires all releases to be annotated with the
-// annotationGitTimestamp annotation, which should be an RFC3339 timestamp
+// AnnotationGitCommitterTimestamp annotation, which should be an RFC3339 timestamp
 func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 	releases := []Incarnation{}
 	for _, incarnation := range i.Items {
@@ -96,7 +90,7 @@ func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 		if a.IsZero() || b.IsZero() {
 			err = fmt.Errorf(
 				"Release is missing the '%s' RFC3339 timestamp annotation",
-				annotationGitTimestamp,
+				AnnotationGitCommitterTimestamp,
 			)
 		}
 		return a.After(b)
@@ -106,11 +100,12 @@ func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 
 // IncarnationSpec defines the desired state of Incarnation
 type IncarnationSpec struct {
-	App        IncarnationApp        `json:"app"`
-	Assignment IncarnationAssignment `json:"assignment"`
-	Scale      ScaleInfo             `json:"scale"`
-	Release    ReleaseInfo           `json:"release,omitempty"`
-	Ports      []PortInfo            `json:"ports,omitempty"`
+	App            IncarnationApp        `json:"app"`
+	Assignment     IncarnationAssignment `json:"assignment"`
+	Scale          ScaleInfo             `json:"scale"`
+	Release        ReleaseInfo           `json:"release,omitempty"`
+	Ports          []PortInfo            `json:"ports,omitempty"`
+	ConfigSelector *metav1.LabelSelector `json:"configSelector,omitempty"`
 }
 
 type IncarnationApp struct {
@@ -128,7 +123,6 @@ type IncarnationAssignment struct {
 // IncarnationStatus defines the observed state of Incarnation
 type IncarnationStatus struct {
 	Health    IncarnationHealthStatus     `json:"health,omitempty"`
-	Release   IncarnationReleaseStatus    `json:"release,omitempty"`
 	Scale     IncarnationScaleStatus      `json:"scale,omitempty"`
 	Resources []IncarnationResourceStatus `json:"resources,omitempty"`
 }
@@ -144,12 +138,6 @@ type IncarnationHealthMetricStatus struct {
 	Actual    float64 `json:"actual,omitempty"`
 }
 
-type IncarnationReleaseStatus struct {
-	PeakPercent    int32        `json:"peakPercent,omitempty"`
-	CurrentPercent int32        `json:"currentPercent,omitempty"`
-	LastUpdate     *metav1.Time `json:"lastUpdate,omitempty"`
-}
-
 type IncarnationScaleStatus struct {
 	Current int32 `json:"current"`
 	Desired int32 `json:"desired"`
@@ -163,7 +151,7 @@ type IncarnationResourceStatus struct {
 }
 
 func (i *Incarnation) GitTimestamp() time.Time {
-	gt, ok := i.Annotations[annotationGitTimestamp]
+	gt, ok := i.Annotations[AnnotationGitCommitterTimestamp]
 	if !ok {
 		return time.Time{}
 	}
