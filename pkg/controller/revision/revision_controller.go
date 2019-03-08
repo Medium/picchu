@@ -183,14 +183,12 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 	// Sync releasemanagers
 	appName := revision.Spec.App.Name
 	for _, target := range revision.Spec.Targets {
-		log.Info("In RM target", "Target.Name", target.Name, "Target.Fleet", target.Fleet)
 		targetName := target.Name
 		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
 		if err != nil {
 			return err
 		}
 		for _, cluster := range clusters.Items {
-			log.Info("In RM cluster", "Cluster.Name", cluster.Name)
 			clusterName := cluster.Name
 			name := fmt.Sprintf("%s-%s-%s", appName, targetName, clusterName)
 			rm := &picchuv1alpha1.ReleaseManager{
