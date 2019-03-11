@@ -2,14 +2,13 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"time"
 )
 
 const (
-	defaultReleaseMax           = 100
-	defaultReleaseSchedule      = HumaneSchedule
-	defaultReleaseRateIncrement = 5
-	defaultReleaseRateDelay     = time.Duration(10) * time.Second
+	defaultReleaseMax              = 100
+	defaultReleaseSchedule         = HumaneSchedule
+	defaultReleaseRateIncrement    = 5
+	defaultReleaseRateDelaySeconds = int64(10)
 
 	defaultPortIngressPort   = int32(443)
 	defaultPortContainerPort = int32(80)
@@ -50,8 +49,9 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 	if release.Rate.Increment == 0 {
 		release.Rate.Increment = defaultReleaseRateIncrement
 	}
-	if release.Rate.Delay == 0 {
-		release.Rate.Increment = defaultReleaseRateIncrement
+	if release.Rate.DelaySeconds == nil {
+		delay := defaultReleaseRateDelaySeconds
+		release.Rate.DelaySeconds = &delay
 	}
 }
 

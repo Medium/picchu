@@ -31,7 +31,7 @@ func (i *Incarnation) CurrentPercentTarget(lastUpdate *metav1.Time, current uint
 	if max <= 0 {
 		return 0
 	}
-	delay := releaseSpec.Rate.Delay
+	delay := time.Duration(*releaseSpec.Rate.DelaySeconds) * time.Second
 	increment := releaseSpec.Rate.Increment
 	if releaseSpec.Max < max {
 		max = releaseSpec.Max

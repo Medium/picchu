@@ -157,7 +157,6 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 					Ports:          revision.Spec.Ports,
 					ConfigSelector: target.ConfigSelector,
 				}
-				incarnation.Spec.Release.Eligible = revision.Spec.Release.Eligible
 				return nil
 			})
 			status := NewIncarnationStatus(incarnation)

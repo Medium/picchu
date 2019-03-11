@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"time"
 )
 
 type PortMode string
@@ -51,7 +50,7 @@ type ScaleInfo struct {
 }
 
 type ResourceInfo struct {
-	CPU resource.Quantity `json:"cpu,omitempty"`
+	CPU resource.Quantity `json:"cpu,omitempty" type:"string"`
 }
 
 type ReleaseInfo struct {
@@ -62,6 +61,6 @@ type ReleaseInfo struct {
 }
 
 type RateInfo struct {
-	Increment uint32        `json:"increment,omitempty"`
-	Delay     time.Duration `json:"delay,omitempty"`
+	Increment    uint32 `json:"increment,omitempty"`
+	DelaySeconds *int64 `json:"delay,omitempty"`
 }
