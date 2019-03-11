@@ -31,7 +31,6 @@ func RemoteClient(reader client.Reader, cluster *picchuv1alpha1.Cluster) (client
 // UpdateStatus first tries new method of status update, and falls back to old.
 func UpdateStatus(ctx context.Context, client client.Client, obj runtime.Object) error {
 	err := client.Status().Update(ctx, obj)
-	// TODO(bob): confirm error is a result of incompatible api
 	if err == nil {
 		return nil
 	}
