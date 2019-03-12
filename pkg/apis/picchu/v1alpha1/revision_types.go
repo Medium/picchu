@@ -67,7 +67,7 @@ type RevisionTargetMetricQueries struct {
 
 // RevisionStatus defines the observed state of Revision
 type RevisionStatus struct {
-	Incarnations []RevisionTargetIncarnationStatus `json:"incarnations"`
+	Incarnations []RevisionTargetIncarnationStatus `json:"incarnations,omitempty"`
 }
 
 type RevisionTargetIncarnationStatus struct {
