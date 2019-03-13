@@ -7,6 +7,7 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -101,9 +102,9 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 	syncer := ResourceSyncer{
-		Instance:     incarnation,
-		Client:       remoteClient,
-		PicchuClient: r.client,
+		Instance: incarnation,
+		Client:   remoteClient,
+		Owner:    r,
 	}
 	if err := syncer.Sync(); err != nil {
 		return reconcile.Result{Requeue: true}, err
@@ -134,13 +135,20 @@ func NewIncarnationResourceStatus(resource runtime.Object) picchuv1alpha1.Incarn
 }
 
 type ResourceSyncer struct {
-	Instance     *picchuv1alpha1.Incarnation
-	Client       client.Client
-	PicchuClient client.Client
+	Instance *picchuv1alpha1.Incarnation
+	Client   client.Client
+	Owner    *ReconcileIncarnation
 }
 
 // SyncConfig syncs ConfigMaps and Secrets
 func (r *ResourceSyncer) Sync() error {
+	defaultLabels := map[string]string{
+		picchuv1alpha1.LabelApp:       r.Instance.Spec.App.Name,
+		picchuv1alpha1.LabelTag:       r.Instance.Spec.App.Tag,
+		picchuv1alpha1.LabelTarget:    r.Instance.Spec.Assignment.Target,
+		picchuv1alpha1.LabelOwnerType: "incarnation",
+		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
+	}
 	var envs []corev1.EnvFromSource
 	resourceStatus := []picchuv1alpha1.IncarnationResourceStatus{}
 	selector, err := metav1.LabelSelectorAsSelector(r.Instance.Spec.ConfigSelector)
@@ -155,10 +163,10 @@ func (r *ResourceSyncer) Sync() error {
 	secrets := &corev1.SecretList{}
 	configMaps := &corev1.ConfigMapList{}
 
-	if err := r.PicchuClient.List(context.TODO(), configOpts, secrets); err != nil {
+	if err := r.Owner.client.List(context.TODO(), configOpts, secrets); err != nil {
 		return err
 	}
-	if err := r.PicchuClient.List(context.TODO(), configOpts, configMaps); err != nil {
+	if err := r.Owner.client.List(context.TODO(), configOpts, configMaps); err != nil {
 		return err
 	}
 
@@ -171,7 +179,7 @@ func (r *ResourceSyncer) Sync() error {
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, remote, func(runtime.Object) error {
-			remote.ObjectMeta.Labels = item.Labels
+			remote.ObjectMeta.Labels = defaultLabels
 			remote.Data = item.Data
 			return nil
 		})
@@ -197,7 +205,7 @@ func (r *ResourceSyncer) Sync() error {
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, remote, func(runtime.Object) error {
-			remote.ObjectMeta.Labels = item.Labels
+			remote.ObjectMeta.Labels = defaultLabels
 			remote.Data = item.Data
 			return nil
 		})
@@ -227,7 +235,7 @@ func (r *ResourceSyncer) Sync() error {
 			ContainerPort: port.ContainerPort,
 		})
 	}
-	// Used to label ReplicaSet, Container and for Container selector
+	// Used for Container label and Container Selector
 	labels := map[string]string{
 		picchuv1alpha1.LabelApp: appName,
 		picchuv1alpha1.LabelTag: tag,
@@ -236,14 +244,10 @@ func (r *ResourceSyncer) Sync() error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      tag,
 			Namespace: r.Instance.TargetNamespace(),
+			Labels:    defaultLabels,
 		},
-	}
-
-	status := NewIncarnationResourceStatus(replicaSet)
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, replicaSet, func(runtime.Object) error {
-		replicaSet.ObjectMeta.Labels = labels
-		replicaSet.Spec = appsv1.ReplicaSetSpec{
-			Replicas: &r.Instance.Spec.Scale.Min,
+		Spec: appsv1.ReplicaSetSpec{
+			Replicas: &r.Instance.Spec.Scale.Default,
 			Selector: metav1.SetAsLabelSelector(labels),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -258,11 +262,20 @@ func (r *ResourceSyncer) Sync() error {
 							Image:   r.Instance.Spec.App.Image,
 							Name:    r.Instance.Spec.App.Name,
 							Ports:   ports,
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU: r.Instance.Spec.Scale.Resources.CPU,
+								},
+							},
 						},
 					},
 				},
 			},
-		}
+		},
+	}
+
+	status := NewIncarnationResourceStatus(replicaSet)
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, replicaSet, func(runtime.Object) error {
 		return nil
 	})
 	log.Info("ReplicaSet sync'd", "Op", op)
@@ -273,12 +286,43 @@ func (r *ResourceSyncer) Sync() error {
 	}
 	resourceStatus = append(resourceStatus, status)
 
+	kind := utils.MustGetKind(r.Owner.scheme, replicaSet)
+	hpa := &autoscalingv1.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tag,
+			Namespace: r.Instance.TargetNamespace(),
+			Labels:    defaultLabels,
+		},
+		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+				Kind:       kind.Kind,
+				Name:       replicaSet.Name,
+				APIVersion: kind.GroupVersion().String(),
+			},
+			MinReplicas:                    r.Instance.Spec.Scale.Min,
+			MaxReplicas:                    r.Instance.Spec.Scale.Max,
+			TargetCPUUtilizationPercentage: r.Instance.Spec.Scale.TargetCPUUtilizationPercentage,
+		},
+	}
+
+	status = NewIncarnationResourceStatus(hpa)
+	op, err = controllerutil.CreateOrUpdate(context.TODO(), r.Client, hpa, func(runtime.Object) error {
+		return nil
+	})
+	log.Info("HPA sync'd", "Op", op)
+	if err != nil {
+		status.Status = "failed"
+		log.Error(err, "Failed to sync hpa")
+		return err
+	}
+	resourceStatus = append(resourceStatus, status)
+
 	inc := &picchuv1alpha1.Incarnation{}
 	key, err := client.ObjectKeyFromObject(r.Instance)
 	if err != nil {
 		return err
 	}
-	if err := r.PicchuClient.Get(context.TODO(), key, inc); err != nil {
+	if err := r.Owner.client.Get(context.TODO(), key, inc); err != nil {
 		return err
 	}
 
@@ -291,7 +335,7 @@ func (r *ResourceSyncer) Sync() error {
 	inc.Status.Scale.Current = replicaSet.Status.ReadyReplicas
 	inc.Status.Scale.Desired = replicaSet.Status.Replicas
 	inc.Status.Resources = resourceStatus
-	if err = utils.UpdateStatus(context.TODO(), r.PicchuClient, inc); err != nil {
+	if err = utils.UpdateStatus(context.TODO(), r.Owner.client, inc); err != nil {
 		log.Error(err, "Failed to update Incarnation status")
 		return err
 	}

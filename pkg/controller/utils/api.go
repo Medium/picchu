@@ -2,10 +2,13 @@ package utils
 
 import (
 	"context"
+	"fmt"
+
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,4 +38,15 @@ func UpdateStatus(ctx context.Context, client client.Client, obj runtime.Object)
 		return nil
 	}
 	return client.Update(ctx, obj)
+}
+
+func MustGetKind(scheme *runtime.Scheme, obj runtime.Object) schema.GroupVersionKind {
+	kinds, _, err := scheme.ObjectKinds(obj)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get kind for (%#v)", obj))
+	}
+	if len(kinds) <= 0 {
+		panic("Assertion failed!")
+	}
+	return kinds[0]
 }
