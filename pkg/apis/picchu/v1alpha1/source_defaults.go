@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -20,6 +21,9 @@ const (
 func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 	for _, target := range spec.Targets {
 		SetReleaseDefaults(&target.Release)
+		if target.Scale.Resources.CPU == (resource.Quantity{}) {
+			target.Scale.Resources.CPU = resource.MustParse("500m")
+		}
 	}
 	ports := []PortInfo{}
 	for _, port := range spec.Ports {
@@ -37,6 +41,19 @@ func SetDefaults_IncarnationSpec(spec *IncarnationSpec) {
 		ports = append(ports, port)
 	}
 	spec.Ports = ports
+	if spec.Scale.Resources.CPU == (resource.Quantity{}) {
+		spec.Scale.Resources.CPU = resource.MustParse("500m")
+	}
+	if spec.Scale.Min == nil {
+		var one int32 = 1
+		spec.Scale.Min = &one
+	}
+	if spec.Scale.Max == 0 {
+		spec.Scale.Max = 10
+	}
+	if spec.Scale.Default == 0 {
+		spec.Scale.Default = spec.Scale.Min
+	}
 }
 
 func SetReleaseDefaults(release *ReleaseInfo) {

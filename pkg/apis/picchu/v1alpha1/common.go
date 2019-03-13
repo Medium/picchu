@@ -29,6 +29,8 @@ const (
 	LabelFleet                      = "picchu.medium.engineering/fleet"
 	LabelRevision                   = "picchu.medium.engineering/revision"
 	LabelTarget                     = "picchu.medium.engineering/target"
+	LabelOwnerName                  = "picchu.medium.engineering/ownerName"
+	LabelOwnerType                  = "picchu.medium.engineering/ownerType"
 	AnnotationGitCommitterTimestamp = "git-scm.com/committer-timestamp"
 )
 
@@ -43,14 +45,15 @@ type PortInfo struct {
 }
 
 type ScaleInfo struct {
-	Min       int32        `json:"min,omitempty"`
-	Default   int32        `json:"default,omitempty"`
-	Max       int32        `json:"max,omitempty"`
-	Resources ResourceInfo `json:"resources,omitempty"`
+	Min                            *int32       `json:"min,omitempty"`
+	Default                        int32        `json:"default,omitempty"`
+	Max                            int32        `json:"max,omitempty"`
+	Resources                      ResourceInfo `json:"resources,omitempty"`
+	TargetCPUUtilizationPercentage *int32       `json:"targetCPUUtilizationPercentage,omitempty"`
 }
 
 type ResourceInfo struct {
-	CPU resource.Quantity `json:"cpu,omitempty" type:"string"`
+	CPU resource.Quantity `json:"cpu,omitempty"`
 }
 
 type ReleaseInfo struct {

@@ -146,6 +146,9 @@ spec:
                           cpu:
                             type: string
                         type: object
+                      targetCPUUtilizationPercentage:
+                        format: int32
+                        type: integer
                     type: object
                 required:
                 - name
@@ -179,8 +182,6 @@ spec:
                 - target
                 type: object
               type: array
-          required:
-          - incarnations
           type: object
   version: v1alpha1
 status:
