@@ -68,13 +68,27 @@ spec:
               properties:
                 private:
                   properties:
+                    dnsName:
+                      type: string
                     gateway:
                       type: string
+                    hostedZoneId:
+                      type: string
+                  required:
+                  - hostedZoneId
+                  - dnsName
                   type: object
                 public:
                   properties:
+                    dnsName:
+                      type: string
                     gateway:
                       type: string
+                    hostedZoneId:
+                      type: string
+                  required:
+                  - hostedZoneId
+                  - dnsName
                   type: object
               required:
               - public
