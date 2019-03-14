@@ -11,6 +11,7 @@ import (
 	"go.medium.engineering/picchu/pkg/apis"
 	"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -48,6 +49,8 @@ func main() {
 	// Add flags registered by imported packages (e.g. glog and
 	// controller-runtime)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+
+	manageRoute53 := pflag.Bool("manage-route53", false, "Should picchu manage route53?")
 
 	pflag.Parse()
 
@@ -116,8 +119,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	config := utils.Config{
+		ManageRoute53: *manageRoute53,
+	}
+
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
+	if err := controller.AddToManager(mgr, config); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

@@ -22,13 +22,13 @@ var log = logf.Log.WithName("controller_revision")
 
 // Add creates a new Revision Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, c utils.Config) error {
+	return add(mgr, newReconciler(mgr, c))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileRevision{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
+	return &ReconcileRevision{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: c}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -55,6 +55,7 @@ type ReconcileRevision struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	config utils.Config
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read

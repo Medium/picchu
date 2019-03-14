@@ -29,13 +29,13 @@ var hostPattern = regexp.MustCompile(`https://[0-9A-F]+\.[^.]+\.([^.]+)\.eks\.am
 
 // Add creates a new Cluster Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, c utils.Config) error {
+	return add(mgr, newReconciler(mgr, c))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileCluster{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
+	return &ReconcileCluster{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: c}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -60,6 +60,7 @@ type ReconcileCluster struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	config utils.Config
 }
 
 // Reconcile reads that state of the cluster for a Cluster object and makes changes based on the state read
@@ -138,7 +139,9 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	route53.Sync(instance)
+	if r.config.ManageRoute53 {
+		route53.Sync(instance)
+	}
 
 	return reconcile.Result{Requeue: true}, nil
 }
