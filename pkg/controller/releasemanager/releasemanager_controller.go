@@ -377,8 +377,8 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		// Wind down retired releases in HPA
 		// TODO(bob): Use some time-based rule to leave 1 instance running for
 		// limited time after retirement.
-		var minReplicas int32 = 0
-		var maxReplicas int32 = 0
+		var minReplicas int32 = 1
+		var maxReplicas int32 = 1
 
 		if current > 0 {
 			for _, port := range incarnation.Spec.Ports {
