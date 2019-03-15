@@ -260,8 +260,6 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	defaultHost := fmt.Sprintf("%s.%s", r.Instance.TargetNamespace(), defaultDomain)
 	// keep a set of hosts
 	hosts := map[string]bool{defaultHost: true}
-	// TODO(bob): figure out public and private ingressgateway names and make sure they exist
-	// publicIngress := "public-ingressgateway-cert-merge.istio-system.svc.cluster.local"
 	publicGateway := r.Cluster.Spec.Ingresses.Public.Gateway
 	privateGateway := r.Cluster.Spec.Ingresses.Private.Gateway
 	gateways := []string{"mesh"}
@@ -285,7 +283,6 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// of readability
 
 	// Incarnation specific releases are made for each port on private ingress
-	// as <port.Name>-<tag>-<app>.<defaultDomain>
 	for _, incarnation := range r.IncarnationList.Items {
 		tag := incarnation.Spec.App.Tag
 		for _, port := range incarnation.Spec.Ports {
@@ -344,6 +341,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// Tracking one route per port number
 	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
 	incarnations, err := r.IncarnationList.SortedReleases()
+	log.Info("Got my releases", "Count", len(incarnations))
 	if err != nil {
 		return err
 	}

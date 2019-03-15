@@ -29,7 +29,6 @@ type RevisionList struct {
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
 	App     RevisionApp      `json:"app"`
-	Release RevisionRelease  `json:"release"`
 	Ports   []PortInfo       `json:"ports"`
 	Targets []RevisionTarget `json:"targets"`
 }
@@ -39,10 +38,6 @@ type RevisionApp struct {
 	Ref   string `json:"ref"`
 	Tag   string `json:"tag"`
 	Image string `json:"image"`
-}
-
-type RevisionRelease struct {
-	Eligible bool `json:"eligible"`
 }
 
 type RevisionTarget struct {
