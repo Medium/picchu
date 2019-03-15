@@ -9,6 +9,7 @@ import (
 
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,13 +29,13 @@ var log = logf.Log.WithName("controller_releasemanager")
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+func Add(mgr manager.Manager, c utils.Config) error {
+	return add(mgr, newReconciler(mgr, c))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileReleaseManager{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
+	return &ReconcileReleaseManager{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: c}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -78,6 +79,7 @@ type ReconcileReleaseManager struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	config utils.Config
 }
 
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
@@ -259,8 +261,6 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	defaultHost := fmt.Sprintf("%s.%s", r.Instance.TargetNamespace(), defaultDomain)
 	// keep a set of hosts
 	hosts := map[string]bool{defaultHost: true}
-	// TODO(bob): figure out public and private ingressgateway names and make sure they exist
-	// publicIngress := "public-ingressgateway-cert-merge.istio-system.svc.cluster.local"
 	publicGateway := r.Cluster.Spec.Ingresses.Public.Gateway
 	privateGateway := r.Cluster.Spec.Ingresses.Private.Gateway
 	gateways := []string{"mesh"}
@@ -284,7 +284,6 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// of readability
 
 	// Incarnation specific releases are made for each port on private ingress
-	// as <port.Name>-<tag>-<app>.<defaultDomain>
 	for _, incarnation := range r.IncarnationList.Items {
 		tag := incarnation.Spec.App.Tag
 		for _, port := range incarnation.Spec.Ports {
@@ -343,6 +342,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// Tracking one route per port number
 	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
 	incarnations, err := r.IncarnationList.SortedReleases()
+	log.Info("Got my releases", "Count", len(incarnations))
 	if err != nil {
 		return err
 	}
@@ -373,6 +373,12 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			releaseStatus.LastUpdate = &now
 			r.Instance.UpdateReleaseStatus(releaseStatus)
 		}
+
+		// Wind down retired releases in HPA
+		// TODO(bob): Use some time-based rule to leave 1 instance running for
+		// limited time after retirement.
+		var minReplicas int32 = 1
+		var maxReplicas int32 = 1
 
 		if current > 0 {
 			for _, port := range incarnation.Spec.Ports {
@@ -420,7 +426,26 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 				})
 				releaseRoutes[port.Name] = releaseRoute
 			}
+			minReplicas = *incarnation.Spec.Scale.Min
+			maxReplicas = incarnation.Spec.Scale.Max
 		}
+		hpa := &autoscalingv1.HorizontalPodAutoscaler{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tag,
+				Namespace: r.Instance.TargetNamespace(),
+			},
+		}
+
+		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, hpa, func(runtime.Object) error {
+			hpa.Spec.MaxReplicas = maxReplicas
+			hpa.Spec.MinReplicas = &minReplicas
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		log.Info("HPA sync'd", "Op", op)
 	}
 
 	for _, route := range releaseRoutes {

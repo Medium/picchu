@@ -71,13 +71,6 @@ spec:
                 - mode
                 type: object
               type: array
-            release:
-              properties:
-                eligible:
-                  type: boolean
-              required:
-              - eligible
-              type: object
             targets:
               items:
                 properties:
@@ -158,7 +151,6 @@ spec:
               type: array
           required:
           - app
-          - release
           - ports
           - targets
           type: object

@@ -75,8 +75,8 @@ type ClusterIngresses struct {
 }
 
 type IngressInfo struct {
-	HostedZoneId string `json:"hosted-zone-id"`
-	DNSName      string `json:"dns-name"`
+	HostedZoneId string `json:"hostedZoneId"`
+	DNSName      string `json:"dnsName"`
 	Gateway      string `json:"gateway,omitempty"`
 }
 

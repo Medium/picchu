@@ -40,6 +40,7 @@ crds: generators/crd
 	@mkdir -p deploy/crds
 	$< generate --output-dir deploy/crds --domain $(DOMAIN)
 	patch -p1 < hack/crd.patch
+	rm -rf deploy/crds/*.orig
 
 informer: generators/informer clientset lister
 	generators/informer -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/informers --versioned-clientset-package $(PACKAGE)/client --listers-package $(PACKAGE)/client/listers -h $(BOILERPLATE)

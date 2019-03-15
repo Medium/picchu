@@ -52,7 +52,7 @@ func SetDefaults_IncarnationSpec(spec *IncarnationSpec) {
 		spec.Scale.Max = 10
 	}
 	if spec.Scale.Default == 0 {
-		spec.Scale.Default = spec.Scale.Min
+		spec.Scale.Default = *spec.Scale.Min
 	}
 }
 
