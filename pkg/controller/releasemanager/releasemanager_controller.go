@@ -9,6 +9,7 @@ import (
 
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -373,6 +374,12 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			r.Instance.UpdateReleaseStatus(releaseStatus)
 		}
 
+		// Wind down retired releases in HPA
+		// TODO(bob): Use some time-based rule to leave 1 instance running for
+		// limited time after retirement.
+		var minReplicas int32 = 0
+		var maxReplicas int32 = 0
+
 		if current > 0 {
 			for _, port := range incarnation.Spec.Ports {
 				portNumber := uint32(port.Port)
@@ -419,7 +426,26 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 				})
 				releaseRoutes[port.Name] = releaseRoute
 			}
+			minReplicas = *incarnation.Spec.Scale.Min
+			maxReplicas = incarnation.Spec.Scale.Max
 		}
+		hpa := &autoscalingv1.HorizontalPodAutoscaler{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tag,
+				Namespace: r.Instance.TargetNamespace(),
+			},
+		}
+
+		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, hpa, func(runtime.Object) error {
+			hpa.Spec.MaxReplicas = maxReplicas
+			hpa.Spec.MinReplicas = &minReplicas
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		log.Info("HPA sync'd", "Op", op)
 	}
 
 	for _, route := range releaseRoutes {
