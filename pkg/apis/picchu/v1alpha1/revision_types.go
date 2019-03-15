@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -41,12 +42,13 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name           string                 `json:"name"`
-	Fleet          string                 `json:"fleet"`
-	Scale          ScaleInfo              `json:"scale"`
-	Release        ReleaseInfo            `json:"release,omitempty"`
-	Metrics        []RevisionTargetMetric `json:"metrics,omitempty"`
-	ConfigSelector *metav1.LabelSelector  `json:"configSelector,omitempty"`
+	Name           string                      `json:"name"`
+	Fleet          string                      `json:"fleet"`
+	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
+	Scale          ScaleInfo                   `json:"scale"`
+	Release        ReleaseInfo                 `json:"release,omitempty"`
+	Metrics        []RevisionTargetMetric      `json:"metrics,omitempty"`
+	ConfigSelector *metav1.LabelSelector       `json:"configSelector,omitempty"`
 }
 
 type RevisionTargetMetric struct {

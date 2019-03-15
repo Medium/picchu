@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -100,12 +101,13 @@ func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 
 // IncarnationSpec defines the desired state of Incarnation
 type IncarnationSpec struct {
-	App            IncarnationApp        `json:"app"`
-	Assignment     IncarnationAssignment `json:"assignment"`
-	Scale          ScaleInfo             `json:"scale"`
-	Release        ReleaseInfo           `json:"release,omitempty"`
-	Ports          []PortInfo            `json:"ports,omitempty"`
-	ConfigSelector *metav1.LabelSelector `json:"configSelector,omitempty"`
+	App            IncarnationApp              `json:"app"`
+	Assignment     IncarnationAssignment       `json:"assignment"`
+	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
+	Scale          ScaleInfo                   `json:"scale"`
+	Release        ReleaseInfo                 `json:"release,omitempty"`
+	Ports          []PortInfo                  `json:"ports,omitempty"`
+	ConfigSelector *metav1.LabelSelector       `json:"configSelector,omitempty"`
 }
 
 type IncarnationApp struct {

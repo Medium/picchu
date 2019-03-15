@@ -45,11 +45,13 @@ type PortInfo struct {
 }
 
 type ScaleInfo struct {
-	Min                            *int32       `json:"min,omitempty"`
-	Default                        int32        `json:"default,omitempty"`
-	Max                            int32        `json:"max,omitempty"`
-	Resources                      ResourceInfo `json:"resources,omitempty"`
-	TargetCPUUtilizationPercentage *int32       `json:"targetCPUUtilizationPercentage,omitempty"`
+	Min                            *int32 `json:"min,omitempty"`
+	Default                        int32  `json:"default,omitempty"`
+	Max                            int32  `json:"max,omitempty"`
+	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
+
+	// Deprecated. Use TargetCPUUtilizationPercentage.
+	Resources ResourceInfo `json:"resources,omitempty"`
 }
 
 type ResourceInfo struct {
