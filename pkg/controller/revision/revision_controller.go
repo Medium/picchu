@@ -132,6 +132,9 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: revision.Namespace,
+					Finalizers: []string{
+						picchuv1alpha1.FinalizerIncarnation,
+					},
 				},
 			}
 

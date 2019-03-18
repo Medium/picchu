@@ -348,6 +348,9 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	}
 	count := len(incarnations)
 	for i, incarnation := range incarnations {
+		if incarnation.IsDeleted() {
+			continue
+		}
 		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
 		oldCurrent := releaseStatus.CurrentPercent
 		peak := releaseStatus.PeakPercent
@@ -375,8 +378,6 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		}
 
 		// Wind down retired releases in HPA
-		// TODO(bob): Use some time-based rule to leave 1 instance running for
-		// limited time after retirement.
 		var minReplicas int32 = 1
 		var maxReplicas int32 = 1
 
@@ -442,6 +443,12 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			return nil
 		})
 		if err != nil {
+			// This is an indicator that the HPA wasn't found, but *could* be wrong, slightly simpler then
+			// unwrapping CreateOrUpdate.
+			if hpa.Spec.ScaleTargetRef.Kind != "" {
+				log.Info("HPA not found for incarnation", "Incarnation.Name", incarnation.Name)
+			}
+			log.Error(err, "Failed to create/update hpa", "Hpa", hpa, "Op", op)
 			return err
 		}
 

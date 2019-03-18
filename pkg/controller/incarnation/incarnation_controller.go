@@ -108,10 +108,25 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		Client:   remoteClient,
 		Owner:    r,
 	}
-	if err := syncer.Sync(); err != nil {
-		return reconcile.Result{Requeue: true}, err
+	if !incarnation.IsDeleted() {
+		if err := syncer.Sync(); err != nil {
+			log.Error(err, "Failed to sync incarnation")
+			return reconcile.Result{Requeue: true}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
 	}
-	return reconcile.Result{Requeue: true}, err
+	if !incarnation.IsFinalized() {
+		if err := syncer.Delete(); err != nil {
+			log.Error(err, "Failed to finalize incarnation")
+			return reconcile.Result{Requeue: true}, err
+		}
+		incarnation.Finalize()
+		if err = r.client.Update(context.TODO(), incarnation); err != nil {
+			log.Error(err, "Failed to finalize incarnation")
+			return reconcile.Result{Requeue: true}, err
+		}
+	}
+	return reconcile.Result{Requeue: true}, nil
 }
 
 func NewIncarnationResourceStatus(resource runtime.Object) picchuv1alpha1.IncarnationResourceStatus {
@@ -140,6 +155,36 @@ type ResourceSyncer struct {
 	Instance *picchuv1alpha1.Incarnation
 	Client   client.Client
 	Owner    *ReconcileIncarnation
+}
+
+func (r *ResourceSyncer) Delete() error {
+	ownerLabels := map[string]string{
+		picchuv1alpha1.LabelOwnerType: "incarnation",
+		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
+	}
+	opts := client.
+		MatchingLabels(ownerLabels).
+		InNamespace(r.Instance.TargetNamespace())
+
+	lists := []List{
+		NewSecretList(),
+		NewConfigMapList(),
+		NewReplicaSetList(),
+		NewHorizontalPodAutoscalerList(),
+	}
+	for _, list := range lists {
+		if err := r.Client.List(context.TODO(), opts, list.GetList()); err != nil {
+			log.Error(err, "Failed to list resource")
+			return err
+		}
+		for _, item := range list.GetItems() {
+			if err := r.Client.Delete(context.TODO(), item); err != nil {
+				log.Error(err, "Failed to delete resource", "Resource", list)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // SyncConfig syncs ConfigMaps and Secrets
