@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -259,15 +260,11 @@ func (r *ResourceSyncer) Sync() error {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						corev1.Container{
-							EnvFrom: envs,
-							Image:   r.Instance.Spec.App.Image,
-							Name:    r.Instance.Spec.App.Name,
-							Ports:   ports,
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU: r.Instance.Spec.Scale.Resources.CPU,
-								},
-							},
+							EnvFrom:   envs,
+							Image:     r.Instance.Spec.App.Image,
+							Name:      r.Instance.Spec.App.Name,
+							Ports:     ports,
+							Resources: r.Instance.Spec.Resources,
 						},
 					},
 				},
@@ -287,6 +284,17 @@ func (r *ResourceSyncer) Sync() error {
 	}
 	resourceStatus = append(resourceStatus, status)
 
+	var cpuTarget *int32
+	if !r.Instance.Spec.Scale.Resources.CPU.IsZero() {
+		// TODO(lyra): clean up
+		log.Info("Deprecated resources.cpu field used; use targetCPUUtilizationPercentage")
+		cpuTarget = r.Instance.Spec.Scale.TargetCPUUtilizationPercentage
+	} else if r.Instance.Spec.Scale.TargetCPUUtilizationPercentage != nil {
+		cpuPercentage := int32(r.Instance.Spec.Scale.Resources.CPU.ScaledValue(resource.Milli) / 10)
+		cpuTarget = &cpuPercentage
+	}
+
+	// TODO(lyra): delete / don't create the HPA if there is no CPU target
 	kind := utils.MustGetKind(r.Owner.scheme, replicaSet)
 	hpa := &autoscalingv1.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
@@ -302,7 +310,7 @@ func (r *ResourceSyncer) Sync() error {
 			},
 			MinReplicas:                    r.Instance.Spec.Scale.Min,
 			MaxReplicas:                    r.Instance.Spec.Scale.Max,
-			TargetCPUUtilizationPercentage: r.Instance.Spec.Scale.TargetCPUUtilizationPercentage,
+			TargetCPUUtilizationPercentage: cpuTarget,
 		},
 	}
 

@@ -102,6 +102,8 @@ spec:
                 schedule:
                   type: string
               type: object
+            resources:
+              type: object
             scale:
               properties:
                 default:
@@ -114,6 +116,7 @@ spec:
                   format: int32
                   type: integer
                 resources:
+                  description: Deprecated. Use TargetCPUUtilizationPercentage.
                   properties:
                     cpu:
                       type: string
