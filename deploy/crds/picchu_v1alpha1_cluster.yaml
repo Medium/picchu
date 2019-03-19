@@ -136,9 +136,6 @@ spec:
               required:
               - version
               type: object
-          required:
-          - kubernetes
-          - conditions
           type: object
   version: v1alpha1
 status:
