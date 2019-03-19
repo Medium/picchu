@@ -82,9 +82,9 @@ type IngressInfo struct {
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
-	Kubernetes ClusterKubernetesStatus  `json:"kubernetes"`
+	Kubernetes ClusterKubernetesStatus  `json:"kubernetes,omitempty"`
 	AWS        *ClusterAWSInfo          `json:"aws,omitempty"`
-	Conditions []ClusterConditionStatus `json:"conditions"`
+	Conditions []ClusterConditionStatus `json:"conditions,omitempty"`
 }
 
 type ClusterKubernetesStatus struct {
