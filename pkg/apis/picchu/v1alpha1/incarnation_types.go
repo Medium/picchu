@@ -168,6 +168,30 @@ func (i *Incarnation) TargetNamespace() string {
 	return fmt.Sprintf("%s-%s", i.Spec.App.Name, i.Spec.Assignment.Target)
 }
 
+func (i *Incarnation) IsDeleted() bool {
+	return !i.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
+func (i *Incarnation) IsFinalized() bool {
+	for _, item := range i.ObjectMeta.Finalizers {
+		if item == FinalizerIncarnation {
+			return false
+		}
+	}
+	return true
+}
+
+func (i *Incarnation) Finalize() {
+	finalizers := []string{}
+	for _, item := range i.ObjectMeta.Finalizers {
+		if item == FinalizerIncarnation {
+			continue
+		}
+		finalizers = append(finalizers, item)
+	}
+	i.ObjectMeta.Finalizers = finalizers
+}
+
 func init() {
 	SchemeBuilder.Register(&Incarnation{}, &IncarnationList{})
 }

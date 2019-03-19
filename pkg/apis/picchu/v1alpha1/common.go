@@ -31,6 +31,7 @@ const (
 	LabelTarget                     = "picchu.medium.engineering/target"
 	LabelOwnerName                  = "picchu.medium.engineering/ownerName"
 	LabelOwnerType                  = "picchu.medium.engineering/ownerType"
+	FinalizerIncarnation            = "picchu.medium.engineering/incarnation"
 	AnnotationGitCommitterTimestamp = "git-scm.com/committer-timestamp"
 )
 
