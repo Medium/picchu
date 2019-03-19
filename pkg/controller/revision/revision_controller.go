@@ -199,11 +199,10 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 	revision *picchuv1alpha1.Revision,
 ) *picchuv1alpha1.ReleaseManager {
 	labels := map[string]string{
-		picchuv1alpha1.LabelTarget:   target.Name,
-		picchuv1alpha1.LabelFleet:    target.Fleet,
-		picchuv1alpha1.LabelCluster:  cluster.Name,
-		picchuv1alpha1.LabelRevision: revision.Name,
-		picchuv1alpha1.LabelApp:      revision.Spec.App.Name,
+		picchuv1alpha1.LabelTarget:  target.Name,
+		picchuv1alpha1.LabelFleet:   target.Fleet,
+		picchuv1alpha1.LabelCluster: cluster.Name,
+		picchuv1alpha1.LabelApp:     revision.Spec.App.Name,
 	}
 	rms := &picchuv1alpha1.ReleaseManagerList{}
 	opts := client.
