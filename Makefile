@@ -19,7 +19,7 @@ build:
 deps:
 	dep ensure -v
 
-generate: deepcopy defaulter openapi clientset lister informer crds
+generate: deepcopy defaulter openapi clientset lister informer
 
 deepcopy: generators/deepcopy
 	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).deepcopy -h $(BOILERPLATE)
@@ -37,10 +37,8 @@ lister: generators/lister
 	$< -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/listers -h $(BOILERPLATE)
 
 crds: generators/crd
-	@mkdir -p deploy/crds
-	$< generate --output-dir deploy/crds --domain $(DOMAIN)
-	patch -p1 < hack/crd.patch
-	rm -rf deploy/crds/*.orig
+	@mkdir -p generated_crds
+	$< generate --output-dir generated_crds --domain $(DOMAIN)
 
 informer: generators/informer clientset lister
 	generators/informer -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/informers --versioned-clientset-package $(PACKAGE)/client --listers-package $(PACKAGE)/client/listers -h $(BOILERPLATE)

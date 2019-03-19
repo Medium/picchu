@@ -124,6 +124,21 @@ spec:
                         type: string
                     type: object
                   resources:
+                    properties:
+                      limits:
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        type: object
+                      requests:
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        type: object
                     type: object
                   scale:
                     properties:
@@ -136,12 +151,6 @@ spec:
                       min:
                         format: int32
                         type: integer
-                      resources:
-                        description: Deprecated. Use TargetCPUUtilizationPercentage.
-                        properties:
-                          cpu:
-                            type: string
-                        type: object
                       targetCPUUtilizationPercentage:
                         format: int32
                         type: integer
