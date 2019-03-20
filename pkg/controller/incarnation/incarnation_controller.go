@@ -179,7 +179,7 @@ func (r *ResourceSyncer) Delete() error {
 		}
 		for _, item := range list.GetItems() {
 			if err := r.Client.Delete(context.TODO(), item); err != nil {
-				log.Error(err, "Failed to delete resource", "Resource", list)
+				log.Error(err, "Failed to delete resource", "Owner.Name", r.Instance.Name, "Resource", list)
 				return err
 			}
 		}
