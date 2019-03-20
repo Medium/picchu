@@ -159,7 +159,7 @@ type ResourceSyncer struct {
 
 func (r *ResourceSyncer) Delete() error {
 	ownerLabels := map[string]string{
-		picchuv1alpha1.LabelOwnerType: "incarnation",
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerIncarnation,
 		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
 	}
 	opts := client.
@@ -178,6 +178,12 @@ func (r *ResourceSyncer) Delete() error {
 			return err
 		}
 		for _, item := range list.GetItems() {
+			kind := utils.MustGetKind(r.Owner.scheme, item)
+			log.Info("Deleting remote resource",
+				"Cluster.Name", r.Instance.Spec.Assignment.Name,
+				"Item", item,
+				"Item.Kind", kind,
+			)
 			if err := r.Client.Delete(context.TODO(), item); err != nil {
 				log.Error(err, "Failed to delete resource", "Owner.Name", r.Instance.Name, "Resource", list)
 				return err

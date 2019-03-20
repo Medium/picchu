@@ -162,3 +162,31 @@ func (c *Cluster) RegionAZ() string {
 	}
 	return fmt.Sprintf("%s%s", region, az)
 }
+
+func (c *Cluster) IsDeleted() bool {
+	return !c.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
+func (c *Cluster) IsFinalized() bool {
+	for _, item := range c.ObjectMeta.Finalizers {
+		if item == FinalizerCluster {
+			return false
+		}
+	}
+	return true
+}
+
+func (c *Cluster) Finalize() {
+	finalizers := []string{}
+	for _, item := range c.ObjectMeta.Finalizers {
+		if item == FinalizerCluster {
+			continue
+		}
+		finalizers = append(finalizers, item)
+	}
+	c.ObjectMeta.Finalizers = finalizers
+}
+
+func (c *Cluster) AddFinalizer() {
+	c.ObjectMeta.Finalizers = append(c.ObjectMeta.Finalizers, FinalizerCluster)
+}
