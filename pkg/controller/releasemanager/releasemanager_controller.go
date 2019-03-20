@@ -121,6 +121,12 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	r.scheme.Default(incarnationList)
 
+	// No more incarnations, delete myself
+	if len(incarnationList.Items) == 0 {
+		reqLogger.Info("No incarnations found for releasemanager, deleting")
+		return reconcile.Result{}, r.client.Delete(context.TODO(), instance)
+	}
+
 	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
 		reqLogger.Error(err, "Failed to create remote client", "Cluster.Key", key)
