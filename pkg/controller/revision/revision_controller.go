@@ -145,6 +145,9 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 			return err
 		}
 		for _, cluster := range clusters.Items {
+			if cluster.IsDeleted() {
+				continue
+			}
 			app := revision.Spec.App.Name
 			tag := revision.Spec.App.Tag
 			ref := revision.Spec.App.Ref
@@ -220,6 +223,9 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 			GenerateName: fmt.Sprintf("%s-", revision.Spec.App.Name),
 			Namespace:    revision.Namespace,
 			Labels:       labels,
+			Finalizers: []string{
+				picchuv1alpha1.FinalizerReleaseManager,
+			},
 		},
 	}
 }
@@ -234,6 +240,9 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			return err
 		}
 		for _, cluster := range clusters.Items {
+			if cluster.IsDeleted() {
+				continue
+			}
 			rm := r.GetOrCreateReleaseManager(&target, &cluster, revision)
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rm, func(runtime.Object) error {
 				rm.Spec.Cluster = cluster.Name

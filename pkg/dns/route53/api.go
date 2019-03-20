@@ -33,7 +33,7 @@ func New(cluster *v1alpha1.Cluster) *Route53Provider {
 }
 
 // Ensure Route53Host
-func (r *Route53Provider) Sync() {
+func (r *Route53Provider) Sync() error {
 	for _, dns := range r.Cluster.Spec.DNS {
 		if dns.Provider != v1alpha1.Route53Provider {
 			continue
@@ -50,9 +50,11 @@ func (r *Route53Provider) Sync() {
 		for _, host := range dns.Hosts {
 			if err := r.syncRecord(host, ingress); err != nil {
 				log.Error(err, "Failed to sync record", "Hostname", host)
+				return err
 			}
 		}
 	}
+	return nil
 }
 
 func (r *Route53Provider) findHostedZone(hostname string) (*route53.HostedZone, error) {
@@ -124,6 +126,12 @@ func (r *Route53Provider) syncRecord(hostname string, ingress *v1alpha1.IngressI
 	return err
 }
 
-func Sync(cluster *v1alpha1.Cluster) {
-	New(cluster).Sync()
+func Sync(cluster *v1alpha1.Cluster) error {
+	return New(cluster).Sync()
+}
+
+func Delete(cluster *v1alpha1.Cluster) error {
+	c := cluster.DeepCopy()
+	c.Spec.Enabled = false
+	return New(c).Sync()
 }

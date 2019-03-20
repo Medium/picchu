@@ -121,12 +121,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	r.scheme.Default(incarnationList)
 
-	// No more incarnations, delete myself
-	if len(incarnationList.Items) == 0 {
-		reqLogger.Info("No incarnations found for releasemanager, deleting")
-		return reconcile.Result{}, r.client.Delete(context.TODO(), instance)
-	}
-
 	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
 		reqLogger.Error(err, "Failed to create remote client", "Cluster.Key", key)
@@ -140,6 +134,17 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		PicchuClient:    r.client,
 	}
 	if !instance.IsDeleted() {
+		// No more incarnations, delete myself
+		if len(incarnationList.Items) == 0 {
+			reqLogger.Info("No incarnations found for releasemanager, deleting")
+			return reconcile.Result{Requeue: true}, r.client.Delete(context.TODO(), instance)
+		}
+
+		if cluster.IsDeleted() {
+			reqLogger.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
+			return reconcile.Result{Requeue: true}, nil
+		}
+
 		if err := syncer.SyncNamespace(); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -155,6 +160,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{Requeue: true}, nil
 	}
 	if !instance.IsFinalized() {
+		reqLogger.Info("Finalizing releasemanager")
 		if err := syncer.DeleteNamespace(); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -180,8 +186,11 @@ func (r *ResourceSyncer) DeleteNamespace() error {
 			Name: r.Instance.TargetNamespace(),
 		},
 	}
-	err := r.Client.Delete(context.TODO(), namespace)
-	return err
+	// Might already be deleted
+	if err := r.PicchuClient.Delete(context.TODO(), namespace); err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }
 
 func (r *ResourceSyncer) SyncNamespace() error {
@@ -484,9 +493,10 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			// unwrapping CreateOrUpdate.
 			if hpa.Spec.ScaleTargetRef.Kind == "" {
 				log.Info("HPA not found for incarnation", "Incarnation.Name", incarnation.Name)
+			} else {
+				log.Error(err, "Failed to create/update hpa", "Hpa", hpa, "Op", op)
+				return err
 			}
-			log.Error(err, "Failed to create/update hpa", "Hpa", hpa, "Op", op)
-			return err
 		}
 
 		log.Info("HPA sync'd", "Op", op)

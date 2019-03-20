@@ -87,63 +87,103 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	r.scheme.Default(instance)
 
-	if !instance.Spec.Enabled {
-		reqLogger.Info("Disabled, no status")
-		instance.Status = picchuv1alpha1.ClusterStatus{}
-	} else {
-		secret := &corev1.Secret{}
-		selector := types.NamespacedName{
-			Name:      instance.Name,
-			Namespace: instance.Namespace,
+	// This means the cluster is new and needs the finalizer added
+	if !instance.IsDeleted() {
+		if instance.IsFinalized() {
+			instance.AddFinalizer()
+			return reconcile.Result{Requeue: true}, r.client.Update(context.TODO(), instance)
 		}
-		err = r.client.Get(context.TODO(), selector, secret)
-		if err != nil {
-			secret = nil
-		}
-		if secret != nil {
-			config, err := instance.Config(secret)
-			if err != nil {
-				reqLogger.Error(err, "Failed to create kube config")
-				return reconcile.Result{}, err
+		if !instance.Spec.Enabled {
+			reqLogger.Info("Disabled, no status")
+			instance.Status = picchuv1alpha1.ClusterStatus{}
+		} else {
+			secret := &corev1.Secret{}
+			selector := types.NamespacedName{
+				Name:      instance.Name,
+				Namespace: instance.Namespace,
 			}
-			ready := "True"
-			version, err := ServerVersion(config)
+			err = r.client.Get(context.TODO(), selector, secret)
 			if err != nil {
-				ready = "False"
+				secret = nil
 			}
+			if secret != nil {
+				config, err := instance.Config(secret)
+				if err != nil {
+					reqLogger.Error(err, "Failed to create kube config")
+					return reconcile.Result{}, err
+				}
+				ready := "True"
+				version, err := ServerVersion(config)
+				if err != nil {
+					ready = "False"
+				}
 
-			reqLogger.Info("Setting status")
-			awsStatus := instance.Status.AWS
-			if awsStatus == nil {
-				awsStatus = instance.Spec.AWS
-			}
-			if awsStatus == nil {
-				awsStatus = &picchuv1alpha1.ClusterAWSInfo{
-					AccountID: DiscoverAccountID(instance),
-					Region:    DiscoverRegion(instance),
-					AZ:        DiscoverAZ(instance),
+				reqLogger.Info("Setting status")
+				awsStatus := instance.Status.AWS
+				if awsStatus == nil {
+					awsStatus = instance.Spec.AWS
+				}
+				if awsStatus == nil {
+					awsStatus = &picchuv1alpha1.ClusterAWSInfo{
+						AccountID: DiscoverAccountID(instance),
+						Region:    DiscoverRegion(instance),
+						AZ:        DiscoverAZ(instance),
+					}
+				}
+				instance.Status = picchuv1alpha1.ClusterStatus{
+					Kubernetes: picchuv1alpha1.ClusterKubernetesStatus{
+						Version: FormatVersion(version),
+					},
+					Conditions: []picchuv1alpha1.ClusterConditionStatus{{"Ready", ready}},
+					AWS:        awsStatus,
 				}
 			}
-			instance.Status = picchuv1alpha1.ClusterStatus{
-				Kubernetes: picchuv1alpha1.ClusterKubernetesStatus{
-					Version: FormatVersion(version),
-				},
-				Conditions: []picchuv1alpha1.ClusterConditionStatus{{"Ready", ready}},
-				AWS:        awsStatus,
+		}
+		err = utils.UpdateStatus(context.TODO(), r.client, instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update Cluster status")
+			return reconcile.Result{}, err
+		}
+		if r.config.ManageRoute53 {
+			if err := route53.Sync(instance); err != nil {
+				return reconcile.Result{}, err
 			}
 		}
+		return reconcile.Result{Requeue: true}, nil
 	}
-	err = utils.UpdateStatus(context.TODO(), r.client, instance)
-	if err != nil {
-		reqLogger.Error(err, "Failed to update Cluster status")
-		return reconcile.Result{}, err
+	// TODO(bob): See if setting cluster and revision as owner of
+	// releasemanager and incarnation automatically resolves this complex
+	// ordering
+	if !instance.IsFinalized() {
+		il := &picchuv1alpha1.IncarnationList{}
+		rml := &picchuv1alpha1.ReleaseManagerList{}
+		opts := client.
+			MatchingLabels(map[string]string{picchuv1alpha1.LabelCluster: instance.Name}).
+			InNamespace(instance.Namespace)
+		if err := r.client.List(context.TODO(), opts, il); err != nil {
+			return reconcile.Result{}, err
+		}
+		for _, i := range il.Items {
+			if err := r.client.Delete(context.TODO(), &i); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+		if r.config.ManageRoute53 {
+			route53.Delete(instance)
+		}
+		if err := r.client.List(context.TODO(), opts, rml); err != nil {
+			return reconcile.Result{}, err
+		}
+		// Give the incarnations and releasemanagers enough time to delete
+		// remote resources before deleting this Cluster, since incarnation
+		// relies on cluster for remote client configuration.
+		if len(il.Items)+len(rml.Items) > 0 {
+			return reconcile.Result{Requeue: true}, r.client.Update(context.TODO(), instance)
+		}
+		instance.Finalize()
+		return reconcile.Result{Requeue: true}, r.client.Update(context.TODO(), instance)
 	}
-
-	if r.config.ManageRoute53 {
-		route53.Sync(instance)
-	}
-
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 func FormatVersion(version *version.Info) string {
