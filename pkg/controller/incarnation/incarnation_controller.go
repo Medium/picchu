@@ -179,7 +179,7 @@ func (r *ResourceSyncer) Delete() error {
 		}
 		for _, item := range list.GetItems() {
 			if err := r.Client.Delete(context.TODO(), item); err != nil {
-				log.Error(err, "Failed to delete resource", "Resource", list)
+				log.Error(err, "Failed to delete resource", "Owner.Name", r.Instance.Name, "Resource", list)
 				return err
 			}
 		}
@@ -193,7 +193,7 @@ func (r *ResourceSyncer) Sync() error {
 		picchuv1alpha1.LabelApp:       r.Instance.Spec.App.Name,
 		picchuv1alpha1.LabelTag:       r.Instance.Spec.App.Tag,
 		picchuv1alpha1.LabelTarget:    r.Instance.Spec.Assignment.Target,
-		picchuv1alpha1.LabelOwnerType: "incarnation",
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerIncarnation,
 		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
 	}
 	var envs []corev1.EnvFromSource
