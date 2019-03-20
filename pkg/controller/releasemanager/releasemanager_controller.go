@@ -133,20 +133,31 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		Client:          remoteClient,
 		PicchuClient:    r.client,
 	}
-	if err := syncer.SyncNamespace(); err != nil {
-		return reconcile.Result{}, err
+	if !instance.IsDeleted() {
+		if err := syncer.SyncNamespace(); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := syncer.SyncService(); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := syncer.SyncDestinationRule(); err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := syncer.SyncVirtualService(); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
 	}
-	if err := syncer.SyncService(); err != nil {
-		return reconcile.Result{}, err
+	if !instance.IsFinalized() {
+		if err := syncer.DeleteNamespace(); err != nil {
+			return reconcile.Result{}, err
+		}
+		instance.Finalize()
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
-	if err := syncer.SyncDestinationRule(); err != nil {
-		return reconcile.Result{}, err
-	}
-	if err := syncer.SyncVirtualService(); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 type ResourceSyncer struct {
@@ -157,9 +168,21 @@ type ResourceSyncer struct {
 	PicchuClient    client.Client
 }
 
+func (r *ResourceSyncer) DeleteNamespace() error {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: r.Instance.TargetNamespace(),
+		},
+	}
+	err := r.Client.Delete(context.TODO(), namespace)
+	return err
+}
+
 func (r *ResourceSyncer) SyncNamespace() error {
 	labels := map[string]string{
-		"istio-injection": "enabled",
+		"istio-injection":             "enabled",
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
+		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
 	}
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -198,7 +221,9 @@ func (r *ResourceSyncer) SyncService() error {
 
 	// Used to label Service and selector
 	labels := map[string]string{
-		picchuv1alpha1.LabelApp: r.Instance.Spec.App,
+		picchuv1alpha1.LabelApp:       r.Instance.Spec.App,
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
+		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
 	}
 
 	service := &corev1.Service{
@@ -221,7 +246,9 @@ func (r *ResourceSyncer) SyncService() error {
 
 func (r *ResourceSyncer) SyncDestinationRule() error {
 	labels := map[string]string{
-		picchuv1alpha1.LabelApp: r.Instance.Spec.App,
+		picchuv1alpha1.LabelApp:       r.Instance.Spec.App,
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
+		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
 	}
 	appName := r.Instance.Spec.App
 	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
@@ -257,7 +284,11 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	appName := r.Instance.Spec.App
 	defaultDomain := r.Cluster.Spec.DefaultDomain
 	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
-	labels := map[string]string{picchuv1alpha1.LabelApp: appName}
+	labels := map[string]string{
+		picchuv1alpha1.LabelApp:       appName,
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
+		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
+	}
 	defaultHost := fmt.Sprintf("%s.%s", r.Instance.TargetNamespace(), defaultDomain)
 	// keep a set of hosts
 	hosts := map[string]bool{defaultHost: true}

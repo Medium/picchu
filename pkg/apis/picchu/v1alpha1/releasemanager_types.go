@@ -78,6 +78,30 @@ func (r *ReleaseManager) TargetNamespace() string {
 	return fmt.Sprintf("%s-%s", r.Spec.App, r.Spec.Target)
 }
 
+func (r *ReleaseManager) IsDeleted() bool {
+	return !r.ObjectMeta.DeletionTimestamp.IsZero()
+}
+
+func (r *ReleaseManager) IsFinalized() bool {
+	for _, item := range r.ObjectMeta.Finalizers {
+		if item == FinalizerReleaseManager {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *ReleaseManager) Finalize() {
+	finalizers := []string{}
+	for _, item := range r.ObjectMeta.Finalizers {
+		if item == FinalizerReleaseManager {
+			continue
+		}
+		finalizers = append(finalizers, item)
+	}
+	r.ObjectMeta.Finalizers = finalizers
+}
+
 func init() {
 	SchemeBuilder.Register(&ReleaseManager{}, &ReleaseManagerList{})
 }

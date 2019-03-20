@@ -193,7 +193,7 @@ func (r *ResourceSyncer) Sync() error {
 		picchuv1alpha1.LabelApp:       r.Instance.Spec.App.Name,
 		picchuv1alpha1.LabelTag:       r.Instance.Spec.App.Tag,
 		picchuv1alpha1.LabelTarget:    r.Instance.Spec.Assignment.Target,
-		picchuv1alpha1.LabelOwnerType: "incarnation",
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerIncarnation,
 		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
 	}
 	var envs []corev1.EnvFromSource
