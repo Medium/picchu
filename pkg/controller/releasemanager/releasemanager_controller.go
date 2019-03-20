@@ -445,7 +445,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		if err != nil {
 			// This is an indicator that the HPA wasn't found, but *could* be wrong, slightly simpler then
 			// unwrapping CreateOrUpdate.
-			if hpa.Spec.ScaleTargetRef.Kind != "" {
+			if hpa.Spec.ScaleTargetRef.Kind == "" {
 				log.Info("HPA not found for incarnation", "Incarnation.Name", incarnation.Name)
 			}
 			log.Error(err, "Failed to create/update hpa", "Hpa", hpa, "Op", op)
