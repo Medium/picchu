@@ -93,6 +93,49 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{Requeue: true}, err
 }
 
+func (r *ReconcileRevision) GetOrCreateIncarnation(
+	target *picchuv1alpha1.RevisionTarget,
+	cluster *picchuv1alpha1.Cluster,
+	revision *picchuv1alpha1.Revision,
+) *picchuv1alpha1.Incarnation {
+	labels := map[string]string{
+		picchuv1alpha1.LabelTarget:   target.Name,
+		picchuv1alpha1.LabelFleet:    target.Fleet,
+		picchuv1alpha1.LabelCluster:  cluster.Name,
+		picchuv1alpha1.LabelRevision: revision.Name,
+		picchuv1alpha1.LabelApp:      revision.Spec.App.Name,
+		picchuv1alpha1.LabelTag:      revision.Spec.App.Tag,
+	}
+	incarnations := &picchuv1alpha1.IncarnationList{}
+	opts := client.
+		MatchingLabels(labels).
+		InNamespace(revision.Namespace)
+	r.client.List(context.TODO(), opts, incarnations)
+	if len(incarnations.Items) > 1 {
+		log.Info("Too many Incarnations matching", "Labels", labels)
+		return &incarnations.Items[0]
+	}
+	if len(incarnations.Items) == 1 {
+		return &incarnations.Items[0]
+	}
+	agct := picchuv1alpha1.AnnotationGitCommitterTimestamp
+	annotations := map[string]string{
+		agct: revision.Annotations[agct],
+	}
+
+	return &picchuv1alpha1.Incarnation{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-", revision.Spec.App.Name),
+			Namespace:    revision.Namespace,
+			Labels:       labels,
+			Annotations:  annotations,
+			Finalizers: []string{
+				picchuv1alpha1.FinalizerIncarnation,
+			},
+		},
+	}
+}
+
 // newIncarnationsForRevision returns incarnations for all target clusters  for a Revision
 func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1.Revision) error {
 	targetStatuses := []picchuv1alpha1.RevisionTargetIncarnationStatus{}
@@ -107,44 +150,12 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 			ref := revision.Spec.App.Ref
 			image := revision.Spec.App.Image
 
-			agct := picchuv1alpha1.AnnotationGitCommitterTimestamp
-			annotations := map[string]string{
-				agct: revision.Annotations[agct],
-			}
-
-			labels := map[string]string{
-				picchuv1alpha1.LabelTarget:   target.Name,
-				picchuv1alpha1.LabelFleet:    target.Fleet,
-				picchuv1alpha1.LabelCluster:  cluster.Name,
-				picchuv1alpha1.LabelRevision: revision.Name,
-				picchuv1alpha1.LabelTag:      tag,
-				picchuv1alpha1.LabelApp:      app,
-			}
-
-			name := fmt.Sprintf("%s-%s-%s-%s",
-				app,
-				tag,
-				target.Name,
-				cluster.Name,
-			)
-
-			incarnation := &picchuv1alpha1.Incarnation{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: revision.Namespace,
-					Finalizers: []string{
-						picchuv1alpha1.FinalizerIncarnation,
-					},
-				},
-			}
-
+			incarnation := r.GetOrCreateIncarnation(&target, &cluster, revision)
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, incarnation, func(runtime.Object) error {
 				if err := controllerutil.SetControllerReference(revision, incarnation, r.scheme); err != nil {
 					log.Error(err, "Failed to SetControllerReference for incarnation", "Incarnation.Name", incarnation.Name)
 					return err
 				}
-				incarnation.ObjectMeta.Labels = labels
-				incarnation.ObjectMeta.Annotations = annotations
 				incarnation.Spec = picchuv1alpha1.IncarnationSpec{
 					App: picchuv1alpha1.IncarnationApp{
 						Name:  app,
@@ -182,6 +193,37 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 	return nil
 }
 
+func (r *ReconcileRevision) GetOrCreateReleaseManager(
+	target *picchuv1alpha1.RevisionTarget,
+	cluster *picchuv1alpha1.Cluster,
+	revision *picchuv1alpha1.Revision,
+) *picchuv1alpha1.ReleaseManager {
+	labels := map[string]string{
+		picchuv1alpha1.LabelTarget:  target.Name,
+		picchuv1alpha1.LabelFleet:   target.Fleet,
+		picchuv1alpha1.LabelCluster: cluster.Name,
+		picchuv1alpha1.LabelApp:     revision.Spec.App.Name,
+	}
+	rms := &picchuv1alpha1.ReleaseManagerList{}
+	opts := client.
+		MatchingLabels(labels).
+		InNamespace(revision.Namespace)
+	r.client.List(context.TODO(), opts, rms)
+	if len(rms.Items) > 1 {
+		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", labels))
+	}
+	if len(rms.Items) == 1 {
+		return &rms.Items[0]
+	}
+	return &picchuv1alpha1.ReleaseManager{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: fmt.Sprintf("%s-", revision.Spec.App.Name),
+			Namespace:    revision.Namespace,
+			Labels:       labels,
+		},
+	}
+}
+
 func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) error {
 	// Sync releasemanagers
 	appName := revision.Spec.App.Name
@@ -192,16 +234,9 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			return err
 		}
 		for _, cluster := range clusters.Items {
-			clusterName := cluster.Name
-			name := fmt.Sprintf("%s-%s-%s", appName, targetName, clusterName)
-			rm := &picchuv1alpha1.ReleaseManager{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
-					Namespace: revision.Namespace,
-				},
-			}
+			rm := r.GetOrCreateReleaseManager(&target, &cluster, revision)
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rm, func(runtime.Object) error {
-				rm.Spec.Cluster = clusterName
+				rm.Spec.Cluster = cluster.Name
 				rm.Spec.App = appName
 				rm.Spec.Target = targetName
 				return nil
