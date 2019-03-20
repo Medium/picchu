@@ -251,7 +251,7 @@ func (r *ResourceSyncer) SyncService() error {
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, service, func(runtime.Object) error {
 		service.Spec.Ports = ports
-		service.Spec.Selector = labels
+		service.Spec.Selector = map[string]string{picchuv1alpha1.LabelApp: r.Instance.Spec.App}
 		return nil
 	})
 
