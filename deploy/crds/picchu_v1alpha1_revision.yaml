@@ -151,6 +151,12 @@ spec:
                       min:
                         format: int32
                         type: integer
+                      resources:
+                        description: Deprecated. Use TargetCPUUtilizationPercentage.
+                        properties:
+                          cpu:
+                            type: string
+                        type: object
                       targetCPUUtilizationPercentage:
                         format: int32
                         type: integer
