@@ -136,6 +136,13 @@ func (r *ReconcileRevision) GetOrCreateIncarnation(
 	}
 }
 
+func max(a, b int32) int32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // newIncarnationsForRevision returns incarnations for all target clusters  for a Revision
 func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1.Revision) error {
 	targetStatuses := []picchuv1alpha1.RevisionTargetIncarnationStatus{}
@@ -143,6 +150,19 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
 		if err != nil {
 			return err
+		}
+		var enabledClusters int32 = 0
+		for _, cluster := range clusters.Items {
+			if cluster.Spec.Enabled {
+				enabledClusters += 1
+			}
+		}
+		min := max(*target.Scale.Min/enabledClusters, 1)
+		scale := picchuv1alpha1.ScaleInfo{
+			Min:                            &min,
+			Max:                            max(target.Scale.Max/enabledClusters, 1),
+			Default:                        max(target.Scale.Default/enabledClusters, 1),
+			TargetCPUUtilizationPercentage: target.Scale.TargetCPUUtilizationPercentage,
 		}
 		for _, cluster := range clusters.Items {
 			if cluster.IsDeleted() {
@@ -171,7 +191,7 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 						Target: target.Name,
 					},
 					Resources:      target.Resources,
-					Scale:          target.Scale,
+					Scale:          scale,
 					Release:        target.Release,
 					Ports:          revision.Spec.Ports,
 					ConfigSelector: target.ConfigSelector,
