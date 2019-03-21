@@ -37,6 +37,7 @@ const (
 	OwnerIncarnation                = "incarnation"
 	OwnerReleaseManager             = "releasemanager"
 	AnnotationGitCommitterTimestamp = "git-scm.com/committer-timestamp"
+	AnnotationIAMRole               = "iam.amazonaws.com/role"
 )
 
 type PortInfo struct {
@@ -73,4 +74,13 @@ type ReleaseInfo struct {
 type RateInfo struct {
 	Increment    uint32 `json:"increment,omitempty"`
 	DelaySeconds *int64 `json:"delay,omitempty"`
+}
+
+// TODO(lyra): PodTemplate
+type AWSInfo struct {
+	IAM IAMInfo `json:"iam,omitempty"`
+}
+
+type IAMInfo struct {
+	RoleARN string `json:"role_arn,omitempty"`
 }

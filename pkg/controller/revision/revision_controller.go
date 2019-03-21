@@ -170,10 +170,12 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 						Name:   cluster.ObjectMeta.Name,
 						Target: target.Name,
 					},
+					Resources:      target.Resources,
 					Scale:          target.Scale,
 					Release:        target.Release,
 					Ports:          revision.Spec.Ports,
 					ConfigSelector: target.ConfigSelector,
+					AWS:            target.AWS,
 				}
 				return nil
 			})

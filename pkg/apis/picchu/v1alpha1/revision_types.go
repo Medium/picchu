@@ -49,6 +49,7 @@ type RevisionTarget struct {
 	Release        ReleaseInfo                 `json:"release,omitempty"`
 	Metrics        []RevisionTargetMetric      `json:"metrics,omitempty"`
 	ConfigSelector *metav1.LabelSelector       `json:"configSelector,omitempty"`
+	AWS            AWSInfo                     `json:"aws,omitempty"`
 }
 
 type RevisionTargetMetric struct {
