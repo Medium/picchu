@@ -90,7 +90,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{Requeue: true}, err
+	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, err
 }
 
 func (r *ReconcileRevision) GetOrCreateIncarnation(

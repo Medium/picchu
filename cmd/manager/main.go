@@ -29,9 +29,8 @@ import (
 
 // Change below variables to serve metrics on different host or port.
 var (
-	metricsHost             = "0.0.0.0"
-	metricsPort       int32 = 8383
-	syncPeriodSeconds int   = 30
+	metricsHost       = "0.0.0.0"
+	metricsPort int32 = 8383
 )
 var log = logf.Log.WithName("cmd")
 
@@ -51,6 +50,7 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	manageRoute53 := pflag.Bool("manage-route53", false, "Should picchu manage route53?")
+	syncPeriodSeconds := pflag.Int("sync-period-seconds", 30, "Delay between resyncs")
 
 	pflag.Parse()
 
@@ -88,7 +88,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	resyncPeriod := time.Duration(syncPeriodSeconds) * time.Second
+	resyncPeriod := time.Duration(*syncPeriodSeconds) * time.Second
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{
@@ -121,6 +121,7 @@ func main() {
 
 	config := utils.Config{
 		ManageRoute53: *manageRoute53,
+		RequeueAfter:  resyncPeriod,
 	}
 
 	// Setup all Controllers

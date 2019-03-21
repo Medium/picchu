@@ -137,12 +137,12 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		// No more incarnations, delete myself
 		if len(incarnationList.Items) == 0 {
 			reqLogger.Info("No incarnations found for releasemanager, deleting")
-			return reconcile.Result{Requeue: true}, r.client.Delete(context.TODO(), instance)
+			return reconcile.Result{}, r.client.Delete(context.TODO(), instance)
 		}
 
 		if cluster.IsDeleted() {
 			reqLogger.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
-			return reconcile.Result{Requeue: true}, nil
+			return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 		}
 
 		if err := syncer.SyncNamespace(); err != nil {
@@ -157,7 +157,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		if err := syncer.SyncVirtualService(); err != nil {
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{Requeue: true}, nil
+		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !instance.IsFinalized() {
 		reqLogger.Info("Finalizing releasemanager")
