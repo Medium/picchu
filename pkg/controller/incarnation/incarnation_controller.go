@@ -288,8 +288,12 @@ func (r *ResourceSyncer) Sync() error {
 			ContainerPort: port.ContainerPort,
 		})
 	}
+	podAnnotations := make(map[string]string, 1)
+	if role := r.Instance.Spec.AWS.IAM.RoleARN; role != "" {
+		podAnnotations[picchuv1alpha1.AnnotationIAMRole] = role
+	}
 	// Used for Container label and Container Selector
-	labels := map[string]string{
+	podLabels := map[string]string{
 		picchuv1alpha1.LabelApp: appName,
 		picchuv1alpha1.LabelTag: tag,
 	}
@@ -301,12 +305,13 @@ func (r *ResourceSyncer) Sync() error {
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas: &r.Instance.Spec.Scale.Default,
-			Selector: metav1.SetAsLabelSelector(labels),
+			Selector: metav1.SetAsLabelSelector(podLabels),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      tag,
-					Namespace: r.Instance.TargetNamespace(),
-					Labels:    labels,
+					Name:        tag,
+					Namespace:   r.Instance.TargetNamespace(),
+					Annotations: podAnnotations,
+					Labels:      podLabels,
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{

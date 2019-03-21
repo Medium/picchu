@@ -74,6 +74,14 @@ spec:
             targets:
               items:
                 properties:
+                  aws:
+                    properties:
+                      iam:
+                        properties:
+                          role_arn:
+                            type: string
+                        type: object
+                    type: object
                   configSelector:
                     type: object
                   fleet:

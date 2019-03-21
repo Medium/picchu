@@ -108,6 +108,7 @@ type IncarnationSpec struct {
 	Release        ReleaseInfo                 `json:"release,omitempty"`
 	Ports          []PortInfo                  `json:"ports,omitempty"`
 	ConfigSelector *metav1.LabelSelector       `json:"configSelector,omitempty"`
+	AWS            AWSInfo                     `json:"aws,omitempty"`
 }
 
 type IncarnationApp struct {
