@@ -157,6 +157,7 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 				enabledClusters += 1
 			}
 		}
+		enabledClusters = max(enabledClusters, 1)
 		min := max(*target.Scale.Min/enabledClusters, 1)
 		scale := picchuv1alpha1.ScaleInfo{
 			Min:                            &min,
