@@ -95,6 +95,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	opts := types.NamespacedName{request.Namespace, incarnation.Spec.Assignment.Name}
 	cluster := &picchuv1alpha1.Cluster{}
 	if err = r.client.Get(context.TODO(), opts, cluster); err != nil {
+		reqLogger.Error(err, "Failed to get cluster")
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(cluster)
@@ -109,23 +110,28 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 		Owner:    r,
 	}
 	if !incarnation.IsDeleted() {
+		reqLogger.Info("Syncing incarnation")
 		if err := syncer.Sync(); err != nil {
-			log.Error(err, "Failed to sync incarnation")
+			reqLogger.Error(err, "Failed to sync incarnation")
 			return reconcile.Result{}, err
 		}
+		reqLogger.Info("Requeueing incarnation", "Duration", r.config.RequeueAfter)
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !incarnation.IsFinalized() {
+		reqLogger.Info("Deleting incarnation")
 		if err := syncer.Delete(); err != nil {
-			log.Error(err, "Failed to finalize incarnation")
+			reqLogger.Error(err, "Failed to finalize incarnation")
 			return reconcile.Result{}, err
 		}
+		reqLogger.Info("Finalizing incarnation")
 		incarnation.Finalize()
 		if err = r.client.Update(context.TODO(), incarnation); err != nil {
-			log.Error(err, "Failed to finalize incarnation")
+			reqLogger.Error(err, "Failed to finalize incarnation")
 			return reconcile.Result{}, err
 		}
 	}
+	reqLogger.Info("Exiting incarnation without requeue")
 	return reconcile.Result{}, nil
 }
 
