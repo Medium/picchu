@@ -187,7 +187,7 @@ func (r *ResourceSyncer) DeleteNamespace() error {
 		},
 	}
 	// Might already be deleted
-	if err := r.PicchuClient.Delete(context.TODO(), namespace); err != nil && !errors.IsNotFound(err) {
+	if err := r.Client.Delete(context.TODO(), namespace); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	return nil
