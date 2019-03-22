@@ -56,6 +56,27 @@ spec:
               type: object
             configSelector:
               type: object
+            alertRules:
+              items:
+                description: Rule describes an alerting or recording rule.
+                properties:
+                  alert:
+                    type: string
+                  annotations:
+                    type: object
+                  expr:
+                    anyOf:
+                    - type: string
+                    - type: integer
+                  for:
+                    type: string
+                  labels:
+                    type: object
+                  record:
+                    type: string
+                required:
+                - expr
+              type: array
             ports:
               items:
                 properties:

@@ -8,6 +8,7 @@
 package v1alpha1
 
 import (
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
@@ -464,6 +465,13 @@ func (in *IncarnationSpec) DeepCopyInto(out *IncarnationSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	out.AWS = in.AWS
+	if in.AlertRules != nil {
+		in, out := &in.AlertRules, &out.AlertRules
+		*out = make([]monitoringv1.Rule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 
@@ -860,6 +868,13 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 		(*in).DeepCopyInto(*out)
 	}
 	out.AWS = in.AWS
+	if in.AlertRules != nil {
+		in, out := &in.AlertRules, &out.AlertRules
+		*out = make([]monitoringv1.Rule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 
