@@ -149,7 +149,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 				return reconcile.Result{}, err
 			}
 		}
-		return reconcile.Result{Requeue: true}, nil
+		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	// TODO(bob): See if setting cluster and revision as owner of
 	// releasemanager and incarnation automatically resolves this complex
@@ -178,10 +178,10 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		// remote resources before deleting this Cluster, since incarnation
 		// relies on cluster for remote client configuration.
 		if len(il.Items)+len(rml.Items) > 0 {
-			return reconcile.Result{Requeue: true}, r.client.Update(context.TODO(), instance)
+			return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, r.client.Update(context.TODO(), instance)
 		}
 		instance.Finalize()
-		return reconcile.Result{Requeue: true}, r.client.Update(context.TODO(), instance)
+		return reconcile.Result{}, r.client.Update(context.TODO(), instance)
 	}
 	return reconcile.Result{}, nil
 }

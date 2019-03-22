@@ -111,22 +111,22 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	if !incarnation.IsDeleted() {
 		if err := syncer.Sync(); err != nil {
 			log.Error(err, "Failed to sync incarnation")
-			return reconcile.Result{Requeue: true}, err
+			return reconcile.Result{}, err
 		}
-		return reconcile.Result{Requeue: true}, nil
+		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !incarnation.IsFinalized() {
 		if err := syncer.Delete(); err != nil {
 			log.Error(err, "Failed to finalize incarnation")
-			return reconcile.Result{Requeue: true}, err
+			return reconcile.Result{}, err
 		}
 		incarnation.Finalize()
 		if err = r.client.Update(context.TODO(), incarnation); err != nil {
 			log.Error(err, "Failed to finalize incarnation")
-			return reconcile.Result{Requeue: true}, err
+			return reconcile.Result{}, err
 		}
 	}
-	return reconcile.Result{Requeue: true}, nil
+	return reconcile.Result{}, nil
 }
 
 func NewIncarnationResourceStatus(resource runtime.Object) picchuv1alpha1.IncarnationResourceStatus {
