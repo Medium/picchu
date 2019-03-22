@@ -50,7 +50,7 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	manageRoute53 := pflag.Bool("manage-route53", false, "Should picchu manage route53?")
-	syncPeriodSeconds := pflag.Int("sync-period-seconds", 30, "Delay between resyncs")
+	requeuePeriodSeconds := pflag.Int("sync-period-seconds", 30, "Delay between requeues")
 
 	pflag.Parse()
 
@@ -88,13 +88,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	resyncPeriod := time.Duration(*syncPeriodSeconds) * time.Second
+	requeuePeriod := time.Duration(*requeuePeriodSeconds) * time.Second
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{
 		Namespace:          namespace,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
-		SyncPeriod:         &resyncPeriod,
 	})
 	if err != nil {
 		log.Error(err, "")
@@ -121,7 +120,7 @@ func main() {
 
 	config := utils.Config{
 		ManageRoute53: *manageRoute53,
-		RequeueAfter:  resyncPeriod,
+		RequeueAfter:  requeuePeriod,
 	}
 
 	// Setup all Controllers
