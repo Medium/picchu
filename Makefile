@@ -8,7 +8,11 @@ GROUPS := picchu/v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 
-.PHONY: all build generate deepcopy defaulter openapi clientset lister informer crds
+platform_temp = $(subst -, ,$(ARCH))
+GOOS = $(word 1, $(platform_temp))
+GOARCH = $(word 2, $(platform_temp))
+
+.PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
 all: deps generate build
 
@@ -19,7 +23,7 @@ build:
 deps:
 	dep ensure -v
 
-generate: deepcopy defaulter openapi clientset lister informer
+generate: deepcopy defaulter openapi clientset
 
 deepcopy: generators/deepcopy
 	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).deepcopy -h $(BOILERPLATE)
@@ -33,15 +37,9 @@ openapi: generators/openapi
 clientset: generators/client
 	$< -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
 
-lister: generators/lister
-	$< -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/listers -h $(BOILERPLATE)
-
 crds: generators/crd
 	@mkdir -p generated_crds
 	$< generate --output-dir generated_crds --domain $(DOMAIN)
-
-informer: generators/informer clientset lister
-	generators/informer -i $(API_PACKAGE)/$(GROUPS) -p $(PACKAGE)/client/informers --versioned-clientset-package $(PACKAGE)/client --listers-package $(PACKAGE)/client/listers -h $(BOILERPLATE)
 
 generators/%: Gopkg.lock
 	@mkdir -p generators
@@ -54,3 +52,16 @@ generators/openapi: Gopkg.lock
 generators/crd: Gopkg.lock
 	go get sigs.k8s.io/controller-tools/cmd/crd
 	cp $(shell which crd) generators/crd
+
+build-dirs:
+	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)
+	@mkdir -p .go/src/$(PKG) .go/pkg .go/bin .go/std/$(GOOS)/$(GOARCH) .go/go-build
+
+test: build-dirs
+	hack/test.sh
+
+verifiy:
+	hack/verify-all.sh
+
+ci: all verify test
+

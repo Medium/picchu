@@ -122,13 +122,13 @@ func (c *Cluster) Config(secret *corev1.Secret) (*rest.Config, error) {
 	}
 	conf := clientcmd.NewDefaultClientConfig(clientapi.Config{
 		Clusters: map[string]*clientapi.Cluster{
-			"cluster": &clientapi.Cluster{
+			"cluster": {
 				CertificateAuthorityData: cert,
 				Server:                   server,
 			},
 		},
 		Contexts: map[string]*clientapi.Context{
-			"cluster": &clientapi.Context{
+			"cluster": {
 				Cluster:   "cluster",
 				AuthInfo:  "auth",
 				Namespace: "picchu",
