@@ -7,6 +7,7 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -393,6 +394,41 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		return err
 	}
 	count := len(incarnations)
+	// setup alerts from latest release
+	rule := &monitoringv1.PrometheusRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "prometheus-rule",
+			Namespace: r.Instance.TargetNamespace(),
+		},
+	}
+	if count > 0 {
+		latest := incarnations[0]
+		if len(latest.Spec.AlertRules) > 0 {
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, rule, func(runtime.Object) error {
+				rule.Labels = map[string]string{picchuv1alpha1.LabelTag: latest.Spec.App.Tag}
+				rule.Spec.Groups = []monitoringv1.RuleGroup{{
+					Name:  "picchu.rules",
+					Rules: latest.Spec.AlertRules,
+				}}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+			log.Info("Sync'd PrometheusRule", "Op", op)
+		} else {
+			if err := r.Client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+			log.Info("Deleted PrometheusRule because no rules are defined in incarnation", "Incarnation.Name", latest.Name)
+		}
+	} else {
+		if err := r.Client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+		log.Info("Deleted PrometheusRule because there aren't any release incarnation")
+	}
+
 	for i, incarnation := range incarnations {
 		if incarnation.IsDeleted() {
 			continue

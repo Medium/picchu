@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -50,6 +51,7 @@ type RevisionTarget struct {
 	Metrics        []RevisionTargetMetric      `json:"metrics,omitempty"`
 	ConfigSelector *metav1.LabelSelector       `json:"configSelector,omitempty"`
 	AWS            AWSInfo                     `json:"aws,omitempty"`
+	AlertRules     []monitoringv1.Rule         `json:"alertRules,omitempty"`
 }
 
 type RevisionTargetMetric struct {

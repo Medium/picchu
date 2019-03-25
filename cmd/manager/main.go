@@ -13,6 +13,7 @@ import (
 	"go.medium.engineering/picchu/pkg/controller"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -112,8 +113,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup Scheme for istio
+	// Setup Scheme for 3rd party
 	if err := istiov1alpha3.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+	if err := monitoringv1.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

@@ -197,6 +197,7 @@ func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1
 					Ports:          revision.Spec.Ports,
 					ConfigSelector: target.ConfigSelector,
 					AWS:            target.AWS,
+					AlertRules:     target.AlertRules,
 				}
 				return nil
 			})
