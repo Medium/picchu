@@ -1,0 +1,13 @@
+language: go
+
+go:
+- 1.12.x
+
+sudo: required
+
+before_install:
+- curl https://raw.githubusercontent.com/golang/dep/v0.5.0/install.sh | sh
+
+script: make ci
+
+go_import_path: go.medium.engineering/picchu

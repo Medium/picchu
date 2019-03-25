@@ -544,7 +544,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, vs, func(runtime.Object) error {
 		hostSlice := make([]string, 0, len(hosts))
-		for h, _ := range hosts {
+		for h := range hosts {
 			hostSlice = append(hostSlice, h)
 		}
 		vs.Spec.Hosts = hostSlice

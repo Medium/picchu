@@ -321,7 +321,7 @@ func (r *ResourceSyncer) Sync() error {
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
-						corev1.Container{
+						{
 							EnvFrom:   envs,
 							Image:     r.Instance.Spec.App.Image,
 							Name:      r.Instance.Spec.App.Name,
