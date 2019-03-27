@@ -130,6 +130,7 @@ type IncarnationStatus struct {
 	Health    IncarnationHealthStatus     `json:"health,omitempty"`
 	Scale     IncarnationScaleStatus      `json:"scale,omitempty"`
 	Resources []IncarnationResourceStatus `json:"resources,omitempty"`
+	Deployed  bool                        `json:"deployed"`
 }
 
 type IncarnationHealthStatus struct {
@@ -193,6 +194,15 @@ func (i *Incarnation) Finalize() {
 		finalizers = append(finalizers, item)
 	}
 	i.ObjectMeta.Finalizers = finalizers
+}
+
+func (i *Incarnation) RevisionCreationTimestamp() (t time.Time) {
+	txt, ok := i.Annotations[AnnotationRevisionCreationTimestamp]
+	if !ok {
+		return t
+	}
+	t.UnmarshalText([]byte(txt))
+	return t
 }
 
 func init() {

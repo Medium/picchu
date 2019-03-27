@@ -122,6 +122,13 @@ func (r *ReconcileRevision) GetOrCreateIncarnation(
 	annotations := map[string]string{
 		agct: revision.Annotations[agct],
 	}
+	creationTimestamp, err := revision.CreationTimestamp.MarshalText()
+	if err != nil {
+		log.Info("Couldn't marshal revisionCreationTimestamp")
+	} else {
+		rct := picchuv1alpha1.AnnotationRevisionCreationTimestamp
+		annotations[rct] = string(creationTimestamp)
+	}
 
 	return &picchuv1alpha1.Incarnation{
 		ObjectMeta: metav1.ObjectMeta{

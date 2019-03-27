@@ -177,6 +177,8 @@ spec:
                     type: object
                   type: array
               type: object
+            deployed:
+              type: boolean
             resources:
               items:
                 properties:

@@ -55,6 +55,8 @@ spec:
                     type: integer
                   tag:
                     type: string
+                  released:
+                    type: boolean
                 required:
                 - tag
                 - lastUpdated
