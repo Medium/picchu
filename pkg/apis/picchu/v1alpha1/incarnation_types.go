@@ -78,7 +78,7 @@ func (i *IncarnationList) LatestRelease() (*Incarnation, error) {
 // AnnotationGitCommitterTimestamp annotation, which should be an RFC3339 timestamp
 func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 	releases := []Incarnation{}
-	for _, incarnation := range i.Items {
+	for _, incarnation := range i.DeployedItems() {
 		if incarnation.Spec.Release.Eligible {
 			releases = append(releases, incarnation)
 		}
@@ -98,6 +98,17 @@ func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 		return a.After(b)
 	})
 	return releases, err
+}
+
+// DeployedItems returns a slice of deployed incarnations
+func (i *IncarnationList) DeployedItems() []Incarnation {
+	incarnations := []Incarnation{}
+	for _, incarnation := range i.Items {
+		if incarnation.Status.Deployed {
+			incarnations = append(incarnations, incarnation)
+		}
+	}
+	return incarnations
 }
 
 // IncarnationSpec defines the desired state of Incarnation
