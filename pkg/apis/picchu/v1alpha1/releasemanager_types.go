@@ -45,6 +45,7 @@ type ReleaseManagerReleaseStatus struct {
 	LastUpdate     *metav1.Time `json:"lastUpdated"`
 	CurrentPercent uint32       `json:"currentPercent"`
 	PeakPercent    uint32       `json:"peakPercent"`
+	Released       bool         `json:"released"`
 }
 
 func (r *ReleaseManager) ReleaseStatus(tag string) *ReleaseManagerReleaseStatus {
@@ -67,9 +68,7 @@ func (r *ReleaseManager) ReleaseStatus(tag string) *ReleaseManagerReleaseStatus 
 func (r *ReleaseManager) UpdateReleaseStatus(u *ReleaseManagerReleaseStatus) {
 	for i, s := range r.Status.Releases {
 		if s.Tag == u.Tag {
-			r.Status.Releases[i].LastUpdate = u.LastUpdate
-			r.Status.Releases[i].CurrentPercent = u.CurrentPercent
-			r.Status.Releases[i].PeakPercent = u.PeakPercent
+			r.Status.Releases[i] = *u
 		}
 	}
 }

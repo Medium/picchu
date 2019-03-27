@@ -3,6 +3,8 @@ package releasemanager
 import (
 	"context"
 	"fmt"
+	"math"
+	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
@@ -10,6 +12,8 @@ import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,16 +25,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_releasemanager")
+var (
+	log                       = logf.Log.WithName("controller_releasemanager")
+	incarnationReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "picchu_incarnation_release_latency",
+		Help: "track time from revision creation to incarnationrelease, " +
+			"minus expected release time (release.rate.delay * math.Ceil(100.0 / release.rate.increment))",
+		Buckets: prometheus.ExponentialBuckets(10, 3, 7),
+	})
+)
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
+	metrics.Registry.MustRegister(incarnationReleaseLatency)
 	return add(mgr, newReconciler(mgr, c))
 }
 
@@ -434,6 +448,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			continue
 		}
 		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
+		oldReleased := releaseStatus.Released
 		oldCurrent := releaseStatus.CurrentPercent
 		peak := releaseStatus.PeakPercent
 		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
@@ -449,9 +464,24 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		}
 		percRemaining -= current
 
+		if percRemaining == 0 {
+			// Mark the oldest released incarnation as "released" and observe latency
+			if !releaseStatus.Released {
+				rate := incarnation.Spec.Release.Rate
+				delay := *rate.DelaySeconds
+				increment := rate.Increment
+				expected := time.Second * time.Duration(delay*int64(math.Ceil(100.0/float64(increment))))
+				rct := incarnation.RevisionCreationTimestamp()
+				latency := time.Since(rct) - expected
+				incarnationReleaseLatency.Observe(latency.Seconds())
+				log.Info("Marking Released")
+				releaseStatus.Released = true
+			}
+		}
+
 		tag := incarnation.Spec.App.Tag
 
-		if oldCurrent != current {
+		if oldCurrent != current || oldReleased != releaseStatus.Released {
 			now := metav1.Now()
 			releaseStatus.CurrentPercent = current
 			releaseStatus.PeakPercent = peak

@@ -2,10 +2,13 @@ package incarnation
 
 import (
 	"context"
+	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,12 +23,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var (
-	log = logf.Log.WithName("controller_incarnation")
+	log                        = logf.Log.WithName("controller_incarnation")
+	incarnationCreationLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "picchu_incarnation_deployment_latency",
+		Help:    "track time from revision creation to incarnation deployment",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	})
 )
 
 type Identity interface {
@@ -35,6 +44,7 @@ type Identity interface {
 // Add creates a new Incarnation Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
+	metrics.Registry.MustRegister(incarnationCreationLatency)
 	return add(mgr, newReconciler(mgr, c))
 }
 
@@ -133,6 +143,19 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 	}
 	reqLogger.Info("Exiting incarnation without requeue")
 	return reconcile.Result{}, nil
+}
+
+func (r *ResourceSyncer) RecordStartupTime() {
+	if r.Instance.Status.Initialized {
+		return
+	}
+	t := r.Instance.RevisionCreationTimestamp()
+	if t.IsZero() {
+		return
+	}
+	elapsed := time.Since(t)
+	log.Info("Observing incarnation startup", "Elapsed", elapsed)
+	incarnationCreationLatency.Observe(elapsed.Seconds())
 }
 
 func NewIncarnationResourceStatus(resource runtime.Object) picchuv1alpha1.IncarnationResourceStatus {
@@ -402,6 +425,8 @@ func (r *ResourceSyncer) Sync() error {
 		health = false
 	}
 
+	r.RecordStartupTime()
+	inc.Status.Initialized = true
 	inc.Status.Health.Healthy = health
 	inc.Status.Scale.Current = replicaSet.Status.ReadyReplicas
 	inc.Status.Scale.Desired = replicaSet.Status.Replicas
