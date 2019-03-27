@@ -482,7 +482,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 
 		tag := incarnation.Spec.App.Tag
 
-		if oldCurrent != current || oldReleased != releaseStatus.Released {
+		if oldCurrent != current {
 			now := metav1.Now()
 			releaseStatus.CurrentPercent = current
 			releaseStatus.PeakPercent = peak
