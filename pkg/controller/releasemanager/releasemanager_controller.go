@@ -320,8 +320,9 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
 	}
 	defaultHost := fmt.Sprintf("%s.%s", r.Instance.TargetNamespace(), defaultDomain)
+	meshHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
 	// keep a set of hosts
-	hosts := map[string]bool{defaultHost: true}
+	hosts := map[string]bool{defaultHost: true, meshHost: true}
 	publicGateway := r.Cluster.Spec.Ingresses.Public.Gateway
 	privateGateway := r.Cluster.Spec.Ingresses.Private.Gateway
 	gateways := []string{"mesh"}
@@ -347,13 +348,12 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// Incarnation specific releases are made for each port on private ingress
 	for _, incarnation := range r.IncarnationList.Items {
 		tag := incarnation.Spec.App.Tag
+		overrideLabel := fmt.Sprintf("pin/%s", appName)
 		for _, port := range incarnation.Spec.Ports {
 			matches := []istiov1alpha3.HTTPMatchRequest{{
 				// mesh traffic from same tag'd service with and test tag
 				SourceLabels: map[string]string{
-					picchuv1alpha1.LabelApp:          appName,
-					picchuv1alpha1.LabelTag:          tag,
-					"picchu.medium.engineering/test": "1",
+					overrideLabel: tag,
 				},
 				Port:     uint32(port.Port),
 				Gateways: []string{"mesh"},
@@ -528,6 +528,11 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 							Gateways:  gateway,
 						})
 					}
+					releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{
+						Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+						Port:     uint32(port.Port),
+						Gateways: []string{"mesh"},
+					})
 				}
 
 				releaseRoute.Route = append(releaseRoute.Route, istiov1alpha3.DestinationWeight{
