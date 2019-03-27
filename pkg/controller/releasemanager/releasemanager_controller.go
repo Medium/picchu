@@ -453,6 +453,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		oldCurrent := releaseStatus.CurrentPercent
 		peak := releaseStatus.PeakPercent
 		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
+		updated := false
 		if i+1 == count {
 			// TODO(bob): confirm we want to give remaining bandwidth to oldest
 			// instance
@@ -464,6 +465,10 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			peak = current
 		}
 		percRemaining -= current
+
+		if current != oldCurrent {
+			updated = true
+		}
 
 		if percRemaining == 0 {
 			// Mark the oldest released incarnation as "released" and observe latency
@@ -477,13 +482,14 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 					latency := time.Since(rct) - expected
 					incarnationReleaseLatency.Observe(latency.Seconds())
 					releaseStatus.Released = true
+					updated = true
 				}
 			}
 		}
 
 		tag := incarnation.Spec.App.Tag
 
-		if oldCurrent != current {
+		if updated {
 			now := metav1.Now()
 			releaseStatus.CurrentPercent = current
 			releaseStatus.PeakPercent = peak
