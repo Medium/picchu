@@ -313,6 +313,9 @@ func (r *ResourceSyncer) SyncDestinationRule() error {
 }
 
 func (r *ResourceSyncer) SyncVirtualService() error {
+	if len(r.IncarnationList.DeployedItems()) == 0 {
+		return nil
+	}
 	appName := r.Instance.Spec.App
 	defaultDomain := r.Cluster.Spec.DefaultDomain
 	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
