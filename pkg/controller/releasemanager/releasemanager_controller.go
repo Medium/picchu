@@ -449,9 +449,6 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	}
 
 	for i, incarnation := range incarnations {
-		if incarnation.IsDeleted() {
-			continue
-		}
 		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
 		oldCurrent := releaseStatus.CurrentPercent
 		peak := releaseStatus.PeakPercent
