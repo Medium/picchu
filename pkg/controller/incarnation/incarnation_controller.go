@@ -146,7 +146,7 @@ func (r *ReconcileIncarnation) Reconcile(request reconcile.Request) (reconcile.R
 }
 
 func (r *ResourceSyncer) RecordStartupTime() {
-	if r.Instance.Status.Initialized {
+	if r.Instance.Status.Deployed {
 		return
 	}
 	t := r.Instance.RevisionCreationTimestamp()
@@ -426,7 +426,7 @@ func (r *ResourceSyncer) Sync() error {
 	}
 
 	r.RecordStartupTime()
-	inc.Status.Initialized = true
+	inc.Status.Deployed = true
 	inc.Status.Health.Healthy = health
 	inc.Status.Scale.Current = replicaSet.Status.ReadyReplicas
 	inc.Status.Scale.Desired = replicaSet.Status.Replicas

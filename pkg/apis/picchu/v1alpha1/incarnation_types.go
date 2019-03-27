@@ -127,10 +127,10 @@ type IncarnationAssignment struct {
 
 // IncarnationStatus defines the observed state of Incarnation
 type IncarnationStatus struct {
-	Health      IncarnationHealthStatus     `json:"health,omitempty"`
-	Scale       IncarnationScaleStatus      `json:"scale,omitempty"`
-	Resources   []IncarnationResourceStatus `json:"resources,omitempty"`
-	Initialized bool                        `json:"initialized"`
+	Health    IncarnationHealthStatus     `json:"health,omitempty"`
+	Scale     IncarnationScaleStatus      `json:"scale,omitempty"`
+	Resources []IncarnationResourceStatus `json:"resources,omitempty"`
+	Deployed  bool                        `json:"deployed"`
 }
 
 type IncarnationHealthStatus struct {
