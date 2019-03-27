@@ -157,6 +157,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 		if cluster.IsDeleted() {
 			reqLogger.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
+			reqLogger.Info("Requeueing releasemanager", "Duration", r.config.RequeueAfter)
 			return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 		}
 
@@ -172,6 +173,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		if err := syncer.SyncVirtualService(); err != nil {
 			return reconcile.Result{}, err
 		}
+		reqLogger.Info("Requeueing releasemanager", "Duration", r.config.RequeueAfter)
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !instance.IsFinalized() {
@@ -311,6 +313,9 @@ func (r *ResourceSyncer) SyncDestinationRule() error {
 }
 
 func (r *ResourceSyncer) SyncVirtualService() error {
+	if len(r.IncarnationList.DeployedItems()) == 0 {
+		return nil
+	}
 	appName := r.Instance.Spec.App
 	defaultDomain := r.Cluster.Spec.DefaultDomain
 	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
@@ -346,7 +351,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// of readability
 
 	// Incarnation specific releases are made for each port on private ingress
-	for _, incarnation := range r.IncarnationList.Items {
+	for _, incarnation := range r.IncarnationList.DeployedItems() {
 		tag := incarnation.Spec.App.Tag
 		overrideLabel := fmt.Sprintf("pin/%s", appName)
 		for _, port := range incarnation.Spec.Ports {
@@ -448,7 +453,6 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			continue
 		}
 		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
-		oldReleased := releaseStatus.Released
 		oldCurrent := releaseStatus.CurrentPercent
 		peak := releaseStatus.PeakPercent
 		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
