@@ -347,6 +347,9 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 
 	// Incarnation specific releases are made for each port on private ingress
 	for _, incarnation := range r.IncarnationList.Items {
+		if !incarnation.Status.Deployed {
+			continue
+		}
 		tag := incarnation.Spec.App.Tag
 		overrideLabel := fmt.Sprintf("pin/%s", appName)
 		for _, port := range incarnation.Spec.Ports {
@@ -444,11 +447,10 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	}
 
 	for i, incarnation := range incarnations {
-		if incarnation.IsDeleted() {
+		if incarnation.IsDeleted() || !incarnation.Status.Deployed {
 			continue
 		}
 		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
-		oldReleased := releaseStatus.Released
 		oldCurrent := releaseStatus.CurrentPercent
 		peak := releaseStatus.PeakPercent
 		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
