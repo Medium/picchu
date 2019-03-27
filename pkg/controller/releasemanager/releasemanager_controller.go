@@ -467,15 +467,16 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		if percRemaining == 0 {
 			// Mark the oldest released incarnation as "released" and observe latency
 			if !releaseStatus.Released {
-				rate := incarnation.Spec.Release.Rate
-				delay := *rate.DelaySeconds
-				increment := rate.Increment
-				expected := time.Second * time.Duration(delay*int64(math.Ceil(100.0/float64(increment))))
 				rct := incarnation.RevisionCreationTimestamp()
-				latency := time.Since(rct) - expected
-				incarnationReleaseLatency.Observe(latency.Seconds())
-				log.Info("Marking Released")
-				releaseStatus.Released = true
+				if !rct.IsZero() {
+					rate := incarnation.Spec.Release.Rate
+					delay := *rate.DelaySeconds
+					increment := rate.Increment
+					expected := time.Second * time.Duration(delay*int64(math.Ceil(100.0/float64(increment))))
+					latency := time.Since(rct) - expected
+					incarnationReleaseLatency.Observe(latency.Seconds())
+					releaseStatus.Released = true
+				}
 			}
 		}
 
