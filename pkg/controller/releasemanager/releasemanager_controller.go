@@ -157,6 +157,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 		if cluster.IsDeleted() {
 			reqLogger.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
+			reqLogger.Info("Requeueing releasemanager", "Duration", r.config.RequeueAfter)
 			return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 		}
 
@@ -172,6 +173,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		if err := syncer.SyncVirtualService(); err != nil {
 			return reconcile.Result{}, err
 		}
+		reqLogger.Info("Requeueing releasemanager", "Duration", r.config.RequeueAfter)
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !instance.IsFinalized() {
