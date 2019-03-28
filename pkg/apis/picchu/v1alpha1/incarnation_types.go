@@ -104,7 +104,7 @@ func (i *IncarnationList) SortedReleases() ([]Incarnation, error) {
 func (i *IncarnationList) DeployedItems() []Incarnation {
 	incarnations := []Incarnation{}
 	for _, incarnation := range i.Items {
-		if incarnation.Status.Deployed {
+		if incarnation.Status.Deployed && !incarnation.IsDeleted() {
 			incarnations = append(incarnations, incarnation)
 		}
 	}
