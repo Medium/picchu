@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,21 +44,26 @@ type ReleaseManagerStatus struct {
 type ReleaseManagerReleaseStatus struct {
 	Tag            string       `json:"tag"`
 	LastUpdate     *metav1.Time `json:"lastUpdated"`
+	GitTimestamp   *metav1.Time `json:"gitTimestamp"`
 	CurrentPercent uint32       `json:"currentPercent"`
 	PeakPercent    uint32       `json:"peakPercent"`
 	Released       bool         `json:"released"`
+	Expired        bool         `json:"expired"`
 }
 
-func (r *ReleaseManager) ReleaseStatus(tag string) *ReleaseManagerReleaseStatus {
+func (r *ReleaseManager) ReleaseStatus(incarnation Incarnation) *ReleaseManagerReleaseStatus {
 	for _, s := range r.Status.Releases {
-		if s.Tag == tag {
+		if s.Tag == incarnation.Spec.App.Tag {
 			return &s
 		}
 	}
 	now := metav1.Now()
+	gitTimestamp := metav1.NewTime(incarnation.GitTimestamp())
 	s := ReleaseManagerReleaseStatus{
-		Tag:            tag,
+		Tag:            incarnation.Spec.App.Tag,
 		LastUpdate:     &now,
+		Expired:        false,
+		GitTimestamp:   &gitTimestamp,
 		CurrentPercent: 0,
 		PeakPercent:    0,
 	}

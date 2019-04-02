@@ -173,6 +173,9 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		if err := syncer.SyncVirtualService(); err != nil {
 			return reconcile.Result{}, err
 		}
+		if err := syncer.MarkExpiredReleases(); err != nil {
+			return reconcile.Result{}, err
+		}
 		reqLogger.Info("Requeueing releasemanager", "Duration", r.config.RequeueAfter)
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
@@ -449,7 +452,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	}
 
 	for i, incarnation := range incarnations {
-		releaseStatus := r.Instance.ReleaseStatus(incarnation.Spec.App.Tag)
+		releaseStatus := r.Instance.ReleaseStatus(incarnation)
 		oldCurrent := releaseStatus.CurrentPercent
 		peak := releaseStatus.PeakPercent
 		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
@@ -603,6 +606,39 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	if err := utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
 		log.Error(err, "Failed to update releasemanager status")
 		return err
+	}
+	return nil
+}
+
+// MarkExpiredReleases marks a Release as Expired if the Release TTL has passed,
+// and the Release is further away from any current Release than the configured buffer,
+// as sorted by GitTimestamp
+func (r *ResourceSyncer) MarkExpiredReleases() error {
+	incarnations, err := r.IncarnationList.SortedReleases()
+	log.Info("Garbage collecting releases")
+	if err != nil {
+		return err
+	}
+
+	lastCurrent := 0
+	for i, incarnation := range incarnations {
+		releaseStatus := r.Instance.ReleaseStatus(incarnation)
+		if releaseStatus.CurrentPercent > 0 {
+			lastCurrent = i
+		} else {
+			expiration := releaseStatus.GitTimestamp.Add(time.Duration(incarnation.Spec.Release.TTL) * time.Second)
+			if i > lastCurrent+incarnation.Spec.Release.GcBuffer && time.Now().After(expiration) {
+				now := metav1.Now()
+				releaseStatus.LastUpdate = &now
+				releaseStatus.Expired = true
+				r.Instance.UpdateReleaseStatus(releaseStatus)
+
+				if err := utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
+					log.Error(err, "Failed to update releasemanager status")
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
