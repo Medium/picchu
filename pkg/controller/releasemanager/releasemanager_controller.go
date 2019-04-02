@@ -3,13 +3,13 @@ package releasemanager
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,16 +19,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var (
@@ -39,59 +38,40 @@ var (
 			"minus expected release time (release.rate.delay * math.Ceil(100.0 / release.rate.increment))",
 		Buckets: prometheus.ExponentialBuckets(10, 3, 7),
 	})
+	incarnationDeploymentLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "picchu_incarnation_deployment_latency",
+		Help:    "track time from revision creation to incarnation deployment",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
+	metrics.Registry.MustRegister(incarnationDeploymentLatency)
 	metrics.Registry.MustRegister(incarnationReleaseLatency)
 	return add(mgr, newReconciler(mgr, c))
 }
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
-	return &ReconcileReleaseManager{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: c}
+	scheme := mgr.GetScheme()
+	return &ReconcileReleaseManager{client: mgr.GetClient(), scheme: scheme, config: c}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("releasemanager-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource ReleaseManager
-	err = c.Watch(&source.Kind{Type: &picchuv1alpha1.ReleaseManager{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to secondary resource Incarnations and Clusters and requeue the owner ReleaseManager
-	err = c.Watch(&source.Kind{Type: &picchuv1alpha1.Incarnation{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &picchuv1alpha1.ReleaseManager{},
-	})
-	if err != nil {
-		return err
-	}
-	err = c.Watch(&source.Kind{Type: &picchuv1alpha1.Cluster{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &picchuv1alpha1.ReleaseManager{},
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, err := builder.SimpleController().
+		WithManager(mgr).
+		ForType(&picchuv1alpha1.ReleaseManager{}).
+		Build(r)
+	return err
 }
 
 var _ reconcile.Reconciler = &ReconcileReleaseManager{}
 
 // ReconcileReleaseManager reconciles a ReleaseManager object
 type ReconcileReleaseManager struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
 	config utils.Config
@@ -99,16 +79,13 @@ type ReconcileReleaseManager struct {
 
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
 // and what is in the ReleaseManager.Spec
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling ReleaseManager")
+	reqLog := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLog.Info("Reconciling ReleaseManager")
 
 	// Fetch the ReleaseManager instance
-	instance := &picchuv1alpha1.ReleaseManager{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+	rm := &picchuv1alpha1.ReleaseManager{}
+	if err := r.client.Get(context.TODO(), request.NamespacedName, rm); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
@@ -118,126 +95,184 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	r.scheme.Default(instance)
+	r.scheme.Default(rm)
 
 	cluster := &picchuv1alpha1.Cluster{}
-	key := client.ObjectKey{request.Namespace, instance.Spec.Cluster}
+	key := client.ObjectKey{request.Namespace, rm.Spec.Cluster}
 	if err := r.client.Get(context.TODO(), key, cluster); err != nil {
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(cluster)
-	incarnationList := &picchuv1alpha1.IncarnationList{}
-	labelSelector := client.MatchingLabels(map[string]string{
-		picchuv1alpha1.LabelApp:     instance.Spec.App,
-		picchuv1alpha1.LabelCluster: instance.Spec.Cluster,
-	})
-	if err := r.client.List(context.TODO(), labelSelector, incarnationList); err != nil {
-		return reconcile.Result{}, err
-	}
-	r.scheme.Default(incarnationList)
 
 	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
-		reqLogger.Error(err, "Failed to create remote client", "Cluster.Key", key)
+		reqLog.Error(err, "Failed to create remote client", "Cluster.Key", key)
 		return reconcile.Result{}, err
 	}
+
+	configFetcher := &ConfigFetcher{r.client}
+	incarnations := newIncarnationCollection(rm, cluster, remoteClient, configFetcher, reqLog, r.scheme)
+	revisions, err := r.getRevisions(request.Namespace, cluster.Fleet(), rm.Spec.App)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	for _, ref := range revisions.Items {
+		rev := &picchuv1alpha1.Revision{}
+		opts := types.NamespacedName{request.Namespace, ref.Name}
+		if err := r.client.Get(context.TODO(), opts, rev); err != nil {
+			return reconcile.Result{}, err
+		}
+		r.scheme.Default(rev)
+		incarnations.add(rev)
+	}
+
 	syncer := ResourceSyncer{
-		Instance:        instance,
-		IncarnationList: incarnationList,
-		Cluster:         cluster,
-		Client:          remoteClient,
-		PicchuClient:    r.client,
+		instance:     rm,
+		incarnations: incarnations,
+		cluster:      cluster,
+		client:       remoteClient,
+		reconciler:   r,
+		log:          reqLog,
+		scheme:       r.scheme,
 	}
-	if !instance.IsDeleted() {
-		// No more incarnations, delete myself
-		if len(incarnationList.Items) == 0 {
-			reqLogger.Info("No incarnations found for releasemanager, deleting")
-			return reconcile.Result{}, r.client.Delete(context.TODO(), instance)
-		}
+	// -------------------------------------------------------------------------
 
-		if cluster.IsDeleted() {
-			reqLogger.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
-			reqLogger.Info("Requeueing releasemanager", "Duration", r.config.RequeueAfter)
-			return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
-		}
-
-		if err := syncer.SyncNamespace(); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err := syncer.SyncService(); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err := syncer.SyncDestinationRule(); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err := syncer.SyncVirtualService(); err != nil {
-			return reconcile.Result{}, err
-		}
-		if err := syncer.MarkExpiredReleases(); err != nil {
-			return reconcile.Result{}, err
-		}
-		reqLogger.Info("Requeueing releasemanager", "Duration", r.config.RequeueAfter)
-		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
+	if !rm.IsDeleted() {
+		reqLog.Info("Sync'ing releasemanager")
+		return syncer.sync()
 	}
-	if !instance.IsFinalized() {
-		reqLogger.Info("Finalizing releasemanager")
-		if err := syncer.DeleteNamespace(); err != nil {
-			return reconcile.Result{}, err
-		}
-		instance.Finalize()
-		if err := r.client.Update(context.TODO(), instance); err != nil {
-			return reconcile.Result{}, err
-		}
+	if !rm.IsFinalized() {
+		reqLog.Info("Deleting releasemanager")
+		return syncer.del()
 	}
 	return reconcile.Result{}, nil
 }
 
-type ResourceSyncer struct {
-	Instance        *picchuv1alpha1.ReleaseManager
-	IncarnationList *picchuv1alpha1.IncarnationList
-	Cluster         *picchuv1alpha1.Cluster
-	Client          client.Client
-	PicchuClient    client.Client
+func (r *ReconcileReleaseManager) getRevisions(namespace, fleet, app string) (*picchuv1alpha1.RevisionList, error) {
+	fleetLabel := fmt.Sprintf("%s%s", picchuv1alpha1.LabelFleetPrefix, fleet)
+	log.Info("Looking for revisions", "namespace", namespace, "fleet", fleet, "app", app)
+	listOptions := client.
+		InNamespace(namespace).
+		MatchingLabels(map[string]string{
+			picchuv1alpha1.LabelApp: app,
+			fleetLabel:              "",
+		})
+	rl := &picchuv1alpha1.RevisionList{}
+	err := r.client.List(context.TODO(), listOptions, rl)
+	return rl, err
 }
 
-func (r *ResourceSyncer) DeleteNamespace() error {
+type ResourceSyncer struct {
+	instance     *picchuv1alpha1.ReleaseManager
+	incarnations *IncarnationCollection
+	cluster      *picchuv1alpha1.Cluster
+	client       client.Client
+	reconciler   *ReconcileReleaseManager
+	scheme       *runtime.Scheme
+	log          logr.Logger
+}
+
+func (r *ResourceSyncer) sync() (reconcile.Result, error) {
+	// No more incarnations, delete myself
+	if len(r.incarnations.revisioned()) == 0 {
+		r.log.Info("No revisions found for releasemanager, deleting")
+		return reconcile.Result{}, r.reconciler.client.Delete(context.TODO(), r.instance)
+	}
+
+	if r.cluster.IsDeleted() {
+		r.log.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
+		r.log.Info("Requeueing releasemanager", "Duration", r.reconciler.config.RequeueAfter)
+		return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
+	}
+
+	if err := r.syncNamespace(); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err := r.syncIncarnations(); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err := r.syncService(); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err := r.syncDestinationRule(); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err := r.MarkExpiredReleases(); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err := r.syncVirtualService(); err != nil {
+		return reconcile.Result{}, err
+	}
+	if err := utils.UpdateStatus(context.TODO(), r.reconciler.client, r.instance); err != nil {
+		r.log.Error(err, "Failed to update releasemanager status")
+		return reconcile.Result{}, err
+	}
+	r.log.Info("Requeueing releasemanager", "Duration", r.reconciler.config.RequeueAfter)
+	return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
+}
+
+func (r *ResourceSyncer) del() (reconcile.Result, error) {
+	r.log.Info("Finalizing releasemanager")
+	if err := r.deleteNamespace(); err != nil {
+		return reconcile.Result{}, err
+	}
+	r.instance.Finalize()
+	err := r.reconciler.client.Update(context.TODO(), r.instance)
+	return reconcile.Result{}, err
+}
+
+func (r *ResourceSyncer) deleteNamespace() error {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: r.Instance.TargetNamespace(),
+			Name: r.instance.TargetNamespace(),
 		},
 	}
 	// Might already be deleted
-	if err := r.Client.Delete(context.TODO(), namespace); err != nil && !errors.IsNotFound(err) {
+	if err := r.client.Delete(context.TODO(), namespace); err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 	return nil
 }
 
-func (r *ResourceSyncer) SyncNamespace() error {
+func (r *ResourceSyncer) syncNamespace() error {
 	labels := map[string]string{
 		"istio-injection":             "enabled",
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
+		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   r.Instance.TargetNamespace(),
+			Name:   r.instance.TargetNamespace(),
 			Labels: labels,
 		},
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, namespace, func(runtime.Object) error {
-		namespace.ObjectMeta.SetLabels(labels)
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, namespace, func(runtime.Object) error {
 		return nil
 	})
-	log.Info("Namespace sync'd", "Op", op)
+	r.log.Info("Namespace sync'd", "Op", op)
 	return err
 }
 
-func (r *ResourceSyncer) SyncService() error {
+// SyncIncarnations syncs all revision deployments for this releasemanager
+func (r *ResourceSyncer) syncIncarnations() error {
+	for _, incarnation := range r.incarnations.all() {
+		wasDeployed := incarnation.wasEverDeployed()
+		if err := incarnation.sync(); err != nil {
+			return err
+		}
+		if incarnation.isDeployed() && !wasDeployed {
+			start := incarnation.revision.CreationTimestamp
+			incarnationDeploymentLatency.Observe(time.Since(start.Time).Seconds())
+		}
+	}
+	return nil
+}
+
+func (r *ResourceSyncer) syncService() error {
 	portMap := map[string]corev1.ServicePort{}
-	for _, incarnation := range r.IncarnationList.Items {
-		for _, port := range incarnation.Spec.Ports {
+	for _, incarnation := range r.incarnations.existing() {
+		for _, port := range incarnation.revision.Spec.Ports {
 			_, ok := portMap[port.Name]
 			if !ok {
 				portMap[port.Name] = corev1.ServicePort{
@@ -256,47 +291,47 @@ func (r *ResourceSyncer) SyncService() error {
 
 	// Used to label Service and selector
 	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       r.Instance.Spec.App,
+		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
+		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
 
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.Instance.Spec.App,
-			Namespace: r.Instance.TargetNamespace(),
+			Name:      r.instance.Spec.App,
+			Namespace: r.instance.TargetNamespace(),
 			Labels:    labels,
 		},
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, service, func(runtime.Object) error {
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, service, func(runtime.Object) error {
 		service.Spec.Ports = ports
-		service.Spec.Selector = map[string]string{picchuv1alpha1.LabelApp: r.Instance.Spec.App}
+		service.Spec.Selector = map[string]string{picchuv1alpha1.LabelApp: r.instance.Spec.App}
 		return nil
 	})
 
-	log.Info("Service sync'd", "Op", op)
+	r.log.Info("Service sync'd", "Op", op)
 	return err
 }
 
-func (r *ResourceSyncer) SyncDestinationRule() error {
+func (r *ResourceSyncer) syncDestinationRule() error {
 	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       r.Instance.Spec.App,
+		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
+		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
-	appName := r.Instance.Spec.App
-	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
+	appName := r.instance.Spec.App
+	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
 	drule := &istiov1alpha3.DestinationRule{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.Instance.Spec.App,
-			Namespace: r.Instance.TargetNamespace(),
+			Name:      r.instance.Spec.App,
+			Namespace: r.instance.TargetNamespace(),
 			Labels:    labels,
 		},
 	}
 	subsets := []istiov1alpha3.Subset{}
-	for _, incarnation := range r.IncarnationList.Items {
-		tag := incarnation.Spec.App.Tag
+	for _, incarnation := range r.incarnations.existing() {
+		tag := incarnation.tag
 		subsets = append(subsets, istiov1alpha3.Subset{
 			Name:   tag,
 			Labels: map[string]string{picchuv1alpha1.LabelTag: tag},
@@ -307,32 +342,32 @@ func (r *ResourceSyncer) SyncDestinationRule() error {
 		Subsets: subsets,
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, drule, func(runtime.Object) error {
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, drule, func(runtime.Object) error {
 		drule.Spec = spec
 		return nil
 	})
-	log.Info("DestinationRule sync'd", "Op", op)
+	r.log.Info("DestinationRule sync'd", "Op", op)
 	return err
 }
 
-func (r *ResourceSyncer) SyncVirtualService() error {
-	if len(r.IncarnationList.DeployedItems()) == 0 {
+func (r *ResourceSyncer) syncVirtualService() error {
+	if len(r.incarnations.deployed()) == 0 {
 		return nil
 	}
-	appName := r.Instance.Spec.App
-	defaultDomain := r.Cluster.Spec.DefaultDomain
-	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
+	appName := r.instance.Spec.App
+	defaultDomain := r.cluster.Spec.DefaultDomain
+	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
 	labels := map[string]string{
 		picchuv1alpha1.LabelApp:       appName,
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.Instance.Name,
+		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
-	defaultHost := fmt.Sprintf("%s.%s", r.Instance.TargetNamespace(), defaultDomain)
-	meshHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.Instance.TargetNamespace())
+	defaultHost := fmt.Sprintf("%s.%s", r.instance.TargetNamespace(), defaultDomain)
+	meshHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
 	// keep a set of hosts
 	hosts := map[string]bool{defaultHost: true, meshHost: true}
-	publicGateway := r.Cluster.Spec.Ingresses.Public.Gateway
-	privateGateway := r.Cluster.Spec.Ingresses.Private.Gateway
+	publicGateway := r.cluster.Spec.Ingresses.Public.Gateway
+	privateGateway := r.cluster.Spec.Ingresses.Private.Gateway
 	gateways := []string{"mesh"}
 	if publicGateway != "" {
 		gateways = append(gateways, publicGateway)
@@ -343,7 +378,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	vs := &istiov1alpha3.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
-			Namespace: r.Instance.TargetNamespace(),
+			Namespace: r.instance.TargetNamespace(),
 			Labels:    labels,
 		},
 	}
@@ -354,10 +389,10 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	// of readability
 
 	// Incarnation specific releases are made for each port on private ingress
-	for _, incarnation := range r.IncarnationList.DeployedItems() {
-		tag := incarnation.Spec.App.Tag
+	for _, incarnation := range r.incarnations.deployed() {
+		tag := incarnation.tag
 		overrideLabel := fmt.Sprintf("pin/%s", appName)
-		for _, port := range incarnation.Spec.Ports {
+		for _, port := range incarnation.revision.Spec.Ports {
 			matches := []istiov1alpha3.HTTPMatchRequest{{
 				// mesh traffic from same tag'd service with and test tag
 				SourceLabels: map[string]string{
@@ -410,116 +445,91 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 	var percRemaining uint32 = 100
 	// Tracking one route per port number
 	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
-	incarnations, err := r.IncarnationList.SortedReleases()
-	log.Info("Got my releases", "Count", len(incarnations))
-	if err != nil {
-		return err
-	}
+	incarnations := r.incarnations.sortedReleases()
+	r.log.Info("Got my releases", "Count", len(incarnations))
 	count := len(incarnations)
 	// setup alerts from latest release
 	rule := &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "prometheus-rule",
-			Namespace: r.Instance.TargetNamespace(),
+			Namespace: r.instance.TargetNamespace(),
 		},
 	}
 	if count > 0 {
 		latest := incarnations[0]
-		if len(latest.Spec.AlertRules) > 0 {
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, rule, func(runtime.Object) error {
-				rule.Labels = map[string]string{picchuv1alpha1.LabelTag: latest.Spec.App.Tag}
+		if len(latest.target().AlertRules) > 0 {
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rule, func(runtime.Object) error {
+				rule.Labels = map[string]string{picchuv1alpha1.LabelTag: latest.tag}
 				rule.Spec.Groups = []monitoringv1.RuleGroup{{
 					Name:  "picchu.rules",
-					Rules: latest.Spec.AlertRules,
+					Rules: latest.target().AlertRules,
 				}}
 				return nil
 			})
 			if err != nil {
 				return err
 			}
-			log.Info("Sync'd PrometheusRule", "Op", op)
+			r.log.Info("Sync'd PrometheusRule", "Op", op)
 		} else {
-			if err := r.Client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
+			if err := r.client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
 				return err
 			}
-			log.Info("Deleted PrometheusRule because no rules are defined in incarnation", "Incarnation.Name", latest.Name)
+			r.log.Info("Deleted PrometheusRule because no rules are defined in incarnation", "Tag", latest.tag)
 		}
 	} else {
-		if err := r.Client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
+		if err := r.client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
 			return err
 		}
-		log.Info("Deleted PrometheusRule because there aren't any release incarnation")
+		r.log.Info("Deleted PrometheusRule because there aren't any release incarnation")
 	}
 
 	for i, incarnation := range incarnations {
-		releaseStatus := r.Instance.ReleaseStatus(incarnation)
-		oldCurrent := releaseStatus.CurrentPercent
-		peak := releaseStatus.PeakPercent
-		current := incarnation.CurrentPercentTarget(releaseStatus.LastUpdate, oldCurrent, percRemaining)
-		updated := false
+		wasReleased := incarnation.wasEverReleased()
+		status := incarnation.status()
+		oldCurrent := status.CurrentPercent
+		peak := status.PeakPercent
+		current := incarnation.currentPercentTarget(percRemaining)
 		if i+1 == count {
-			// TODO(bob): confirm we want to give remaining bandwidth to oldest
-			// instance
-			// Make sure we use all available bandwidth
 			current = percRemaining
 		}
-		log.Info("CurrentPercentage Update", "Incarnation.Name", incarnation.Name, "Old", oldCurrent, "Current", current)
+		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
 		if current > peak {
 			peak = current
 		}
 		percRemaining -= current
 
-		if current != oldCurrent {
-			updated = true
-		}
-
 		if percRemaining == 0 {
 			// Mark the oldest released incarnation as "released" and observe latency
-			if !releaseStatus.Released {
-				rct := incarnation.RevisionCreationTimestamp()
-				if !rct.IsZero() {
-					rate := incarnation.Spec.Release.Rate
-					delay := *rate.DelaySeconds
-					increment := rate.Increment
-					expected := time.Second * time.Duration(delay*int64(math.Ceil(100.0/float64(increment))))
-					latency := time.Since(rct) - expected
-					incarnationReleaseLatency.Observe(latency.Seconds())
-					releaseStatus.Released = true
-					updated = true
-				}
+			if !wasReleased {
+				incarnationReleaseLatency.Observe(incarnation.secondsSinceRevision())
 			}
+			incarnation.recordReleasedStatus(current, current > 0, true)
+		} else {
+			incarnation.recordReleasedStatus(current, false, false)
 		}
 
-		tag := incarnation.Spec.App.Tag
-
-		if updated {
-			now := metav1.Now()
-			releaseStatus.CurrentPercent = current
-			releaseStatus.PeakPercent = peak
-			releaseStatus.LastUpdate = &now
-			r.Instance.UpdateReleaseStatus(releaseStatus)
-		}
+		tag := incarnation.tag
 
 		// Wind down retired releases in HPA
 		var minReplicas int32 = 1
 		var maxReplicas int32 = 1
 
 		if current > 0 {
-			for _, port := range incarnation.Spec.Ports {
+			for _, port := range incarnation.revision.Spec.Ports {
 				portNumber := uint32(port.Port)
 				filterHosts := port.Hosts
 				gateway := []string{"mesh"}
 				switch port.Mode {
 				case picchuv1alpha1.PortPublic:
 					if publicGateway == "" {
-						log.Info("Can't configure publicGateway, undefined in Cluster")
+						r.log.Info("Can't configure publicGateway, undefined in Cluster")
 						continue
 					}
 					gateway = []string{publicGateway}
 					portNumber = uint32(port.IngressPort)
 				case picchuv1alpha1.PortPrivate:
 					if privateGateway == "" {
-						log.Info("Can't configure privateGateway, undefined in Cluster")
+						r.log.Info("Can't configure privateGateway, undefined in Cluster")
 						continue
 					}
 					gateway = []string{privateGateway}
@@ -555,17 +565,17 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 				})
 				releaseRoutes[port.Name] = releaseRoute
 			}
-			minReplicas = *incarnation.Spec.Scale.Min
-			maxReplicas = incarnation.Spec.Scale.Max
+			minReplicas = utils.Max(*incarnation.target().Scale.Min*int32(current)/100, 1)
+			maxReplicas = incarnation.target().Scale.Max
 		}
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      tag,
-				Namespace: r.Instance.TargetNamespace(),
+				Namespace: r.instance.TargetNamespace(),
 			},
 		}
 
-		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, hpa, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, hpa, func(runtime.Object) error {
 			hpa.Spec.MaxReplicas = maxReplicas
 			hpa.Spec.MinReplicas = &minReplicas
 			return nil
@@ -574,21 +584,25 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 			// This is an indicator that the HPA wasn't found, but *could* be wrong, slightly simpler then
 			// unwrapping CreateOrUpdate.
 			if hpa.Spec.ScaleTargetRef.Kind == "" {
-				log.Info("HPA not found for incarnation", "Incarnation.Name", incarnation.Name)
+				r.log.Info("HPA not found for incarnation", "Tag", incarnation.tag)
 			} else {
-				log.Error(err, "Failed to create/update hpa", "Hpa", hpa, "Op", op)
+				r.log.Error(err, "Failed to create/update hpa", "Hpa", hpa, "Op", op)
 				return err
 			}
 		}
 
-		log.Info("HPA sync'd", "Op", op)
+		r.log.Info("HPA sync'd", "Op", op)
+	}
+
+	for _, incarnation := range r.incarnations.deleted() {
+		incarnation.recordDeleted()
 	}
 
 	for _, route := range releaseRoutes {
 		http = append(http, route)
 	}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, vs, func(runtime.Object) error {
+	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, vs, func(runtime.Object) error {
 		hostSlice := make([]string, 0, len(hosts))
 		for h := range hosts {
 			hostSlice = append(hostSlice, h)
@@ -602,11 +616,7 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 		return err
 	}
 
-	log.Info("VirtualService sync'd", "Op", op)
-	if err := utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
-		log.Error(err, "Failed to update releasemanager status")
-		return err
-	}
+	r.log.Info("VirtualService sync'd", "Op", op)
 	return nil
 }
 
@@ -614,30 +624,13 @@ func (r *ResourceSyncer) SyncVirtualService() error {
 // and the Release is further away from any current Release than the configured buffer,
 // as sorted by GitTimestamp
 func (r *ResourceSyncer) MarkExpiredReleases() error {
-	incarnations, err := r.IncarnationList.SortedReleases()
+	incarnations := r.incarnations.retired()
 	log.Info("Garbage collecting releases")
-	if err != nil {
-		return err
-	}
-
-	lastCurrent := 0
 	for i, incarnation := range incarnations {
-		releaseStatus := r.Instance.ReleaseStatus(incarnation)
-		if releaseStatus.CurrentPercent > 0 {
-			lastCurrent = i
-		} else {
-			expiration := releaseStatus.GitTimestamp.Add(time.Duration(incarnation.Spec.Release.TTL) * time.Second)
-			if i > lastCurrent+incarnation.Spec.Release.GcBuffer && time.Now().After(expiration) {
-				now := metav1.Now()
-				releaseStatus.LastUpdate = &now
-				releaseStatus.Expired = true
-				r.Instance.UpdateReleaseStatus(releaseStatus)
-
-				if err := utils.UpdateStatus(context.TODO(), r.PicchuClient, r.Instance); err != nil {
-					log.Error(err, "Failed to update releasemanager status")
-					return err
-				}
-			}
+		target := incarnation.target()
+		expiration := incarnation.revision.GitTimestamp().Add(time.Duration(target.Release.TTL) * time.Second)
+		if i > target.Release.GcBuffer && time.Now().After(expiration) {
+			incarnation.recordExpired()
 		}
 	}
 	return nil

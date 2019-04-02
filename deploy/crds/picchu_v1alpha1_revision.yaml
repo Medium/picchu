@@ -208,25 +208,6 @@ spec:
           - targets
           type: object
         status:
-          properties:
-            incarnations:
-              items:
-                properties:
-                  cluster:
-                    type: string
-                  name:
-                    type: string
-                  status:
-                    type: string
-                  target:
-                    type: string
-                required:
-                - name
-                - cluster
-                - status
-                - target
-                type: object
-              type: array
           type: object
   version: v1alpha1
 status:

@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 type PortMode string
@@ -31,10 +30,9 @@ const (
 	LabelTarget                         = "picchu.medium.engineering/target"
 	LabelOwnerName                      = "picchu.medium.engineering/ownerName"
 	LabelOwnerType                      = "picchu.medium.engineering/ownerType"
-	FinalizerIncarnation                = "picchu.medium.engineering/incarnation"
+	LabelFleetPrefix                    = "fleet.picchu.medium.engineering/"
 	FinalizerReleaseManager             = "picchu.medium.engineering/releasemanager"
 	FinalizerCluster                    = "picchu.medium.engineering/cluster"
-	OwnerIncarnation                    = "incarnation"
 	OwnerReleaseManager                 = "releasemanager"
 	AnnotationGitCommitterTimestamp     = "git-scm.com/committer-timestamp"
 	AnnotationRevisionCreationTimestamp = "revisionCreationTimestamp"
@@ -56,13 +54,6 @@ type ScaleInfo struct {
 	Default                        int32  `json:"default,omitempty"`
 	Max                            int32  `json:"max,omitempty"`
 	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
-
-	// Deprecated. Use TargetCPUUtilizationPercentage.
-	Resources ResourceInfo `json:"resources,omitempty"`
-}
-
-type ResourceInfo struct {
-	CPU resource.Quantity `json:"cpu,omitempty"`
 }
 
 type ReleaseInfo struct {

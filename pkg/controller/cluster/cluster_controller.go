@@ -152,32 +152,22 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	// TODO(bob): See if setting cluster and revision as owner of
-	// releasemanager and incarnation automatically resolves this complex
-	// ordering
+	// releasemanager automatically resolves this complex ordering
 	if !instance.IsFinalized() {
-		il := &picchuv1alpha1.IncarnationList{}
 		rml := &picchuv1alpha1.ReleaseManagerList{}
 		opts := client.
 			MatchingLabels(map[string]string{picchuv1alpha1.LabelCluster: instance.Name}).
 			InNamespace(instance.Namespace)
-		if err := r.client.List(context.TODO(), opts, il); err != nil {
-			return reconcile.Result{}, err
-		}
-		for _, i := range il.Items {
-			if err := r.client.Delete(context.TODO(), &i); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
 		if r.config.ManageRoute53 {
 			route53.Delete(instance)
 		}
 		if err := r.client.List(context.TODO(), opts, rml); err != nil {
 			return reconcile.Result{}, err
 		}
-		// Give the incarnations and releasemanagers enough time to delete
-		// remote resources before deleting this Cluster, since incarnation
-		// relies on cluster for remote client configuration.
-		if len(il.Items)+len(rml.Items) > 0 {
+		// Give the releasemanagers enough time to delete remote resources
+		// before deleting this Cluster, since releasemanager relies on cluster
+		// for remote client configuration.
+		if len(rml.Items) > 0 {
 			return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, r.client.Update(context.TODO(), instance)
 		}
 		instance.Finalize()

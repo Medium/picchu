@@ -15,22 +15,9 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&Incarnation{}, func(obj interface{}) { SetObjectDefaults_Incarnation(obj.(*Incarnation)) })
-	scheme.AddTypeDefaultingFunc(&IncarnationList{}, func(obj interface{}) { SetObjectDefaults_IncarnationList(obj.(*IncarnationList)) })
 	scheme.AddTypeDefaultingFunc(&Revision{}, func(obj interface{}) { SetObjectDefaults_Revision(obj.(*Revision)) })
 	scheme.AddTypeDefaultingFunc(&RevisionList{}, func(obj interface{}) { SetObjectDefaults_RevisionList(obj.(*RevisionList)) })
 	return nil
-}
-
-func SetObjectDefaults_Incarnation(in *Incarnation) {
-	SetDefaults_IncarnationSpec(&in.Spec)
-}
-
-func SetObjectDefaults_IncarnationList(in *IncarnationList) {
-	for i := range in.Items {
-		a := &in.Items[i]
-		SetObjectDefaults_Incarnation(a)
-	}
 }
 
 func SetObjectDefaults_Revision(in *Revision) {

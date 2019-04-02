@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -38,43 +39,74 @@ type ReleaseManagerSpec struct {
 // ReleaseManagerStatus defines the observed state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
-	Releases []ReleaseManagerReleaseStatus `json:"releases,omitempty"`
+	Revisions []ReleaseManagerRevisionStatus `json:"revisions,omitempty"`
 }
 
-type ReleaseManagerReleaseStatus struct {
-	Tag            string       `json:"tag"`
-	LastUpdate     *metav1.Time `json:"lastUpdated"`
-	GitTimestamp   *metav1.Time `json:"gitTimestamp"`
-	CurrentPercent uint32       `json:"currentPercent"`
-	PeakPercent    uint32       `json:"peakPercent"`
-	Released       bool         `json:"released"`
-	Expired        bool         `json:"expired"`
+type ReleaseManagerRevisionStatus struct {
+	Tag            string                                 `json:"tag"`
+	LastUpdate     *metav1.Time                           `json:"lastUpdated"`
+	CurrentPercent uint32                                 `json:"currentPercent"`
+	PeakPercent    uint32                                 `json:"peakPercent"`
+	Released       bool                                   `json:"released"`
+	Expired        bool                                   `json:"expired"`
+	EverReleased   bool                                   `json:"everReleased"`
+	Deployed       bool                                   `json:"deployed"`
+	EverDeployed   bool                                   `json:"everDeployed"`
+	Retired        bool                                   `json:"retired"`
+	Resources      []ReleaseManagerRevisionResourceStatus `json:"resources"`
+	Scale          ReleaseManagerRevisionScaleStatus      `json:"scale"`
 }
 
-func (r *ReleaseManager) ReleaseStatus(incarnation Incarnation) *ReleaseManagerReleaseStatus {
-	for _, s := range r.Status.Releases {
-		if s.Tag == incarnation.Spec.App.Tag {
+type ReleaseManagerRevisionResourceStatus struct {
+	ApiVersion string                `json:"apiVersion"`
+	Kind       string                `json:"kind"`
+	Metadata   *types.NamespacedName `json:"metadata,omitempty"`
+	Status     string                `json:"status"`
+}
+
+func (r *ReleaseManagerRevisionStatus) CreateOrUpdateResourceStatus(rs ReleaseManagerRevisionResourceStatus) {
+	for i, s := range r.Resources {
+		if s.Metadata.Name == rs.Metadata.Name &&
+			s.Metadata.Namespace == rs.Metadata.Namespace &&
+			s.ApiVersion == rs.ApiVersion &&
+			s.Kind == rs.Kind {
+			r.Resources[i].Status = rs.Status
+			return
+		}
+
+	}
+	r.Resources = append(r.Resources, rs)
+	return
+}
+
+type ReleaseManagerRevisionScaleStatus struct {
+	Current int32
+	Desired int32
+	Peak    int32
+}
+
+func (r *ReleaseManager) RevisionStatus(tag string) *ReleaseManagerRevisionStatus {
+	for _, s := range r.Status.Revisions {
+		if s.Tag == tag {
 			return &s
 		}
 	}
 	now := metav1.Now()
-	gitTimestamp := metav1.NewTime(incarnation.GitTimestamp())
-	s := ReleaseManagerReleaseStatus{
-		Tag:            incarnation.Spec.App.Tag,
+	s := ReleaseManagerRevisionStatus{
+		Tag:            tag,
 		LastUpdate:     &now,
 		Expired:        false,
-		GitTimestamp:   &gitTimestamp,
 		CurrentPercent: 0,
 		PeakPercent:    0,
 	}
-	r.Status.Releases = append(r.Status.Releases, s)
+	r.Status.Revisions = append(r.Status.Revisions, s)
 	return &s
 }
 
-func (r *ReleaseManager) UpdateReleaseStatus(u *ReleaseManagerReleaseStatus) {
-	for i, s := range r.Status.Releases {
+func (r *ReleaseManager) UpdateRevisionStatus(u *ReleaseManagerRevisionStatus) {
+	for i, s := range r.Status.Revisions {
 		if s.Tag == u.Tag {
-			r.Status.Releases[i] = *u
+			r.Status.Revisions[i] = *u
 		}
 	}
 }

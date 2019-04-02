@@ -15,7 +15,6 @@ import (
 type PicchuV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClustersGetter
-	IncarnationsGetter
 	RevisionsGetter
 }
 
@@ -26,10 +25,6 @@ type PicchuV1alpha1Client struct {
 
 func (c *PicchuV1alpha1Client) Clusters(namespace string) ClusterInterface {
 	return newClusters(c, namespace)
-}
-
-func (c *PicchuV1alpha1Client) Incarnations(namespace string) IncarnationInterface {
-	return newIncarnations(c, namespace)
 }
 
 func (c *PicchuV1alpha1Client) Revisions(namespace string) RevisionInterface {

@@ -51,7 +51,7 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
 	manageRoute53 := pflag.Bool("manage-route53", false, "Should picchu manage route53?")
-	requeuePeriodSeconds := pflag.Int("sync-period-seconds", 30, "Delay between requeues")
+	requeuePeriodSeconds := pflag.Int("sync-period-seconds", 15, "Delay between requeues")
 
 	pflag.Parse()
 
