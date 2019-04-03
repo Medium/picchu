@@ -85,10 +85,6 @@ func (i *Incarnation) isReleaseEligible() bool {
 	return i.revision != nil && i.target().Release.Eligible
 }
 
-func (i *Incarnation) isRetired() bool {
-	return i.status().Retired
-}
-
 func (i *Incarnation) listOptions() (*client.ListOptions, error) {
 	selector, err := metav1.LabelSelectorAsSelector(i.target().ConfigSelector)
 	if err != nil {
@@ -150,6 +146,12 @@ func (i *Incarnation) recordExpired() {
 	rs.Expired = true
 	now := metav1.Now()
 	rs.LastUpdated = &now
+	i.releaseManager.UpdateRevisionStatus(rs)
+}
+
+func (i *Incarnation) unretire() {
+	rs := i.status()
+	rs.Retired = false
 	i.releaseManager.UpdateRevisionStatus(rs)
 }
 
@@ -318,6 +320,9 @@ func (i *Incarnation) syncReplicaSet(ctx context.Context, envs []corev1.EnvFromS
 	op, err := controllerutil.CreateOrUpdate(ctx, i.client, rs, func(runtime.Object) error {
 		if i.isRetired() {
 			var r int32 = 0
+			rs.Spec.Replicas = &r
+		} else if *rs.Spec.Replicas == 0 {
+			var r int32 = i.target().Scale.Default
 			rs.Spec.Replicas = &r
 		}
 		return nil
@@ -570,7 +575,20 @@ func (i *IncarnationCollection) add(revision *picchuv1alpha1.Revision) {
 	}
 }
 
-// All returns every incarnation
+func (i *IncarnationCollection) ensureReleaseExists() {
+	if len(i.sortedReleases()) == 0 {
+		i.log.Info("there are no releases, looking for retired release to unretire")
+		candidates := i.sortedRetiredAvailable()
+		if len(candidates) > 0 {
+			i.log.Info("Unretiring", "tag", candidates[0].tag)
+			candidates[0].unretire()
+		}
+	} else {
+		i.log.Info("there are releases")
+	}
+}
+
+// all returns every incarnation
 func (i *IncarnationCollection) all() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.itemSet {
@@ -579,7 +597,7 @@ func (i *IncarnationCollection) all() []Incarnation {
 	return r
 }
 
-// Existing returns every incarnation that still has a live Revision
+// existing returns every incarnation that still has a live Revision
 func (i *IncarnationCollection) existing() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.itemSet {
@@ -590,7 +608,7 @@ func (i *IncarnationCollection) existing() []Incarnation {
 	return r
 }
 
-// Deployed returns deployed incarnation
+// deployed returns deployed incarnation
 func (i *IncarnationCollection) deployed() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.itemSet {
@@ -601,12 +619,29 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 	return r
 }
 
-// SortedReleases returns deployed release eligible incarnations in order from
+// sortedReleases returns deployed release eligible incarnations in order from
 // latest to oldest
 func (i *IncarnationCollection) sortedReleases() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.itemSet {
-		if i.isDeployed() && i.isReleaseEligible() {
+		if i.revision != nil && i.isDeployed() && i.isReleaseEligible() && !i.isRetired() {
+			r = append(r, i)
+		}
+	}
+	sort.Slice(r, func(i, j int) bool {
+		a := r[i].revision.CreationTimestamp
+		b := r[j].revision.CreationTimestamp
+		return a.Time.After(b.Time)
+	})
+	return r
+}
+
+// sortedRetiredAvailable returns revisions that are retired, but still exist
+// sorted from latest to oldest
+func (i *IncarnationCollection) sortedRetiredAvailable() []Incarnation {
+	r := []Incarnation{}
+	for _, i := range i.itemSet {
+		if i.revision != nil && i.wasEverReleased() {
 			r = append(r, i)
 		}
 	}
@@ -618,7 +653,7 @@ func (i *IncarnationCollection) sortedReleases() []Incarnation {
 	return r
 }
 
-// Revisioned returns all incarnations with revisions
+// revisioned returns all incarnations with revisions
 func (i *IncarnationCollection) revisioned() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.itemSet {
@@ -629,7 +664,7 @@ func (i *IncarnationCollection) revisioned() []Incarnation {
 	return r
 }
 
-// Revisioned returns all incarnations with revisions
+// deleted returns all incarnations that are deleted
 func (i *IncarnationCollection) deleted() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.itemSet {

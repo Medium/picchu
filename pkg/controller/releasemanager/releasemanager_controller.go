@@ -125,6 +125,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		r.scheme.Default(rev)
 		incarnations.add(rev)
 	}
+	incarnations.ensureReleaseExists()
 
 	count, err := r.countFleetCohort(request.Namespace, cluster.Fleet())
 	if err != nil {
