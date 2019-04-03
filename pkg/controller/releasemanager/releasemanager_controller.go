@@ -654,12 +654,12 @@ func (r *ResourceSyncer) syncVirtualService() error {
 // and the Release is further away from any current Release than the configured buffer,
 // as sorted by GitTimestamp
 func (r *ResourceSyncer) MarkExpiredReleases() error {
-	incarnations := r.incarnations.retired()
+	incarnations := r.incarnations.sortedExistingRetired()
 	log.Info("Garbage collecting releases")
 	for i, incarnation := range incarnations {
 		target := incarnation.target()
 		expiration := incarnation.revision.GitTimestamp().Add(time.Duration(target.Release.TTL) * time.Second)
-		if i > target.Release.GcBuffer && time.Now().After(expiration) {
+		if i >= target.Release.GcBuffer && time.Now().After(expiration) {
 			incarnation.recordExpired()
 		}
 	}

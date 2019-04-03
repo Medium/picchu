@@ -91,9 +91,11 @@ func (r *ReleaseManager) RevisionStatus(tag string) *ReleaseManagerRevisionStatu
 			return &s
 		}
 	}
+	now := metav1.Now()
 	s := ReleaseManagerRevisionStatus{
 		Tag:            tag,
 		Expired:        false,
+		LastUpdated:    &now,
 		CurrentPercent: 0,
 		PeakPercent:    0,
 	}

@@ -591,7 +591,7 @@ func (i *IncarnationCollection) ensureReleaseExists() {
 // all returns every incarnation
 func (i *IncarnationCollection) all() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
+	for _, i := range i.sorted() {
 		r = append(r, i)
 	}
 	return r
@@ -600,7 +600,7 @@ func (i *IncarnationCollection) all() []Incarnation {
 // existing returns every incarnation that still has a live Revision
 func (i *IncarnationCollection) existing() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
+	for _, i := range i.sorted() {
 		if i.revision != nil {
 			r = append(r, i)
 		}
@@ -611,7 +611,7 @@ func (i *IncarnationCollection) existing() []Incarnation {
 // deployed returns deployed incarnation
 func (i *IncarnationCollection) deployed() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
+	for _, i := range i.sorted() {
 		if i.isDeployed() {
 			r = append(r, i)
 		}
@@ -623,16 +623,11 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 // latest to oldest
 func (i *IncarnationCollection) sortedReleases() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
+	for _, i := range i.sorted() {
 		if i.revision != nil && i.isDeployed() && i.isReleaseEligible() && !i.isRetired() {
 			r = append(r, i)
 		}
 	}
-	sort.Slice(r, func(i, j int) bool {
-		a := r[i].revision.CreationTimestamp
-		b := r[j].revision.CreationTimestamp
-		return a.Time.After(b.Time)
-	})
 	return r
 }
 
@@ -640,23 +635,18 @@ func (i *IncarnationCollection) sortedReleases() []Incarnation {
 // sorted from latest to oldest
 func (i *IncarnationCollection) sortedRetiredAvailable() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
+	for _, i := range i.sorted() {
 		if i.revision != nil && i.wasEverReleased() {
 			r = append(r, i)
 		}
 	}
-	sort.Slice(r, func(i, j int) bool {
-		a := r[i].revision.GitTimestamp()
-		b := r[j].revision.GitTimestamp()
-		return a.After(b)
-	})
 	return r
 }
 
 // revisioned returns all incarnations with revisions
 func (i *IncarnationCollection) revisioned() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
+	for _, i := range i.sorted() {
 		if i.revision != nil {
 			r = append(r, i)
 		}
@@ -667,7 +657,7 @@ func (i *IncarnationCollection) revisioned() []Incarnation {
 // deleted returns all incarnations that are deleted
 func (i *IncarnationCollection) deleted() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
+	for _, i := range i.sorted() {
 		if i.revision == nil {
 			r = append(r, i)
 		}
@@ -676,16 +666,30 @@ func (i *IncarnationCollection) deleted() []Incarnation {
 }
 
 // retired returns all retired incarnations
-func (i *IncarnationCollection) retired() []Incarnation {
+func (i *IncarnationCollection) sortedExistingRetired() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
-		if i.isRetired() {
+	for _, i := range i.sorted() {
+		if i.isRetired() && i.revision != nil {
 			r = append(r, i)
 		}
 	}
+	return r
+}
+
+func (i *IncarnationCollection) sorted() []Incarnation {
+	r := []Incarnation{}
+	for _, i := range i.itemSet {
+		r = append(r, i)
+	}
 	sort.Slice(r, func(i, j int) bool {
-		a := r[i].revision.GitTimestamp()
-		b := r[j].revision.GitTimestamp()
+		a := time.Time{}
+		b := time.Time{}
+		if r[i].revision != nil {
+			a = r[i].revision.GitTimestamp()
+		}
+		if r[j].revision != nil {
+			b = r[j].revision.GitTimestamp()
+		}
 		return a.After(b)
 	})
 	return r
