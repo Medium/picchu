@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,14 +69,18 @@ type RevisionTargetMetricQueries struct {
 
 // RevisionStatus defines the observed state of Revision
 type RevisionStatus struct {
-	Incarnations []RevisionTargetIncarnationStatus `json:"incarnations,omitempty"`
 }
 
-type RevisionTargetIncarnationStatus struct {
-	Name    string `json:"name"`
-	Cluster string `json:"cluster"`
-	Status  string `json:"status"`
-	Target  string `json:"target"`
+func (r *Revision) GitTimestamp() time.Time {
+	gt, ok := r.Annotations[AnnotationGitCommitterTimestamp]
+	if !ok {
+		return time.Time{}
+	}
+	t, err := time.Parse(time.RFC3339, gt)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 func init() {

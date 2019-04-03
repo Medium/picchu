@@ -17,7 +17,6 @@ import (
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Cluster":              schema_pkg_apis_picchu_v1alpha1_Cluster(ref),
-		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Incarnation":          schema_pkg_apis_picchu_v1alpha1_Incarnation(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManager":       schema_pkg_apis_picchu_v1alpha1_ReleaseManager(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerSpec":   schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerStatus": schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref),
@@ -65,49 +64,6 @@ func schema_pkg_apis_picchu_v1alpha1_Cluster(ref common.ReferenceCallback) commo
 		},
 		Dependencies: []string{
 			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_picchu_v1alpha1_Incarnation(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Incarnation is the Schema for the incarnation API",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationSpec"),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationStatus"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.IncarnationStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -192,13 +148,13 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref common.ReferenceCa
 			SchemaProps: spec.SchemaProps{
 				Description: "ReleaseManagerStatus defines the observed state of ReleaseManager",
 				Properties: map[string]spec.Schema{
-					"releases": {
+					"revisions": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerReleaseStatus"),
+										Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerRevisionStatus"),
 									},
 								},
 							},
@@ -208,7 +164,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerReleaseStatus"},
+			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerRevisionStatus"},
 	}
 }
 

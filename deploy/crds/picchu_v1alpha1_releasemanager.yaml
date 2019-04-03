@@ -41,7 +41,7 @@ spec:
           type: object
         status:
           properties:
-            releases:
+            revisions:
               items:
                 properties:
                   currentPercent:
@@ -57,11 +57,41 @@ spec:
                     type: string
                   released:
                     type: boolean
+                  everReleased:
+                    type: boolean
+                  deployed:
+                    type: boolean
+                  everDeployed:
+                    type: boolean
+                  retired:
+                    type: boolean
+                  scale:
+                    properties:
+                      current:
+                        format: int32
+                        type: integer
+                      desired:
+                        format: int32
+                        type: integer
+                      peak:
+                        format: int32
+                        type: integer
+                    type: object
+                  resources:
+                    items:
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                        metadata:
+                          type: object
+                        status:
+                          type: string
+                      type: object
+                    type: array
                 required:
                 - tag
-                - lastUpdated
-                - currentPercent
-                - peakPercent
                 type: object
               type: array
           type: object

@@ -3,6 +3,7 @@ package revision
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
@@ -36,8 +37,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	_, err := builder.SimpleController().
 		WithManager(mgr).
 		ForType(&picchuv1alpha1.Revision{}).
-		Owns(&picchuv1alpha1.Incarnation{}).
-		Owns(&picchuv1alpha1.ReleaseManager{}).
 		Build(r)
 
 	if err != nil {
@@ -81,8 +80,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(instance)
-
-	if err = r.SyncIncarnationsForRevision(instance); err != nil {
+	if err = r.LabelWithAppAndFleets(instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -90,139 +88,43 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, err
+	return reconcile.Result{}, err
 }
 
-func (r *ReconcileRevision) GetOrCreateIncarnation(
-	target *picchuv1alpha1.RevisionTarget,
-	cluster *picchuv1alpha1.Cluster,
-	revision *picchuv1alpha1.Revision,
-) *picchuv1alpha1.Incarnation {
-	labels := map[string]string{
-		picchuv1alpha1.LabelTarget:   target.Name,
-		picchuv1alpha1.LabelFleet:    target.Fleet,
-		picchuv1alpha1.LabelCluster:  cluster.Name,
-		picchuv1alpha1.LabelRevision: revision.Name,
-		picchuv1alpha1.LabelApp:      revision.Spec.App.Name,
-		picchuv1alpha1.LabelTag:      revision.Spec.App.Tag,
-	}
-	incarnations := &picchuv1alpha1.IncarnationList{}
-	opts := client.
-		MatchingLabels(labels).
-		InNamespace(revision.Namespace)
-	r.client.List(context.TODO(), opts, incarnations)
-	if len(incarnations.Items) > 1 {
-		log.Info("Too many Incarnations matching", "Labels", labels)
-		return &incarnations.Items[0]
-	}
-	if len(incarnations.Items) == 1 {
-		return &incarnations.Items[0]
-	}
-	agct := picchuv1alpha1.AnnotationGitCommitterTimestamp
-	annotations := map[string]string{
-		agct: revision.Annotations[agct],
-	}
-	creationTimestamp, err := revision.CreationTimestamp.MarshalText()
-	if err != nil {
-		log.Info("Couldn't marshal revisionCreationTimestamp")
-	} else {
-		rct := picchuv1alpha1.AnnotationRevisionCreationTimestamp
-		annotations[rct] = string(creationTimestamp)
-	}
-
-	return &picchuv1alpha1.Incarnation{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("%s-", revision.Spec.App.Name),
-			Namespace:    revision.Namespace,
-			Labels:       labels,
-			Annotations:  annotations,
-			Finalizers: []string{
-				picchuv1alpha1.FinalizerIncarnation,
-			},
-		},
-	}
-}
-
-func max(a, b int32) int32 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// newIncarnationsForRevision returns incarnations for all target clusters  for a Revision
-func (r *ReconcileRevision) SyncIncarnationsForRevision(revision *picchuv1alpha1.Revision) error {
-	targetStatuses := []picchuv1alpha1.RevisionTargetIncarnationStatus{}
+func (r *ReconcileRevision) LabelWithAppAndFleets(revision *picchuv1alpha1.Revision) error {
+	fleetLabels := []string{}
+	updated := false
 	for _, target := range revision.Spec.Targets {
-		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
-		if err != nil {
-			return err
-		}
-		var enabledClusters int32 = 0
-		for _, cluster := range clusters.Items {
-			if cluster.Spec.Enabled {
-				enabledClusters += 1
-			}
-		}
-		enabledClusters = max(enabledClusters, 1)
-		min := max(*target.Scale.Min/enabledClusters, 1)
-		scale := picchuv1alpha1.ScaleInfo{
-			Min:                            &min,
-			Max:                            max(target.Scale.Max/enabledClusters, 1),
-			Default:                        max(target.Scale.Default/enabledClusters, 1),
-			TargetCPUUtilizationPercentage: target.Scale.TargetCPUUtilizationPercentage,
-		}
-		for _, cluster := range clusters.Items {
-			if cluster.IsDeleted() {
-				continue
-			}
-			app := revision.Spec.App.Name
-			tag := revision.Spec.App.Tag
-			ref := revision.Spec.App.Ref
-			image := revision.Spec.App.Image
-
-			incarnation := r.GetOrCreateIncarnation(&target, &cluster, revision)
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, incarnation, func(runtime.Object) error {
-				if err := controllerutil.SetControllerReference(revision, incarnation, r.scheme); err != nil {
-					log.Error(err, "Failed to SetControllerReference for incarnation", "Incarnation.Name", incarnation.Name)
-					return err
-				}
-				incarnation.Spec = picchuv1alpha1.IncarnationSpec{
-					App: picchuv1alpha1.IncarnationApp{
-						Name:  app,
-						Tag:   tag,
-						Ref:   ref,
-						Image: image,
-					},
-					Assignment: picchuv1alpha1.IncarnationAssignment{
-						Name:   cluster.ObjectMeta.Name,
-						Target: target.Name,
-					},
-					Resources:      target.Resources,
-					Scale:          scale,
-					Release:        target.Release,
-					Ports:          revision.Spec.Ports,
-					ConfigSelector: target.ConfigSelector,
-					AWS:            target.AWS,
-					AlertRules:     target.AlertRules,
-				}
-				return nil
-			})
-			status := NewIncarnationStatus(incarnation)
-			if err != nil {
-				status.Status = "failed"
-				log.Error(err, "Failed to sync incarnation")
-				return err
-			}
-			targetStatuses = append(targetStatuses, status)
-			log.Info("Sync'd incarnation", "Op", op)
+		name := fmt.Sprintf("%s%s", picchuv1alpha1.LabelFleetPrefix, target.Fleet)
+		fleetLabels = append(fleetLabels, name)
+		if _, ok := revision.Labels[name]; !ok {
+			revision.Labels[name] = ""
+			updated = true
 		}
 	}
-	revision.Status.Incarnations = targetStatuses
-	log.Info("Updating Revision status")
-	if err := utils.UpdateStatus(context.TODO(), r.client, revision); err != nil {
-		log.Error(err, "Failed to update revision status")
-		return err
+	for name, _ := range revision.Labels {
+		if strings.HasPrefix(name, picchuv1alpha1.LabelFleetPrefix) {
+			found := false
+			for _, expected := range fleetLabels {
+				if name == expected {
+					found = true
+					break
+				}
+			}
+			if !found {
+				delete(revision.Labels, name)
+				updated = true
+			}
+		}
+	}
+
+	if _, ok := revision.Labels[picchuv1alpha1.LabelApp]; !ok {
+		revision.Labels[picchuv1alpha1.LabelApp] = revision.Spec.App.Name
+		updated = true
+	}
+
+	if updated {
+		return r.client.Update(context.TODO(), revision)
 	}
 	return nil
 }
@@ -289,7 +191,7 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			}
 
 			rmCount++
-			for _, rl := range rm.Status.Releases {
+			for _, rl := range rm.Status.Revisions {
 				if rl.Tag == revision.Spec.App.Tag && rl.Expired == true {
 					expiredCount++
 				}
@@ -320,14 +222,6 @@ func (r *ReconcileRevision) getClustersByFleet(namespace string, fleet string) (
 	err := r.client.List(context.TODO(), opts, clusters)
 	r.scheme.Default(clusters)
 	return clusters, err
-}
-
-func NewIncarnationStatus(incarnation *picchuv1alpha1.Incarnation) picchuv1alpha1.RevisionTargetIncarnationStatus {
-	return picchuv1alpha1.RevisionTargetIncarnationStatus{
-		Name:    incarnation.Name,
-		Cluster: incarnation.Spec.Assignment.Name,
-		Status:  "created",
-	}
 }
 
 func (r *ReconcileRevision) DeleteRevision(revision *picchuv1alpha1.Revision) error {

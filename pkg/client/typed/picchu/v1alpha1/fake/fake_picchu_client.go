@@ -19,10 +19,6 @@ func (c *FakePicchuV1alpha1) Clusters(namespace string) v1alpha1.ClusterInterfac
 	return &FakeClusters{c, namespace}
 }
 
-func (c *FakePicchuV1alpha1) Incarnations(namespace string) v1alpha1.IncarnationInterface {
-	return &FakeIncarnations{c, namespace}
-}
-
 func (c *FakePicchuV1alpha1) Revisions(namespace string) v1alpha1.RevisionInterface {
 	return &FakeRevisions{c, namespace}
 }

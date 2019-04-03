@@ -7,6 +7,4 @@ package v1alpha1
 
 type ClusterExpansion interface{}
 
-type IncarnationExpansion interface{}
-
 type RevisionExpansion interface{}

@@ -2,7 +2,6 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: picchu
-  namespace: picchu
 subjects:
 - kind: ServiceAccount
   name: picchu
