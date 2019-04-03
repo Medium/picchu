@@ -137,7 +137,7 @@ func (i *Incarnation) recordDeleted() {
 	rs.Scale.Current = 0
 	rs.Scale.Desired = 0
 	now := metav1.Now()
-	rs.LastUpdate = &now
+	rs.LastUpdated = &now
 	i.releaseManager.UpdateRevisionStatus(rs)
 }
 
@@ -145,7 +145,7 @@ func (i *Incarnation) recordExpired() {
 	rs := i.status()
 	rs.Expired = true
 	now := metav1.Now()
-	rs.LastUpdate = &now
+	rs.LastUpdated = &now
 	i.releaseManager.UpdateRevisionStatus(rs)
 }
 
@@ -177,7 +177,7 @@ func (i *Incarnation) recordReleasedStatus(currentPercent uint32, isReleased boo
 	if status.CurrentPercent != currentPercent {
 		now := metav1.Now()
 		status.CurrentPercent = currentPercent
-		status.LastUpdate = &now
+		status.LastUpdated = &now
 	}
 	if currentPercent > status.PeakPercent {
 		status.PeakPercent = currentPercent
@@ -472,8 +472,8 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		return max
 	}
 	deadline := time.Time{}
-	if status.LastUpdate != nil {
-		deadline = status.LastUpdate.Add(delay)
+	if status.LastUpdated != nil {
+		deadline = status.LastUpdated.Add(delay)
 	}
 
 	if deadline.After(time.Now()) {

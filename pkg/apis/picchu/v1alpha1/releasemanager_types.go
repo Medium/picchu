@@ -44,7 +44,7 @@ type ReleaseManagerStatus struct {
 
 type ReleaseManagerRevisionStatus struct {
 	Tag            string                                 `json:"tag"`
-	LastUpdate     *metav1.Time                           `json:"lastUpdated"`
+	LastUpdated    *metav1.Time                           `json:"lastUpdated"`
 	CurrentPercent uint32                                 `json:"currentPercent"`
 	PeakPercent    uint32                                 `json:"peakPercent"`
 	Released       bool                                   `json:"released"`
@@ -91,10 +91,8 @@ func (r *ReleaseManager) RevisionStatus(tag string) *ReleaseManagerRevisionStatu
 			return &s
 		}
 	}
-	now := metav1.Now()
 	s := ReleaseManagerRevisionStatus{
 		Tag:            tag,
-		LastUpdate:     &now,
 		Expired:        false,
 		CurrentPercent: 0,
 		PeakPercent:    0,
