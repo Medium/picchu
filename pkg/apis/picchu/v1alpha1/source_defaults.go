@@ -10,6 +10,8 @@ const (
 	defaultReleaseSchedule         = HumaneSchedule
 	defaultReleaseRateIncrement    = 5
 	defaultReleaseRateDelaySeconds = int64(10)
+	defaultReleaseGcTTLSeconds     = int64(5 * 24 * 60 * 60)
+	defaultGcBuffer                = 5
 
 	defaultPortIngressPort   = int32(443)
 	defaultPortContainerPort = int32(80)
@@ -69,6 +71,12 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 	if release.Rate.DelaySeconds == nil {
 		delay := defaultReleaseRateDelaySeconds
 		release.Rate.DelaySeconds = &delay
+	}
+	if release.TTL == 0 {
+		release.TTL = defaultReleaseGcTTLSeconds
+	}
+	if release.GcBuffer == 0 {
+		release.GcBuffer = defaultGcBuffer
 	}
 }
 

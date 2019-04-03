@@ -264,6 +264,8 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) error {
 	// Sync releasemanagers
 	appName := revision.Spec.App.Name
+	expiredCount := 0
+	rmCount := 0
 	for _, target := range revision.Spec.Targets {
 		targetName := target.Name
 		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
@@ -285,10 +287,26 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 				log.Error(err, "Failed to sync releaseManager")
 				return err
 			}
+
+			rmCount++
+			for _, rl := range rm.Status.Releases {
+				if rl.Tag == revision.Spec.App.Tag && rl.Expired == true {
+					expiredCount++
+				}
+			}
+
 			log.Info("ReleaseManager sync'd", "Op", op)
 		}
 		if len(clusters.Items) == 0 {
 			log.Info("No clusters found in target fleet", "Target.Fleet", target.Fleet)
+		}
+	}
+
+	// if Revision is expired in all ReleaseManagers
+	if expiredCount == rmCount {
+		if err := r.DeleteRevision(revision); err != nil {
+			log.Error(err, "Failed to delete Revision")
+			return err
 		}
 	}
 	return nil
@@ -310,4 +328,12 @@ func NewIncarnationStatus(incarnation *picchuv1alpha1.Incarnation) picchuv1alpha
 		Cluster: incarnation.Spec.Assignment.Name,
 		Status:  "created",
 	}
+}
+
+func (r *ReconcileRevision) DeleteRevision(revision *picchuv1alpha1.Revision) error {
+	log.Info("Deleting revision", "Name", revision.Name, "Namespace", revision.Namespace)
+	if err := r.client.Delete(context.TODO(), revision); err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }
