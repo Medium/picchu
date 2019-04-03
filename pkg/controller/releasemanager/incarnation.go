@@ -85,6 +85,10 @@ func (i *Incarnation) isReleaseEligible() bool {
 	return i.revision != nil && i.target().Release.Eligible
 }
 
+func (i *Incarnation) isRetired() bool {
+	return i.status().Retired
+}
+
 func (i *Incarnation) listOptions() (*client.ListOptions, error) {
 	selector, err := metav1.LabelSelectorAsSelector(i.target().ConfigSelector)
 	if err != nil {
@@ -272,6 +276,11 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 		picchuv1alpha1.LabelApp: i.appName(),
 		picchuv1alpha1.LabelTag: i.tag,
 	}
+	replicaCount := target.Scale.Default
+	if i.isRetired() {
+		replicaCount = 0
+	}
+
 	i.log.Info("Creating ReplicaSet", "Replicas", target.Scale.Default)
 	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -280,7 +289,7 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 			Labels:    i.defaultLabels(),
 		},
 		Spec: appsv1.ReplicaSetSpec{
-			Replicas: &target.Scale.Default,
+			Replicas: &replicaCount,
 			Selector: metav1.SetAsLabelSelector(podLabels),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -307,6 +316,10 @@ func (i *Incarnation) syncReplicaSet(ctx context.Context, envs []corev1.EnvFromS
 	status := "created"
 	rs := i.replicaSet(envs)
 	op, err := controllerutil.CreateOrUpdate(ctx, i.client, rs, func(runtime.Object) error {
+		if i.isRetired() {
+			var r int32 = 0
+			rs.Spec.Replicas = &r
+		}
 		return nil
 	})
 	i.log.Info("ReplicaSet sync'd", "Op", op)

@@ -126,6 +126,11 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		incarnations.add(rev)
 	}
 
+	count, err := r.countFleetCohort(request.Namespace, cluster.Fleet())
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	syncer := ResourceSyncer{
 		instance:     rm,
 		incarnations: incarnations,
@@ -133,6 +138,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		client:       remoteClient,
 		reconciler:   r,
 		log:          reqLog,
+		fleetSize:    count,
 		scheme:       r.scheme,
 	}
 	// -------------------------------------------------------------------------
@@ -162,6 +168,26 @@ func (r *ReconcileReleaseManager) getRevisions(namespace, fleet, app string) (*p
 	return rl, err
 }
 
+func (r *ReconcileReleaseManager) countFleetCohort(namespace, fleet string) (uint32, error) {
+	log.Info("Counting clusters in fleet cohort")
+	listOptions := client.
+		InNamespace(namespace).
+		MatchingLabels(map[string]string{
+			picchuv1alpha1.LabelFleet: fleet,
+		})
+	cl := &picchuv1alpha1.ClusterList{}
+	err := r.client.List(context.TODO(), listOptions, cl)
+	var cnt uint32 = 0
+	for _, cluster := range cl.Items {
+		for _, cond := range cluster.Status.Conditions {
+			if cond.Name == "Ready" && cond.Status == "True" {
+				cnt++
+			}
+		}
+	}
+	return cnt, err
+}
+
 type ResourceSyncer struct {
 	instance     *picchuv1alpha1.ReleaseManager
 	incarnations *IncarnationCollection
@@ -169,6 +195,7 @@ type ResourceSyncer struct {
 	client       client.Client
 	reconciler   *ReconcileReleaseManager
 	scheme       *runtime.Scheme
+	fleetSize    uint32
 	log          logr.Logger
 }
 
@@ -565,7 +592,9 @@ func (r *ResourceSyncer) syncVirtualService() error {
 				})
 				releaseRoutes[port.Name] = releaseRoute
 			}
-			minReplicas = utils.Max(*incarnation.target().Scale.Min*int32(current)/100, 1)
+			revMin := *incarnation.target().Scale.Min
+			minReplicas = utils.Max(revMin*int32(current)/int32(100*r.fleetSize), 1)
+			r.log.Info("Computed minReplicas", "target", incarnation.target(), "revMin", revMin, "currentPerc", current, "fleetSize", r.fleetSize, "computed", minReplicas)
 			maxReplicas = incarnation.target().Scale.Max
 		}
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{
