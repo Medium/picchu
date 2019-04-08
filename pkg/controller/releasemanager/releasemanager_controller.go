@@ -571,7 +571,7 @@ func (r *ResourceSyncer) syncVirtualService() error {
 						hosts[filterHost] = true
 						releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{
 							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
-							Authority: &istiocommonv1alpha1.StringMatch{Exact: filterHost},
+							Authority: &istiocommonv1alpha1.StringMatch{Prefix: filterHost},
 							Port:      portNumber,
 							Gateways:  gateway,
 						})
