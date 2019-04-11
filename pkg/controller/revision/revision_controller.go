@@ -204,8 +204,9 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 		}
 	}
 
-	// if Revision is expired in all ReleaseManagers
-	if expiredCount == rmCount {
+	// if Revision is expired in all ReleaseManagers, without deleting
+	// clusterless revisions
+	if expiredCount == rmCount && expiredCount > 0 {
 		if err := r.DeleteRevision(revision); err != nil {
 			log.Error(err, "Failed to delete Revision")
 			return err

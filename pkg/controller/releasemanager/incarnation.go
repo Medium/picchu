@@ -403,7 +403,7 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 
 // Remotely sync the incarnation for it's current state
 func (i *Incarnation) sync() error {
-	if i.revision == nil {
+	if i.revision == nil || i.target() == nil {
 		i.recordDeleted()
 		return i.del()
 	}
