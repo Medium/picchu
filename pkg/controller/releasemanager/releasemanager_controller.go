@@ -416,52 +416,54 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	// of readability
 
 	// Incarnation specific releases are made for each port on private ingress
-	for _, incarnation := range r.incarnations.deployed() {
-		tag := incarnation.tag
-		overrideLabel := fmt.Sprintf("pin/%s", appName)
-		for _, port := range incarnation.revision.Spec.Ports {
-			matches := []istiov1alpha3.HTTPMatchRequest{{
-				// mesh traffic from same tag'd service with and test tag
-				SourceLabels: map[string]string{
-					overrideLabel: tag,
-				},
-				Port:     uint32(port.Port),
-				Gateways: []string{"mesh"},
-			}}
-			if privateGateway != "" {
-				host := fmt.Sprintf("%s-%s", tag, defaultHost)
-				hosts[host] = true
-				matches = append(matches,
-					istiov1alpha3.HTTPMatchRequest{
-						// internal traffic with MEDIUM-TAG header
-						Headers: map[string]istiocommonv1alpha1.StringMatch{
-							"Medium-Tag": {Exact: tag},
+	if r.reconciler.config.TaggedRoutesEnabled {
+		for _, incarnation := range r.incarnations.deployed() {
+			tag := incarnation.tag
+			overrideLabel := fmt.Sprintf("pin/%s", appName)
+			for _, port := range incarnation.revision.Spec.Ports {
+				matches := []istiov1alpha3.HTTPMatchRequest{{
+					// mesh traffic from same tag'd service with and test tag
+					SourceLabels: map[string]string{
+						overrideLabel: tag,
+					},
+					Port:     uint32(port.Port),
+					Gateways: []string{"mesh"},
+				}}
+				if privateGateway != "" {
+					host := fmt.Sprintf("%s-%s", tag, defaultHost)
+					hosts[host] = true
+					matches = append(matches,
+						istiov1alpha3.HTTPMatchRequest{
+							// internal traffic with MEDIUM-TAG header
+							Headers: map[string]istiocommonv1alpha1.StringMatch{
+								"Medium-Tag": {Exact: tag},
+							},
+							Port:     uint32(port.IngressPort),
+							Gateways: []string{privateGateway},
 						},
-						Port:     uint32(port.IngressPort),
-						Gateways: []string{privateGateway},
-					},
-					istiov1alpha3.HTTPMatchRequest{
-						// internal traffic with :authority host header
-						Authority: &istiocommonv1alpha1.StringMatch{Exact: host},
-						Port:      uint32(port.IngressPort),
-						Gateways:  []string{privateGateway},
-					},
-				)
-			}
+						istiov1alpha3.HTTPMatchRequest{
+							// internal traffic with :authority host header
+							Authority: &istiocommonv1alpha1.StringMatch{Exact: host},
+							Port:      uint32(port.IngressPort),
+							Gateways:  []string{privateGateway},
+						},
+					)
+				}
 
-			http = append(http, istiov1alpha3.HTTPRoute{
-				Match: matches,
-				Route: []istiov1alpha3.DestinationWeight{
-					{
-						Destination: istiov1alpha3.Destination{
-							Host:   serviceHost,
-							Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
-							Subset: tag,
+				http = append(http, istiov1alpha3.HTTPRoute{
+					Match: matches,
+					Route: []istiov1alpha3.DestinationWeight{
+						{
+							Destination: istiov1alpha3.Destination{
+								Host:   serviceHost,
+								Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
+								Subset: tag,
+							},
+							Weight: 100,
 						},
-						Weight: 100,
 					},
-				},
-			})
+				})
+			}
 		}
 	}
 
