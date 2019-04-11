@@ -52,6 +52,7 @@ func main() {
 
 	manageRoute53 := pflag.Bool("manage-route53", false, "Should picchu manage route53?")
 	requeuePeriodSeconds := pflag.Int("sync-period-seconds", 15, "Delay between requeues")
+	taggedRoutesEnabled := pflag.Bool("tagged-routes", false, "Enable tagged routes in istio")
 
 	pflag.Parse()
 
@@ -124,8 +125,9 @@ func main() {
 	}
 
 	config := utils.Config{
-		ManageRoute53: *manageRoute53,
-		RequeueAfter:  requeuePeriod,
+		ManageRoute53:       *manageRoute53,
+		RequeueAfter:        requeuePeriod,
+		TaggedRoutesEnabled: *taggedRoutesEnabled,
 	}
 
 	// Setup all Controllers
