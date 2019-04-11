@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -121,14 +120,9 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	for _, ref := range revisions.Items {
-		rev := &picchuv1alpha1.Revision{}
-		opts := types.NamespacedName{request.Namespace, ref.Name}
-		if err := r.client.Get(context.TODO(), opts, rev); err != nil {
-			return reconcile.Result{}, err
-		}
-		r.scheme.Default(rev)
-		incarnations.add(rev)
+	r.scheme.Default(revisions)
+	for _, rev := range revisions.Items {
+		incarnations.add(&rev)
 	}
 	incarnations.ensureReleaseExists()
 

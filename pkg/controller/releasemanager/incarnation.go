@@ -362,6 +362,13 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 		return nil
 	}
 
+	// We don't want to share the value between the target and the hpa, so
+	// we have to make a copy
+	var min *int32
+	if target.Scale.Min == nil {
+		m := *target.Scale.Min
+		min = &m
+	}
 	hpa := &autoscalingv1.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.tag,
@@ -374,7 +381,7 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 				Name:       i.tag,
 				APIVersion: "apps/v1",
 			},
-			MinReplicas:                    target.Scale.Min,
+			MinReplicas:                    min,
 			MaxReplicas:                    target.Scale.Max,
 			TargetCPUUtilizationPercentage: cpuTarget,
 		},
