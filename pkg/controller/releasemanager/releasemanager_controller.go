@@ -24,8 +24,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -64,6 +66,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	_, err := builder.SimpleController().
 		WithManager(mgr).
 		ForType(&picchuv1alpha1.ReleaseManager{}).
+		WithEventFilter(predicate.Funcs{
+			UpdateFunc: func(_ event.UpdateEvent) bool { return false },
+		}).
 		Build(r)
 	return err
 }
