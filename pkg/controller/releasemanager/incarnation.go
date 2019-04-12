@@ -570,10 +570,11 @@ func newIncarnationCollection(
 
 // Add adds a new Incarnation to the IncarnationManager
 func (i *IncarnationCollection) add(revision *picchuv1alpha1.Revision) {
+	r := *revision
 	i.itemSet[revision.Spec.App.Tag] = Incarnation{
 		tag:            revision.Spec.App.Tag,
 		releaseManager: i.releaseManager,
-		revision:       revision,
+		revision:       &r,
 		cluster:        i.cluster,
 		client:         i.client,
 		configFetcher:  i.configFetcher,
@@ -631,7 +632,7 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 func (i *IncarnationCollection) sortedReleases() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.revision != nil && i.isDeployed() && i.isReleaseEligible() && !i.isRetired() {
+		if i.revision != nil && i.isDeployed() && i.isReleaseEligible() {
 			r = append(r, i)
 		}
 	}
