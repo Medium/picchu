@@ -15,6 +15,7 @@ import (
 type PicchuV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClustersGetter
+	ReleaseManagersGetter
 	RevisionsGetter
 }
 
@@ -25,6 +26,10 @@ type PicchuV1alpha1Client struct {
 
 func (c *PicchuV1alpha1Client) Clusters(namespace string) ClusterInterface {
 	return newClusters(c, namespace)
+}
+
+func (c *PicchuV1alpha1Client) ReleaseManagers(namespace string) ReleaseManagerInterface {
+	return newReleaseManagers(c, namespace)
 }
 
 func (c *PicchuV1alpha1Client) Revisions(namespace string) RevisionInterface {
