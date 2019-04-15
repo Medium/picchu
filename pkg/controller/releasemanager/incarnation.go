@@ -54,6 +54,7 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 			for _, target := range revision.Spec.Targets {
 				if target.Name == controller.releaseManager().Spec.Target {
 					status.ReleaseEligible = target.Release.Eligible
+					status.TTL = target.Release.TTL
 		}
 	}
 		} else {
@@ -76,6 +77,11 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 // Remotely sync the incarnation for it's current state
 func (i *Incarnation) sync() error {
 	ctx := context.TODO()
+
+	// Revision deleted
+	if !i.hasRevision() {
+		return nil
+	}
 
 	configOpts, err := i.listOptions()
 	if err != nil {
@@ -591,7 +597,7 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 				Name:       i.tag,
 				APIVersion: "apps/v1",
 			},
-			MinReplicas:                    i.divideReplicas(*target.Scale.Min),
+			MinReplicas:                    i.divideReplicas(*min),
 			MaxReplicas:                    *i.divideReplicas(target.Scale.Max),
 			TargetCPUUtilizationPercentage: cpuTarget,
 		},

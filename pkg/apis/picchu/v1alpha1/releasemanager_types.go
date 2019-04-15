@@ -53,6 +53,7 @@ type ReleaseManagerRevisionStatus struct {
 	TriggeredAlarms []string                               `json:"triggeredAlerts,omitempty"`
 	LastUpdated     *metav1.Time                           `json:"lastUpdated"`
 	GitTimestamp    *metav1.Time                           `json:"gitTimestamp,omitempty"`
+	TTL             int64                                  `json:"ttl,omitempty"`
 	Metrics         ReleaseManagerRevisionMetricsStatus    `json:"metrics,omitempty"`
 	Scale          ReleaseManagerRevisionScaleStatus      `json:"scale"`
 }

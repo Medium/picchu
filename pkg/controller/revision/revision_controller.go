@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
@@ -191,7 +192,8 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 
 			rmCount++
 			for _, rl := range rm.Status.Revisions {
-				if rl.Tag == revision.Spec.App.Tag && rl.State.Current == "retired" {
+				expiration := rl.GitTimestamp.Add(time.Duration(rl.TTL) * time.Second)
+				if rl.Tag == revision.Spec.App.Tag && rl.State.Current == "retired" && time.Now().After(expiration) {
 					retiredCount++
 				}
 			}

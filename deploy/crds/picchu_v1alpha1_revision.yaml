@@ -156,9 +156,6 @@ spec:
                       ttl:
                         format: int64
                         type: integer
-                      gc_buffer:
-                        format: int32
-                        type: integer
                     type: object
                   resources:
                     properties:
