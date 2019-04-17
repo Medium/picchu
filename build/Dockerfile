@@ -1,5 +1,7 @@
 FROM alpine:3.8
 
+RUN apk add --no-cache tzdata
+
 ENV OPERATOR=/usr/local/bin/picchu \
     USER_UID=1001 \
     USER_NAME=picchu
