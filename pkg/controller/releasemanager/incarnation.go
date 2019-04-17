@@ -496,14 +496,19 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	if i.wasEverReleased() {
 		return max
 	}
+
 	deadline := time.Time{}
 	if status.LastUpdated != nil {
 		deadline = status.LastUpdated.Add(delay)
 	}
-
 	if deadline.After(time.Now()) {
 		return current
 	}
+
+	if !schedulePermitsRelease(time.Now(), target.Release.Schedule) {
+		return current
+	}
+
 	current = current + increment
 	if current > max {
 		return max
