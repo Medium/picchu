@@ -31,6 +31,12 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
+const (
+	StatusPort                 = "status"
+	PrometheusScrapeLabel      = "prometheus.io/scrape"
+	PrometheusScrapeLabelValue = "true"
+)
+
 var (
 	log                       = logf.Log.WithName("controller_releasemanager")
 	incarnationReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
@@ -321,6 +327,9 @@ func (r *ResourceSyncer) syncService() error {
 		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
 		picchuv1alpha1.LabelOwnerName: r.instance.Name,
+	}
+	if _, hasStatus := portMap[StatusPort]; hasStatus {
+		labels[PrometheusScrapeLabel] = PrometheusScrapeLabelValue
 	}
 
 	service := &corev1.Service{
