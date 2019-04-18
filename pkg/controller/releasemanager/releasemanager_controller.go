@@ -8,13 +8,11 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,9 +43,9 @@ var (
 			"minus expected release time (release.rate.delay * math.Ceil(100.0 / release.rate.increment))",
 		Buckets: prometheus.ExponentialBuckets(10, 3, 7),
 	})
-	incarnationDeploymentLatency = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "picchu_incarnation_deployment_latency",
-		Help:    "track time from revision creation to incarnation deployment",
+	incarnationDeployLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "picchu_incarnation_deploy_latency",
+		Help:    "track time from revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	})
 )
@@ -55,7 +53,7 @@ var (
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
-	metrics.Registry.MustRegister(incarnationDeploymentLatency)
+	metrics.Registry.MustRegister(incarnationDeployLatency)
 	metrics.Registry.MustRegister(incarnationReleaseLatency)
 	return add(mgr, newReconciler(mgr, c))
 }
@@ -120,8 +118,20 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	configFetcher := &ConfigFetcher{r.client}
-	incarnations := newIncarnationCollection(rm, cluster, remoteClient, configFetcher, reqLog, r.scheme)
+	fleetSize, err := r.countFleetCohort(request.Namespace, cluster.Fleet())
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	ic := &IncarnationController{
+		rrm:          r,
+		remoteClient: remoteClient,
+		logger:       reqLog,
+		rm:           rm,
+		fs:           fleetSize,
+	}
+
+	incarnations := newIncarnationCollection(ic)
 	revisions, err := r.getRevisions(request.Namespace, cluster.Fleet(), rm.Spec.App)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -130,12 +140,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	for _, rev := range revisions.Items {
 		incarnations.add(&rev)
 	}
-	incarnations.ensureReleaseExists()
-
-	count, err := r.countFleetCohort(request.Namespace, cluster.Fleet())
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	incarnations.ensureValidRelease()
 
 	syncer := ResourceSyncer{
 		instance:     rm,
@@ -144,8 +149,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		client:       remoteClient,
 		reconciler:   r,
 		log:          reqLog,
-		fleetSize:    count,
-		scheme:       r.scheme,
 	}
 	// -------------------------------------------------------------------------
 
@@ -200,9 +203,29 @@ type ResourceSyncer struct {
 	cluster      *picchuv1alpha1.Cluster
 	client       client.Client
 	reconciler   *ReconcileReleaseManager
-	scheme       *runtime.Scheme
 	fleetSize    uint32
 	log          logr.Logger
+}
+
+func (r *ResourceSyncer) isReleaseEligible(tag string) {
+}
+
+func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) (*corev1.SecretList, error) {
+	secrets := &corev1.SecretList{}
+	err := r.client.List(ctx, opts, secrets)
+	if errors.IsNotFound(err) {
+		return secrets, nil
+	}
+	return secrets, err
+}
+
+func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOptions) (*corev1.ConfigMapList, error) {
+	configMaps := &corev1.ConfigMapList{}
+	err := r.client.List(ctx, opts, configMaps)
+	if errors.IsNotFound(err) {
+		return configMaps, nil
+	}
+	return configMaps, err
 }
 
 func (r *ResourceSyncer) sync() (reconcile.Result, error) {
@@ -214,14 +237,13 @@ func (r *ResourceSyncer) sync() (reconcile.Result, error) {
 
 	if r.cluster.IsDeleted() {
 		r.log.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
-		r.log.Info("Requeueing releasemanager", "Duration", r.reconciler.config.RequeueAfter)
-		return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
+		return reconcile.Result{}, nil
 	}
 
 	if err := r.syncNamespace(); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err := r.syncIncarnations(); err != nil {
+	if err := r.tickIncarnations(); err != nil {
 		return reconcile.Result{}, err
 	}
 	if err := r.syncService(); err != nil {
@@ -230,17 +252,23 @@ func (r *ResourceSyncer) sync() (reconcile.Result, error) {
 	if err := r.syncDestinationRule(); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err := r.MarkExpiredReleases(); err != nil {
-		return reconcile.Result{}, err
-	}
 	if err := r.syncVirtualService(); err != nil {
 		return reconcile.Result{}, err
 	}
+	rs := []picchuv1alpha1.ReleaseManagerRevisionStatus{}
+	sorted := r.incarnations.sorted()
+	for i := len(sorted) - 1; i >= 0; i-- {
+		status := sorted[i].status
+		r.log.Info("Get status", "state", status.State)
+		if !(status.State.Current == "deleted" && sorted[i].revision == nil) {
+			rs = append(rs, *status)
+		}
+	}
+	r.instance.Status.Revisions = rs
 	if err := utils.UpdateStatus(context.TODO(), r.reconciler.client, r.instance); err != nil {
 		r.log.Error(err, "Failed to update releasemanager status")
 		return reconcile.Result{}, err
 	}
-	r.log.Info("Requeueing releasemanager", "Duration", r.reconciler.config.RequeueAfter)
 	return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
 }
 
@@ -288,15 +316,32 @@ func (r *ResourceSyncer) syncNamespace() error {
 }
 
 // SyncIncarnations syncs all revision deployments for this releasemanager
-func (r *ResourceSyncer) syncIncarnations() error {
-	for _, incarnation := range r.incarnations.all() {
-		wasDeployed := incarnation.wasEverDeployed()
-		if err := incarnation.sync(); err != nil {
+func (r *ResourceSyncer) tickIncarnations() error {
+	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
+	for _, incarnation := range r.incarnations.sorted() {
+		oldState := incarnation.status.State
+
+		r.log.Info("ok")
+		sm := NewDeploymentStateManager(&incarnation)
+		if err := sm.tick(); err != nil {
 			return err
 		}
-		if incarnation.isDeployed() && !wasDeployed {
-			start := incarnation.revision.CreationTimestamp
-			incarnationDeploymentLatency.Observe(time.Since(start.Time).Seconds())
+		newState := incarnation.status.State
+		if oldState.EqualTo(&newState) {
+			continue
+		}
+		if newState.Current != newState.Target {
+			continue
+		}
+		if newState.Target == "deployed" && incarnation.status.Metrics.DeploySeconds == nil {
+			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
+			incarnation.status.Metrics.DeploySeconds = &elapsed
+			incarnationDeployLatency.Observe(elapsed)
+		}
+		if newState.Target == "released" && incarnation.status.Metrics.ReleaseSeconds == nil {
+			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
+			incarnation.status.Metrics.ReleaseSeconds = &elapsed
+			incarnationReleaseLatency.Observe(elapsed)
 		}
 	}
 	return nil
@@ -304,7 +349,10 @@ func (r *ResourceSyncer) syncIncarnations() error {
 
 func (r *ResourceSyncer) syncService() error {
 	portMap := map[string]corev1.ServicePort{}
-	for _, incarnation := range r.incarnations.existing() {
+	for _, incarnation := range r.incarnations.deployed() {
+		if incarnation.revision == nil {
+			continue
+		}
 		for _, port := range incarnation.revision.Spec.Ports {
 			_, ok := portMap[port.Name]
 			if !ok {
@@ -316,6 +364,9 @@ func (r *ResourceSyncer) syncService() error {
 				}
 			}
 		}
+	}
+	if len(portMap) == 0 {
+		return nil
 	}
 	ports := make([]corev1.ServicePort, 0, len(portMap))
 	for _, port := range portMap {
@@ -366,7 +417,7 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 		},
 	}
 	subsets := []istiov1alpha3.Subset{}
-	for _, incarnation := range r.incarnations.existing() {
+	for _, incarnation := range r.incarnations.deployed() {
 		tag := incarnation.tag
 		subsets = append(subsets, istiov1alpha3.Subset{
 			Name:   tag,
@@ -427,52 +478,7 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	// Incarnation specific releases are made for each port on private ingress
 	if r.reconciler.config.TaggedRoutesEnabled {
 		for _, incarnation := range r.incarnations.deployed() {
-			tag := incarnation.tag
-			overrideLabel := fmt.Sprintf("pin/%s", appName)
-			for _, port := range incarnation.revision.Spec.Ports {
-				matches := []istiov1alpha3.HTTPMatchRequest{{
-					// mesh traffic from same tag'd service with and test tag
-					SourceLabels: map[string]string{
-						overrideLabel: tag,
-					},
-					Port:     uint32(port.Port),
-					Gateways: []string{"mesh"},
-				}}
-				if privateGateway != "" {
-					host := fmt.Sprintf("%s-%s", tag, defaultHost)
-					hosts[host] = true
-					matches = append(matches,
-						istiov1alpha3.HTTPMatchRequest{
-							// internal traffic with MEDIUM-TAG header
-							Headers: map[string]istiocommonv1alpha1.StringMatch{
-								"Medium-Tag": {Exact: tag},
-							},
-							Port:     uint32(port.IngressPort),
-							Gateways: []string{privateGateway},
-						},
-						istiov1alpha3.HTTPMatchRequest{
-							// internal traffic with :authority host header
-							Authority: &istiocommonv1alpha1.StringMatch{Exact: host},
-							Port:      uint32(port.IngressPort),
-							Gateways:  []string{privateGateway},
-						},
-					)
-				}
-
-				http = append(http, istiov1alpha3.HTTPRoute{
-					Match: matches,
-					Route: []istiov1alpha3.DestinationWeight{
-						{
-							Destination: istiov1alpha3.Destination{
-								Host:   serviceHost,
-								Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
-								Subset: tag,
-							},
-							Weight: 100,
-						},
-					},
-				})
-			}
+		http = append(http, incarnation.taggedRoutes(privateGateway, serviceHost)...)
 		}
 	}
 
@@ -483,76 +489,33 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	var percRemaining uint32 = 100
 	// Tracking one route per port number
 	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
-	incarnations := r.incarnations.sortedReleases()
+	incarnations := r.incarnations.releasable()
 	r.log.Info("Got my releases", "Count", len(incarnations))
 	count := len(incarnations)
 	// setup alerts from latest release
-	rule := &monitoringv1.PrometheusRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus-rule",
-			Namespace: r.instance.TargetNamespace(),
-		},
-	}
 	if count > 0 {
-		latest := incarnations[0]
-		if len(latest.target().AlertRules) > 0 {
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rule, func(runtime.Object) error {
-				rule.Labels = map[string]string{picchuv1alpha1.LabelTag: latest.tag}
-				rule.Spec.Groups = []monitoringv1.RuleGroup{{
-					Name:  "picchu.rules",
-					Rules: latest.target().AlertRules,
-				}}
-				return nil
-			})
-			if err != nil {
+		if err := incarnations[0].syncPrometheusRules(context.TODO()); err != nil {
 				return err
 			}
-			r.log.Info("Sync'd PrometheusRule", "Op", op)
-		} else {
-			if err := r.client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
-				return err
-			}
-			r.log.Info("Deleted PrometheusRule because no rules are defined in incarnation", "Tag", latest.tag)
-		}
-	} else {
-		if err := r.client.Delete(context.TODO(), rule); err != nil && !errors.IsNotFound(err) {
-			return err
-		}
-		r.log.Info("Deleted PrometheusRule because there aren't any release incarnation")
 	}
 
 	for i, incarnation := range incarnations {
-		wasReleased := incarnation.wasEverReleased()
-		status := incarnation.status()
+		status := incarnation.status
 		oldCurrent := status.CurrentPercent
-		peak := status.PeakPercent
 		current := incarnation.currentPercentTarget(percRemaining)
 		if i+1 == count {
 			current = percRemaining
 		}
+		incarnation.updateCurrentPercent(current)
 		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
-		if current > peak {
-			peak = current
-		}
 		percRemaining -= current
-
-		if percRemaining == 0 {
-			// Mark the oldest released incarnation as "released" and observe latency
-			if !wasReleased {
-				incarnationReleaseLatency.Observe(incarnation.secondsSinceRevision())
-			}
-			incarnation.recordReleasedStatus(current, current > 0, true)
-		} else {
-			incarnation.recordReleasedStatus(current, false, false)
+		if percRemaining <= 0 {
+			incarnation.setReleaseEligible(false)
 		}
 
 		tag := incarnation.tag
 
-		// Wind down retired releases in HPA
-		var minReplicas int32 = 1
-		var maxReplicas int32 = 1
-
-		if current > 0 {
+		if current > 0 && incarnation.revision != nil {
 			for _, port := range incarnation.revision.Spec.Ports {
 				portNumber := uint32(port.Port)
 				filterHosts := port.Hosts
@@ -603,43 +566,18 @@ func (r *ResourceSyncer) syncVirtualService() error {
 				})
 				releaseRoutes[port.Name] = releaseRoute
 			}
-			revMin := *incarnation.target().Scale.Min
-			minReplicas = utils.Max(revMin*int32(current)/int32(100*r.fleetSize), 1)
-			r.log.Info("Computed minReplicas", "target", incarnation.target(), "revMin", revMin, "currentPerc", current, "fleetSize", r.fleetSize, "computed", minReplicas)
-			maxReplicas = incarnation.target().Scale.Max
 		}
-		hpa := &autoscalingv1.HorizontalPodAutoscaler{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      tag,
-				Namespace: r.instance.TargetNamespace(),
-			},
-		}
-
-		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, hpa, func(runtime.Object) error {
-			hpa.Spec.MaxReplicas = maxReplicas
-			hpa.Spec.MinReplicas = &minReplicas
-			return nil
-		})
-		if err != nil {
-			// This is an indicator that the HPA wasn't found, but *could* be wrong, slightly simpler then
-			// unwrapping CreateOrUpdate.
-			if hpa.Spec.ScaleTargetRef.Kind == "" {
-				r.log.Info("HPA not found for incarnation", "Tag", incarnation.tag)
-			} else {
-				r.log.Error(err, "Failed to create/update hpa", "Hpa", hpa, "Op", op)
-				return err
-			}
-		}
-
-		r.log.Info("HPA sync'd", "Op", op)
-	}
-
-	for _, incarnation := range r.incarnations.deleted() {
-		incarnation.recordDeleted()
 	}
 
 	for _, route := range releaseRoutes {
 		http = append(http, route)
+	}
+
+	// This can happen if there are released incarnations with deleted revisions
+	// we want to wait until another revision is ready before updating.
+	if len(http) < 1 {
+		r.log.Info("Not sync'ing VirtualService, there are no valid releases")
+		return nil
 	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, vs, func(runtime.Object) error {
@@ -659,6 +597,7 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	r.log.Info("VirtualService sync'd", "Op", op)
 	return nil
 }
+<<<<<<< HEAD
 
 // MarkExpiredReleases marks a Release as Expired if the Release TTL has passed,
 // and the Release is further away from any current Release than the configured buffer,
@@ -680,3 +619,5 @@ func (r *ResourceSyncer) MarkExpiredReleases() error {
 	}
 	return nil
 }
+=======
+>>>>>>> 263a456... Add a Prometheus scrape label for apps with a status port (#55)

@@ -166,8 +166,7 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) error {
 	// Sync releasemanagers
 	appName := revision.Spec.App.Name
-	expiredCount := 0
-	rmCount := 0
+	rmCount, retiredCount := 0, 0
 	for _, target := range revision.Spec.Targets {
 		targetName := target.Name
 		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
@@ -192,8 +191,8 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 
 			rmCount++
 			for _, rl := range rm.Status.Revisions {
-				if rl.Tag == revision.Spec.App.Tag && rl.Expired == true {
-					expiredCount++
+				if rl.Tag == revision.Spec.App.Tag && rl.State.Current == "retired" {
+					retiredCount++
 				}
 			}
 
@@ -206,7 +205,7 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 
 	// if Revision is expired in all ReleaseManagers, without deleting
 	// clusterless revisions
-	if expiredCount == rmCount && expiredCount > 0 {
+	if retiredCount == rmCount && retiredCount > 0 {
 		if err := r.DeleteRevision(revision); err != nil {
 			log.Error(err, "Failed to delete Revision")
 			return err
