@@ -16,7 +16,7 @@ import (
 var (
 	alertTemplate = template.Must(template.
 			New("taggedAlerts").
-			Parse(`sum by({{.TagLabel}})(ALERTS{slo="true",app="{{.App}}",alertstate="{{.AlertState}}"})`))
+			Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
 	log = logf.Log.WithName("prometheus_alerts")
 )
 
@@ -34,17 +34,39 @@ func NewAlertQuery(app string) AlertQuery {
 	}
 }
 
-type API struct {
-	api.API
+type cachedValue struct {
+	value       model.Value
+	lastUpdated time.Time
 }
 
-func NewAPI(address string) (*API, error) {
+type API struct {
+	api.API
+	cache map[string]cachedValue
+	ttl   time.Duration
+}
+
+func NewAPI(address string, ttl time.Duration) (*API, error) {
 	log.Info("Creating API", "address", address)
 	client, err := cli.NewClient(cli.Config{Address: address})
 	if err != nil {
 		return nil, err
 	}
-	return &API{api.NewAPI(client)}, nil
+	return &API{api.NewAPI(client), map[string]cachedValue{}, ttl}, nil
+}
+
+func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (model.Value, error) {
+	if v, ok := a.cache[query]; ok {
+		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
+			fmt.Println("Using cache")
+			return v.value, nil
+		}
+	}
+	val, err := a.API.Query(ctx, query, t)
+	if err != nil {
+		return nil, err
+	}
+	a.cache[query] = cachedValue{val, time.Now()}
+	return val, nil
 }
 
 func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([]string, error) {
@@ -53,7 +75,7 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([
 	if err := alertTemplate.Execute(q, query); err != nil {
 		return nil, err
 	}
-	val, err := a.API.Query(ctx, q.String(), t)
+	val, err := a.queryWithCache(ctx, q.String(), t)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +84,18 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([
 	switch v := val.(type) {
 	case model.Vector:
 		for _, sample := range v {
-			for _, tag := range sample.Metric {
-				if tag != "" {
-					tagset[string(tag)] = true
+			appMatch := false
+			tag := ""
+			for name, value := range sample.Metric {
+				if string(name) == "app" && string(value) == query.App {
+					appMatch = true
 				}
+				if string(name) == "tag" {
+					tag = string(value)
+				}
+			}
+			if appMatch && tag != "" {
+				tagset[tag] = true
 			}
 		}
 	default:
