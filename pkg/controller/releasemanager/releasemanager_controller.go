@@ -668,7 +668,12 @@ func (r *ResourceSyncer) MarkExpiredReleases() error {
 	log.Info("Garbage collecting releases")
 	for i, incarnation := range incarnations {
 		target := incarnation.target()
-		expiration := incarnation.revision.GitTimestamp().Add(time.Duration(target.Release.TTL) * time.Second)
+		if target == nil {
+			continue
+		}
+		gitTimestamp := incarnation.revision.GitTimestamp()
+		ttl := target.Release.TTL
+		expiration := gitTimestamp.Add(time.Duration(ttl) * time.Second)
 		if i >= target.Release.GcBuffer && time.Now().After(expiration) {
 			incarnation.recordExpired()
 		}
