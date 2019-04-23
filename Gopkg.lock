@@ -420,6 +420,8 @@
   digest = "1:ec2a29e3bd141038ae5c3d3a4f57db0c341fcc1d98055a607aedd683aed124ee"
   name = "github.com/prometheus/client_golang"
   packages = [
+    "api",
+    "api/prometheus/v1",
     "prometheus",
     "prometheus/internal",
     "prometheus/promauto",
@@ -990,6 +992,8 @@
     "github.com/operator-framework/operator-sdk/pkg/log/zap",
     "github.com/operator-framework/operator-sdk/pkg/metrics",
     "github.com/operator-framework/operator-sdk/version",
+    "github.com/prometheus/client_golang/api",
+    "github.com/prometheus/client_golang/api/prometheus/v1",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promauto",
     "github.com/spf13/pflag",
