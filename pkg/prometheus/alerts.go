@@ -57,10 +57,11 @@ func NewAPI(address string, ttl time.Duration) (*API, error) {
 func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (model.Value, error) {
 	if v, ok := a.cache[query]; ok {
 		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
-			fmt.Println("Using cache")
+			log.Info("Cache hit")
 			return v.value, nil
 		}
 	}
+	log.Info("Cache miss")
 	val, err := a.API.Query(ctx, query, t)
 	if err != nil {
 		return nil, err
