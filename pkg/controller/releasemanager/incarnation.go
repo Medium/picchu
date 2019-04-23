@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -259,15 +260,20 @@ func (i *Incarnation) syncConfigMaps(ctx context.Context, configMaps *corev1.Con
 	return envs, nil
 }
 
+// TODO(lyra): PodTemplate!
 func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet {
 	target := i.target()
 	ports := []corev1.ContainerPort{}
+	hasStatusPort := false
 	for _, port := range i.revision.Spec.Ports {
 		ports = append(ports, corev1.ContainerPort{
 			Name:          port.Name,
 			Protocol:      port.Protocol,
 			ContainerPort: port.ContainerPort,
 		})
+		if port.Name == "status" {
+			hasStatusPort = true
+		}
 	}
 	podAnnotations := make(map[string]string, 1)
 	if role := target.AWS.IAM.RoleARN; role != "" {
@@ -281,6 +287,42 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 	replicaCount := target.Scale.Default
 	if i.isRetired() {
 		replicaCount = 0
+	}
+
+	appContainer := corev1.Container{
+		EnvFrom:   envs,
+		Image:     i.image(),
+		Name:      i.appName(),
+		Ports:     ports,
+		Resources: target.Resources,
+	}
+	if hasStatusPort {
+		appContainer.LivenessProbe = &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/running",
+					Port: intstr.FromString("status"),
+				},
+			},
+			InitialDelaySeconds: 10,
+			PeriodSeconds:       10,
+			TimeoutSeconds:      1,
+			SuccessThreshold:    1,
+			FailureThreshold:    7, // FIXME(lyra)
+		}
+		appContainer.ReadinessProbe = &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/running", // FIXME(lyra)
+					Port: intstr.FromString("status"),
+				},
+			},
+			InitialDelaySeconds: 10,
+			PeriodSeconds:       10,
+			TimeoutSeconds:      1,
+			SuccessThreshold:    1,
+			FailureThreshold:    3,
+		}
 	}
 
 	i.log.Info("Creating ReplicaSet", "Replicas", target.Scale.Default)
@@ -301,13 +343,7 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 					Labels:      podLabels,
 				},
 				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						EnvFrom:   envs,
-						Image:     i.image(),
-						Name:      i.appName(),
-						Ports:     ports,
-						Resources: target.Resources,
-					}},
+					Containers: []corev1.Container{appContainer},
 				},
 			},
 		},
