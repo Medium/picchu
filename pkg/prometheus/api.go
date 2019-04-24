@@ -20,6 +20,10 @@ var (
 	log = logf.Log.WithName("prometheus_alerts")
 )
 
+type PromAPI interface {
+	Query(context.Context, string, time.Time) (model.Value, error)
+}
+
 type AlertQuery struct {
 	App        string
 	AlertState string
@@ -40,7 +44,7 @@ type cachedValue struct {
 }
 
 type API struct {
-	api.API
+	api   PromAPI
 	cache map[string]cachedValue
 	ttl   time.Duration
 }
@@ -54,6 +58,10 @@ func NewAPI(address string, ttl time.Duration) (*API, error) {
 	return &API{api.NewAPI(client), map[string]cachedValue{}, ttl}, nil
 }
 
+func InjectAPI(a PromAPI, ttl time.Duration) *API {
+	return &API{a, map[string]cachedValue{}, ttl}
+}
+
 func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (model.Value, error) {
 	if v, ok := a.cache[query]; ok {
 		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
@@ -62,7 +70,7 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 		}
 	}
 	log.Info("Cache miss")
-	val, err := a.API.Query(ctx, query, t)
+	val, err := a.api.Query(ctx, query, t)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +78,8 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 	return val, nil
 }
 
+// TaggedAlerts returns a list of tags that are firing slo alerts for an app at
+// a particular time.
 func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([]string, error) {
 	log.Info("Butts")
 	q := bytes.NewBufferString("")

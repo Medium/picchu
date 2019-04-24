@@ -62,7 +62,10 @@ func Add(mgr manager.Manager, c utils.Config) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 	scheme := mgr.GetScheme()
-	api := promapi.NewAPI(config.PrometheusQueryAddress, config.PrometheusQueryTTL)
+	api, err := promapi.NewAPI(c.PrometheusQueryAddress, c.PrometheusQueryTTL)
+	if err != nil {
+		panic(err)
+	}
 	return &ReconcileReleaseManager{
 		client:  mgr.GetClient(),
 		scheme:  scheme,
@@ -90,7 +93,7 @@ type ReconcileReleaseManager struct {
 	client client.Client
 	scheme *runtime.Scheme
 	config utils.Config
-	promAPI promapi.API
+	promAPI *promapi.API
 }
 
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
@@ -155,7 +158,10 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-
+	alertTags, err := r.promAPI.TaggedAlerts(context.TODO(), promapi.NewAlertQuery(rm.Spec.App), time.Now())
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 	syncer := ResourceSyncer{
 		instance:     rm,
 		incarnations: incarnations,
