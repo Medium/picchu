@@ -49,11 +49,21 @@ type API struct {
 	ttl   time.Duration
 }
 
+type noopAPI struct{}
+
+func (a *noopAPI) Query(_ context.Context, _ string, _ time.Time) (model.Value, error) {
+	return model.Vector{}, nil
+}
+
 func NewAPI(address string, ttl time.Duration) (*API, error) {
 	log.Info("Creating API", "address", address)
 	client, err := cli.NewClient(cli.Config{Address: address})
 	if err != nil {
 		return nil, err
+	}
+	if address == "" {
+		log.Info("WARNING: No prometheus address defined, SLOs disabled")
+		return &API{&noopAPI{}, map[string]cachedValue{}, ttl}, nil
 	}
 	return &API{api.NewAPI(client), map[string]cachedValue{}, ttl}, nil
 }
@@ -81,7 +91,6 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 // TaggedAlerts returns a list of tags that are firing slo alerts for an app at
 // a particular time.
 func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([]string, error) {
-	log.Info("Butts")
 	q := bytes.NewBufferString("")
 	if err := alertTemplate.Execute(q, query); err != nil {
 		return nil, err

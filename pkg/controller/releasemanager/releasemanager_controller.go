@@ -158,10 +158,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	alertTags, err := r.promAPI.TaggedAlerts(context.TODO(), promapi.NewAlertQuery(rm.Spec.App), time.Now())
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 	syncer := ResourceSyncer{
 		instance:     rm,
 		incarnations: incarnations,
