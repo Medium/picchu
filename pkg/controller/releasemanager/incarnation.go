@@ -40,9 +40,9 @@ type Controller interface {
 
 type Incarnation struct {
 	controller Controller
-	tag            string
-	revision       *picchuv1alpha1.Revision
-	log            logr.Logger
+	tag        string
+	revision   *picchuv1alpha1.Revision
+	log        logr.Logger
 	status     *picchuv1alpha1.ReleaseManagerRevisionStatus
 }
 
@@ -55,19 +55,23 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 				if target.Name == controller.releaseManager().Spec.Target {
 					status.ReleaseEligible = target.Release.Eligible
 					status.TTL = target.Release.TTL
-		}
-	}
+				}
+			}
 		} else {
-			now := metav1.Now()
-			status.GitTimestamp = &now
+			status.GitTimestamp = &metav1.Time{}
 			status.ReleaseEligible = false
 		}
 		status.State.Target = "created"
 	}
+
+	var r picchuv1alpha1.Revision
+	if revision != nil {
+		r = *revision
+	}
 	return Incarnation{
 		controller: controller,
 		tag:        tag,
-		revision:   revision,
+		revision:   &r,
 		log:        log,
 		status:     status,
 	}
@@ -83,10 +87,14 @@ func (i *Incarnation) sync() error {
 		return nil
 	}
 
+	if i.target() == nil {
+		return nil
+	}
+
 	configOpts, err := i.listOptions()
 	if err != nil {
 		return err
-}
+	}
 
 	secrets, err := i.controller.getSecrets(ctx, configOpts)
 	if err != nil {
@@ -95,7 +103,7 @@ func (i *Incarnation) sync() error {
 	configMaps, err := i.controller.getConfigMaps(ctx, configOpts)
 	if err != nil {
 		return err
-}
+	}
 
 	sEnvs, err := i.syncSecrets(ctx, secrets)
 	if err != nil {
@@ -150,7 +158,7 @@ func (i *Incarnation) retire() error {
 func (i *Incarnation) del() error {
 	ownerLabels := map[string]string{
 		picchuv1alpha1.LabelTag: i.tag,
-}
+	}
 	opts := client.
 		MatchingLabels(ownerLabels).
 		InNamespace(i.targetNamespace())
@@ -280,7 +288,7 @@ func (i *Incarnation) removeResourceStatus(resource runtime.Object) {
 	kinds, _, _ := scheme.Scheme.ObjectKinds(resource)
 	if len(kinds) == 1 {
 		apiVersion, kind = kinds[0].ToAPIVersionAndKind()
-}
+	}
 
 	metadata, _ := apimeta.Accessor(resource)
 	namespace := metadata.GetNamespace()
@@ -333,7 +341,7 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 					Gateways: []string{privateGateway},
 				},
 			)
-	}
+		}
 
 		http = append(http, istiov1alpha3.HTTPRoute{
 			Match: matches,
@@ -416,9 +424,6 @@ func (i *Incarnation) syncConfigMaps(ctx context.Context, configMaps *corev1.Con
 	return envs, nil
 }
 
-<<<<<<< HEAD
-// TODO(lyra): PodTemplate!
-=======
 func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 	rule := &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
@@ -452,7 +457,6 @@ func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 	return nil
 }
 
->>>>>>> 263a456... Add a Prometheus scrape label for apps with a status port (#55)
 func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet {
 	target := i.target()
 	ports := []corev1.ContainerPort{}
@@ -581,7 +585,7 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 	// We don't want to share the value between the target and the hpa, so
 	// we have to make a copy
 	var min *int32
-	if target.Scale.Min == nil {
+	if target.Scale.Min != nil {
 		m := *target.Scale.Min
 		min = &m
 	}
@@ -619,7 +623,7 @@ func (i *Incarnation) divideReplicas(count int32) *int32 {
 	var current int32 = 100
 	if i.status.ReleaseEligible {
 		current = int32(i.status.CurrentPercent)
-		}
+	}
 	r := utils.Max((count*current)/100*i.controller.fleetSize(), 1)
 	return &r
 }
@@ -684,7 +688,7 @@ func (i *Incarnation) secondsSinceRevision() float64 {
 // IncarnationCollection helps us collect and select appropriate incarnations
 type IncarnationCollection struct {
 	// Incarnations key'd on revision.spec.app.tag
-	itemSet        map[string]Incarnation
+	itemSet    map[string]Incarnation
 	controller Controller
 }
 
@@ -693,7 +697,7 @@ func newIncarnationCollection(
 ) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
-		itemSet:        make(map[string]Incarnation),
+		itemSet:    make(map[string]Incarnation),
 	}
 	// First seed all known revisions from status, since some might have been
 	// deleted and don't have associated resources that are Add'd. If an
@@ -717,9 +721,9 @@ func (i *IncarnationCollection) ensureValidRelease() {
 	for _, i := range i.sorted() {
 		state := i.status.State.Current
 		if (state == "deployed" || state == "released") && i.status.ReleaseEligible {
-		r = append(r, i)
+			r = append(r, i)
+		}
 	}
-}
 
 	if len(r) == 0 {
 		i.controller.log().Info("there are no releases, looking for retired release to unretire")
@@ -782,6 +786,7 @@ func (i *IncarnationCollection) sorted() []Incarnation {
 	for _, i := range i.itemSet {
 		r = append(r, i)
 	}
+
 	sort.Slice(r, func(i, j int) bool {
 		a := time.Time{}
 		b := time.Time{}

@@ -478,7 +478,7 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	// Incarnation specific releases are made for each port on private ingress
 	if r.reconciler.config.TaggedRoutesEnabled {
 		for _, incarnation := range r.incarnations.deployed() {
-		http = append(http, incarnation.taggedRoutes(privateGateway, serviceHost)...)
+			http = append(http, incarnation.taggedRoutes(privateGateway, serviceHost)...)
 		}
 	}
 
@@ -495,8 +495,8 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	// setup alerts from latest release
 	if count > 0 {
 		if err := incarnations[0].syncPrometheusRules(context.TODO()); err != nil {
-				return err
-			}
+			return err
+		}
 	}
 
 	for i, incarnation := range incarnations {
@@ -597,27 +597,3 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	r.log.Info("VirtualService sync'd", "Op", op)
 	return nil
 }
-<<<<<<< HEAD
-
-// MarkExpiredReleases marks a Release as Expired if the Release TTL has passed,
-// and the Release is further away from any current Release than the configured buffer,
-// as sorted by GitTimestamp
-func (r *ResourceSyncer) MarkExpiredReleases() error {
-	incarnations := r.incarnations.sortedExistingRetired()
-	log.Info("Garbage collecting releases")
-	for i, incarnation := range incarnations {
-		target := incarnation.target()
-		if target == nil {
-			continue
-		}
-		gitTimestamp := incarnation.revision.GitTimestamp()
-		ttl := target.Release.TTL
-		expiration := gitTimestamp.Add(time.Duration(ttl) * time.Second)
-		if i >= target.Release.GcBuffer && time.Now().After(expiration) {
-			incarnation.recordExpired()
-		}
-	}
-	return nil
-}
-=======
->>>>>>> 263a456... Add a Prometheus scrape label for apps with a status port (#55)
