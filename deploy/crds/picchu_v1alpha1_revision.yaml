@@ -11,6 +11,8 @@ spec:
     kind: Revision
     plural: revisions
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -153,9 +155,6 @@ spec:
                         type: string
                       ttl:
                         format: int64
-                        type: integer
-                      gc_buffer:
-                        format: int32
                         type: integer
                     type: object
                   resources:

@@ -10,7 +10,6 @@ const (
 	defaultReleaseRateIncrement    = 5
 	defaultReleaseRateDelaySeconds = int64(10)
 	defaultReleaseGcTTLSeconds     = int64(5 * 24 * 60 * 60)
-	defaultGcBuffer                = 5
 	defaultScaleDefault            = int32(1)
 	defaultScaleMax                = int32(1)
 
@@ -47,9 +46,6 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 	}
 	if release.TTL == 0 {
 		release.TTL = defaultReleaseGcTTLSeconds
-	}
-	if release.GcBuffer == 0 {
-		release.GcBuffer = defaultGcBuffer
 	}
 }
 

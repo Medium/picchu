@@ -33,11 +33,7 @@ func RemoteClient(reader client.Reader, cluster *picchuv1alpha1.Cluster) (client
 
 // UpdateStatus first tries new method of status update, and falls back to old.
 func UpdateStatus(ctx context.Context, client client.Client, obj runtime.Object) error {
-	err := client.Status().Update(ctx, obj)
-	if err == nil {
-		return nil
-	}
-	return client.Update(ctx, obj)
+	return client.Status().Update(ctx, obj)
 }
 
 func MustGetKind(scheme *runtime.Scheme, obj runtime.Object) schema.GroupVersionKind {

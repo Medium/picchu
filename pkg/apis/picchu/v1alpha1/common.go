@@ -62,7 +62,6 @@ type ReleaseInfo struct {
 	Rate     RateInfo `json:"rate,omitempty"`
 	Schedule string   `json:"schedule,omitempty"`
 	TTL      int64    `json:"ttl,omitempty"`
-	GcBuffer int      `json:"gc_buffer,omitempty"`
 }
 
 type RateInfo struct {

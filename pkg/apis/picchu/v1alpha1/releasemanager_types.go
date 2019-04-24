@@ -45,17 +45,22 @@ type ReleaseManagerStatus struct {
 
 type ReleaseManagerRevisionStatus struct {
 	Tag            string                                 `json:"tag"`
-	LastUpdated    *metav1.Time                           `json:"lastUpdated"`
+	State           ReleaseManagerRevisionStateStatus      `json:"state,omitempty"`
 	CurrentPercent uint32                                 `json:"currentPercent"`
 	PeakPercent    uint32                                 `json:"peakPercent"`
-	Released       bool                                   `json:"released"`
-	Expired        bool                                   `json:"expired"`
-	EverReleased   bool                                   `json:"everReleased"`
-	Deployed       bool                                   `json:"deployed"`
-	EverDeployed   bool                                   `json:"everDeployed"`
-	Retired        bool                                   `json:"retired"`
-	Resources      []ReleaseManagerRevisionResourceStatus `json:"resources"`
+	Resources       []ReleaseManagerRevisionResourceStatus `json:"resources,omitempty"`
+	ReleaseEligible bool                                   `json:"releaseEligible"`
+	TriggeredAlarms []string                               `json:"triggeredAlerts,omitempty"`
+	LastUpdated     *metav1.Time                           `json:"lastUpdated"`
+	GitTimestamp    *metav1.Time                           `json:"gitTimestamp,omitempty"`
+	TTL             int64                                  `json:"ttl,omitempty"`
+	Metrics         ReleaseManagerRevisionMetricsStatus    `json:"metrics,omitempty"`
 	Scale          ReleaseManagerRevisionScaleStatus      `json:"scale"`
+}
+
+type ReleaseManagerRevisionMetricsStatus struct {
+	DeploySeconds  *float64 `json:"deploySeconds,omitempty"`
+	ReleaseSeconds *float64 `json:"releaseSeconds,omitempty"`
 }
 
 type ReleaseManagerRevisionResourceStatus struct {
@@ -65,13 +70,36 @@ type ReleaseManagerRevisionResourceStatus struct {
 	Status     string                `json:"status"`
 }
 
-func (r *ReleaseManagerRevisionStatus) CreateOrUpdateResourceStatus(rs ReleaseManagerRevisionResourceStatus) {
-	for i, s := range r.Resources {
+type ReleaseManagerRevisionStateStatus struct {
+	Current string `json:"current"`
+	Target  string `json:"target"`
+}
+
+func (r *ReleaseManagerRevisionStateStatus) EqualTo(other *ReleaseManagerRevisionStateStatus) bool {
+	return r.Target == other.Target && r.Current == other.Current
+}
+
+func (r *ReleaseManagerRevisionStatus) RemoveResourceStatus(rs ReleaseManagerRevisionResourceStatus) {
+	resources := []ReleaseManagerRevisionResourceStatus{}
+	for _, s := range r.Resources {
 		if s.Metadata.Name == rs.Metadata.Name &&
 			s.Metadata.Namespace == rs.Metadata.Namespace &&
 			s.ApiVersion == rs.ApiVersion &&
 			s.Kind == rs.Kind {
-			r.Resources[i].Status = rs.Status
+			continue
+		}
+		resources = append(resources, s)
+	}
+	r.Resources = resources
+	return
+}
+
+func (r *ReleaseManagerRevisionStatus) CreateOrUpdateResourceStatus(rs ReleaseManagerRevisionResourceStatus) {
+	for _, s := range r.Resources {
+		if s.Metadata.Name == rs.Metadata.Name &&
+			s.Metadata.Namespace == rs.Metadata.Namespace &&
+			s.ApiVersion == rs.ApiVersion &&
+			s.Kind == rs.Kind {
 			return
 		}
 
@@ -95,7 +123,10 @@ func (r *ReleaseManager) RevisionStatus(tag string) *ReleaseManagerRevisionStatu
 	now := metav1.Now()
 	s := ReleaseManagerRevisionStatus{
 		Tag:            tag,
-		Expired:        false,
+		State: ReleaseManagerRevisionStateStatus{
+			Current: "created",
+			Target:  "created",
+		},
 		LastUpdated:    &now,
 		CurrentPercent: 0,
 		PeakPercent:    0,
