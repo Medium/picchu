@@ -192,6 +192,9 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 
 			rmCount++
 			for _, rl := range rm.Status.Revisions {
+				if rl.GitTimestamp == nil {
+					continue
+				}
 				expiration := rl.GitTimestamp.Add(time.Duration(rl.TTL) * time.Second)
 				if rl.Tag == revision.Spec.App.Tag && rl.State.Current == "retired" && time.Now().After(expiration) {
 					retiredCount++

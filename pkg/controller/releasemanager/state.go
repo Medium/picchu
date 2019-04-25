@@ -108,7 +108,7 @@ func (s *Deployed) tick(deployment Deployment) (State, error) {
 
 func (s *Deployed) reached(deployment Deployment) bool {
 	scale := deployment.getStatus().Scale
-	return scale.Current >= scale.Desired
+	return scale.Current >= scale.Desired && scale.Current >= 1
 }
 
 type Released struct{}
@@ -143,7 +143,7 @@ func (s *Retired) tick(deployment Deployment) (State, error) {
 }
 
 func (s *Retired) reached(deployment Deployment) bool {
-	return deployment.getStatus().Scale.Current == 0
+	return deployment.getStatus().Scale.Current+deployment.getStatus().Scale.Desired == 0
 }
 
 type Deleted struct{}

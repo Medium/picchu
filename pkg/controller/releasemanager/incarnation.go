@@ -140,6 +140,7 @@ func (i *Incarnation) retire() error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			i.status.Scale.Current = 0
+			i.status.Scale.Desired = 0
 			return nil
 		}
 		i.log.Error(err, "Failed to update replicaset to 0 replicas")
@@ -151,7 +152,17 @@ func (i *Incarnation) retire() error {
 	if err != nil {
 		return err
 	}
-	i.status.Scale.Current = 0
+	err = i.controller.client().Get(ctx, s, rs)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			i.status.Scale.Current = 0
+			i.status.Scale.Desired = 0
+			return nil
+		}
+		i.log.Error(err, "Failed to update replicaset to 0 replicas")
+		return err
+	}
+	i.recordHealthStatus(rs)
 	return nil
 }
 
@@ -546,6 +557,10 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 func (i *Incarnation) syncReplicaSet(ctx context.Context, envs []corev1.EnvFromSource) error {
 	rs := i.replicaSet(envs)
 	op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), rs, func(runtime.Object) error {
+		if *rs.Spec.Replicas == 0 {
+			var one int32 = 1
+			rs.Spec.Replicas = &one
+		}
 		return nil
 	})
 	i.log.Info("ReplicaSet sync'd", "Op", op)
