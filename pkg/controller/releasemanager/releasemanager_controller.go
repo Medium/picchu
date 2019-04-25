@@ -207,9 +207,6 @@ type ResourceSyncer struct {
 	log          logr.Logger
 }
 
-func (r *ResourceSyncer) isReleaseEligible(tag string) {
-}
-
 func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) (*corev1.SecretList, error) {
 	secrets := &corev1.SecretList{}
 	err := r.client.List(ctx, opts, secrets)
@@ -594,6 +591,6 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		return err
 	}
 
-	r.log.Info("VirtualService sync'd", "Op", op)
+	r.log.Info("VirtualService sync'd", "Type", "VirtualService", "Audit", true, "Content", vs, "Op", op)
 	return nil
 }

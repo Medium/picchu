@@ -152,16 +152,6 @@ func (i *Incarnation) retire() error {
 	if err != nil {
 		return err
 	}
-	err = i.controller.client().Get(ctx, s, rs)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			i.status.Scale.Current = 0
-			i.status.Scale.Desired = 0
-			return nil
-		}
-		i.log.Error(err, "Failed to update replicaset to 0 replicas")
-		return err
-	}
 	i.recordHealthStatus(rs)
 	return nil
 }
@@ -764,12 +754,17 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 	return r
 }
 
-// released returns deployed release eligible incarnations in order from
-// latest to oldest
+// releasable returns deployed release eligible incarnations in order from
+// releaseEligible to !releaseEligible, then latest to oldest
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Target == "released" {
+		if i.status.State.Target == "released" && i.isReleaseEligible() {
+			r = append(r, i)
+		}
+	}
+	for _, i := range i.sorted() {
+		if i.status.State.Target == "released" && !i.isReleaseEligible() {
 			r = append(r, i)
 		}
 	}
