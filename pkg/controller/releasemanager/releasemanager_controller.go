@@ -266,6 +266,7 @@ func (r *ResourceSyncer) sync() (reconcile.Result, error) {
 		r.log.Error(err, "Failed to update releasemanager status")
 		return reconcile.Result{}, err
 	}
+	r.log.Info("Updated releasemanager status", "Content", r.instance.Status, "Type", "ReleaseManager.Status")
 	return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
 }
 
