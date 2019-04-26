@@ -507,7 +507,7 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		incarnation.updateCurrentPercent(current)
 		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
 		percRemaining -= current
-		if percRemaining <= 0 {
+		if percRemaining+current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
 
