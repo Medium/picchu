@@ -140,6 +140,7 @@ func (i *Incarnation) retire() error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			i.status.Scale.Current = 0
+			i.status.Scale.Desired = 0
 			return nil
 		}
 		i.log.Error(err, "Failed to update replicaset to 0 replicas")
@@ -151,7 +152,7 @@ func (i *Incarnation) retire() error {
 	if err != nil {
 		return err
 	}
-	i.status.Scale.Current = 0
+	i.recordHealthStatus(rs)
 	return nil
 }
 
@@ -546,6 +547,10 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 func (i *Incarnation) syncReplicaSet(ctx context.Context, envs []corev1.EnvFromSource) error {
 	rs := i.replicaSet(envs)
 	op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), rs, func(runtime.Object) error {
+		if *rs.Spec.Replicas == 0 {
+			var one int32 = 1
+			rs.Spec.Replicas = &one
+		}
 		return nil
 	})
 	i.log.Info("ReplicaSet sync'd", "Op", op)
@@ -720,14 +725,14 @@ func (i *IncarnationCollection) ensureValidRelease() {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
 		state := i.status.State.Current
-		if (state == "deployed" || state == "released") && i.status.ReleaseEligible {
+		if (state == "deployed" || state == "released") && i.isReleaseEligible() {
 			r = append(r, i)
 		}
 	}
 
 	if len(r) == 0 {
 		i.controller.log().Info("there are no releases, looking for retired release to unretire")
-		candidates := i.retired()
+		candidates := i.unretirable()
 		if len(candidates) > 0 {
 			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
 			candidates[0].setReleaseEligible(true)
@@ -749,22 +754,30 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 	return r
 }
 
-// released returns deployed release eligible incarnations in order from
-// latest to oldest
+// releasable returns deployed release eligible incarnations in order from
+// releaseEligible to !releaseEligible, then latest to oldest
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Target == "released" {
+		if i.status.State.Target == "released" && i.isReleaseEligible() {
+			r = append(r, i)
+		}
+	}
+	for _, i := range i.sorted() {
+		if i.status.State.Target == "released" && !i.isReleaseEligible() {
 			r = append(r, i)
 		}
 	}
 	return r
 }
 
-func (i *IncarnationCollection) retired() []Incarnation {
+func (i *IncarnationCollection) unretirable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Current == "retired" {
+		cur := i.status.State.Current
+		elig := i.isReleaseEligible()
+		triggered := i.isAlarmTriggered()
+		if cur == "retired" || (cur == "released" && !elig && !triggered) {
 			r = append(r, i)
 		}
 	}

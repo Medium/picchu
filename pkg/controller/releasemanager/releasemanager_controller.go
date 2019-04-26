@@ -207,9 +207,6 @@ type ResourceSyncer struct {
 	log          logr.Logger
 }
 
-func (r *ResourceSyncer) isReleaseEligible(tag string) {
-}
-
 func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) (*corev1.SecretList, error) {
 	secrets := &corev1.SecretList{}
 	err := r.client.List(ctx, opts, secrets)
@@ -269,6 +266,7 @@ func (r *ResourceSyncer) sync() (reconcile.Result, error) {
 		r.log.Error(err, "Failed to update releasemanager status")
 		return reconcile.Result{}, err
 	}
+	r.log.Info("Updated releasemanager status", "Content", r.instance.Status, "Type", "ReleaseManager.Status")
 	return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
 }
 
@@ -433,7 +431,7 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 		drule.Spec = spec
 		return nil
 	})
-	r.log.Info("DestinationRule sync'd", "Op", op)
+	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
 	return err
 }
 
@@ -509,7 +507,7 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		incarnation.updateCurrentPercent(current)
 		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
 		percRemaining -= current
-		if percRemaining <= 0 {
+		if percRemaining+current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
 
@@ -594,6 +592,6 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		return err
 	}
 
-	r.log.Info("VirtualService sync'd", "Op", op)
+	r.log.Info("VirtualService sync'd", "Type", "VirtualService", "Audit", true, "Content", vs, "Op", op)
 	return nil
 }
