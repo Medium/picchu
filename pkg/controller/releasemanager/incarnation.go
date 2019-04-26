@@ -725,7 +725,7 @@ func (i *IncarnationCollection) ensureValidRelease() {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
 		state := i.status.State.Current
-		if (state == "deployed" || state == "released") && i.status.ReleaseEligible {
+		if (state == "deployed" || state == "released") && i.isReleaseEligible() {
 			r = append(r, i)
 		}
 	}
@@ -776,7 +776,8 @@ func (i *IncarnationCollection) unretirable() []Incarnation {
 	for _, i := range i.sorted() {
 		cur := i.status.State.Current
 		elig := i.isReleaseEligible()
-		if cur == "retired" || (cur == "released" && !elig) {
+		triggered := i.isAlarmTriggered()
+		if cur == "retired" || (cur == "released" && !elig && !triggered) {
 			r = append(r, i)
 		}
 	}
