@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -47,6 +48,22 @@ type PortInfo struct {
 	ContainerPort int32           `json:"containerPort,omitempty"`
 	Protocol      corev1.Protocol `json:"protocol,omitempty"`
 	Mode          PortMode        `json:"mode"`
+
+	Istio IstioPortConfig `json:"istio,omitempty"`
+}
+
+type IstioPortConfig struct {
+	HTTP IstioHTTPPortConfig `json:"http,omitempty"`
+}
+
+type IstioHTTPPortConfig struct {
+	Redirect              *istiov1alpha3.HTTPRedirect       `json:"redirect,omitempty"`
+	Rewrite               *istiov1alpha3.HTTPRewrite        `json:"rewrite,omitempty"`
+	Retries               *istiov1alpha3.HTTPRetry          `json:"retries,omitempty"`
+	Fault                 *istiov1alpha3.HTTPFaultInjection `json:"fault,omitempty"`
+	Mirror                *istiov1alpha3.Destination        `json:"mirror,omitempty"`
+	AppendHeaders         map[string]string                 `json:"appendHeaders,omitempty"`
+	RemoveResponseHeaders map[string]string                 `json:"removeResponseHeaders,omitempty"`
 }
 
 type ScaleInfo struct {

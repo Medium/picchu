@@ -537,7 +537,15 @@ func (r *ResourceSyncer) syncVirtualService() error {
 				}
 				releaseRoute, ok := releaseRoutes[port.Name]
 				if !ok {
-					releaseRoute = istiov1alpha3.HTTPRoute{}
+					releaseRoute = istiov1alpha3.HTTPRoute{
+						Redirect:              port.Istio.HTTP.Redirect,
+						Rewrite:               port.Istio.HTTP.Rewrite,
+						Retries:               port.Istio.HTTP.Retries,
+						Fault:                 port.Istio.HTTP.Fault,
+						Mirror:                port.Istio.HTTP.Mirror,
+						AppendHeaders:         port.Istio.HTTP.AppendHeaders,
+						RemoveResponseHeaders: port.Istio.HTTP.RemoveResponseHeaders,
+					}
 					for _, filterHost := range filterHosts {
 						hosts[filterHost] = true
 						releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{

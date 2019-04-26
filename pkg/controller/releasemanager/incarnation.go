@@ -537,7 +537,8 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 					Labels:      podLabels,
 				},
 				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{appContainer},
+					ServiceAccountName: target.ServiceAccountName,
+					Containers:         []corev1.Container{appContainer},
 				},
 			},
 		},
