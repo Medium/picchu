@@ -431,7 +431,7 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 		drule.Spec = spec
 		return nil
 	})
-	r.log.Info("DestinationRule sync'd", "Op", op)
+	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
 	return err
 }
 
