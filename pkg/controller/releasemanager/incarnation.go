@@ -732,7 +732,7 @@ func (i *IncarnationCollection) ensureValidRelease() {
 
 	if len(r) == 0 {
 		i.controller.log().Info("there are no releases, looking for retired release to unretire")
-		candidates := i.retired()
+		candidates := i.unretirable()
 		if len(candidates) > 0 {
 			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
 			candidates[0].setReleaseEligible(true)
@@ -771,10 +771,12 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 	return r
 }
 
-func (i *IncarnationCollection) retired() []Incarnation {
+func (i *IncarnationCollection) unretirable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Current == "retired" {
+		cur := i.status.State.Current
+		elig := i.isReleaseEligible()
+		if cur == "retired" || (cur == "released" && !elig) {
 			r = append(r, i)
 		}
 	}
