@@ -146,13 +146,16 @@ func (i *Incarnation) retire() error {
 		i.log.Error(err, "Failed to update replicaset to 0 replicas")
 		return err
 	}
-	var r int32 = 0
-	rs.Spec.Replicas = &r
-	err = i.controller.client().Update(ctx, rs)
-	if err != nil {
-		return err
+	if *rs.Spec.Replicas != 0 {
+		var r int32 = 0
+		rs.Spec.Replicas = &r
+		err = i.controller.client().Update(ctx, rs)
+		i.log.Info("ReplicaSet sync'd", "Type", "ReplicaSet", "Audit", true, "Content", rs, "Op", "updated")
+		if err != nil {
+			return err
+		}
+		i.recordHealthStatus(rs)
 	}
-	i.recordHealthStatus(rs)
 	return nil
 }
 
