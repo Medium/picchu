@@ -148,16 +148,21 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(revisions)
-	for _, rev := range revisions.Items {
-		incarnations.add(&rev)
-	}
-	incarnations.ensureValidRelease()
 
 	aq := promapi.NewAlertQuery(rm.Spec.App)
 	alertTags, err := r.promAPI.TaggedAlerts(context.TODO(), aq, time.Now())
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	for _, rev := range revisions.Items {
+		incarnations.add(&rev)
+	}
+	for _, tag := range alertTags {
+		incarnations.addTriggeredAlarm(tag, "slo")
+	}
+	incarnations.ensureValidRelease()
+
 	syncer := ResourceSyncer{
 		instance:     rm,
 		incarnations: incarnations,
@@ -165,7 +170,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		client:       remoteClient,
 		reconciler:   r,
 		log:          reqLog,
-		alertTags:    alertTags,
 	}
 	// -------------------------------------------------------------------------
 
@@ -222,7 +226,6 @@ type ResourceSyncer struct {
 	reconciler   *ReconcileReleaseManager
 	fleetSize    uint32
 	log          logr.Logger
-	alertTags    []string
 }
 
 func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) (*corev1.SecretList, error) {
