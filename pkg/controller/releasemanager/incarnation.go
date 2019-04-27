@@ -135,7 +135,7 @@ func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 func (i *Incarnation) retire() error {
 	ctx := context.TODO()
 	rs := &appsv1.ReplicaSet{}
-	s := types.NamespacedName{i.tag, i.targetNamespace()}
+	s := types.NamespacedName{i.targetNamespace(), i.tag}
 	err := i.controller.client().Get(ctx, s, rs)
 	if err != nil {
 		if errors.IsNotFound(err) {
