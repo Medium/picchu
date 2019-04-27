@@ -554,7 +554,7 @@ func (i *Incarnation) syncReplicaSet(ctx context.Context, envs []corev1.EnvFromS
 		}
 		return nil
 	})
-	i.log.Info("ReplicaSet sync'd", "Op", op)
+	i.log.Info("ReplicaSet sync'd", "Type", "ReplicaSet", "Audit", true, "Content", rs, "Op", op)
 	if err != nil {
 		log.Error(err, "Failed to sync replicaSet")
 		return err
@@ -588,13 +588,9 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 		return nil
 	}
 
-	// We don't want to share the value between the target and the hpa, so
-	// we have to make a copy
-	var min *int32
-	if target.Scale.Min != nil {
-		m := *target.Scale.Min
-		min = &m
-	}
+	min := i.divideReplicas(*target.Scale.Min)
+	max := i.divideReplicas(target.Scale.Max)
+
 	hpa := &autoscalingv1.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.tag,
@@ -607,16 +603,18 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 				Name:       i.tag,
 				APIVersion: "apps/v1",
 			},
-			MinReplicas:                    i.divideReplicas(*min),
-			MaxReplicas:                    *i.divideReplicas(target.Scale.Max),
+			MinReplicas:                    min,
+			MaxReplicas:                    *max,
 			TargetCPUUtilizationPercentage: cpuTarget,
 		},
 	}
 
 	op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), hpa, func(runtime.Object) error {
+		hpa.Spec.MinReplicas = min
+		hpa.Spec.MaxReplicas = *max
 		return nil
 	})
-	log.Info("HPA sync'd", "Op", op)
+	i.log.Info("HPA sync'd", "Type", "HPA", "Audit", true, "Content", hpa, "Op", op)
 	if err != nil {
 		log.Error(err, "Failed to sync hpa")
 		return err
@@ -626,11 +624,7 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 }
 
 func (i *Incarnation) divideReplicas(count int32) *int32 {
-	var current int32 = 100
-	if i.status.ReleaseEligible {
-		current = int32(i.status.CurrentPercent)
-	}
-	r := utils.Max((count*current)/100*i.controller.fleetSize(), 1)
+	r := utils.Max(count/i.controller.fleetSize(), 1)
 	return &r
 }
 
