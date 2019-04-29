@@ -128,3 +128,19 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([
 	}
 	return tags, nil
 }
+
+// IsRevisionTriggered returns true if any slo alerts are currently triggered
+// for the app/tag pair.
+func (a API) IsRevisionTriggered(ctx context.Context, app, tag string) (bool, error) {
+	q := NewAlertQuery(app)
+	tags, err := a.TaggedAlerts(ctx, q, time.Now())
+	if err != nil {
+		return false, err
+	}
+	for _, t := range tags {
+		if tag == t {
+			return true, nil
+		}
+	}
+	return false, nil
+}

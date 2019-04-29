@@ -44,30 +44,31 @@ type ReleaseManagerStatus struct {
 }
 
 type ReleaseManagerRevisionStatus struct {
-	Tag            string                                 `json:"tag"`
-	State           ReleaseManagerRevisionStateStatus      `json:"state,omitempty"`
-	CurrentPercent uint32                                 `json:"currentPercent"`
-	PeakPercent    uint32                                 `json:"peakPercent"`
-	Resources       []ReleaseManagerRevisionResourceStatus `json:"resources,omitempty"`
-	ReleaseEligible bool                                   `json:"releaseEligible"`
-	TriggeredAlarms []string                               `json:"triggeredAlerts,omitempty"`
-	LastUpdated     *metav1.Time                           `json:"lastUpdated"`
-	GitTimestamp    *metav1.Time                           `json:"gitTimestamp,omitempty"`
-	TTL             int64                                  `json:"ttl,omitempty"`
-	Metrics         ReleaseManagerRevisionMetricsStatus    `json:"metrics,omitempty"`
-	Scale          ReleaseManagerRevisionScaleStatus      `json:"scale"`
+	Tag               string                                 `json:"tag"`
+	State             ReleaseManagerRevisionStateStatus      `json:"state,omitempty"`
+	CurrentPercent    uint32                                 `json:"currentPercent"`
+	PeakPercent       uint32                                 `json:"peakPercent"`
+	Resources         []ReleaseManagerRevisionResourceStatus `json:"resources,omitempty"`
+	ReleaseEligible   bool                                   `json:"releaseEligible"`
+	TriggeredAlarms   []string                               `json:"triggeredAlerts,omitempty"`
+	LastUpdated       *metav1.Time                           `json:"lastUpdated"`
+	GitTimestamp      *metav1.Time                           `json:"gitTimestamp,omitempty"`
+	RevisionTimestamp *metav1.Time                           `json:"revisionTimestamp,omitempty"`
+	TTL               int64                                  `json:"ttl,omitempty"`
+	Metrics           ReleaseManagerRevisionMetricsStatus    `json:"metrics,omitempty"`
+	Scale             ReleaseManagerRevisionScaleStatus      `json:"scale"`
 }
 
 type ReleaseManagerRevisionMetricsStatus struct {
-	DeploySeconds  *float64 `json:"deploySeconds,omitempty"`
-	ReleaseSeconds *float64 `json:"releaseSeconds,omitempty"`
+	GitReleaseSeconds     *float64 `json:"gitReleaseSeconds,omitempty"`
+	GitDeploySeconds      *float64 `json:"gitDeploySeconds,omitempty"`
+	RevisionDeploySeconds *float64 `json:"revisionDeploySeconds,omitempty"`
 }
 
 type ReleaseManagerRevisionResourceStatus struct {
 	ApiVersion string                `json:"apiVersion"`
 	Kind       string                `json:"kind"`
 	Metadata   *types.NamespacedName `json:"metadata,omitempty"`
-	Status     string                `json:"status"`
 }
 
 type ReleaseManagerRevisionStateStatus struct {
@@ -122,7 +123,7 @@ func (r *ReleaseManager) RevisionStatus(tag string) *ReleaseManagerRevisionStatu
 	}
 	now := metav1.Now()
 	s := ReleaseManagerRevisionStatus{
-		Tag:            tag,
+		Tag: tag,
 		State: ReleaseManagerRevisionStateStatus{
 			Current: "created",
 			Target:  "created",

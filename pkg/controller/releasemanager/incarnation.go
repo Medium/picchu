@@ -64,14 +64,25 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		status.State.Target = "created"
 	}
 
-	var r picchuv1alpha1.Revision
+	if status.RevisionTimestamp == nil {
+		if revision == nil {
+			now := metav1.Now()
+			status.RevisionTimestamp = &now
+		} else {
+			ts := revision.GetCreationTimestamp()
+			status.RevisionTimestamp = &ts
+		}
+	}
+
+	var r *picchuv1alpha1.Revision
 	if revision != nil {
-		r = *revision
+		rev := *revision
+		r = &rev
 	}
 	return Incarnation{
 		controller: controller,
 		tag:        tag,
-		revision:   &r,
+		revision:   r,
 		log:        log,
 		status:     status,
 	}
@@ -154,8 +165,8 @@ func (i *Incarnation) retire() error {
 		if err != nil {
 			return err
 		}
-		i.recordHealthStatus(rs)
 	}
+	i.recordHealthStatus(rs)
 	return nil
 }
 
@@ -206,7 +217,10 @@ func (i *Incarnation) hasRevision() bool {
 }
 
 func (i *Incarnation) isAlarmTriggered() bool {
-	return len(i.status.TriggeredAlarms) > 0
+	if i.revision != nil {
+		return i.revision.Spec.Failed
+	}
+	return false
 }
 
 func (i *Incarnation) setState(target string, reached bool) {
@@ -221,10 +235,6 @@ func (i *Incarnation) isReleaseEligible() bool {
 }
 
 // = End Deployment interface
-
-func (i *Incarnation) addTriggeredAlarm(name string) {
-	i.status.TriggeredAlarms = append(i.status.TriggeredAlarms, "name")
-}
 
 func (i *Incarnation) target() *picchuv1alpha1.RevisionTarget {
 	if i.revision == nil {
@@ -649,6 +659,10 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	}
 	delay := time.Duration(*target.Release.Rate.DelaySeconds) * time.Second
 	increment := target.Release.Rate.Increment
+	// We can skip scale up for revisions that already scaled
+	if current+increment < status.PeakPercent {
+		increment = status.PeakPercent - current
+	}
 	if target.Release.Max < max {
 		max = target.Release.Max
 	}
@@ -717,40 +731,10 @@ func newIncarnationCollection(
 	return ic
 }
 
-func (i *IncarnationCollection) addTriggeredAlarm(tag, alarm string) {
-	for _, i := range i.sorted() {
-		if i.tag == tag {
-			i.addTriggeredAlarm(alarm)
-			return
-		}
-	}
-}
-
 // Add adds a new Incarnation to the IncarnationManager
 func (i *IncarnationCollection) add(revision *picchuv1alpha1.Revision) {
 	l := i.controller.log().WithValues("Incarnation.Tag", revision.Spec.App.Tag)
 	i.itemSet[revision.Spec.App.Tag] = NewIncarnation(i.controller, revision.Spec.App.Tag, revision, l)
-}
-
-func (i *IncarnationCollection) ensureValidRelease() {
-	r := []Incarnation{}
-	for _, i := range i.sorted() {
-		state := i.status.State.Current
-		if (state == "deployed" || state == "released") && i.isReleaseEligible() {
-			r = append(r, i)
-		}
-	}
-
-	if len(r) == 0 {
-		i.controller.log().Info("there are no releases, looking for retired release to unretire")
-		candidates := i.unretirable()
-		if len(candidates) > 0 {
-			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
-			candidates[0].setReleaseEligible(true)
-		} else {
-			i.controller.log().Info("No available releases retired")
-		}
-	}
 }
 
 // deployed returns deployed incarnation
@@ -770,12 +754,33 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Target == "released" && i.isReleaseEligible() {
+		if i.status.State.Target == "released" {
 			r = append(r, i)
 		}
 	}
+	if len(r) == 0 {
+		i.controller.log().Info("there are no releases, looking for retired release to unretire")
+		candidates := i.unretirable()
+		unretiredCount := 0
+		// We scale retired back up to `peakPercent`. We want to unretire enough to make 100% as
+		// fast as possible for cases where we are replacing failed revisions.
+		var percRemaining uint32 = 100
+		for _, candidate := range candidates {
+			if percRemaining <= 0 {
+				break
+			}
+			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
+			candidates[0].setReleaseEligible(true)
+			unretiredCount++
+			percRemaining -= candidate.getStatus().PeakPercent
+		}
+
+		if unretiredCount <= 0 {
+			i.controller.log().Info("No available releases retired")
+		}
+	}
 	for _, i := range i.sorted() {
-		if i.status.State.Target == "released" && !i.isReleaseEligible() {
+		if i.status.State.Current == "released" && i.status.State.Target != "released" {
 			r = append(r, i)
 		}
 	}

@@ -35,6 +35,7 @@ type RevisionSpec struct {
 	App     RevisionApp      `json:"app"`
 	Ports   []PortInfo       `json:"ports"`
 	Targets []RevisionTarget `json:"targets"`
+	Failed  bool             `json:"failed"`
 }
 
 type RevisionApp struct {

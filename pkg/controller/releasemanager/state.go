@@ -66,6 +66,9 @@ func (s *DeploymentStateManager) tick() error {
 	target = string(state)
 	reached = handlers[target].reached(s.deployment)
 	s.deployment.setState(target, reached)
+	target = s.deployment.getStatus().State.Target
+	current = s.deployment.getStatus().State.Current
+	s.deployment.getLog().Info("Advanced state", "tag", s.deployment.getStatus().Tag, "current", current, "target", target)
 	return nil
 }
 
@@ -91,6 +94,9 @@ func (s *Created) reached(deployment Deployment) bool {
 type Deployed struct{}
 
 func (s *Deployed) tick(deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
 	if err := deployment.sync(); err != nil {
 		return deployed, err
 	}
@@ -99,9 +105,6 @@ func (s *Deployed) tick(deployment Deployment) (State, error) {
 	}
 	if deployment.isReleaseEligible() && s.reached(deployment) {
 		return released, nil
-	}
-	if !deployment.hasRevision() {
-		return deleted, nil
 	}
 	return deployed, nil
 }
@@ -117,7 +120,7 @@ func (s *Released) tick(deployment Deployment) (State, error) {
 	if deployment.isAlarmTriggered() {
 		return failed, nil
 	}
-	if !deployment.isReleaseEligible() && deployment.getStatus().CurrentPercent <= 0 {
+	if !deployment.isReleaseEligible() {
 		return retired, nil
 	}
 	return released, nil
@@ -130,14 +133,14 @@ func (s *Released) reached(deployment Deployment) bool {
 type Retired struct{}
 
 func (s *Retired) tick(deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
 	if deployment.isReleaseEligible() {
 		return deployed, nil
 	}
 	if deployment.getStatus().CurrentPercent <= 0 {
 		return retired, deployment.retire()
-	}
-	if !deployment.hasRevision() {
-		return deleted, nil
 	}
 	return retired, nil
 }
@@ -164,8 +167,14 @@ func (s *Deleted) reached(deployment Deployment) bool {
 type Failed struct{}
 
 func (s *Failed) tick(deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
 	if !deployment.isAlarmTriggered() {
 		return deployed, nil
+	}
+	if deployment.getStatus().CurrentPercent <= 0 {
+		return failed, deployment.retire()
 	}
 	return failed, nil
 }
