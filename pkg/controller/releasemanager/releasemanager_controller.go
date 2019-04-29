@@ -335,7 +335,7 @@ func (r *ResourceSyncer) tickIncarnations() error {
 		if newState.Current != newState.Target {
 			continue
 		}
-		if newState.Target == "deployed" && incarnation.status.Metrics.DeploySeconds == nil {
+		if (newState.Target == "deployed" || newState.Target == "released") && incarnation.status.Metrics.DeploySeconds == nil {
 			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.DeploySeconds = &elapsed
 			incarnationDeployLatency.Observe(elapsed)
