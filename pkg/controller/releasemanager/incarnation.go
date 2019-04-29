@@ -64,14 +64,15 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		status.State.Target = "created"
 	}
 
-	var r picchuv1alpha1.Revision
+	var r *picchuv1alpha1.Revision
 	if revision != nil {
-		r = *revision
+		rev := *revision
+		r = &rev
 	}
 	return Incarnation{
 		controller: controller,
 		tag:        tag,
-		revision:   &r,
+		revision:   r,
 		log:        log,
 		status:     status,
 	}
