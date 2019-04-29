@@ -69,7 +69,6 @@ type ReleaseManagerRevisionResourceStatus struct {
 	ApiVersion string                `json:"apiVersion"`
 	Kind       string                `json:"kind"`
 	Metadata   *types.NamespacedName `json:"metadata,omitempty"`
-	Status     string                `json:"status"`
 }
 
 type ReleaseManagerRevisionStateStatus struct {
