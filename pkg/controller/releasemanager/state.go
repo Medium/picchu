@@ -66,6 +66,9 @@ func (s *DeploymentStateManager) tick() error {
 	target = string(state)
 	reached = handlers[target].reached(s.deployment)
 	s.deployment.setState(target, reached)
+	target = s.deployment.getStatus().State.Target
+	current = s.deployment.getStatus().State.Current
+	s.deployment.getLog().Info("Advanced state", "tag", s.deployment.getStatus().Tag, "current", current, "target", target)
 	return nil
 }
 
