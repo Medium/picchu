@@ -36,15 +36,20 @@ const (
 )
 
 var (
-	log                       = logf.Log.WithName("controller_releasemanager")
-	incarnationReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name: "picchu_incarnation_release_latency",
-		Help: "track time from revision creation to incarnationrelease, " +
+	log                          = logf.Log.WithName("controller_releasemanager")
+	incarnationGitReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "picchu_git_release_latency",
+		Help: "track time from git revision creation to incarnation release, " +
 			"minus expected release time (release.rate.delay * math.Ceil(100.0 / release.rate.increment))",
 		Buckets: prometheus.ExponentialBuckets(10, 3, 7),
 	})
-	incarnationDeployLatency = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "picchu_incarnation_deploy_latency",
+	incarnationGitDeployLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "picchu_git_deploy_latency",
+		Help:    "track time from git revision creation to incarnation deploy",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	})
+	incarnationRevisionDeployLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "picchu_revision_deploy_latency",
 		Help:    "track time from revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	})
@@ -53,8 +58,9 @@ var (
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
-	metrics.Registry.MustRegister(incarnationDeployLatency)
-	metrics.Registry.MustRegister(incarnationReleaseLatency)
+	metrics.Registry.MustRegister(incarnationGitReleaseLatency)
+	metrics.Registry.MustRegister(incarnationGitDeployLatency)
+	metrics.Registry.MustRegister(incarnationRevisionDeployLatency)
 	return add(mgr, newReconciler(mgr, c))
 }
 
@@ -321,29 +327,24 @@ func (r *ResourceSyncer) syncNamespace() error {
 func (r *ResourceSyncer) tickIncarnations() error {
 	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
 	for _, incarnation := range r.incarnations.sorted() {
-		oldState := incarnation.status.State
-
-		r.log.Info("ok")
 		sm := NewDeploymentStateManager(&incarnation)
 		if err := sm.tick(); err != nil {
 			return err
 		}
-		newState := incarnation.status.State
-		if oldState.EqualTo(&newState) {
-			continue
-		}
-		if newState.Current != newState.Target {
-			continue
-		}
-		if (newState.Target == "deployed" || newState.Target == "released") && incarnation.status.Metrics.DeploySeconds == nil {
+		current := incarnation.status.State.Current
+		r.log.Info("metrics", "metrics", incarnation.status.Metrics)
+		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
 			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
-			incarnation.status.Metrics.DeploySeconds = &elapsed
-			incarnationDeployLatency.Observe(elapsed)
+			incarnation.status.Metrics.GitDeploySeconds = &elapsed
+			incarnationGitDeployLatency.Observe(elapsed)
+			elapsed = time.Since(incarnation.status.RevisionTimestamp.Time).Seconds()
+			incarnation.status.Metrics.RevisionDeploySeconds = &elapsed
+			incarnationRevisionDeployLatency.Observe(elapsed)
 		}
-		if newState.Target == "released" && incarnation.status.Metrics.ReleaseSeconds == nil {
+		if current == "released" && incarnation.status.Metrics.GitReleaseSeconds == nil {
 			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
-			incarnation.status.Metrics.ReleaseSeconds = &elapsed
-			incarnationReleaseLatency.Observe(elapsed)
+			incarnation.status.Metrics.GitReleaseSeconds = &elapsed
+			incarnationGitReleaseLatency.Observe(elapsed)
 		}
 	}
 	return nil

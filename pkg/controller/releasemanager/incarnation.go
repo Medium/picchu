@@ -64,6 +64,16 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		status.State.Target = "created"
 	}
 
+	if status.RevisionTimestamp == nil {
+		if revision == nil {
+			now := metav1.Now()
+			status.RevisionTimestamp = &now
+		} else {
+			ts := revision.GetCreationTimestamp()
+			status.RevisionTimestamp = &ts
+		}
+	}
+
 	var r *picchuv1alpha1.Revision
 	if revision != nil {
 		rev := *revision
