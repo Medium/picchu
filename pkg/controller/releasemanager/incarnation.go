@@ -727,27 +727,6 @@ func (i *IncarnationCollection) add(revision *picchuv1alpha1.Revision) {
 	i.itemSet[revision.Spec.App.Tag] = NewIncarnation(i.controller, revision.Spec.App.Tag, revision, l)
 }
 
-func (i *IncarnationCollection) ensureValidRelease() {
-	r := []Incarnation{}
-	for _, i := range i.sorted() {
-		state := i.status.State.Current
-		if (state == "deployed" || state == "released") && i.isReleaseEligible() {
-			r = append(r, i)
-		}
-	}
-
-	if len(r) == 0 {
-		i.controller.log().Info("there are no releases, looking for retired release to unretire")
-		candidates := i.unretirable()
-		if len(candidates) > 0 {
-			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
-			candidates[0].setReleaseEligible(true)
-		} else {
-			i.controller.log().Info("No available releases retired")
-		}
-	}
-}
-
 // deployed returns deployed incarnation
 func (i *IncarnationCollection) deployed() []Incarnation {
 	r := []Incarnation{}
@@ -765,12 +744,33 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Target == "released" && i.isReleaseEligible() {
+		if i.status.State.Target == "released" {
 			r = append(r, i)
 		}
 	}
+	if len(r) == 0 {
+		i.controller.log().Info("there are no releases, looking for retired release to unretire")
+		candidates := i.unretirable()
+		unretiredCount := 0
+		// We scale retired back up to `peakPercent`. We want to unretire enough to make 100% as
+		// fast as possible for cases where we are replacing failed revisions.
+		var percRemaining uint32 = 100
+		for _, candidate := range candidates {
+			if percRemaining <= 0 {
+				break
+			}
+			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
+			candidates[0].setReleaseEligible(true)
+			unretiredCount++
+			percRemaining -= candidate.getStatus().PeakPercent
+		}
+
+		if unretiredCount <= 0 {
+			i.controller.log().Info("No available releases retired")
+		}
+	}
 	for _, i := range i.sorted() {
-		if i.status.State.Target == "released" && !i.isReleaseEligible() {
+		if i.status.State.Current == "released" && i.status.State.Target != "released" {
 			r = append(r, i)
 		}
 	}

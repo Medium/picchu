@@ -145,7 +145,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	for _, rev := range revisions.Items {
 		incarnations.add(&rev)
 	}
-	incarnations.ensureValidRelease()
 
 	syncer := ResourceSyncer{
 		instance:     rm,
