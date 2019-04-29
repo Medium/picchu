@@ -7,6 +7,7 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	promapi "go.medium.engineering/picchu/pkg/prometheus"
 
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
@@ -61,7 +62,16 @@ func Add(mgr manager.Manager, c utils.Config) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 	scheme := mgr.GetScheme()
-	return &ReconcileReleaseManager{client: mgr.GetClient(), scheme: scheme, config: c}
+	api, err := promapi.NewAPI(c.PrometheusQueryAddress, c.PrometheusQueryTTL)
+	if err != nil {
+		panic(err)
+	}
+	return &ReconcileReleaseManager{
+		client:  mgr.GetClient(),
+		scheme:  scheme,
+		config:  c,
+		promAPI: api,
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -83,6 +93,7 @@ type ReconcileReleaseManager struct {
 	client client.Client
 	scheme *runtime.Scheme
 	config utils.Config
+	promAPI *promapi.API
 }
 
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
@@ -137,8 +148,18 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(revisions)
+
+	aq := promapi.NewAlertQuery(rm.Spec.App)
+	alertTags, err := r.promAPI.TaggedAlerts(context.TODO(), aq, time.Now())
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	for _, rev := range revisions.Items {
 		incarnations.add(&rev)
+	}
+	for _, tag := range alertTags {
+		incarnations.addTriggeredAlarm(tag, "slo")
 	}
 	incarnations.ensureValidRelease()
 
