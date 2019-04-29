@@ -155,8 +155,8 @@ func (i *Incarnation) retire() error {
 		if err != nil {
 			return err
 		}
-		i.recordHealthStatus(rs)
 	}
+	i.recordHealthStatus(rs)
 	return nil
 }
 
