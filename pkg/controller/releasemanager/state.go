@@ -120,7 +120,7 @@ func (s *Released) tick(deployment Deployment) (State, error) {
 	if deployment.isAlarmTriggered() {
 		return failed, nil
 	}
-	if !deployment.isReleaseEligible() && deployment.getStatus().CurrentPercent <= 0 {
+	if !deployment.isReleaseEligible() {
 		return retired, nil
 	}
 	return released, nil
