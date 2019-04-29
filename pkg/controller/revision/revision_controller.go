@@ -9,28 +9,50 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	promapi "go.medium.engineering/picchu/pkg/prometheus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var log = logf.Log.WithName("controller_revision")
+var (
+	log                 = logf.Log.WithName("controller_revision")
+	revisionFailedGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "picchu_revision_failed",
+		Help: "track failed revisions",
+	}, []string{"app", "tag"})
+)
 
 // Add creates a new Revision Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
+	metrics.Registry.MustRegister(revisionFailedGauge)
 	return add(mgr, newReconciler(mgr, c))
 }
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
-	return &ReconcileRevision{client: mgr.GetClient(), scheme: mgr.GetScheme(), config: c}
+	api, err := promapi.NewAPI(c.PrometheusQueryAddress, c.PrometheusQueryTTL)
+	if err != nil {
+		panic(err)
+	}
+	return &ReconcileRevision{
+		client:  mgr.GetClient(),
+		scheme:  mgr.GetScheme(),
+		config:  c,
+		promAPI: api,
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -38,6 +60,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	_, err := builder.SimpleController().
 		WithManager(mgr).
 		ForType(&picchuv1alpha1.Revision{}).
+		WithEventFilter(predicate.Funcs{
+			UpdateFunc: func(_ event.UpdateEvent) bool { return false },
+		}).
 		Build(r)
 
 	if err != nil {
@@ -53,9 +78,10 @@ var _ reconcile.Reconciler = &ReconcileRevision{}
 type ReconcileRevision struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
-	config utils.Config
+	client  client.Client
+	scheme  *runtime.Scheme
+	config  utils.Config
+	promAPI *promapi.API
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
@@ -89,7 +115,29 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{}, err
+	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	guage := revisionFailedGauge.With(prometheus.Labels{
+		"app": instance.Spec.App.Name,
+		"tag": instance.Spec.App.Tag,
+	})
+	if triggered {
+		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func(runtime.Object) error {
+			instance.Spec.Failed = true
+			return nil
+		})
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		reqLogger.Info("Set Revision State to failed", "Op", op)
+		guage.Set(float64(1))
+	} else {
+		guage.Set(float64(0))
+	}
+
+	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, err
 }
 
 func (r *ReconcileRevision) LabelWithAppAndFleets(revision *picchuv1alpha1.Revision) error {

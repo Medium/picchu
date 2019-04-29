@@ -164,8 +164,14 @@ func (s *Deleted) reached(deployment Deployment) bool {
 type Failed struct{}
 
 func (s *Failed) tick(deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
 	if !deployment.isAlarmTriggered() {
 		return deployed, nil
+	}
+	if deployment.getStatus().CurrentPercent <= 0 {
+		return failed, deployment.retire()
 	}
 	return failed, nil
 }

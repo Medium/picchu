@@ -30,6 +30,8 @@ spec:
           type: object
         spec:
           properties:
+            failed:
+              type: boolean
             app:
               properties:
                 image:

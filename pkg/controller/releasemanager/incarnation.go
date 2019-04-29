@@ -206,7 +206,10 @@ func (i *Incarnation) hasRevision() bool {
 }
 
 func (i *Incarnation) isAlarmTriggered() bool {
-	return len(i.status.TriggeredAlarms) > 0
+	if i.revision != nil {
+		return i.revision.Spec.Failed
+	}
+	return false
 }
 
 func (i *Incarnation) setState(target string, reached bool) {
@@ -221,10 +224,6 @@ func (i *Incarnation) isReleaseEligible() bool {
 }
 
 // = End Deployment interface
-
-func (i *Incarnation) addTriggeredAlarm(name string) {
-	i.status.TriggeredAlarms = append(i.status.TriggeredAlarms, "name")
-}
 
 func (i *Incarnation) target() *picchuv1alpha1.RevisionTarget {
 	if i.revision == nil {
@@ -715,15 +714,6 @@ func newIncarnationCollection(
 		ic.itemSet[r.Tag] = NewIncarnation(controller, r.Tag, nil, l)
 	}
 	return ic
-}
-
-func (i *IncarnationCollection) addTriggeredAlarm(tag, alarm string) {
-	for _, i := range i.sorted() {
-		if i.tag == tag {
-			i.addTriggeredAlarm(alarm)
-			return
-		}
-	}
 }
 
 // Add adds a new Incarnation to the IncarnationManager
