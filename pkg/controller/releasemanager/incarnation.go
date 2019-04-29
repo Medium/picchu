@@ -649,6 +649,10 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	}
 	delay := time.Duration(*target.Release.Rate.DelaySeconds) * time.Second
 	increment := target.Release.Rate.Increment
+	// We can skip scale up for revisions that already scaled
+	if current+increment < status.PeakPercent {
+		increment = status.PeakPercent - current
+	}
 	if target.Release.Max < max {
 		max = target.Release.Max
 	}
