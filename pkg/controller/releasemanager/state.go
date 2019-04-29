@@ -38,6 +38,7 @@ type Deployment interface {
 	retire() error
 	del() error
 	hasRevision() bool
+	schedulePermitsRelease() bool
 	isAlarmTriggered() bool
 	isReleaseEligible() bool
 	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
@@ -103,7 +104,7 @@ func (s *Deployed) tick(deployment Deployment) (State, error) {
 	if deployment.isAlarmTriggered() {
 		return failed, nil
 	}
-	if deployment.isReleaseEligible() && s.reached(deployment) {
+	if deployment.isReleaseEligible() && s.reached(deployment) && deployment.schedulePermitsRelease() {
 		return released, nil
 	}
 	return deployed, nil
