@@ -94,6 +94,9 @@ func (s *Created) reached(deployment Deployment) bool {
 type Deployed struct{}
 
 func (s *Deployed) tick(deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
 	if err := deployment.sync(); err != nil {
 		return deployed, err
 	}
@@ -102,9 +105,6 @@ func (s *Deployed) tick(deployment Deployment) (State, error) {
 	}
 	if deployment.isReleaseEligible() && s.reached(deployment) {
 		return released, nil
-	}
-	if !deployment.hasRevision() {
-		return deleted, nil
 	}
 	return deployed, nil
 }
@@ -133,14 +133,14 @@ func (s *Released) reached(deployment Deployment) bool {
 type Retired struct{}
 
 func (s *Retired) tick(deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
 	if deployment.isReleaseEligible() {
 		return deployed, nil
 	}
 	if deployment.getStatus().CurrentPercent <= 0 {
 		return retired, deployment.retire()
-	}
-	if !deployment.hasRevision() {
-		return deleted, nil
 	}
 	return retired, nil
 }
