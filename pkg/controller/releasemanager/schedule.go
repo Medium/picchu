@@ -35,6 +35,6 @@ func schedulePermitsRelease(t time.Time, schedule string) bool {
 	case time.Friday:
 		return hour >= 10 && hour < 15
 	default:
-		return hour >= 10 && hour < 17
+		return hour >= 10 && hour < 16
 	}
 }
