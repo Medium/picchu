@@ -20,7 +20,8 @@ func TestSchedulePermitsRelease(t *testing.T) {
 	}{
 		{parse("2019-04-17T16:59:00Z"), false},
 		{parse("2019-04-17T17:00:00Z"), true},
-		{parse("2019-04-17T23:59:00Z"), true},
+		{parse("2019-04-17T22:59:00Z"), true},
+		{parse("2019-04-17T23:00:00Z"), false},
 		{parse("2019-04-18T00:00:00Z"), false},
 		{parse("2019-04-19T21:59:00Z"), true},
 		{parse("2019-04-19T22:00:00Z"), false},
