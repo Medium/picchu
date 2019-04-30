@@ -46,6 +46,21 @@ spec:
             revisions:
               items:
                 properties:
+                  ttl:
+                    format: int64
+                    type: integer
+                  metrics:
+                    properties:
+                      gitReleaseSeconds:
+                        format: double
+                        type: number
+                      gitDeploySeconds:
+                        format: double
+                        type: number
+                      revisionDeploySeconds:
+                        format: double
+                        type: number
+                    type: object
                   currentPercent:
                     format: int32
                     type: integer
@@ -57,16 +72,21 @@ spec:
                     type: integer
                   tag:
                     type: string
-                  released:
-                    type: boolean
-                  everReleased:
+                  releasEligible:
                     type: boolean
                   deployed:
                     type: boolean
-                  everDeployed:
-                    type: boolean
-                  retired:
-                    type: boolean
+                  revisionTimestamp:
+                    type: string
+                  gitTimestamp:
+                    type: string
+                  state:
+                    type: object
+                    properties:
+                      current:
+                        type: string
+                      target:
+                        type: string
                   scale:
                     properties:
                       current:
@@ -88,8 +108,6 @@ spec:
                           type: string
                         metadata:
                           type: object
-                        status:
-                          type: string
                       type: object
                     type: array
                 required:

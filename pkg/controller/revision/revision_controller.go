@@ -182,7 +182,7 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 	target *picchuv1alpha1.RevisionTarget,
 	cluster *picchuv1alpha1.Cluster,
 	revision *picchuv1alpha1.Revision,
-) *picchuv1alpha1.ReleaseManager {
+) (*picchuv1alpha1.ReleaseManager, error) {
 	labels := map[string]string{
 		picchuv1alpha1.LabelTarget:  target.Name,
 		picchuv1alpha1.LabelFleet:   target.Fleet,
@@ -198,9 +198,9 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", labels))
 	}
 	if len(rms.Items) == 1 {
-		return &rms.Items[0]
+		return &rms.Items[0], nil
 	}
-	return &picchuv1alpha1.ReleaseManager{
+	rm := &picchuv1alpha1.ReleaseManager{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", revision.Spec.App.Name),
 			Namespace:    revision.Namespace,
@@ -209,15 +209,24 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 				picchuv1alpha1.FinalizerReleaseManager,
 			},
 		},
+		Spec: picchuv1alpha1.ReleaseManagerSpec{
+			Cluster: cluster.Name,
+			App:     revision.Spec.App.Name,
+			Target:  target.Name,
+		},
 	}
+	if err := r.client.Create(context.TODO(), rm); err != nil {
+		log.Error(err, "Failed to sync releaseManager")
+		return nil, err
+	}
+	log.Info("ReleaseManager sync'd", "Type", "ReleaseManager", "Op", "created", "Content", rm, "Audit", true)
+	return rm, nil
 }
 
 func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) error {
 	// Sync releasemanagers
-	appName := revision.Spec.App.Name
 	rmCount, retiredCount := 0, 0
 	for _, target := range revision.Spec.Targets {
-		targetName := target.Name
 		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
 		if err != nil {
 			return err
@@ -226,15 +235,8 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			if cluster.IsDeleted() {
 				continue
 			}
-			rm := r.GetOrCreateReleaseManager(&target, &cluster, revision)
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, rm, func(runtime.Object) error {
-				rm.Spec.Cluster = cluster.Name
-				rm.Spec.App = appName
-				rm.Spec.Target = targetName
-				return nil
-			})
+			rm, err := r.GetOrCreateReleaseManager(&target, &cluster, revision)
 			if err != nil {
-				log.Error(err, "Failed to sync releaseManager")
 				return err
 			}
 
@@ -248,8 +250,6 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 					retiredCount++
 				}
 			}
-
-			log.Info("ReleaseManager sync'd", "Op", op)
 		}
 		if len(clusters.Items) == 0 {
 			log.Info("No clusters found in target fleet", "Target.Fleet", target.Fleet)

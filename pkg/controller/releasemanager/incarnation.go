@@ -170,6 +170,10 @@ func (i *Incarnation) retire() error {
 	return nil
 }
 
+func (i *Incarnation) schedulePermitsRelease() bool {
+	return schedulePermitsRelease(time.Now(), i.target().Release.Schedule)
+}
+
 func (i *Incarnation) del() error {
 	ownerLabels := map[string]string{
 		picchuv1alpha1.LabelTag: i.tag,
@@ -652,8 +656,6 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	status := i.status
 	target := i.target()
 	current := status.CurrentPercent
-	// TODO(bob): gate increment on current time for "humane" scheduled
-	// deployments that are currently at 0 percent of traffic
 	if max <= 0 {
 		return 0
 	}
@@ -671,10 +673,6 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		deadline = status.LastUpdated.Add(delay)
 	}
 	if deadline.After(time.Now()) {
-		return current
-	}
-
-	if !schedulePermitsRelease(time.Now(), target.Release.Schedule) {
 		return current
 	}
 

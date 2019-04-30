@@ -38,9 +38,8 @@ const (
 var (
 	log                          = logf.Log.WithName("controller_releasemanager")
 	incarnationGitReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name: "picchu_git_release_latency",
-		Help: "track time from git revision creation to incarnation release, " +
-			"minus expected release time (release.rate.delay * math.Ceil(100.0 / release.rate.increment))",
+		Name:    "picchu_git_release_latency",
+		Help:    "track time from git revision creation to incarnation release",
 		Buckets: prometheus.ExponentialBuckets(10, 3, 7),
 	})
 	incarnationGitDeployLatency = promauto.NewHistogram(prometheus.HistogramOpts{
@@ -334,12 +333,12 @@ func (r *ResourceSyncer) tickIncarnations() error {
 		current := incarnation.status.State.Current
 		r.log.Info("metrics", "metrics", incarnation.status.Metrics)
 		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
-			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
-			incarnation.status.Metrics.GitDeploySeconds = &elapsed
-			incarnationGitDeployLatency.Observe(elapsed)
-			elapsed = time.Since(incarnation.status.RevisionTimestamp.Time).Seconds()
-			incarnation.status.Metrics.RevisionDeploySeconds = &elapsed
-			incarnationRevisionDeployLatency.Observe(elapsed)
+			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
+			incarnation.status.Metrics.GitDeploySeconds = &gitElapsed
+			incarnationGitDeployLatency.Observe(gitElapsed)
+			revElapsed := time.Since(incarnation.status.RevisionTimestamp.Time).Seconds()
+			incarnation.status.Metrics.RevisionDeploySeconds = &revElapsed
+			incarnationRevisionDeployLatency.Observe(revElapsed)
 		}
 		if current == "released" && incarnation.status.Metrics.GitReleaseSeconds == nil {
 			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
