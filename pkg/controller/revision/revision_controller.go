@@ -124,7 +124,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		"app": instance.Spec.App.Name,
 		"tag": instance.Spec.App.Tag,
 	})
-	if triggered {
+	if triggered && !status.IsRolloutComplete() {
 		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func(runtime.Object) error {
 			instance.Spec.Failed = true
 			return nil

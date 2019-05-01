@@ -119,6 +119,10 @@ func (r *RevisionStatus) AddReleaseManagerStatus(name string, status ReleaseMana
 	}
 }
 
+func (r *RevisionStatus) IsRolloutComplete() bool {
+	return r.Release.PeakPercent >= 100
+}
+
 func (r *Revision) GitTimestamp() time.Time {
 	gt, ok := r.Annotations[AnnotationGitCommitterTimestamp]
 	if !ok {
