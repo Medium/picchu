@@ -37,6 +37,7 @@ type Deployment interface {
 	sync() error
 	retire() error
 	del() error
+	scale() error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	isAlarmTriggered() bool
@@ -124,7 +125,7 @@ func (s *Released) tick(deployment Deployment) (State, error) {
 	if !deployment.isReleaseEligible() {
 		return retired, nil
 	}
-	return released, nil
+	return released, deployment.scale()
 }
 
 func (s *Released) reached(deployment Deployment) bool {

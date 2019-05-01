@@ -135,6 +135,10 @@ func (i *Incarnation) sync() error {
 	return nil
 }
 
+func (i *Incarnation) scale() error {
+	return i.syncHPA(context.TODO())
+}
+
 func (i *Incarnation) getLog() logr.Logger {
 	return i.log
 }
@@ -661,6 +665,19 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 
 func (i *Incarnation) divideReplicas(count int32) *int32 {
 	r := utils.Max(count/i.controller.fleetSize(), 1)
+	release := i.target().Release
+	if release.Eligible {
+		// since we sync before incrementing, we'll just err on the side of
+		// caution.
+		i.log.Info("Compute count", "CurrentPercent", i.status.CurrentPercent, "Increment", release.Rate.Increment, "Count", r)
+		c := i.status.CurrentPercent + release.Rate.Increment
+		if c > 100 {
+			c = 100
+		}
+		r = int32(float64(r) * float64(c) / float64(100))
+		r = utils.Max(r, 1)
+		i.log.Info("Resulting count", "Result", r)
+	}
 	return &r
 }
 
