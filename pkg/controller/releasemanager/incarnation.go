@@ -171,7 +171,11 @@ func (i *Incarnation) retire() error {
 }
 
 func (i *Incarnation) schedulePermitsRelease() bool {
-	return schedulePermitsRelease(time.Now(), i.target().Release.Schedule)
+	if i.revision == nil {
+		return false
+	}
+	t := i.revision.GetCreationTimestamp().Time
+	return schedulePermitsRelease(t, i.target().Release.Schedule)
 }
 
 func (i *Incarnation) del() error {
