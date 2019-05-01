@@ -174,6 +174,7 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 	if i.revision == nil {
 		return false
 	}
+
 	// if the revision was created during release schedule or we are currently
 	// in the release schdeule
 	times := []time.Time{
