@@ -210,6 +210,47 @@ spec:
           type: object
         status:
           type: object
+          properties:
+            clusters:
+              type: object
+              properties:
+                count:
+                  format: int32
+                  type: integer
+                minPercent:
+                  format: int32
+                  type: integer
+                maxPercent:
+                  format: int32
+                  type: integer
+                names:
+                  items:
+                    type: string
+                  type: array
+                releaseCount:
+                  format: int32
+                  type: integer
+            release:
+              type: object
+              properties:
+                currentPercent:
+                  format: int32
+                  type: integer
+                peakPercent:
+                  format: int32
+                  type: integer
+            scale:
+              type: object
+              properties:
+                current:
+                  format: int32
+                  type: integer
+                desired:
+                  format: int32
+                  type: integer
+                peak:
+                  format: int32
+                  type: integer
   version: v1alpha1
 status:
   acceptedNames:
