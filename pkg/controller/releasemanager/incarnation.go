@@ -174,8 +174,18 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 	if i.revision == nil {
 		return false
 	}
-	t := i.revision.GetCreationTimestamp().Time
-	return schedulePermitsRelease(t, i.target().Release.Schedule)
+	// if the revision was created during release schedule or we are currently
+	// in the release schdeule
+	times := []time.Time{
+		i.revision.GetCreationTimestamp().Time,
+		time.Now(),
+	}
+	for _, t := range times {
+		if schedulePermitsRelease(t, i.target().Release.Schedule) {
+			return true
+		}
+	}
+	return false
 }
 
 func (i *Incarnation) del() error {
