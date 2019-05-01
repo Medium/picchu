@@ -111,7 +111,8 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	if err = r.SyncReleaseManagersForRevision(instance); err != nil {
+	status, err := r.SyncReleaseManagersForRevision(instance)
+	if err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -137,7 +138,12 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		guage.Set(float64(0))
 	}
 
-	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, err
+	instance.Status = status
+	if err = r.client.Status().Update(context.TODO(), instance); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 }
 
 func (r *ReconcileRevision) LabelWithAppAndFleets(revision *picchuv1alpha1.Revision) error {
@@ -223,13 +229,17 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 	return rm, nil
 }
 
-func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) error {
+func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
 	// Sync releasemanagers
+	status := picchuv1alpha1.RevisionStatus{}
+	status.Release.PeakPercent = revision.Status.Release.PeakPercent
+	status.Scale.Peak = revision.Status.Scale.Peak
+	status.Clusters.MinPercent = 100
 	rmCount, retiredCount := 0, 0
 	for _, target := range revision.Spec.Targets {
 		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
 		if err != nil {
-			return err
+			return status, err
 		}
 		for _, cluster := range clusters.Items {
 			if cluster.IsDeleted() {
@@ -237,8 +247,9 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			}
 			rm, err := r.GetOrCreateReleaseManager(&target, &cluster, revision)
 			if err != nil {
-				return err
+				return status, err
 			}
+			status.AddReleaseManagerStatus(cluster.Name, *rm.RevisionStatus(revision.Spec.App.Tag))
 
 			rmCount++
 			for _, rl := range rm.Status.Revisions {
@@ -261,10 +272,10 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 	if retiredCount == rmCount && retiredCount > 0 {
 		if err := r.DeleteRevision(revision); err != nil {
 			log.Error(err, "Failed to delete Revision")
-			return err
+			return status, err
 		}
 	}
-	return nil
+	return status, nil
 }
 
 func (r *ReconcileRevision) getClustersByFleet(namespace string, fleet string) (*picchuv1alpha1.ClusterList, error) {
