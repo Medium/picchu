@@ -32,12 +32,17 @@ var (
 		Name: "picchu_revision_failed",
 		Help: "track failed revisions",
 	}, []string{"app", "tag"})
+	revisionClusterWeightDriftGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "picchu_revision_cluster_weight_drift",
+		Help: "Measures greatest difference between clusters of a revisions load balanced weight",
+	}, []string{"app", "tag"})
 )
 
 // Add creates a new Revision Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(revisionFailedGauge)
+	metrics.Registry.MustRegister(revisionClusterWeightDriftGauge)
 	return add(mgr, newReconciler(mgr, c))
 }
 
@@ -111,19 +116,23 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
+	promLabels := prometheus.Labels{
+		"app": instance.Spec.App.Name,
+		"tag": instance.Spec.App.Tag,
+	}
+
 	status, err := r.SyncReleaseManagersForRevision(instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	revisionClusterWeightDriftGauge.
+		With(promLabels).
+		Set(float64(status.Clusters.MaxPercent - status.Clusters.MinPercent))
 
 	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	guage := revisionFailedGauge.With(prometheus.Labels{
-		"app": instance.Spec.App.Name,
-		"tag": instance.Spec.App.Tag,
-	})
 	if triggered && !status.IsRolloutComplete() {
 		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func(runtime.Object) error {
 			instance.Spec.Failed = true
@@ -133,9 +142,9 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, err
 		}
 		reqLogger.Info("Set Revision State to failed", "Op", op)
-		guage.Set(float64(1))
+		revisionFailedGauge.With(promLabels).Set(float64(1))
 	} else {
-		guage.Set(float64(0))
+		revisionFailedGauge.With(promLabels).Set(float64(0))
 	}
 
 	instance.Status = status
