@@ -521,7 +521,7 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 		picchuv1alpha1.LabelApp: i.appName(),
 		picchuv1alpha1.LabelTag: i.tag,
 	}
-	replicaCount := *i.divideReplicas(target.Scale.Default)
+	replicaCount := i.divideReplicas(target.Scale.Default)
 
 	appContainer := corev1.Container{
 		EnvFrom:   envs,
@@ -594,7 +594,7 @@ func (i *Incarnation) syncReplicaSet(ctx context.Context, envs []corev1.EnvFromS
 		}
 		return nil
 	})
-	i.log.Info("ReplicaSet sync'd", "Type", "ReplicaSet", "Audit", true, "Content", rs, "Op", op)
+	i.log.Info("ReplicaSet sync'd", "Type", "ReplicaSet", "Audit", true, "Content", rs.Spec, "Op", op)
 	if err != nil {
 		log.Error(err, "Failed to sync replicaSet")
 		return err
@@ -630,6 +630,7 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 
 	min := i.divideReplicas(*target.Scale.Min)
 	max := i.divideReplicas(target.Scale.Max)
+	copyMin := min
 
 	hpa := &autoscalingv1.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
@@ -643,18 +644,19 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 				Name:       i.tag,
 				APIVersion: "apps/v1",
 			},
-			MinReplicas:                    min,
-			MaxReplicas:                    *max,
+			MinReplicas:                    &copyMin,
+			MaxReplicas:                    max,
 			TargetCPUUtilizationPercentage: cpuTarget,
 		},
 	}
 
 	op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), hpa, func(runtime.Object) error {
-		hpa.Spec.MinReplicas = min
-		hpa.Spec.MaxReplicas = *max
+		copyMin := min
+		hpa.Spec.MinReplicas = &copyMin
+		hpa.Spec.MaxReplicas = max
 		return nil
 	})
-	i.log.Info("HPA sync'd", "Type", "HPA", "Audit", true, "Content", hpa, "Op", op)
+	i.log.Info("HPA sync'd", "Type", "HPA", "Audit", true, "Content", hpa.Spec, "Op", op)
 	if err != nil {
 		log.Error(err, "Failed to sync hpa")
 		return err
@@ -663,7 +665,7 @@ func (i *Incarnation) syncHPA(ctx context.Context) error {
 	return nil
 }
 
-func (i *Incarnation) divideReplicas(count int32) *int32 {
+func (i *Incarnation) divideReplicas(count int32) int32 {
 	r := utils.Max(count/i.controller.fleetSize(), 1)
 	release := i.target().Release
 	if release.Eligible {
@@ -678,7 +680,7 @@ func (i *Incarnation) divideReplicas(count int32) *int32 {
 		r = utils.Max(r, 1)
 		i.log.Info("Resulting count", "Result", r)
 	}
-	return &r
+	return r
 }
 
 func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
