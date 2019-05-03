@@ -8,6 +8,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	// TODO(bob): I don't like this. maybe configurable?
+	// Which targets need to reach 100% to consider the rollout complete and
+	// stop slo failures from rolling back.
+	rolloutTargets = []string{"production"}
+)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -69,8 +76,40 @@ type RevisionTargetMetricQueries struct {
 	Total      string `json:"total"`
 }
 
-// RevisionStatus defines the observed state of Revision
 type RevisionStatus struct {
+	Targets []RevisionTargetStatus `json:"targets"`
+}
+
+func (r *RevisionStatus) AddTarget(ts RevisionTargetStatus) {
+	r.Targets = append(r.Targets, ts)
+}
+
+// IsRolloutComplete returns true if all rolloutTargets are rollout complete
+func (r *RevisionStatus) IsRolloutComplete() bool {
+	for _, target := range rolloutTargets {
+		ts := r.GetTarget(target)
+		if ts == nil {
+			return false
+		}
+		if !ts.IsRolloutComplete() {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *RevisionStatus) GetTarget(name string) *RevisionTargetStatus {
+	for _, ts := range r.Targets {
+		if ts.Name == name {
+			return &ts
+		}
+	}
+	return nil
+}
+
+// RevisionStatus defines the observed state of Revision
+type RevisionTargetStatus struct {
+	Name     string                 `json:"name"`
 	Scale    RevisionScaleStatus    `json:"scale"`
 	Release  RevisionReleaseStatus  `json:"release"`
 	Clusters RevisionClustersStatus `json:"clusters"`
@@ -88,18 +127,20 @@ type RevisionReleaseStatus struct {
 }
 
 type RevisionClustersStatus struct {
-	Names         []string `json:"names"`
+	Names         []string `json:"names,omitempty"`
 	MinPercent    uint32   `json:"minPercent"`
 	MaxPercent    uint32   `json:"maxPercent"`
-	Count         uint32   `json:"count"`
 	ReleasedCount uint32   `json:"releasedCount"`
 }
 
-func (r *RevisionStatus) AddReleaseManagerStatus(name string, status ReleaseManagerRevisionStatus) {
-	weightedPercent := r.Release.CurrentPercent*r.Clusters.Count + status.CurrentPercent
-	r.Clusters.Count++
+func (r *RevisionClustersStatus) Count() uint32 {
+	return uint32(len(r.Names))
+}
+
+func (r *RevisionTargetStatus) AddReleaseManagerStatus(name string, status ReleaseManagerRevisionStatus) {
+	weightedPercent := r.Release.CurrentPercent*r.Clusters.Count() + status.CurrentPercent
 	r.Clusters.Names = append(r.Clusters.Names, name)
-	r.Release.CurrentPercent = weightedPercent / r.Clusters.Count
+	r.Release.CurrentPercent = weightedPercent / r.Clusters.Count()
 	r.Scale.Current += uint32(status.Scale.Current)
 	r.Scale.Desired += uint32(status.Scale.Desired)
 	if status.CurrentPercent > 0 {
@@ -119,7 +160,7 @@ func (r *RevisionStatus) AddReleaseManagerStatus(name string, status ReleaseMana
 	}
 }
 
-func (r *RevisionStatus) IsRolloutComplete() bool {
+func (r *RevisionTargetStatus) IsRolloutComplete() bool {
 	return r.Release.PeakPercent >= 100
 }
 
