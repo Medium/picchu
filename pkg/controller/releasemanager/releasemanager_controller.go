@@ -55,7 +55,7 @@ var (
 	revisionReleaseWeightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_release_weight",
 		Help: "Percent of traffic a revision is getting as a target release",
-	}, []string{"app", "tag", "target", "cluster"})
+	}, []string{"app", "tag", "target", "target_cluster"})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -613,10 +613,10 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	for _, incarnation := range r.incarnations.sorted() {
 		revisionReleaseWeightGauge.
 			With(prometheus.Labels{
-				"app":     appName,
-				"tag":     incarnation.tag,
-				"cluster": r.cluster.Name,
-				"target":  incarnation.target().Name,
+				"app":            appName,
+				"tag":            incarnation.tag,
+				"target_cluster": r.cluster.Name,
+				"target":         incarnation.target().Name,
 			}).
 			Set(float64(incarnation.status.CurrentPercent))
 	}
