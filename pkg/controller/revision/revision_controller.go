@@ -284,6 +284,8 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			return status, err
 		}
 	}
+	// if there are no targets, min will still be 100, which is wrong.
+	status.Clusters.MinPercent = uint32(utils.Min(int32(status.Clusters.MinPercent), int32(status.Clusters.MaxPercent)))
 	return status, nil
 }
 

@@ -88,7 +88,7 @@ type RevisionReleaseStatus struct {
 }
 
 type RevisionClustersStatus struct {
-	Names         []string `json:"names"`
+	Names         []string `json:"names,omitempty"`
 	MinPercent    uint32   `json:"minPercent"`
 	MaxPercent    uint32   `json:"maxPercent"`
 	Count         uint32   `json:"count"`
