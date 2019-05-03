@@ -35,7 +35,7 @@ var (
 	revisionClusterWeightDriftGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_cluster_weight_drift",
 		Help: "Measures greatest difference between clusters of a revisions load balanced weight",
-	}, []string{"app", "tag"})
+	}, []string{"app", "tag", "target"})
 )
 
 // Add creates a new Revision Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -125,10 +125,6 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	revisionClusterWeightDriftGauge.
-		With(promLabels).
-		Set(float64(status.Clusters.MaxPercent - status.Clusters.MinPercent))
-
 	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -240,15 +236,19 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 
 func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
 	// Sync releasemanagers
-	status := picchuv1alpha1.RevisionStatus{}
-	status.Release.PeakPercent = revision.Status.Release.PeakPercent
-	status.Scale.Peak = revision.Status.Scale.Peak
-	status.Clusters.MinPercent = 100
+	rstatus := picchuv1alpha1.RevisionStatus{}
 	rmCount, retiredCount := 0, 0
 	for _, target := range revision.Spec.Targets {
+		status := picchuv1alpha1.RevisionTargetStatus{Name: target.Name}
+		oldStatus := revision.Status.GetTarget(target.Name)
+		if oldStatus != nil {
+			status.Release.PeakPercent = oldStatus.Release.PeakPercent
+			status.Scale.Peak = oldStatus.Scale.Peak
+		}
+		status.Clusters.MinPercent = 100
 		clusters, err := r.getClustersByFleet(revision.Namespace, target.Fleet)
 		if err != nil {
-			return status, err
+			return rstatus, err
 		}
 		for _, cluster := range clusters.Items {
 			if cluster.IsDeleted() {
@@ -256,7 +256,7 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			}
 			rm, err := r.GetOrCreateReleaseManager(&target, &cluster, revision)
 			if err != nil {
-				return status, err
+				return rstatus, err
 			}
 			status.AddReleaseManagerStatus(cluster.Name, *rm.RevisionStatus(revision.Spec.App.Tag))
 
@@ -274,6 +274,18 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 		if len(clusters.Items) == 0 {
 			log.Info("No clusters found in target fleet", "Target.Fleet", target.Fleet)
 		}
+		// if there are no active clusters, min will still be 100, which is wrong.
+		status.Clusters.MinPercent = uint32(utils.Min(int32(status.Clusters.MinPercent), int32(status.Clusters.MaxPercent)))
+		promLabels := prometheus.Labels{
+			"app":    revision.Spec.App.Name,
+			"tag":    revision.Spec.App.Tag,
+			"target": target.Name,
+		}
+		revisionClusterWeightDriftGauge.
+			With(promLabels).
+			Set(float64(status.Clusters.MaxPercent - status.Clusters.MinPercent))
+
+		rstatus.AddTarget(status)
 	}
 
 	// if Revision is expired in all ReleaseManagers, without deleting
@@ -281,12 +293,10 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 	if retiredCount == rmCount && retiredCount > 0 {
 		if err := r.DeleteRevision(revision); err != nil {
 			log.Error(err, "Failed to delete Revision")
-			return status, err
+			return rstatus, err
 		}
 	}
-	// if there are no targets, min will still be 100, which is wrong.
-	status.Clusters.MinPercent = uint32(utils.Min(int32(status.Clusters.MinPercent), int32(status.Clusters.MaxPercent)))
-	return status, nil
+	return rstatus, nil
 }
 
 func (r *ReconcileRevision) getClustersByFleet(namespace string, fleet string) (*picchuv1alpha1.ClusterList, error) {
