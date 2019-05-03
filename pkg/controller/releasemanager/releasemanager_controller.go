@@ -52,6 +52,10 @@ var (
 		Help:    "track time from revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	})
+	revisionReleaseWeightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "picchu_revision_release_weight",
+		Help: "Percent of traffic a revision is getting as a target release",
+	}, []string{"app", "tag", "target", "cluster"})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -60,6 +64,7 @@ func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(incarnationGitReleaseLatency)
 	metrics.Registry.MustRegister(incarnationGitDeployLatency)
 	metrics.Registry.MustRegister(incarnationRevisionDeployLatency)
+	metrics.Registry.MustRegister(revisionReleaseWeightGauge)
 	return add(mgr, newReconciler(mgr, c))
 }
 
@@ -605,5 +610,15 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	}
 
 	r.log.Info("VirtualService sync'd", "Type", "VirtualService", "Audit", true, "Content", vs, "Op", op)
+	for _, incarnation := range r.incarnations.sorted() {
+		revisionReleaseWeightGauge.
+			With(prometheus.Labels{
+				"app":     appName,
+				"tag":     incarnation.tag,
+				"cluster": r.cluster.Name,
+				"target":  incarnation.target().Name,
+			}).
+			Set(float64(incarnation.status.CurrentPercent))
+	}
 	return nil
 }
