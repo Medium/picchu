@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
+var (
 	// TODO(bob): I don't like this. maybe configurable?
 	// Which targets need to reach 100% to consider the rollout complete and
 	// stop slo failures from rolling back.
