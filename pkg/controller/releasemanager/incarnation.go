@@ -687,34 +687,7 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	if i.revision == nil {
 		return 0
 	}
-	status := i.status
-	target := i.target()
-	current := status.CurrentPercent
-	if max <= 0 {
-		return 0
-	}
-	delay := time.Duration(*target.Release.Rate.DelaySeconds) * time.Second
-	increment := target.Release.Rate.Increment
-	// We can skip scale up for revisions that already scaled
-	if current+increment < status.PeakPercent {
-		increment = status.PeakPercent - current
-	}
-	if target.Release.Max < max {
-		max = target.Release.Max
-	}
-	deadline := time.Time{}
-	if status.LastUpdated != nil {
-		deadline = status.LastUpdated.Add(delay)
-	}
-	if deadline.After(time.Now()) {
-		return current
-	}
-
-	current = current + increment
-	if current > max {
-		return max
-	}
-	return current
+	return LinearScale(*i, max, time.Now())
 }
 
 func (i *Incarnation) updateCurrentPercent(current uint32) {
