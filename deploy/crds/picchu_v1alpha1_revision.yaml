@@ -32,6 +32,8 @@ spec:
           properties:
             failed:
               type: boolean
+            ignoreSLOs:
+              type: boolean
             app:
               properties:
                 image:

@@ -39,10 +39,11 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App     RevisionApp      `json:"app"`
-	Ports   []PortInfo       `json:"ports"`
-	Targets []RevisionTarget `json:"targets"`
-	Failed  bool             `json:"failed"`
+	App        RevisionApp      `json:"app"`
+	Ports      []PortInfo       `json:"ports"`
+	Targets    []RevisionTarget `json:"targets"`
+	Failed     bool             `json:"failed"`
+	IgnoreSLOs bool             `json:"ignoreSLOs,omitempty"`
 }
 
 type RevisionApp struct {

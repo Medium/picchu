@@ -129,7 +129,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if triggered && !status.IsRolloutComplete() {
+	if triggered && !status.IsRolloutComplete() && !instance.Spec.IgnoreSLOs {
 		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func(runtime.Object) error {
 			instance.Spec.Failed = true
 			return nil
