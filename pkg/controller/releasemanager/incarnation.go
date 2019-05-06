@@ -179,6 +179,11 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 		return false
 	}
 
+	// If previously released, allow outside of schedule
+	if i.status.PeakPercent > 0 {
+		return true
+	}
+
 	// if the revision was created during release schedule or we are currently
 	// in the release schdeule
 	times := []time.Time{
