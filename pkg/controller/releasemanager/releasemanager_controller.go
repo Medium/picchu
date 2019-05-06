@@ -616,7 +616,7 @@ func (r *ResourceSyncer) syncVirtualService() error {
 				"app":            appName,
 				"tag":            incarnation.tag,
 				"target_cluster": r.cluster.Name,
-				"target":         incarnation.target().Name,
+				"target":         r.instance.Spec.Target,
 			}).
 			Set(float64(incarnation.status.CurrentPercent))
 	}
