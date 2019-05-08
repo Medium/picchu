@@ -251,7 +251,7 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			return rstatus, err
 		}
 		for _, cluster := range clusters.Items {
-			if cluster.IsDeleted() {
+			if cluster.IsDeleted() || !cluster.Spec.Enabled {
 				continue
 			}
 			rm, err := r.GetOrCreateReleaseManager(&target, &cluster, revision)
