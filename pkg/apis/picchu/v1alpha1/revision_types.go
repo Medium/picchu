@@ -28,6 +28,32 @@ type Revision struct {
 	Status RevisionStatus `json:"status,omitempty"`
 }
 
+func (r *Revision) Fail() {
+	if !r.Spec.Failed {
+		r.Spec.Failed = true
+		t := time.Now()
+		if r.Annotations == nil {
+			r.Annotations = map[string]string{
+				AnnotationFailedAt: t.Format(time.RFC3339),
+			}
+		} else {
+			r.Annotations[AnnotationFailedAt] = t.Format(time.RFC3339)
+		}
+	}
+}
+
+func (r *Revision) SinceFailed() time.Duration {
+	ft, ok := r.Annotations[AnnotationFailedAt]
+	if !ok {
+		return time.Duration(0)
+	}
+	t, err := time.Parse(time.RFC3339, ft)
+	if err != nil {
+		return time.Duration(0)
+	}
+	return time.Since(t)
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // RevisionList contains a list of Revision
