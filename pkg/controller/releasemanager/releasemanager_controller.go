@@ -56,6 +56,11 @@ var (
 		Name: "picchu_revision_release_weight",
 		Help: "Percent of traffic a revision is getting as a target release",
 	}, []string{"app", "tag", "target", "target_cluster"})
+	incarnationRevisionRollbackLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "picchu_revision_rollback_latency",
+		Help:    "track time from failed revision to rollbacked incarnation",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -64,6 +69,7 @@ func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(incarnationGitReleaseLatency)
 	metrics.Registry.MustRegister(incarnationGitDeployLatency)
 	metrics.Registry.MustRegister(incarnationRevisionDeployLatency)
+	metrics.Registry.MustRegister(incarnationRevisionRollbackLatency)
 	metrics.Registry.MustRegister(revisionReleaseWeightGauge)
 	return add(mgr, newReconciler(mgr, c))
 }
@@ -349,6 +355,16 @@ func (r *ResourceSyncer) tickIncarnations() error {
 			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.GitReleaseSeconds = &elapsed
 			incarnationGitReleaseLatency.Observe(elapsed)
+		}
+		if current == "failed" && incarnation.status.Metrics.RevisionRollbackSeconds == nil {
+			if incarnation.revision != nil {
+				r.log.Info("observing rollback elapsed time")
+				elapsed := incarnation.revision.SinceFailed().Seconds()
+				incarnation.status.Metrics.RevisionRollbackSeconds = &elapsed
+				incarnationRevisionRollbackLatency.Observe(elapsed)
+			} else {
+				r.log.Info("no revision rollback revision found")
+			}
 		}
 	}
 	return nil
