@@ -453,7 +453,8 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, drule, func(runtime.Object) error {
-		drule.Spec = spec
+		drule.Spec.Host = spec.Host
+		drule.Spec.Subsets = spec.Subsets
 		return nil
 	})
 	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
