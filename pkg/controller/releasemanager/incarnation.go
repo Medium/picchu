@@ -61,7 +61,9 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 			status.GitTimestamp = &metav1.Time{}
 			status.ReleaseEligible = false
 		}
-		status.State.Target = "created"
+		if status.State.Target == "" {
+			status.State.Target = "created"
+		}
 	}
 
 	if status.RevisionTimestamp == nil {
