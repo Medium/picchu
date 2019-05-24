@@ -48,7 +48,7 @@ type Incarnation struct {
 
 func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger) Incarnation {
 	status := controller.releaseManager().RevisionStatus(tag)
-	if status.State.Target == "" || status.State.Target == "created" {
+	if status.State.Target == "" || status.State.Target == "created" || status.State.Target == "deployed" {
 		if revision != nil {
 			status.GitTimestamp = &metav1.Time{revision.GitTimestamp()}
 			for _, target := range revision.Spec.Targets {
@@ -61,7 +61,9 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 			status.GitTimestamp = &metav1.Time{}
 			status.ReleaseEligible = false
 		}
-		status.State.Target = "created"
+		if status.State.Target == "" {
+			status.State.Target = "created"
+		}
 	}
 
 	if status.RevisionTimestamp == nil {

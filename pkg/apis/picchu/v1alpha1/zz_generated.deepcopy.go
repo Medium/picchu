@@ -505,6 +505,11 @@ func (in *ReleaseManagerRevisionMetricsStatus) DeepCopyInto(out *ReleaseManagerR
 		*out = new(float64)
 		**out = **in
 	}
+	if in.RevisionRollbackSeconds != nil {
+		in, out := &in.RevisionRollbackSeconds, &out.RevisionRollbackSeconds
+		*out = new(float64)
+		**out = **in
+	}
 	return
 }
 
