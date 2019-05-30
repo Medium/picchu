@@ -19,6 +19,10 @@ func (c *FakePicchuV1alpha1) Clusters(namespace string) v1alpha1.ClusterInterfac
 	return &FakeClusters{c, namespace}
 }
 
+func (c *FakePicchuV1alpha1) ClusterSecretses(namespace string) v1alpha1.ClusterSecretsInterface {
+	return &FakeClusterSecretses{c, namespace}
+}
+
 func (c *FakePicchuV1alpha1) ReleaseManagers(namespace string) v1alpha1.ReleaseManagerInterface {
 	return &FakeReleaseManagers{c, namespace}
 }

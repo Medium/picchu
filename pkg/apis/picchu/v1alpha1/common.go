@@ -34,6 +34,7 @@ const (
 	LabelFleetPrefix                    = "fleet.picchu.medium.engineering/"
 	FinalizerReleaseManager             = "picchu.medium.engineering/releasemanager"
 	FinalizerCluster                    = "picchu.medium.engineering/cluster"
+	FinalizerClusterSecrets             = "picchu.medium.engineering/clustersecrets"
 	OwnerReleaseManager                 = "releasemanager"
 	AnnotationGitCommitterTimestamp     = "git-scm.com/committer-timestamp"
 	AnnotationRevisionCreationTimestamp = "revisionCreationTimestamp"
