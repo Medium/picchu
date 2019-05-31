@@ -35,6 +35,10 @@ func (s *secretDeployer) deploy(ctx context.Context) error {
 		s.log.Info("No secrets found")
 	}
 	s.log.Info("Found secrets", "count", len(s.secretList.Items))
+	if err := s.syncNamespace(ctx); err != nil {
+		s.log.Info("Failed to sync namespace", "namespace.Name", s.instance.Spec.Target.Namespace)
+		return err
+	}
 
 	errs := []error{}
 	for _, src := range s.secretList.Items {
@@ -62,4 +66,18 @@ func (s *secretDeployer) deploy(ctx context.Context) error {
 		return errors.New("Failed to sync all secrets")
 	}
 	return nil
+}
+
+func (s *secretDeployer) syncNamespace(ctx context.Context) error {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: s.instance.Spec.Target.Namespace,
+		},
+	}
+
+	op, err := controllerutil.CreateOrUpdate(ctx, s.client, namespace, func(runtime.Object) error {
+		return nil
+	})
+	s.log.Info("Namespace sync'd", "Op", op)
+	return err
 }
