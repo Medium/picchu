@@ -45,6 +45,10 @@ func (r *reconcileRequest) reconcile(ctx context.Context) error {
 	}
 	errs := []error{}
 	for _, cluster := range clusterList.Items {
+		if !cluster.Spec.Enabled {
+			r.log.Info("Skipping disabled cluster", "cluster.Name", cluster.Name)
+			continue
+		}
 		r.log.Info("Syncing cluster", "cluster", cluster.Name)
 		remoteClient, err := utils.RemoteClient(r.client, &cluster)
 		if err != nil {
