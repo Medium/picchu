@@ -7,6 +7,8 @@ package v1alpha1
 
 type ClusterExpansion interface{}
 
+type ClusterSecretsExpansion interface{}
+
 type ReleaseManagerExpansion interface{}
 
 type RevisionExpansion interface{}
