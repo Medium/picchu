@@ -2,6 +2,7 @@ package clustersecrets
 
 import (
 	"context"
+	"errors"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -33,6 +34,9 @@ func (s *secretDeployer) deploy(ctx context.Context) error {
 	if len(s.secretList.Items) == 0 {
 		s.log.Info("No secrets found")
 	}
+	s.log.Info("Found secrets", "count", len(s.secretList.Items))
+
+	errs := []error{}
 	for _, src := range s.secretList.Items {
 		s.log.Info("Syncing secret", "secret.Name", src.Name)
 		dst := &corev1.Secret{
@@ -50,8 +54,12 @@ func (s *secretDeployer) deploy(ctx context.Context) error {
 			return nil
 		})
 		if err != nil {
-			return err
+			log.Error(err, "Failed to sync secret", "secret.Name", src.Name)
+			errs = append(errs, err)
 		}
+	}
+	if len(errs) > 0 {
+		return errors.New("Failed to sync all secrets")
 	}
 	return nil
 }

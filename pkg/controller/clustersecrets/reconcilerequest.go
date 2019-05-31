@@ -2,6 +2,7 @@ package clustersecrets
 
 import (
 	"context"
+	"errors"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
@@ -42,17 +43,25 @@ func (r *reconcileRequest) reconcile(ctx context.Context) error {
 	if len(clusterList.Items) == 0 {
 		r.log.Info("No clusters found")
 	}
+	errs := []error{}
 	for _, cluster := range clusterList.Items {
 		r.log.Info("Syncing cluster", "cluster", cluster.Name)
 		remoteClient, err := utils.RemoteClient(r.client, &cluster)
 		if err != nil {
-			return err
+			r.log.Error(err, "Failed to get remote client", "cluster.Name", cluster.Name)
+			errs = append(errs, err)
+			continue
 		}
 		log := r.log.WithValues("Cluster", cluster.Name)
 		secretDeployer := newSecretDeployer(remoteClient, log, secretList, r.instance)
 		if err = secretDeployer.deploy(ctx); err != nil {
-			return err
+			r.log.Error(err, "Failed to deploy all secrets for cluster", "cluster.Name", cluster.Name)
+			errs = append(errs, err)
+			continue
 		}
+	}
+	if len(errs) > 0 {
+		return errors.New("Failed to reconcile all clusters")
 	}
 	return nil
 }
