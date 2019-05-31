@@ -87,6 +87,7 @@ func (r *reconcileRequest) clusterList(ctx context.Context) (*picchuv1alpha1.Clu
 	opts := client.InNamespace(r.instance.Namespace)
 	if labelSelector != "" {
 		opts.SetLabelSelector(labelSelector)
+		r.log.Info("LabelSelector set", "Selector", opts.LabelSelector)
 	}
 	if fieldSelector != "" {
 		opts.SetFieldSelector(fieldSelector)

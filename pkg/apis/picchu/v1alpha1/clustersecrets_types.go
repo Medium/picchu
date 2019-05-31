@@ -22,7 +22,7 @@ type ClusterSecretTarget struct {
 	Namespace string `json:"namespace"`
 
 	// LabelSelector of clusters to copy secrets to
-	LabelSelector string `json:"clusterSelector,omitempty"`
+	LabelSelector string `json:"labelSelector,omitempty"`
 
 	// FieldSelector of clusters to copy secrets to
 	FieldSelector string `json:"fieldSelector,omitempty"`
