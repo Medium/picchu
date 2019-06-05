@@ -4,6 +4,7 @@ import (
 	"context"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -35,16 +36,16 @@ func (i *IncarnationController) client() client.Client {
 	return i.remoteClient
 }
 
-func (i *IncarnationController) getSecrets(ctx context.Context, opts *client.ListOptions) (*corev1.SecretList, error) {
+func (i *IncarnationController) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	secrets := &corev1.SecretList{}
 	err := i.rrm.client.List(ctx, opts, secrets)
-	return secrets, err
+	return utils.MustExtractList(secrets), err
 }
 
-func (i *IncarnationController) getConfigMaps(ctx context.Context, opts *client.ListOptions) (*corev1.ConfigMapList, error) {
+func (i *IncarnationController) getConfigMaps(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	configMaps := &corev1.ConfigMapList{}
 	err := i.rrm.client.List(ctx, opts, configMaps)
-	return configMaps, err
+	return utils.MustExtractList(configMaps), err
 }
 
 func (i *IncarnationController) fleetSize() int32 {

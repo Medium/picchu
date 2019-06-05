@@ -6,6 +6,7 @@ import (
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	"github.com/go-logr/logr"
@@ -227,22 +228,22 @@ type ResourceSyncer struct {
 	log          logr.Logger
 }
 
-func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) (*corev1.SecretList, error) {
+func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	secrets := &corev1.SecretList{}
 	err := r.client.List(ctx, opts, secrets)
 	if errors.IsNotFound(err) {
-		return secrets, nil
+		return []runtime.Object{}, nil
 	}
-	return secrets, err
+	return utils.MustExtractList(secrets), err
 }
 
-func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOptions) (*corev1.ConfigMapList, error) {
+func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	configMaps := &corev1.ConfigMapList{}
 	err := r.client.List(ctx, opts, configMaps)
 	if errors.IsNotFound(err) {
-		return configMaps, nil
+		return []runtime.Object{}, nil
 	}
-	return configMaps, err
+	return utils.MustExtractList(configMaps), err
 }
 
 func (r *ResourceSyncer) sync() (reconcile.Result, error) {
@@ -301,36 +302,21 @@ func (r *ResourceSyncer) del() (reconcile.Result, error) {
 }
 
 func (r *ResourceSyncer) deleteNamespace() error {
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: r.instance.TargetNamespace(),
-		},
-	}
-	// Might already be deleted
-	if err := r.client.Delete(context.TODO(), namespace); err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-	return nil
+	return r.applyPlan(&plan.DeleteApp{
+		Namespace: r.instance.TargetNamespace(),
+	})
+}
+
+func (r *ResourceSyncer) applyPlan(p plan.Plan) error {
+	return p.Apply(context.TODO(), r.client, r.log)
 }
 
 func (r *ResourceSyncer) syncNamespace() error {
-	labels := map[string]string{
-		"istio-injection":             "enabled",
-		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.instance.Name,
-	}
-	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   r.instance.TargetNamespace(),
-			Labels: labels,
-		},
-	}
-
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, namespace, func(runtime.Object) error {
-		return nil
+	return r.applyPlan(&plan.EnsureNamespace{
+		Name:      r.instance.TargetNamespace(),
+		OwnerName: r.instance.Name,
+		OwnerType: picchuv1alpha1.OwnerReleaseManager,
 	})
-	r.log.Info("Namespace sync'd", "Op", op)
-	return err
 }
 
 // SyncIncarnations syncs all revision deployments for this releasemanager

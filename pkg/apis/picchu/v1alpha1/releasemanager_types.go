@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	types "k8s.io/apimachinery/pkg/types"
 )
 
 // +genclient
@@ -44,19 +43,19 @@ type ReleaseManagerStatus struct {
 }
 
 type ReleaseManagerRevisionStatus struct {
-	Tag               string                                 `json:"tag"`
-	State             ReleaseManagerRevisionStateStatus      `json:"state,omitempty"`
-	CurrentPercent    uint32                                 `json:"currentPercent"`
-	PeakPercent       uint32                                 `json:"peakPercent"`
-	Resources         []ReleaseManagerRevisionResourceStatus `json:"resources,omitempty"`
-	ReleaseEligible   bool                                   `json:"releaseEligible"`
-	TriggeredAlarms   []string                               `json:"triggeredAlerts,omitempty"`
-	LastUpdated       *metav1.Time                           `json:"lastUpdated"`
-	GitTimestamp      *metav1.Time                           `json:"gitTimestamp,omitempty"`
-	RevisionTimestamp *metav1.Time                           `json:"revisionTimestamp,omitempty"`
-	TTL               int64                                  `json:"ttl,omitempty"`
-	Metrics           ReleaseManagerRevisionMetricsStatus    `json:"metrics,omitempty"`
-	Scale             ReleaseManagerRevisionScaleStatus      `json:"scale"`
+	Tag               string                              `json:"tag"`
+	State             ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
+	CurrentPercent    uint32                              `json:"currentPercent"`
+	PeakPercent       uint32                              `json:"peakPercent"`
+	ReleaseEligible   bool                                `json:"releaseEligible"`
+	TriggeredAlarms   []string                            `json:"triggeredAlerts,omitempty"`
+	LastUpdated       *metav1.Time                        `json:"lastUpdated"`
+	GitTimestamp      *metav1.Time                        `json:"gitTimestamp,omitempty"`
+	RevisionTimestamp *metav1.Time                        `json:"revisionTimestamp,omitempty"`
+	TTL               int64                               `json:"ttl,omitempty"`
+	Metrics           ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
+	Scale             ReleaseManagerRevisionScaleStatus   `json:"scale"`
+	Deleted           bool                                `json:"deleted,omitempty"`
 }
 
 type ReleaseManagerRevisionMetricsStatus struct {
@@ -66,12 +65,6 @@ type ReleaseManagerRevisionMetricsStatus struct {
 	RevisionRollbackSeconds *float64 `json:"revisionRollbackSeconds,omitempty"`
 }
 
-type ReleaseManagerRevisionResourceStatus struct {
-	ApiVersion string                `json:"apiVersion"`
-	Kind       string                `json:"kind"`
-	Metadata   *types.NamespacedName `json:"metadata,omitempty"`
-}
-
 type ReleaseManagerRevisionStateStatus struct {
 	Current string `json:"current"`
 	Target  string `json:"target"`
@@ -79,35 +72,6 @@ type ReleaseManagerRevisionStateStatus struct {
 
 func (r *ReleaseManagerRevisionStateStatus) EqualTo(other *ReleaseManagerRevisionStateStatus) bool {
 	return r.Target == other.Target && r.Current == other.Current
-}
-
-func (r *ReleaseManagerRevisionStatus) RemoveResourceStatus(rs ReleaseManagerRevisionResourceStatus) {
-	resources := []ReleaseManagerRevisionResourceStatus{}
-	for _, s := range r.Resources {
-		if s.Metadata.Name == rs.Metadata.Name &&
-			s.Metadata.Namespace == rs.Metadata.Namespace &&
-			s.ApiVersion == rs.ApiVersion &&
-			s.Kind == rs.Kind {
-			continue
-		}
-		resources = append(resources, s)
-	}
-	r.Resources = resources
-	return
-}
-
-func (r *ReleaseManagerRevisionStatus) CreateOrUpdateResourceStatus(rs ReleaseManagerRevisionResourceStatus) {
-	for _, s := range r.Resources {
-		if s.Metadata.Name == rs.Metadata.Name &&
-			s.Metadata.Namespace == rs.Metadata.Namespace &&
-			s.ApiVersion == rs.ApiVersion &&
-			s.Kind == rs.Kind {
-			return
-		}
-
-	}
-	r.Resources = append(r.Resources, rs)
-	return
 }
 
 type ReleaseManagerRevisionScaleStatus struct {

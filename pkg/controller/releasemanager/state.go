@@ -163,7 +163,7 @@ func (s *Deleted) tick(deployment Deployment) (State, error) {
 
 func (s *Deleted) reached(deployment Deployment) bool {
 	status := deployment.getStatus()
-	return status == nil || len(status.Resources) == 0
+	return status == nil || status.Deleted
 }
 
 type Failed struct{}

@@ -7,8 +7,11 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,8 +39,8 @@ func UpdateStatus(ctx context.Context, client client.Client, obj runtime.Object)
 	return client.Status().Update(ctx, obj)
 }
 
-func MustGetKind(scheme *runtime.Scheme, obj runtime.Object) schema.GroupVersionKind {
-	kinds, _, err := scheme.ObjectKinds(obj)
+func MustGetKind(obj runtime.Object) schema.GroupVersionKind {
+	kinds, _, err := scheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to get kind for (%#v)", obj))
 	}
@@ -45,4 +48,21 @@ func MustGetKind(scheme *runtime.Scheme, obj runtime.Object) schema.GroupVersion
 		panic("Assertion failed!")
 	}
 	return kinds[0]
+}
+
+func DeleteIfExists(ctx context.Context, cli client.Client, obj runtime.Object) error {
+	err := cli.Delete(ctx, obj)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
+// MustExtractList panics if the object isn't a list
+func MustExtractList(obj runtime.Object) []runtime.Object {
+	list, err := meta.ExtractList(obj)
+	if err != nil {
+		panic(err)
+	}
+	return list
 }
