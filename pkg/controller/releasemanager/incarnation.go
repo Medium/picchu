@@ -8,6 +8,7 @@ import (
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -15,15 +16,11 @@ import (
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -33,8 +30,8 @@ type Controller interface {
 	client() client.Client
 	releaseManager() *picchuv1alpha1.ReleaseManager
 	log() logr.Logger
-	getConfigMaps(context.Context, *client.ListOptions) (*corev1.ConfigMapList, error)
-	getSecrets(context.Context, *client.ListOptions) (*corev1.SecretList, error)
+	getConfigMaps(context.Context, *client.ListOptions) ([]runtime.Object, error)
+	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	fleetSize() int32
 }
 
@@ -109,6 +106,8 @@ func (i *Incarnation) sync() error {
 		return err
 	}
 
+	configs := []runtime.Object{}
+
 	secrets, err := i.controller.getSecrets(ctx, configOpts)
 	if err != nil {
 		return err
@@ -118,27 +117,49 @@ func (i *Incarnation) sync() error {
 		return err
 	}
 
-	sEnvs, err := i.syncSecrets(ctx, secrets)
-	if err != nil {
-		return err
-	}
-	cmEnvs, err := i.syncConfigMaps(ctx, configMaps)
-	if err != nil {
-		return err
-	}
-
-	if err = i.syncReplicaSet(ctx, append(sEnvs, cmEnvs...)); err != nil {
-		return err
-	}
-
-	if err = i.syncHPA(ctx); err != nil {
-		return err
-	}
-	return nil
+	return i.applyPlan(plan.All(
+		&plan.SyncRevision{
+			App:                i.appName(),
+			Tag:                i.tag,
+			Namespace:          i.targetNamespace(),
+			Labels:             i.defaultLabels(),
+			Configs:            append(append(configs, secrets...), configMaps...),
+			Ports:              i.revision.Spec.Ports,
+			Replicas:           i.divideReplicas(i.target().Scale.Default),
+			Image:              i.image(),
+			Resources:          i.target().Resources,
+			IAMRole:            i.target().AWS.IAM.RoleARN,
+			ServiceAccountName: i.target().ServiceAccountName,
+		},
+		&plan.ScaleRevision{
+			Tag:       i.tag,
+			Namespace: i.targetNamespace(),
+			Min:       i.divideReplicas(*i.target().Scale.Min),
+			Max:       i.divideReplicas(i.target().Scale.Max),
+			Labels:    i.defaultLabels(),
+			CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
+		},
+	))
 }
 
 func (i *Incarnation) scale() error {
-	return i.syncHPA(context.TODO())
+	return i.applyPlan(&plan.ScaleRevision{
+		Tag:       i.tag,
+		Namespace: i.targetNamespace(),
+		Min:       i.divideReplicas(*i.target().Scale.Min),
+		Max:       i.divideReplicas(i.target().Scale.Max),
+		Labels:    i.defaultLabels(),
+		CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
+	})
+}
+
+func (i *Incarnation) applyPlan(p plan.Plan) error {
+	ctx := context.TODO()
+	err := p.Apply(ctx, i.controller.client(), i.log)
+	if err != nil {
+		return err
+	}
+	return i.updateHealthStatus(ctx)
 }
 
 func (i *Incarnation) getLog() logr.Logger {
@@ -150,30 +171,10 @@ func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 }
 
 func (i *Incarnation) retire() error {
-	ctx := context.TODO()
-	rs := &appsv1.ReplicaSet{}
-	s := types.NamespacedName{i.targetNamespace(), i.tag}
-	err := i.controller.client().Get(ctx, s, rs)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			i.status.Scale.Current = 0
-			i.status.Scale.Desired = 0
-			return nil
-		}
-		i.log.Error(err, "Failed to update replicaset to 0 replicas")
-		return err
-	}
-	if *rs.Spec.Replicas != 0 {
-		var r int32 = 0
-		rs.Spec.Replicas = &r
-		err = i.controller.client().Update(ctx, rs)
-		i.log.Info("ReplicaSet sync'd", "Type", "ReplicaSet", "Audit", true, "Content", rs, "Op", "updated")
-		if err != nil {
-			return err
-		}
-	}
-	i.recordHealthStatus(rs)
-	return nil
+	return i.applyPlan(&plan.RetireRevision{
+		Tag:       i.tag,
+		Namespace: i.targetNamespace(),
+	})
 }
 
 func (i *Incarnation) schedulePermitsRelease() bool {
@@ -201,45 +202,10 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 }
 
 func (i *Incarnation) del() error {
-	ownerLabels := map[string]string{
-		picchuv1alpha1.LabelTag: i.tag,
-	}
-	opts := client.
-		MatchingLabels(ownerLabels).
-		InNamespace(i.targetNamespace())
-	ctx := context.TODO()
-
-	lists := []List{
-		NewSecretList(),
-		NewConfigMapList(),
-		NewReplicaSetList(),
-		NewHorizontalPodAutoscalerList(),
-	}
-	for _, list := range lists {
-		if err := i.controller.client().List(ctx, opts, list.GetList()); err != nil {
-			log.Error(err, "Failed to list resource")
-			return err
-		}
-		for _, item := range list.GetItems() {
-			kind := utils.MustGetKind(i.controller.scheme(), item)
-			log.Info("Deleting remote resource",
-				"Cluster.Name", i.controller.releaseManager().Spec.Cluster,
-				"Item.Kind", kind,
-				"Item", item,
-			)
-			if err := i.controller.client().Delete(ctx, item); err != nil {
-				log.Error(err, "Failed to delete resource", "Tag", i.tag, "Resource", list)
-				return err
-			}
-		}
-	}
-	i.status.Resources = []picchuv1alpha1.ReleaseManagerRevisionResourceStatus{}
-	i.status.CurrentPercent = 0
-	i.status.Scale.Current = 0
-	i.status.Scale.Desired = 0
-	now := metav1.Now()
-	i.status.LastUpdated = &now
-	return nil
+	return i.applyPlan(&plan.DeleteRevision{
+		Labels:    i.defaultLabels(),
+		Namespace: i.targetNamespace(),
+	})
 }
 
 func (i *Incarnation) hasRevision() bool {
@@ -309,58 +275,38 @@ func (i *Incarnation) defaultLabels() map[string]string {
 	}
 }
 
-func (i *Incarnation) updateResourceStatus(resource runtime.Object) {
-	apiVersion := ""
-	kind := ""
-
-	kinds, _, _ := scheme.Scheme.ObjectKinds(resource)
-	if len(kinds) == 1 {
-		apiVersion, kind = kinds[0].ToAPIVersionAndKind()
-	}
-
-	metadata, _ := apimeta.Accessor(resource)
-	namespace := metadata.GetNamespace()
-	name := metadata.GetName()
-
-	i.status.CreateOrUpdateResourceStatus(picchuv1alpha1.ReleaseManagerRevisionResourceStatus{
-		ApiVersion: apiVersion,
-		Kind:       kind,
-		Metadata:   &types.NamespacedName{namespace, name},
-	})
-}
-
-func (i *Incarnation) removeResourceStatus(resource runtime.Object) {
-	apiVersion := ""
-	kind := ""
-
-	kinds, _, _ := scheme.Scheme.ObjectKinds(resource)
-	if len(kinds) == 1 {
-		apiVersion, kind = kinds[0].ToAPIVersionAndKind()
-	}
-
-	metadata, _ := apimeta.Accessor(resource)
-	namespace := metadata.GetNamespace()
-	name := metadata.GetName()
-
-	i.status.RemoveResourceStatus(picchuv1alpha1.ReleaseManagerRevisionResourceStatus{
-		ApiVersion: apiVersion,
-		Kind:       kind,
-		Metadata:   &types.NamespacedName{namespace, name},
-	})
-}
-
 func (i *Incarnation) setReleaseEligible(flag bool) {
 	i.status.ReleaseEligible = flag
 }
 
-func (i *Incarnation) recordHealthStatus(replicaSet *appsv1.ReplicaSet) {
-	desired := replicaSet.Spec.Replicas
-	current := replicaSet.Status.AvailableReplicas
-	i.status.Scale.Desired = *desired
-	i.status.Scale.Current = current
-	if current > i.status.Scale.Peak {
-		i.status.Scale.Peak = current
+func (i *Incarnation) updateHealthStatus(ctx context.Context) error {
+	rs := &appsv1.ReplicaSet{}
+	key := client.ObjectKey{
+		Name:      i.tag,
+		Namespace: i.targetNamespace(),
 	}
+	if err := i.controller.client().Get(ctx, key, rs); err != nil {
+		if errors.IsNotFound(err) {
+			if i.status.CurrentPercent != 0 {
+				now := metav1.Now()
+				i.status.LastUpdated = &now
+				i.status.CurrentPercent = 0
+			}
+			i.status.Scale.Current = 0
+			i.status.Scale.Desired = 0
+			i.status.Deleted = true
+			return nil
+		}
+		return err
+	}
+
+	i.status.Deleted = false
+	i.status.Scale.Desired = *rs.Spec.Replicas
+	i.status.Scale.Current = rs.Status.AvailableReplicas
+	if i.status.Scale.Current > i.status.Scale.Peak {
+		i.status.Scale.Peak = i.status.Scale.Current
+	}
+	return nil
 }
 
 func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []istiov1alpha3.HTTPRoute {
@@ -408,70 +354,6 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 	return http
 }
 
-func (i *Incarnation) syncSecrets(ctx context.Context, secrets *corev1.SecretList) ([]corev1.EnvFromSource, error) {
-	envs := []corev1.EnvFromSource{}
-
-	for _, item := range secrets.Items {
-		remote := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      item.Name,
-				Namespace: i.targetNamespace(),
-				Labels:    i.defaultLabels(),
-			},
-		}
-		op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), remote, func(runtime.Object) error {
-			remote.Data = item.Data
-			return nil
-		})
-		if err != nil {
-			i.log.Error(err, "Failed to sync secret")
-			return envs, err
-		}
-		i.updateResourceStatus(remote)
-
-		i.log.Info("Secret sync'd", "Op", op)
-		envs = append(envs, corev1.EnvFromSource{
-			SecretRef: &corev1.SecretEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: remote.Name},
-			},
-		})
-	}
-
-	return envs, nil
-}
-
-func (i *Incarnation) syncConfigMaps(ctx context.Context, configMaps *corev1.ConfigMapList) ([]corev1.EnvFromSource, error) {
-	envs := []corev1.EnvFromSource{}
-
-	for _, item := range configMaps.Items {
-		remote := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      item.Name,
-				Namespace: i.targetNamespace(),
-				Labels:    i.defaultLabels(),
-			},
-		}
-		op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), remote, func(runtime.Object) error {
-			remote.Data = item.Data
-			return nil
-		})
-		if err != nil {
-			i.log.Error(err, "Failed to sync configMap")
-			return envs, err
-		}
-		i.updateResourceStatus(remote)
-
-		i.log.Info("ConfigMap sync'd", "Op", op)
-		envs = append(envs, corev1.EnvFromSource{
-			ConfigMapRef: &corev1.ConfigMapEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: remote.Name},
-			},
-		})
-	}
-
-	return envs, nil
-}
-
 func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 	rule := &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
@@ -493,14 +375,12 @@ func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 			return err
 		}
 		i.log.Info("Sync'd PrometheusRule", "Op", op)
-		i.updateResourceStatus(rule)
 	} else {
 		if err := i.controller.client().Delete(ctx, rule); err != nil && !errors.IsNotFound(err) {
 			i.log.Info("Failed to delete PrometheusRule")
 			return err
 		}
 		i.log.Info("Deleted PrometheusRule")
-		i.removeResourceStatus(rule)
 	}
 	return nil
 }
@@ -590,86 +470,6 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 			},
 		},
 	}
-}
-
-func (i *Incarnation) syncReplicaSet(ctx context.Context, envs []corev1.EnvFromSource) error {
-	rs := i.replicaSet(envs)
-	op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), rs, func(runtime.Object) error {
-		if *rs.Spec.Replicas == 0 {
-			var one int32 = 1
-			rs.Spec.Replicas = &one
-		}
-		return nil
-	})
-	i.log.Info("ReplicaSet sync'd", "Type", "ReplicaSet", "Audit", true, "Content", rs.Spec, "Op", op)
-	if err != nil {
-		log.Error(err, "Failed to sync replicaSet")
-		return err
-	}
-	i.updateResourceStatus(rs)
-	i.recordHealthStatus(rs)
-	return nil
-}
-
-func (i *Incarnation) deleteIfExists(ctx context.Context, obj runtime.Object) error {
-	err := i.controller.client().Delete(ctx, obj)
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-	return nil
-}
-
-func (i *Incarnation) syncHPA(ctx context.Context) error {
-	target := i.target()
-	cpuTarget := target.Scale.TargetCPUUtilizationPercentage
-	if cpuTarget != nil && *cpuTarget == 0 {
-		hpa := &autoscalingv1.HorizontalPodAutoscaler{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      i.tag,
-				Namespace: i.targetNamespace(),
-			},
-		}
-		if err := i.deleteIfExists(ctx, hpa); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	min := i.divideReplicas(*target.Scale.Min)
-	max := i.divideReplicas(target.Scale.Max)
-	copyMin := min
-
-	hpa := &autoscalingv1.HorizontalPodAutoscaler{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      i.tag,
-			Namespace: i.targetNamespace(),
-			Labels:    i.defaultLabels(),
-		},
-		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
-				Kind:       "ReplicaSet",
-				Name:       i.tag,
-				APIVersion: "apps/v1",
-			},
-			MinReplicas:                    &copyMin,
-			MaxReplicas:                    max,
-			TargetCPUUtilizationPercentage: cpuTarget,
-		},
-	}
-
-	op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), hpa, func(runtime.Object) error {
-		copyMin := min
-		hpa.Spec.MinReplicas = &copyMin
-		hpa.Spec.MaxReplicas = max
-		return nil
-	})
-	i.log.Info("HPA sync'd", "Type", "HPA", "Audit", true, "Content", hpa.Spec, "Op", op)
-	if err != nil {
-		log.Error(err, "Failed to sync hpa")
-		return err
-	}
-	i.updateResourceStatus(hpa)
-	return nil
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
