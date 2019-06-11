@@ -70,6 +70,7 @@ type RevisionSpec struct {
 	Targets    []RevisionTarget `json:"targets"`
 	Failed     bool             `json:"failed"`
 	IgnoreSLOs bool             `json:"ignoreSLOs,omitempty"`
+	Sentry     SentryInfo       `json:"sentry"`
 }
 
 type RevisionApp struct {
@@ -104,6 +105,7 @@ type RevisionTargetMetricQueries struct {
 }
 
 type RevisionStatus struct {
+	Sentry  SentryInfo             `json:"sentry"`
 	Targets []RevisionTargetStatus `json:"targets"`
 }
 

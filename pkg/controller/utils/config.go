@@ -8,4 +8,6 @@ type Config struct {
 	TaggedRoutesEnabled    bool
 	PrometheusQueryAddress string
 	PrometheusQueryTTL     time.Duration
+	SentryAuthToken        string
+	SentryOrg              string
 }

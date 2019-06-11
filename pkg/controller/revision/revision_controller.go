@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/controller/utils"
-
+	"github.com/atlassian/go-sentry-api"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	promapi "go.medium.engineering/picchu/pkg/prometheus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -141,6 +141,16 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		revisionFailedGauge.With(promLabels).Set(float64(1))
 	} else {
 		revisionFailedGauge.With(promLabels).Set(float64(0))
+	}
+
+	if r.config.SentryAuthToken != "" && r.config.SentryOrg != "" && instance.Spec.Sentry.Released {
+		s, err := r.CreateSentryReleaseForRevision(instance, r.config.SentryOrg, r.config.SentryAuthToken)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if s.DateCreated != nil {
+			status.Sentry.Released = true
+		}
 	}
 
 	instance.Status = status
@@ -315,4 +325,15 @@ func (r *ReconcileRevision) DeleteRevision(revision *picchuv1alpha1.Revision) er
 		return err
 	}
 	return nil
+}
+
+func (r *ReconcileRevision) CreateSentryReleaseForRevision(revision *picchuv1alpha1.Revision, org string, token string) (sentry.Release, error) {
+	if version, ok := revision.Labels[picchuv1alpha1.LabelCommit]; !ok {
+		client, _ := sentry.NewClient(token, nil, nil)
+		o := &sentry.Organization{Slug: &org}
+		p := &sentry.Project{Slug: &revision.Spec.App.Name}
+		rel := &sentry.NewRelease{Version: version}
+		return client.CreateRelease(*o, *p, *rel)
+	}
+	return sentry.Release{}, nil
 }

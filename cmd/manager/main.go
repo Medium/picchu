@@ -55,6 +55,8 @@ func main() {
 	taggedRoutesEnabled := pflag.Bool("tagged-routes", false, "Enable tagged routes in istio")
 	prometheusQueryAddress := pflag.String("prometheus-query-address", "", "The (usually thanos) address that picchu should query to SLO alerts")
 	prometheusQueryTTL := pflag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
+	sentryAuthToken := pflag.String("sentry-auth-token", "", "Sentry API auth token")
+	sentryOrg := pflag.String("sentry-org", "", "Sentry API Organization")
 
 	pflag.Parse()
 
@@ -132,6 +134,8 @@ func main() {
 		TaggedRoutesEnabled:    *taggedRoutesEnabled,
 		PrometheusQueryAddress: *prometheusQueryAddress,
 		PrometheusQueryTTL:     *prometheusQueryTTL,
+		SentryAuthToken:        *sentryAuthToken,
+		SentryOrg:              *sentryOrg,
 	}
 
 	// Setup all Controllers

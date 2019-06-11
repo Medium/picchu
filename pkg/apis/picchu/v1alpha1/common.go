@@ -40,6 +40,7 @@ const (
 	AnnotationRevisionCreationTimestamp = "revisionCreationTimestamp"
 	AnnotationIAMRole                   = "iam.amazonaws.com/role"
 	AnnotationFailedAt                  = "picchu.medium.engineering/failed-at-timestamp"
+	LabelCommit                         = "medium.build/commit"
 )
 
 type PortInfo struct {
@@ -86,6 +87,10 @@ type ReleaseInfo struct {
 type RateInfo struct {
 	Increment    uint32 `json:"increment,omitempty"`
 	DelaySeconds *int64 `json:"delay,omitempty"`
+}
+
+type SentryInfo struct {
+	Released bool `json:"released,omitempty"`
 }
 
 // TODO(lyra): PodTemplate
