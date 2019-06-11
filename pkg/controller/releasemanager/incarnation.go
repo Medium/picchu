@@ -55,12 +55,15 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 				}
 			}
 		} else {
-			status.GitTimestamp = &metav1.Time{}
 			status.ReleaseEligible = false
 		}
 		if status.State.Target == "" {
 			status.State.Target = "created"
 		}
+	}
+
+	if status.GitTimestamp == nil {
+		status.GitTimestamp = &metav1.Time{}
 	}
 
 	if status.RevisionTimestamp == nil {
