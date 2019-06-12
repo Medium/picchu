@@ -92,8 +92,8 @@ type RevisionTarget struct {
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
 	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
-	LivenessProbe  *corev1.Probe               `json:"livenessProve,omitempty"`
-	ReadinessProbe *corev1.Probe               `json:"readinessProve,omitempty"`
+	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
+	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 }
 
 type RevisionTargetMetric struct {
