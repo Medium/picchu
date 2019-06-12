@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	StatusPort                 = "status"
-	PrometheusScrapeLabel      = "prometheus.io/scrape"
-	PrometheusScrapeLabelValue = "true"
+	StatusPort                  = "status"
+	PrometheusScrapeLabel       = "prometheus.io/scrape"
+	PrometheusScrapeLabelValue  = "true"
+	TrafficPolicyMaxConnections = 10000
 )
 
 var (
@@ -425,6 +426,18 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 			Labels:    labels,
 		},
 	}
+	trafficPolicy := &istiov1alpha3.TrafficPolicy{
+		ConnectionPool: &istiov1alpha3.ConnectionPoolSettings{
+			Tcp: &istiov1alpha3.TCPSettings{
+				MaxConnections: TrafficPolicyMaxConnections,
+			},
+			Http: &istiov1alpha3.HTTPSettings{
+				Http1MaxPendingRequests:  TrafficPolicyMaxConnections,
+				Http2MaxRequests:         TrafficPolicyMaxConnections,
+				MaxRequestsPerConnection: TrafficPolicyMaxConnections,
+			},
+		},
+	}
 	subsets := []istiov1alpha3.Subset{}
 	for _, incarnation := range r.incarnations.deployed() {
 		tag := incarnation.tag
@@ -434,13 +447,15 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 		})
 	}
 	spec := istiov1alpha3.DestinationRuleSpec{
-		Host:    service,
-		Subsets: subsets,
+		Host:          service,
+		Subsets:       subsets,
+		TrafficPolicy: trafficPolicy,
 	}
 
 	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, drule, func(runtime.Object) error {
 		drule.Spec.Host = spec.Host
 		drule.Spec.Subsets = spec.Subsets
+		drule.Spec.TrafficPolicy = spec.TrafficPolicy
 		return nil
 	})
 	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
