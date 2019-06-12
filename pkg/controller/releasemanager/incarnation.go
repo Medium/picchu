@@ -450,6 +450,7 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 	}
 
 	i.log.Info("Creating ReplicaSet", "Replicas", target.Scale.Default)
+	one := "1"
 	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.tag,
@@ -469,6 +470,11 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 				Spec: corev1.PodSpec{
 					ServiceAccountName: target.ServiceAccountName,
 					Containers:         []corev1.Container{appContainer},
+					DNSConfig: &corev1.PodDNSConfig{
+						Options: []corev1.PodDNSConfigOption{
+							{Name: "ndots", Value: &one},
+						},
+					},
 				},
 			},
 		},
