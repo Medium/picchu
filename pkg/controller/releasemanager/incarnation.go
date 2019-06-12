@@ -414,42 +414,49 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 	replicaCount := i.divideReplicas(target.Scale.Default)
 
 	appContainer := corev1.Container{
-		EnvFrom:   envs,
-		Image:     i.image(),
-		Name:      i.appName(),
-		Ports:     ports,
-		Resources: target.Resources,
+		EnvFrom:        envs,
+		Image:          i.image(),
+		Name:           i.appName(),
+		Ports:          ports,
+		Resources:      target.Resources,
+		LivenessProbe:  target.LivenessProbe,
+		ReadinessProbe: target.ReadinessProbe,
 	}
 	if hasStatusPort {
-		appContainer.LivenessProbe = &corev1.Probe{
-			Handler: corev1.Handler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/running",
-					Port: intstr.FromString("status"),
+		if appContainer.LivenessProbe == nil {
+			appContainer.LivenessProbe = &corev1.Probe{
+				Handler: corev1.Handler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/running",
+						Port: intstr.FromString("status"),
+					},
 				},
-			},
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       10,
-			TimeoutSeconds:      1,
-			SuccessThreshold:    1,
-			FailureThreshold:    7, // FIXME(lyra)
+				InitialDelaySeconds: 10,
+				PeriodSeconds:       10,
+				TimeoutSeconds:      1,
+				SuccessThreshold:    1,
+				FailureThreshold:    7, // FIXME(lyra)
+			}
 		}
-		appContainer.ReadinessProbe = &corev1.Probe{
-			Handler: corev1.Handler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/running", // FIXME(lyra)
-					Port: intstr.FromString("status"),
+		if appContainer.ReadinessProbe == nil {
+			appContainer.ReadinessProbe = &corev1.Probe{
+				Handler: corev1.Handler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/running", // FIXME(lyra)
+						Port: intstr.FromString("status"),
+					},
 				},
-			},
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       10,
-			TimeoutSeconds:      1,
-			SuccessThreshold:    1,
-			FailureThreshold:    3,
+				InitialDelaySeconds: 10,
+				PeriodSeconds:       10,
+				TimeoutSeconds:      1,
+				SuccessThreshold:    1,
+				FailureThreshold:    3,
+			}
 		}
 	}
 
 	i.log.Info("Creating ReplicaSet", "Replicas", target.Scale.Default)
+	one := "1"
 	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.tag,
@@ -469,6 +476,11 @@ func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet
 				Spec: corev1.PodSpec{
 					ServiceAccountName: target.ServiceAccountName,
 					Containers:         []corev1.Container{appContainer},
+					DNSConfig: &corev1.PodDNSConfig{
+						Options: []corev1.PodDNSConfigOption{
+							{Name: "ndots", Value: &one},
+						},
+					},
 				},
 			},
 		},
