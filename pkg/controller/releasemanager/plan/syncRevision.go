@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	livenessProbe  *corev1.Probe
-	readinessProbe *corev1.Probe
+	defaultLivenessProbe  *corev1.Probe
+	defaultReadinessProbe *corev1.Probe
 )
 
 // TODO(bob): Move to Revision spec
 func init() {
-	livenessProbe = &corev1.Probe{
+	defaultLivenessProbe = &corev1.Probe{
 		Handler: corev1.Handler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/running",
@@ -34,13 +34,13 @@ func init() {
 		PeriodSeconds:       10,
 		TimeoutSeconds:      1,
 		SuccessThreshold:    1,
-		FailureThreshold:    7, // FIXME(lyra)
+		FailureThreshold:    7,
 	}
 
-	readinessProbe = &corev1.Probe{
+	defaultReadinessProbe = &corev1.Probe{
 		Handler: corev1.Handler{
 			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/running", // FIXME(lyra)
+				Path: "/running",
 				Port: intstr.FromString("status"),
 			},
 		},
@@ -65,6 +65,8 @@ type SyncRevision struct {
 	IAMRole            string // AWS iam role
 	ServiceAccountName string // k8s ServiceAccount
 	UseNewTagStyle     bool
+	LivenessProbe      *corev1.Probe
+	ReadinessProbe     *corev1.Probe
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
@@ -116,16 +118,22 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 	}
 
 	appContainer := corev1.Container{
-		EnvFrom:   envs,
-		Image:     p.Image,
-		Name:      p.App,
-		Ports:     ports,
-		Resources: p.Resources,
+		EnvFrom:        envs,
+		Image:          p.Image,
+		Name:           p.App,
+		Ports:          ports,
+		Resources:      p.Resources,
+		LivenessProbe:  p.LivenessProbe,
+		ReadinessProbe: p.ReadinessProbe,
 	}
 
 	if hasStatusPort {
-		appContainer.LivenessProbe = livenessProbe
-		appContainer.ReadinessProbe = readinessProbe
+		if p.LivenessProbe == nil {
+			appContainer.LivenessProbe = defaultLivenessProbe
+		}
+		if p.ReadinessProbe == nil {
+			appContainer.ReadinessProbe = defaultReadinessProbe
+		}
 	}
 
 	podLabels := map[string]string{
