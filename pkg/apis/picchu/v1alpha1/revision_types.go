@@ -192,7 +192,7 @@ func (r *RevisionTargetStatus) AddReleaseManagerStatus(name string, status Relea
 }
 
 func (r *RevisionTargetStatus) IsRolloutComplete() bool {
-	return r.Release.PeakPercent >= 100
+	return r.Clusters.MaxPercent >= 100
 }
 
 func (r *Revision) GitTimestamp() time.Time {
