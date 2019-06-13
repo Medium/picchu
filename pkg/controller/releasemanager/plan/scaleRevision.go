@@ -61,7 +61,7 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.L
 	}
 
 	op, err := controllerutil.CreateOrUpdate(ctx, cli, hpa, func(runtime.Object) error {
-		hpa.Spec.MinReplicas = &copyMin
+		*hpa.Spec.MinReplicas = p.Min
 		hpa.Spec.MaxReplicas = p.Max
 		return nil
 	})
