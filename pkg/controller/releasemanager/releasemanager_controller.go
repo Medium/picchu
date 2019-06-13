@@ -213,7 +213,7 @@ func (r *ReconcileReleaseManager) countFleetCohort(namespace, fleet string) (uin
 	var cnt uint32 = 0
 	for _, cluster := range cl.Items {
 		for _, cond := range cluster.Status.Conditions {
-			if cond.Name == "Ready" && cond.Status == "True" {
+			if cond.Name == "Ready" && cond.Status == "True" && cluster.Spec.Enabled {
 				cnt++
 			}
 		}
