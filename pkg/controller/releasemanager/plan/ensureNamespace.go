@@ -24,6 +24,7 @@ type EnsureNamespace struct {
 }
 
 func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	log.Info("Applying Plan", "Plan", p)
 	om := metav1.ObjectMeta{
 		Name: p.Name,
 		Labels: map[string]string{
@@ -38,6 +39,6 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, log logr
 		ns.ObjectMeta.Labels = om.Labels
 		return nil
 	})
-	log.Info("Namespace sync'd", "Op", op, "Content", ns, "Audit", "true", "Type", "Namespace")
+	LogSync(log, op, err, ns)
 	return err
 }

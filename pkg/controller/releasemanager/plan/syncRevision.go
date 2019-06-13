@@ -64,9 +64,11 @@ type SyncRevision struct {
 	Resources          corev1.ResourceRequirements
 	IAMRole            string // AWS iam role
 	ServiceAccountName string // k8s ServiceAccount
+	UseNewTagStyle     bool
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	log.Info("Applying Plan", "Plan", p)
 	envs := []corev1.EnvFromSource{}
 
 	for _, i := range p.Configs {
@@ -130,6 +132,12 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		picchuv1alpha1.LabelTag: p.Tag,
 		picchuv1alpha1.LabelApp: p.App,
 	}
+	if p.UseNewTagStyle {
+		podLabels = map[string]string{
+			"tag.picchu.medium.engineering": p.Tag,
+			"app.picchu.medium.engineering": p.App,
+		}
+	}
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -164,7 +172,6 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 	}
 
 	for _, i := range append(p.Configs, replicaSet) {
-		log.Info("Syncing resource", "item", i)
 		orig := i.DeepCopyObject()
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, i, func(runtime.Object) error {
 			switch obj := i.(type) {
@@ -184,10 +191,10 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 			}
 			return nil
 		})
+		LogSync(log, op, err, i)
 		if err != nil {
 			return err
 		}
-		log.Info("Resource sync'd", "Audit", true, "Content", i, "Op", op)
 	}
 	return nil
 }

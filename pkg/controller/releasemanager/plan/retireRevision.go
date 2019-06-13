@@ -16,6 +16,7 @@ type RetireRevision struct {
 }
 
 func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	log.Info("Applying Plan", "Plan", p)
 	rs := &appsv1.ReplicaSet{}
 	s := types.NamespacedName{p.Namespace, p.Tag}
 	err := cli.Get(ctx, s, rs)

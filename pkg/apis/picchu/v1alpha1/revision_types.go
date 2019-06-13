@@ -70,6 +70,8 @@ type RevisionSpec struct {
 	Targets    []RevisionTarget `json:"targets"`
 	Failed     bool             `json:"failed"`
 	IgnoreSLOs bool             `json:"ignoreSLOs,omitempty"`
+	// This is immutable. Changing it has undefined behavior
+	UseNewTagStyle bool `json:"useNewTagStyle,omitempty"`
 }
 
 type RevisionApp struct {
@@ -192,7 +194,7 @@ func (r *RevisionTargetStatus) AddReleaseManagerStatus(name string, status Relea
 }
 
 func (r *RevisionTargetStatus) IsRolloutComplete() bool {
-	return r.Release.PeakPercent >= 100
+	return r.Clusters.MaxPercent >= 100
 }
 
 func (r *Revision) GitTimestamp() time.Time {

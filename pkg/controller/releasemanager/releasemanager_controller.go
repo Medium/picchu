@@ -127,6 +127,8 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	r.scheme.Default(rm)
 
+	rmLog := reqLog.WithValues("App", rm.Spec.App, "Cluster", rm.Spec.Cluster, "Target", rm.Spec.Target)
+
 	cluster := &picchuv1alpha1.Cluster{}
 	key := client.ObjectKey{request.Namespace, rm.Spec.Cluster}
 	if err := r.client.Get(context.TODO(), key, cluster); err != nil {
@@ -136,7 +138,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
-		reqLog.Error(err, "Failed to create remote client", "Cluster.Key", key)
+		rmLog.Error(err, "Failed to create remote client", "Cluster.Key", key)
 		return reconcile.Result{}, err
 	}
 
@@ -148,7 +150,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	ic := &IncarnationController{
 		rrm:          r,
 		remoteClient: remoteClient,
-		logger:       reqLog,
+		logger:       rmLog,
 		rm:           rm,
 		fs:           fleetSize,
 	}
@@ -170,16 +172,16 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		cluster:      cluster,
 		client:       remoteClient,
 		reconciler:   r,
-		log:          reqLog,
+		log:          rmLog,
 	}
 	// -------------------------------------------------------------------------
 
 	if !rm.IsDeleted() {
-		reqLog.Info("Sync'ing releasemanager")
+		rmLog.Info("Sync'ing releasemanager")
 		return syncer.sync()
 	}
 	if !rm.IsFinalized() {
-		reqLog.Info("Deleting releasemanager")
+		rmLog.Info("Deleting releasemanager")
 		return syncer.del()
 	}
 	return reconcile.Result{}, nil
@@ -211,7 +213,7 @@ func (r *ReconcileReleaseManager) countFleetCohort(namespace, fleet string) (uin
 	var cnt uint32 = 0
 	for _, cluster := range cl.Items {
 		for _, cond := range cluster.Status.Conditions {
-			if cond.Name == "Ready" && cond.Status == "True" {
+			if cond.Name == "Ready" && cond.Status == "True" && cluster.Spec.Enabled {
 				cnt++
 			}
 		}
@@ -406,8 +408,7 @@ func (r *ResourceSyncer) syncService() error {
 		service.Spec.Selector = map[string]string{picchuv1alpha1.LabelApp: r.instance.Spec.App}
 		return nil
 	})
-
-	r.log.Info("Service sync'd", "Op", op)
+	plan.LogSync(r.log, op, err, service)
 	return err
 }
 
@@ -441,9 +442,13 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 	subsets := []istiov1alpha3.Subset{}
 	for _, incarnation := range r.incarnations.deployed() {
 		tag := incarnation.tag
+		tagLabel := picchuv1alpha1.LabelTag
+		if incarnation.status.UseNewTagStyle {
+			tagLabel = "tag.picchu.medium.engineering"
+		}
 		subsets = append(subsets, istiov1alpha3.Subset{
 			Name:   tag,
-			Labels: map[string]string{picchuv1alpha1.LabelTag: tag},
+			Labels: map[string]string{tagLabel: tag},
 		})
 	}
 	spec := istiov1alpha3.DestinationRuleSpec{
@@ -458,7 +463,7 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 		drule.Spec.TrafficPolicy = spec.TrafficPolicy
 		return nil
 	})
-	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
+	plan.LogSync(r.log, op, err, drule)
 	return err
 }
 
@@ -623,11 +628,11 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		vs.Spec.Http = http
 		return nil
 	})
+	plan.LogSync(r.log, op, err, vs)
 	if err != nil {
 		return err
 	}
 
-	r.log.Info("VirtualService sync'd", "Type", "VirtualService", "Audit", true, "Content", vs, "Op", op)
 	for _, incarnation := range r.incarnations.sorted() {
 		revisionReleaseWeightGauge.
 			With(prometheus.Labels{

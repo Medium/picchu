@@ -47,6 +47,7 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 	status := controller.releaseManager().RevisionStatus(tag)
 	if status.State.Target == "" || status.State.Target == "created" || status.State.Target == "deployed" {
 		if revision != nil {
+			status.UseNewTagStyle = revision.Spec.UseNewTagStyle
 			status.GitTimestamp = &metav1.Time{revision.GitTimestamp()}
 			for _, target := range revision.Spec.Targets {
 				if target.Name == controller.releaseManager().Spec.Target {
@@ -133,6 +134,7 @@ func (i *Incarnation) sync() error {
 			Resources:          i.target().Resources,
 			IAMRole:            i.target().AWS.IAM.RoleARN,
 			ServiceAccountName: i.target().ServiceAccountName,
+			UseNewTagStyle:     i.status.UseNewTagStyle,
 		},
 		&plan.ScaleRevision{
 			Tag:       i.tag,
@@ -276,9 +278,12 @@ func (i *Incarnation) listOptions() (*client.ListOptions, error) {
 
 func (i *Incarnation) defaultLabels() map[string]string {
 	return map[string]string{
-		picchuv1alpha1.LabelApp:    i.appName(),
-		picchuv1alpha1.LabelTag:    i.tag,
-		picchuv1alpha1.LabelTarget: i.targetName(),
+		picchuv1alpha1.LabelApp:            i.appName(),
+		picchuv1alpha1.LabelTag:            i.tag,
+		picchuv1alpha1.LabelTarget:         i.targetName(),
+		"tag.picchu.medium.engineering":    i.tag,
+		"target.picchu.medium.engineering": i.targetName(),
+		"app.picchu.medium.engineering":    i.appName(),
 	}
 }
 
@@ -377,11 +382,10 @@ func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 			}}
 			return nil
 		})
+		plan.LogSync(i.log, op, err, rule)
 		if err != nil {
-			i.log.Info("Failed to sync'd PrometheusRule")
 			return err
 		}
-		i.log.Info("Sync'd PrometheusRule", "Op", op)
 	} else {
 		if err := i.controller.client().Delete(ctx, rule); err != nil && !errors.IsNotFound(err) {
 			i.log.Info("Failed to delete PrometheusRule")
