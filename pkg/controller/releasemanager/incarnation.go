@@ -135,6 +135,8 @@ func (i *Incarnation) sync() error {
 			IAMRole:            i.target().AWS.IAM.RoleARN,
 			ServiceAccountName: i.target().ServiceAccountName,
 			UseNewTagStyle:     i.status.UseNewTagStyle,
+			ReadinessProbe:     i.target().ReadinessProbe,
+			LivenessProbe:      i.target().LivenessProbe,
 		},
 		&plan.ScaleRevision{
 			Tag:       i.tag,
