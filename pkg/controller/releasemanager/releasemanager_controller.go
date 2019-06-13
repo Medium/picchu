@@ -127,6 +127,8 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	r.scheme.Default(rm)
 
+	rmLog := reqLog.WithValues("App", rm.Spec.App, "Cluster", rm.Spec.Cluster, "Target", rm.Spec.Target)
+
 	cluster := &picchuv1alpha1.Cluster{}
 	key := client.ObjectKey{request.Namespace, rm.Spec.Cluster}
 	if err := r.client.Get(context.TODO(), key, cluster); err != nil {
@@ -136,7 +138,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	remoteClient, err := utils.RemoteClient(r.client, cluster)
 	if err != nil {
-		reqLog.Error(err, "Failed to create remote client", "Cluster.Key", key)
+		rmLog.Error(err, "Failed to create remote client", "Cluster.Key", key)
 		return reconcile.Result{}, err
 	}
 
@@ -148,7 +150,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	ic := &IncarnationController{
 		rrm:          r,
 		remoteClient: remoteClient,
-		logger:       reqLog,
+		logger:       rmLog,
 		rm:           rm,
 		fs:           fleetSize,
 	}
@@ -170,16 +172,16 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		cluster:      cluster,
 		client:       remoteClient,
 		reconciler:   r,
-		log:          reqLog,
+		log:          rmLog,
 	}
 	// -------------------------------------------------------------------------
 
 	if !rm.IsDeleted() {
-		reqLog.Info("Sync'ing releasemanager")
+		rmLog.Info("Sync'ing releasemanager")
 		return syncer.sync()
 	}
 	if !rm.IsFinalized() {
-		reqLog.Info("Deleting releasemanager")
+		rmLog.Info("Deleting releasemanager")
 		return syncer.del()
 	}
 	return reconcile.Result{}, nil
