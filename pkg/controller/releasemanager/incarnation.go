@@ -251,6 +251,10 @@ func (i *Incarnation) appName() string {
 	return i.controller.releaseManager().Spec.App
 }
 
+func (i *Incarnation) targetName() string {
+	return i.controller.releaseManager().Spec.Target
+}
+
 func (i *Incarnation) targetNamespace() string {
 	return i.controller.releaseManager().TargetNamespace()
 }
@@ -274,7 +278,7 @@ func (i *Incarnation) defaultLabels() map[string]string {
 	return map[string]string{
 		picchuv1alpha1.LabelApp:    i.appName(),
 		picchuv1alpha1.LabelTag:    i.tag,
-		picchuv1alpha1.LabelTarget: i.target().Name,
+		picchuv1alpha1.LabelTarget: i.targetName(),
 	}
 }
 
