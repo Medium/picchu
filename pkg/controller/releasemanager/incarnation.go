@@ -16,11 +16,9 @@ import (
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -401,7 +399,7 @@ func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 func (i *Incarnation) divideReplicas(count int32) int32 {
 	r := utils.Max(count/i.controller.fleetSize(), 1)
 	release := i.target().Release
-	if release.Eligible {
+	if i.isReleaseEligible() {
 		// since we sync before incrementing, we'll just err on the side of
 		// caution.
 		i.log.Info("Compute count", "CurrentPercent", i.status.CurrentPercent, "Increment", release.Rate.Increment, "Count", r)
