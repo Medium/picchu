@@ -67,6 +67,7 @@ type SyncRevision struct {
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	log.Info("Applying Plan", "Plan", p)
 	envs := []corev1.EnvFromSource{}
 
 	for _, i := range p.Configs {

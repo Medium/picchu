@@ -15,6 +15,7 @@ type DeleteRevision struct {
 }
 
 func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	log.Info("Applying Plan", "Plan", p)
 	lists := []List{
 		NewSecretList(),
 		NewConfigMapList(),

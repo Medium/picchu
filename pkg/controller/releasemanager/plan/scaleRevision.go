@@ -23,6 +23,7 @@ type ScaleRevision struct {
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	log.Info("Applying plan", "Plan", p)
 	if p.CPUTarget != nil && *p.CPUTarget == 0 {
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{
 			ObjectMeta: metav1.ObjectMeta{

@@ -15,6 +15,7 @@ type DeleteApp struct {
 }
 
 func (p *DeleteApp) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	log.Info("Applying Plan", "Plan", p)
 	item := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: p.Namespace,
