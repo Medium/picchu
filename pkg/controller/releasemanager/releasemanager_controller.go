@@ -442,9 +442,13 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 	subsets := []istiov1alpha3.Subset{}
 	for _, incarnation := range r.incarnations.deployed() {
 		tag := incarnation.tag
+		tagLabel := picchuv1alpha1.LabelTag
+		if incarnation.status.UseNewTagStyle {
+			tagLabel = "tag.picchu.medium.engineering"
+		}
 		subsets = append(subsets, istiov1alpha3.Subset{
 			Name:   tag,
-			Labels: map[string]string{picchuv1alpha1.LabelTag: tag},
+			Labels: map[string]string{tagLabel: tag},
 		})
 	}
 	spec := istiov1alpha3.DestinationRuleSpec{

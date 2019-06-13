@@ -70,6 +70,8 @@ type RevisionSpec struct {
 	Targets    []RevisionTarget `json:"targets"`
 	Failed     bool             `json:"failed"`
 	IgnoreSLOs bool             `json:"ignoreSLOs,omitempty"`
+	// This is immutable. Changing it has undefined behavior
+	UseNewTagStyle bool `json:"useNewTagStyle,omitempty"`
 }
 
 type RevisionApp struct {

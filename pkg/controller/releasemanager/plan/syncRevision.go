@@ -64,6 +64,7 @@ type SyncRevision struct {
 	Resources          corev1.ResourceRequirements
 	IAMRole            string // AWS iam role
 	ServiceAccountName string // k8s ServiceAccount
+	UseNewTagStyle     bool
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
@@ -130,6 +131,12 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 	podLabels := map[string]string{
 		picchuv1alpha1.LabelTag: p.Tag,
 		picchuv1alpha1.LabelApp: p.App,
+	}
+	if p.UseNewTagStyle {
+		podLabels = map[string]string{
+			"tag.picchu.medium.engineering": p.Tag,
+			"app.picchu.medium.engineering": p.App,
+		}
 	}
 
 	template := corev1.PodTemplateSpec{

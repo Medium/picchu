@@ -56,6 +56,7 @@ type ReleaseManagerRevisionStatus struct {
 	Metrics           ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
 	Scale             ReleaseManagerRevisionScaleStatus   `json:"scale"`
 	Deleted           bool                                `json:"deleted,omitempty"`
+	UseNewTagStyle    bool                                `json:"useNewTagStyle,omitempty"`
 }
 
 type ReleaseManagerRevisionMetricsStatus struct {
