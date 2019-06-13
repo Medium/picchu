@@ -9,32 +9,21 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
-	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
-	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
-
-const (
-	StatusPort                  = "status"
-	PrometheusScrapeLabel       = "prometheus.io/scrape"
-	PrometheusScrapeLabelValue  = "true"
-	TrafficPolicyMaxConnections = 10000
 )
 
 var (
@@ -265,13 +254,7 @@ func (r *ResourceSyncer) sync() (reconcile.Result, error) {
 	if err := r.tickIncarnations(); err != nil {
 		return reconcile.Result{}, err
 	}
-	if err := r.syncService(); err != nil {
-		return reconcile.Result{}, err
-	}
-	if err := r.syncDestinationRule(); err != nil {
-		return reconcile.Result{}, err
-	}
-	if err := r.syncVirtualService(); err != nil {
+	if err := r.syncApp(); err != nil {
 		return reconcile.Result{}, err
 	}
 	rs := []picchuv1alpha1.ReleaseManagerRevisionStatus{}
@@ -357,28 +340,17 @@ func (r *ResourceSyncer) tickIncarnations() error {
 	return nil
 }
 
-func (r *ResourceSyncer) syncService() error {
-	portMap := map[string]corev1.ServicePort{}
+func (r *ResourceSyncer) syncApp() error {
+	portMap := map[string]picchuv1alpha1.PortInfo{}
 	for _, incarnation := range r.incarnations.deployed() {
-		if incarnation.revision == nil {
-			continue
-		}
 		for _, port := range incarnation.revision.Spec.Ports {
 			_, ok := portMap[port.Name]
 			if !ok {
-				portMap[port.Name] = corev1.ServicePort{
-					Name:       port.Name,
-					Protocol:   port.Protocol,
-					Port:       port.Port,
-					TargetPort: intstr.FromString(port.Name),
-				}
+				portMap[port.Name] = port
 			}
 		}
 	}
-	if len(portMap) == 0 {
-		return nil
-	}
-	ports := make([]corev1.ServicePort, 0, len(portMap))
+	ports := make([]picchuv1alpha1.PortInfo, 0, len(portMap))
 	for _, port := range portMap {
 		ports = append(ports, port)
 	}
@@ -389,121 +361,49 @@ func (r *ResourceSyncer) syncService() error {
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
 		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
-	if _, hasStatus := portMap[StatusPort]; hasStatus {
-		labels[PrometheusScrapeLabel] = PrometheusScrapeLabelValue
-	}
 
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.instance.Spec.App,
-			Namespace: r.instance.TargetNamespace(),
-			Labels:    labels,
-		},
-	}
+	revisions, alertRules := r.prepareRevisionsAndRules()
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, service, func(runtime.Object) error {
-		service.Spec.Ports = ports
-		service.Spec.Selector = map[string]string{picchuv1alpha1.LabelApp: r.instance.Spec.App}
-		return nil
+	err := r.applyPlan(&plan.SyncApp{
+		AppName:           r.instance.Spec.App,
+		Namespace:         r.instance.TargetNamespace(),
+		Labels:            labels,
+		DefaultDomain:     r.cluster.Spec.DefaultDomain,
+		PublicGateway:     r.cluster.Spec.Ingresses.Public.Gateway,
+		PrivateGateway:    r.cluster.Spec.Ingresses.Private.Gateway,
+		DeployedRevisions: revisions,
+		AlertRules:        alertRules,
+		Ports:             ports,
+		TagRoutingHeader:  "",
 	})
+	if err != nil {
+		return err
+	}
 
-	r.log.Info("Service sync'd", "Op", op)
-	return err
+	for _, revision := range revisions {
+		revisionReleaseWeightGauge.
+			With(prometheus.Labels{
+				"app":    r.instance.Spec.App,
+				"tag":    revision.Tag,
+				"target": r.instance.Spec.Target,
+			}).
+			Set(float64(revision.Weight))
+	}
+	return nil
 }
 
-func (r *ResourceSyncer) syncDestinationRule() error {
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
-		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.instance.Name,
-	}
-	appName := r.instance.Spec.App
-	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
-	drule := &istiov1alpha3.DestinationRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.instance.Spec.App,
-			Namespace: r.instance.TargetNamespace(),
-			Labels:    labels,
-		},
-	}
-	trafficPolicy := &istiov1alpha3.TrafficPolicy{
-		ConnectionPool: &istiov1alpha3.ConnectionPoolSettings{
-			Tcp: &istiov1alpha3.TCPSettings{
-				MaxConnections: TrafficPolicyMaxConnections,
-			},
-			Http: &istiov1alpha3.HTTPSettings{
-				Http1MaxPendingRequests:  TrafficPolicyMaxConnections,
-				Http2MaxRequests:         TrafficPolicyMaxConnections,
-				MaxRequestsPerConnection: TrafficPolicyMaxConnections,
-			},
-		},
-	}
-	subsets := []istiov1alpha3.Subset{}
-	for _, incarnation := range r.incarnations.deployed() {
-		tag := incarnation.tag
-		subsets = append(subsets, istiov1alpha3.Subset{
-			Name:   tag,
-			Labels: map[string]string{picchuv1alpha1.LabelTag: tag},
-		})
-	}
-	spec := istiov1alpha3.DestinationRuleSpec{
-		Host:          service,
-		Subsets:       subsets,
-		TrafficPolicy: trafficPolicy,
-	}
+func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitoringv1.Rule) {
+	alertRules := []monitoringv1.Rule{}
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, drule, func(runtime.Object) error {
-		drule.Spec.Host = spec.Host
-		drule.Spec.Subsets = spec.Subsets
-		drule.Spec.TrafficPolicy = spec.TrafficPolicy
-		return nil
-	})
-	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
-	return err
-}
-
-func (r *ResourceSyncer) syncVirtualService() error {
 	if len(r.incarnations.deployed()) == 0 {
-		return nil
+		return []plan.Revision{}, alertRules
 	}
-	appName := r.instance.Spec.App
-	defaultDomain := r.cluster.Spec.DefaultDomain
-	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       appName,
-		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.instance.Name,
-	}
-	defaultHost := fmt.Sprintf("%s.%s", r.instance.TargetNamespace(), defaultDomain)
-	meshHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
-	// keep a set of hosts
-	hosts := map[string]bool{defaultHost: true, meshHost: true}
-	publicGateway := r.cluster.Spec.Ingresses.Public.Gateway
-	privateGateway := r.cluster.Spec.Ingresses.Private.Gateway
-	gateways := []string{"mesh"}
-	if publicGateway != "" {
-		gateways = append(gateways, publicGateway)
-	}
-	if privateGateway != "" {
-		gateways = append(gateways, privateGateway)
-	}
-	vs := &istiov1alpha3.VirtualService{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      appName,
-			Namespace: r.instance.TargetNamespace(),
-			Labels:    labels,
-		},
-	}
-	http := []istiov1alpha3.HTTPRoute{}
 
-	// NOTE: We are iterating through the incarnations twice, these loops could
-	// be combined if we sorted the incarnations by git timestamp at the expense
-	// of readability
-
-	// Incarnation specific releases are made for each port on private ingress
-	if r.reconciler.config.TaggedRoutesEnabled {
-		for _, incarnation := range r.incarnations.deployed() {
-			http = append(http, incarnation.taggedRoutes(privateGateway, serviceHost)...)
+	revisionsMap := map[string]plan.Revision{}
+	for _, i := range r.incarnations.deployed() {
+		revisionsMap[i.tag] = plan.Revision{
+			Tag:    i.tag,
+			Weight: 0,
 		}
 	}
 
@@ -513,15 +413,13 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	// to take from oldest fnord release.
 	var percRemaining uint32 = 100
 	// Tracking one route per port number
-	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
 	incarnations := r.incarnations.releasable()
 	r.log.Info("Got my releases", "Count", len(incarnations))
 	count := len(incarnations)
+
 	// setup alerts from latest release
 	if count > 0 {
-		if err := incarnations[0].syncPrometheusRules(context.TODO()); err != nil {
-			return err
-		}
+		alertRules = incarnations[0].target().AlertRules
 	}
 
 	for i, incarnation := range incarnations {
@@ -537,106 +435,14 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		if percRemaining+current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
-
-		tag := incarnation.tag
-
-		if current > 0 && incarnation.revision != nil {
-			for _, port := range incarnation.revision.Spec.Ports {
-				portNumber := uint32(port.Port)
-				filterHosts := port.Hosts
-				gateway := []string{"mesh"}
-				switch port.Mode {
-				case picchuv1alpha1.PortPublic:
-					if publicGateway == "" {
-						r.log.Info("Can't configure publicGateway, undefined in Cluster")
-						continue
-					}
-					gateway = []string{publicGateway}
-					portNumber = uint32(port.IngressPort)
-				case picchuv1alpha1.PortPrivate:
-					if privateGateway == "" {
-						r.log.Info("Can't configure privateGateway, undefined in Cluster")
-						continue
-					}
-					gateway = []string{privateGateway}
-					filterHosts = append(filterHosts, defaultHost)
-					portNumber = uint32(port.IngressPort)
-				}
-				releaseRoute, ok := releaseRoutes[port.Name]
-				if !ok {
-					releaseRoute = istiov1alpha3.HTTPRoute{
-						Redirect:              port.Istio.HTTP.Redirect,
-						Rewrite:               port.Istio.HTTP.Rewrite,
-						Retries:               port.Istio.HTTP.Retries,
-						Fault:                 port.Istio.HTTP.Fault,
-						Mirror:                port.Istio.HTTP.Mirror,
-						AppendHeaders:         port.Istio.HTTP.AppendHeaders,
-						RemoveResponseHeaders: port.Istio.HTTP.RemoveResponseHeaders,
-					}
-					for _, filterHost := range filterHosts {
-						hosts[filterHost] = true
-						releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{
-							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
-							Authority: &istiocommonv1alpha1.StringMatch{Prefix: filterHost},
-							Port:      portNumber,
-							Gateways:  gateway,
-						})
-					}
-					releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{
-						Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
-						Port:     uint32(port.Port),
-						Gateways: []string{"mesh"},
-					})
-				}
-
-				releaseRoute.Route = append(releaseRoute.Route, istiov1alpha3.DestinationWeight{
-					Destination: istiov1alpha3.Destination{
-						Host:   serviceHost,
-						Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
-						Subset: tag,
-					},
-					Weight: int(current),
-				})
-				releaseRoutes[port.Name] = releaseRoute
-			}
-		}
+		revision := revisionsMap[incarnation.tag]
+		revision.Weight = current
+		revisionsMap[incarnation.tag] = revision
 	}
 
-	for _, route := range releaseRoutes {
-		http = append(http, route)
+	revisions := make([]plan.Revision, 0, len(revisionsMap))
+	for _, revision := range revisionsMap {
+		revisions = append(revisions, revision)
 	}
-
-	// This can happen if there are released incarnations with deleted revisions
-	// we want to wait until another revision is ready before updating.
-	if len(http) < 1 {
-		r.log.Info("Not sync'ing VirtualService, there are no valid releases")
-		return nil
-	}
-
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, vs, func(runtime.Object) error {
-		hostSlice := make([]string, 0, len(hosts))
-		for h := range hosts {
-			hostSlice = append(hostSlice, h)
-		}
-		vs.Spec.Hosts = hostSlice
-		vs.Spec.Gateways = gateways
-		vs.Spec.Http = http
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	r.log.Info("VirtualService sync'd", "Type", "VirtualService", "Audit", true, "Content", vs, "Op", op)
-	for _, incarnation := range r.incarnations.sorted() {
-		revisionReleaseWeightGauge.
-			With(prometheus.Labels{
-				"app":            appName,
-				"tag":            incarnation.tag,
-				"target_cluster": r.cluster.Name,
-				"target":         r.instance.Spec.Target,
-			}).
-			Set(float64(incarnation.status.CurrentPercent))
-	}
-	return nil
+	return revisions, alertRules
 }

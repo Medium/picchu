@@ -11,18 +11,14 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type Controller interface {
@@ -359,136 +355,6 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 		})
 	}
 	return http
-}
-
-func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
-	rule := &monitoringv1.PrometheusRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus-rule",
-			Namespace: i.targetNamespace(),
-		},
-	}
-	if i.target() != nil && len(i.target().AlertRules) > 0 {
-		op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), rule, func(runtime.Object) error {
-			rule.Labels = map[string]string{picchuv1alpha1.LabelTag: i.tag}
-			rule.Spec.Groups = []monitoringv1.RuleGroup{{
-				Name:  "picchu.rules",
-				Rules: i.target().AlertRules,
-			}}
-			return nil
-		})
-		if err != nil {
-			i.log.Info("Failed to sync'd PrometheusRule")
-			return err
-		}
-		i.log.Info("Sync'd PrometheusRule", "Op", op)
-	} else {
-		if err := i.controller.client().Delete(ctx, rule); err != nil && !errors.IsNotFound(err) {
-			i.log.Info("Failed to delete PrometheusRule")
-			return err
-		}
-		i.log.Info("Deleted PrometheusRule")
-	}
-	return nil
-}
-
-func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet {
-	target := i.target()
-	ports := []corev1.ContainerPort{}
-	hasStatusPort := false
-	for _, port := range i.revision.Spec.Ports {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          port.Name,
-			Protocol:      port.Protocol,
-			ContainerPort: port.ContainerPort,
-		})
-		if port.Name == "status" {
-			hasStatusPort = true
-		}
-	}
-	podAnnotations := make(map[string]string, 1)
-	if role := target.AWS.IAM.RoleARN; role != "" {
-		podAnnotations[picchuv1alpha1.AnnotationIAMRole] = role
-	}
-	// Used for Container label and Container Selector
-	podLabels := map[string]string{
-		picchuv1alpha1.LabelApp: i.appName(),
-		picchuv1alpha1.LabelTag: i.tag,
-	}
-	replicaCount := i.divideReplicas(target.Scale.Default)
-
-	appContainer := corev1.Container{
-		EnvFrom:        envs,
-		Image:          i.image(),
-		Name:           i.appName(),
-		Ports:          ports,
-		Resources:      target.Resources,
-		LivenessProbe:  target.LivenessProbe,
-		ReadinessProbe: target.ReadinessProbe,
-	}
-	if hasStatusPort {
-		if appContainer.LivenessProbe == nil {
-			appContainer.LivenessProbe = &corev1.Probe{
-				Handler: corev1.Handler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/running",
-						Port: intstr.FromString("status"),
-					},
-				},
-				InitialDelaySeconds: 10,
-				PeriodSeconds:       10,
-				TimeoutSeconds:      1,
-				SuccessThreshold:    1,
-				FailureThreshold:    7, // FIXME(lyra)
-			}
-		}
-		if appContainer.ReadinessProbe == nil {
-			appContainer.ReadinessProbe = &corev1.Probe{
-				Handler: corev1.Handler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/running", // FIXME(lyra)
-						Port: intstr.FromString("status"),
-					},
-				},
-				InitialDelaySeconds: 10,
-				PeriodSeconds:       10,
-				TimeoutSeconds:      1,
-				SuccessThreshold:    1,
-				FailureThreshold:    3,
-			}
-		}
-	}
-
-	i.log.Info("Creating ReplicaSet", "Replicas", target.Scale.Default)
-	one := "1"
-	return &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      i.tag,
-			Namespace: i.targetNamespace(),
-			Labels:    i.defaultLabels(),
-		},
-		Spec: appsv1.ReplicaSetSpec{
-			Replicas: &replicaCount,
-			Selector: metav1.SetAsLabelSelector(podLabels),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        i.tag,
-					Namespace:   i.targetNamespace(),
-					Annotations: podAnnotations,
-					Labels:      podLabels,
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: target.ServiceAccountName,
-					Containers:         []corev1.Container{appContainer},
-					DNSConfig: &corev1.PodDNSConfig{
-						Options: []corev1.PodDNSConfigOption{
-							{Name: "ndots", Value: &one},
-						},
-					},
-				},
-			},
-		},
-	}
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
