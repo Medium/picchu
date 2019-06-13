@@ -51,9 +51,10 @@ var (
 		IAMRole:            "testrole",
 		ServiceAccountName: "testaccount",
 	}
-	one int32 = 1
+	one    int32 = 1
+	oneStr       = "1"
 
-	defaultExpected = &appsv1.ReplicaSet{
+	defaultExpectedReplicaSet = &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testtag",
 			Namespace: "testnamespace",
@@ -131,6 +132,12 @@ var (
 							FailureThreshold:    3,
 						},
 					}},
+					DNSConfig: &corev1.PodDNSConfig{
+						Options: []corev1.PodDNSConfigOption{{
+							Name:  "ndots",
+							Value: &oneStr,
+						}},
+					},
 				},
 			},
 		},
@@ -175,7 +182,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 
 	m.
 		EXPECT().
-		Update(ctx, k8sEqual(defaultExpected)).
+		Update(ctx, k8sEqual(defaultExpectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
@@ -202,7 +209,7 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 
 	m.
 		EXPECT().
-		Create(ctx, k8sEqual(defaultExpected)).
+		Create(ctx, k8sEqual(defaultExpectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
@@ -234,7 +241,7 @@ func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
 		},
 	}
 
-	expectedReplicaSet := defaultExpected.DeepCopy()
+	expectedReplicaSet := defaultExpectedReplicaSet.DeepCopy()
 	expectedReplicaSet.Spec.Template.Spec.Containers[0].EnvFrom = []corev1.EnvFromSource{{
 		ConfigMapRef: &corev1.ConfigMapEnvSource{
 			LocalObjectReference: corev1.LocalObjectReference{Name: "testconfigmap"},
