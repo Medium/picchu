@@ -141,6 +141,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		Spec: corev1.PodSpec{
 			ServiceAccountName: p.ServiceAccountName,
 			Containers:         []corev1.Container{appContainer},
+			DNSConfig:          DefaultDNSConfig(),
 		},
 	}
 
@@ -189,4 +190,14 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		log.Info("Resource sync'd", "Audit", true, "Content", i, "Op", op)
 	}
 	return nil
+}
+
+func DefaultDNSConfig() *corev1.PodDNSConfig {
+	oneStr := "1"
+	return &corev1.PodDNSConfig{
+		Options: []corev1.PodDNSConfigOption{{
+			Name:  "ndots",
+			Value: &oneStr,
+		}},
+	}
 }
