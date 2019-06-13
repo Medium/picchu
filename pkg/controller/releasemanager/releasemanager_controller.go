@@ -406,8 +406,7 @@ func (r *ResourceSyncer) syncService() error {
 		service.Spec.Selector = map[string]string{picchuv1alpha1.LabelApp: r.instance.Spec.App}
 		return nil
 	})
-
-	r.log.Info("Service sync'd", "Op", op)
+	plan.LogSync(r.log, op, err, service)
 	return err
 }
 
@@ -458,7 +457,7 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 		drule.Spec.TrafficPolicy = spec.TrafficPolicy
 		return nil
 	})
-	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
+	plan.LogSync(r.log, op, err, drule)
 	return err
 }
 
@@ -623,11 +622,11 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		vs.Spec.Http = http
 		return nil
 	})
+	plan.LogSync(r.log, op, err, vs)
 	if err != nil {
 		return err
 	}
 
-	r.log.Info("VirtualService sync'd", "Type", "VirtualService", "Audit", true, "Content", vs, "Op", op)
 	for _, incarnation := range r.incarnations.sorted() {
 		revisionReleaseWeightGauge.
 			With(prometheus.Labels{

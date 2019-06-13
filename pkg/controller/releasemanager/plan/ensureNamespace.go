@@ -38,6 +38,6 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, log logr
 		ns.ObjectMeta.Labels = om.Labels
 		return nil
 	})
-	log.Info("Namespace sync'd", "Op", op, "Content", ns, "Audit", "true", "Type", "Namespace")
+	LogSync(log, op, err, ns)
 	return err
 }

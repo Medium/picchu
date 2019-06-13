@@ -61,9 +61,6 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.L
 		hpa.Spec.MaxReplicas = p.Max
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	log.Info("HPA sync'd", "Type", "HPA", "Audit", true, "Content", hpa.Spec, "Op", op)
-	return nil
+	LogSync(log, op, err, hpa)
+	return err
 }

@@ -380,11 +380,10 @@ func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 			}}
 			return nil
 		})
+		plan.LogSync(i.log, op, err, rule)
 		if err != nil {
-			i.log.Info("Failed to sync'd PrometheusRule")
 			return err
 		}
-		i.log.Info("Sync'd PrometheusRule", "Op", op)
 	} else {
 		if err := i.controller.client().Delete(ctx, rule); err != nil && !errors.IsNotFound(err) {
 			i.log.Info("Failed to delete PrometheusRule")
