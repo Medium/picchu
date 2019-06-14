@@ -9,6 +9,7 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	promapi "go.medium.engineering/picchu/pkg/prometheus"
@@ -27,7 +28,7 @@ import (
 )
 
 var (
-	log                 = logf.Log.WithName("controller_revision")
+	clog                = logf.Log.WithName("controller_revision")
 	revisionFailedGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_failed",
 		Help: "track failed revisions",
@@ -95,7 +96,7 @@ type ReconcileRevision struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Revision")
 
 	// Fetch the Revision instance
@@ -112,7 +113,9 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(instance)
-	if err = r.LabelWithAppAndFleets(instance); err != nil {
+	log := reqLogger.WithValues("App", instance.Spec.App.Name, "Tag", instance.Spec.App.Tag)
+
+	if err = r.LabelWithAppAndFleets(log, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -121,7 +124,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		"tag": instance.Spec.App.Tag,
 	}
 
-	status, err := r.SyncReleaseManagersForRevision(instance)
+	status, err := r.SyncReleaseManagersForRevision(log, instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -137,7 +140,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		reqLogger.Info("Set Revision State to failed", "Op", op)
+		log.Info("Set Revision State to failed", "Op", op)
 		revisionFailedGauge.With(promLabels).Set(float64(1))
 	} else {
 		revisionFailedGauge.With(promLabels).Set(float64(0))
@@ -151,7 +154,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 }
 
-func (r *ReconcileRevision) LabelWithAppAndFleets(revision *picchuv1alpha1.Revision) error {
+func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *picchuv1alpha1.Revision) error {
 	fleetLabels := []string{}
 	updated := false
 	for _, target := range revision.Spec.Targets {
@@ -190,6 +193,7 @@ func (r *ReconcileRevision) LabelWithAppAndFleets(revision *picchuv1alpha1.Revis
 }
 
 func (r *ReconcileRevision) GetOrCreateReleaseManager(
+	log logr.Logger,
 	target *picchuv1alpha1.RevisionTarget,
 	cluster *picchuv1alpha1.Cluster,
 	revision *picchuv1alpha1.Revision,
@@ -234,7 +238,7 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 	return rm, nil
 }
 
-func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
+func (r *ReconcileRevision) SyncReleaseManagersForRevision(log logr.Logger, revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
 	// Sync releasemanagers
 	rstatus := picchuv1alpha1.RevisionStatus{}
 	rmCount, retiredCount := 0, 0
@@ -254,7 +258,7 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 			if cluster.IsDeleted() || !cluster.Spec.Enabled {
 				continue
 			}
-			rm, err := r.GetOrCreateReleaseManager(&target, &cluster, revision)
+			rm, err := r.GetOrCreateReleaseManager(log, &target, &cluster, revision)
 			if err != nil {
 				return rstatus, err
 			}
@@ -291,7 +295,7 @@ func (r *ReconcileRevision) SyncReleaseManagersForRevision(revision *picchuv1alp
 	// if Revision is expired in all ReleaseManagers, without deleting
 	// clusterless revisions
 	if retiredCount == rmCount && retiredCount > 0 {
-		if err := r.DeleteRevision(revision); err != nil {
+		if err := r.DeleteRevision(log, revision); err != nil {
 			log.Error(err, "Failed to delete Revision")
 			return rstatus, err
 		}
@@ -309,7 +313,7 @@ func (r *ReconcileRevision) getClustersByFleet(namespace string, fleet string) (
 	return clusters, err
 }
 
-func (r *ReconcileRevision) DeleteRevision(revision *picchuv1alpha1.Revision) error {
+func (r *ReconcileRevision) DeleteRevision(log logr.Logger, revision *picchuv1alpha1.Revision) error {
 	log.Info("Deleting revision", "Name", revision.Name, "Namespace", revision.Namespace)
 	if err := r.client.Delete(context.TODO(), revision); err != nil && !errors.IsNotFound(err) {
 		return err
