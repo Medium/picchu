@@ -360,20 +360,20 @@ func (r *ResourceSyncer) tickIncarnations() error {
 }
 
 func (r *ResourceSyncer) syncService() error {
+	// TODO(bob): This should probably be only revisions with desired replicas
+	// prefer older port mappings. sorted is newest to oldest, so oldest will
+	// overwrite newest if they conflict.
 	portMap := map[string]corev1.ServicePort{}
-	for _, incarnation := range r.incarnations.deployed() {
+	for _, incarnation := range r.incarnations.sorted() {
 		if incarnation.revision == nil {
 			continue
 		}
 		for _, port := range incarnation.revision.Spec.Ports {
-			_, ok := portMap[port.Name]
-			if !ok {
-				portMap[port.Name] = corev1.ServicePort{
-					Name:       port.Name,
-					Protocol:   port.Protocol,
-					Port:       port.Port,
-					TargetPort: intstr.FromString(port.Name),
-				}
+			portMap[port.Name] = corev1.ServicePort{
+				Name:       port.Name,
+				Protocol:   port.Protocol,
+				Port:       port.Port,
+				TargetPort: intstr.FromString(port.Name),
 			}
 		}
 	}
