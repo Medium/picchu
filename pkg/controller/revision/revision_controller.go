@@ -27,6 +27,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
+// TODO(bob): Add these to Revision type
+const AcceptancePercentage uint32 = 50
+
 var (
 	clog                = logf.Log.WithName("controller_revision")
 	revisionFailedGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -37,6 +40,7 @@ var (
 		Name: "picchu_revision_cluster_weight_drift",
 		Help: "Measures greatest difference between clusters of a revisions load balanced weight",
 	}, []string{"app", "tag", "target"})
+	AcceptanceTargets = []string{"production"}
 )
 
 // Add creates a new Revision Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -132,16 +136,30 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if triggered && !status.IsRolloutComplete() && !instance.Spec.IgnoreSLOs {
-		op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func(runtime.Object) error {
-			instance.Fail()
-			return nil
-		})
-		if err != nil {
-			return reconcile.Result{}, err
+	if triggered && !instance.Spec.IgnoreSLOs {
+		accepted := true
+		for _, targetStatus := range status.Targets {
+			for _, targetName := range AcceptanceTargets {
+				if targetStatus.Name == targetName {
+					if targetStatus.Release.PeakPercent < AcceptancePercentage {
+						accepted = false
+					}
+				}
+			}
 		}
-		log.Info("Set Revision State to failed", "Op", op)
-		revisionFailedGauge.With(promLabels).Set(float64(1))
+		if !accepted {
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func(runtime.Object) error {
+				instance.Fail()
+				return nil
+			})
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			log.Info("Set Revision State to failed", "Op", op)
+			revisionFailedGauge.With(promLabels).Set(float64(1))
+		} else {
+			revisionFailedGauge.With(promLabels).Set(float64(0))
+		}
 	} else {
 		revisionFailedGauge.With(promLabels).Set(float64(0))
 	}
