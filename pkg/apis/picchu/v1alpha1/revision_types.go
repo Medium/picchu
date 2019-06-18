@@ -117,20 +117,6 @@ func (r *RevisionStatus) AddTarget(ts RevisionTargetStatus) {
 	r.Targets = append(r.Targets, ts)
 }
 
-// IsRolloutComplete returns true if all rolloutTargets are rollout complete
-func (r *RevisionStatus) IsRolloutComplete() bool {
-	for _, target := range rolloutTargets {
-		ts := r.GetTarget(target)
-		if ts == nil {
-			return false
-		}
-		if !ts.IsRolloutComplete() {
-			return false
-		}
-	}
-	return true
-}
-
 func (r *RevisionStatus) GetTarget(name string) *RevisionTargetStatus {
 	for _, ts := range r.Targets {
 		if ts.Name == name {
@@ -191,10 +177,6 @@ func (r *RevisionTargetStatus) AddReleaseManagerStatus(name string, status Relea
 	if r.Scale.Current > r.Scale.Peak {
 		r.Scale.Peak = r.Scale.Current
 	}
-}
-
-func (r *RevisionTargetStatus) IsRolloutComplete() bool {
-	return r.Clusters.MaxPercent >= 100
 }
 
 func (r *Revision) GitTimestamp() time.Time {
