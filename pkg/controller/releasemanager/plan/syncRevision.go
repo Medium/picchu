@@ -190,7 +190,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 				obj.Data = orig.(*corev1.ConfigMap).Data
 				obj.Labels = p.Labels
 			case *appsv1.ReplicaSet:
-				if *orig.(*appsv1.ReplicaSet).Spec.Replicas == 0 {
+				if *orig.(*appsv1.ReplicaSet).Spec.Replicas == 0 || *obj.Spec.Replicas == 0 {
 					obj.Spec.Replicas = orig.(*appsv1.ReplicaSet).Spec.Replicas
 				}
 				obj.Spec.Template = orig.(*appsv1.ReplicaSet).Spec.Template
