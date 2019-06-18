@@ -10,6 +10,9 @@ spec:
   names:
     kind: Revision
     plural: revisions
+    categories:
+    - all
+    - picchu
   scope: Namespaced
   subresources:
     status: {}
