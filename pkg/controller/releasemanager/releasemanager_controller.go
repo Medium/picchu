@@ -429,18 +429,13 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 			Labels:    labels,
 		},
 	}
-	trafficPolicy := &istiov1alpha3.TrafficPolicy{
-		ConnectionPool: &istiov1alpha3.ConnectionPoolSettings{
-			Tcp: &istiov1alpha3.TCPSettings{
-				MaxConnections: TrafficPolicyMaxConnections,
-			},
-			Http: &istiov1alpha3.HTTPSettings{
-				Http1MaxPendingRequests:  TrafficPolicyMaxConnections,
-				Http2MaxRequests:         TrafficPolicyMaxConnections,
-				MaxRequestsPerConnection: TrafficPolicyMaxConnections,
-			},
-		},
+
+	var trafficPolicy *istiov1alpha3.TrafficPolicy
+	sorted := r.incarnations.sorted()
+	if len(sorted) > 0 {
+		trafficPolicy = sorted[0].revision.Spec.TrafficPolicy
 	}
+
 	subsets := []istiov1alpha3.Subset{}
 	for _, incarnation := range r.incarnations.deployed() {
 		tag := incarnation.tag

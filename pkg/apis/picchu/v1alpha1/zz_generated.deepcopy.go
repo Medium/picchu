@@ -924,6 +924,11 @@ func (in *RevisionSpec) DeepCopyInto(out *RevisionSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.TrafficPolicy != nil {
+		in, out := &in.TrafficPolicy, &out.TrafficPolicy
+		*out = new(v1alpha3.TrafficPolicy)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 
