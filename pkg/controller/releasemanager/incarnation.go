@@ -399,7 +399,7 @@ func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
 func (i *Incarnation) divideReplicas(count int32) int32 {
 	r := utils.Max(count/i.controller.fleetSize(), 1)
 	release := i.target().Release
-	if i.isReleaseEligible() {
+	if release.Eligible {
 		// since we sync before incrementing, we'll just err on the side of
 		// caution.
 		i.log.Info("Compute count", "CurrentPercent", i.status.CurrentPercent, "Increment", release.Rate.Increment, "Count", r)
