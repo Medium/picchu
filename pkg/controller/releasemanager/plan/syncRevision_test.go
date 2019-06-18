@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	defaultPlan = &SyncRevision{
+	defaultRevisionPlan = &SyncRevision{
 		App:       "testapp",
 		Tag:       "testtag",
 		Namespace: "testnamespace",
@@ -51,6 +51,39 @@ var (
 		IAMRole:            "testrole",
 		ServiceAccountName: "testaccount",
 	}
+	retiredRevisionPlan = &SyncRevision{
+		App:       "testapp",
+		Tag:       "testtag",
+		Namespace: "testnamespace",
+		Labels: map[string]string{
+			"test": "label",
+		},
+		Configs: []runtime.Object{},
+		Ports: []picchuv1alpha1.PortInfo{{
+			Name:          "http",
+			Protocol:      "TCP",
+			ContainerPort: 8080,
+		}, {
+			Name:          "status",
+			Protocol:      "TCP",
+			ContainerPort: 4242,
+		}},
+		Replicas: 0,
+		Image:    "docker.medium.sh/test:testtag",
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    mustParseQuantity("4"),
+				"memory": mustParseQuantity("4352Mi"),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    mustParseQuantity("2"),
+				"memory": mustParseQuantity("4352Mi"),
+			},
+		},
+		IAMRole:            "testrole",
+		ServiceAccountName: "testaccount",
+	}
+	zero   int32 = 0
 	one    int32 = 1
 	oneStr       = "1"
 
@@ -64,6 +97,94 @@ var (
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas: &one,
+			Selector: metav1.SetAsLabelSelector(map[string]string{
+				picchuv1alpha1.LabelTag: "testtag",
+				picchuv1alpha1.LabelApp: "testapp",
+			}),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testtag",
+					Namespace: "testnamespace",
+					Annotations: map[string]string{
+						picchuv1alpha1.AnnotationIAMRole: "testrole",
+					},
+					Labels: map[string]string{
+						picchuv1alpha1.LabelTag: "testtag",
+						picchuv1alpha1.LabelApp: "testapp",
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "testaccount",
+					Containers: []corev1.Container{{
+						EnvFrom: []corev1.EnvFromSource{},
+						Image:   "docker.medium.sh/test:testtag",
+						Name:    "testapp",
+						Ports: []corev1.ContainerPort{{
+							Name:          "http",
+							Protocol:      "TCP",
+							ContainerPort: 8080,
+						}, {
+							Name:          "status",
+							Protocol:      "TCP",
+							ContainerPort: 4242,
+						}},
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								"cpu":    mustParseQuantity("4"),
+								"memory": mustParseQuantity("4352Mi"),
+							},
+							Requests: corev1.ResourceList{
+								"cpu":    mustParseQuantity("2"),
+								"memory": mustParseQuantity("4352Mi"),
+							},
+						},
+						LivenessProbe: &corev1.Probe{
+							Handler: corev1.Handler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/running",
+									Port: intstr.FromString("status"),
+								},
+							},
+							InitialDelaySeconds: 10,
+							PeriodSeconds:       10,
+							TimeoutSeconds:      1,
+							SuccessThreshold:    1,
+							FailureThreshold:    7,
+						},
+						ReadinessProbe: &corev1.Probe{
+							Handler: corev1.Handler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/running",
+									Port: intstr.FromString("status"),
+								},
+							},
+							InitialDelaySeconds: 10,
+							PeriodSeconds:       10,
+							TimeoutSeconds:      1,
+							SuccessThreshold:    1,
+							FailureThreshold:    3,
+						},
+					}},
+					DNSConfig: &corev1.PodDNSConfig{
+						Options: []corev1.PodDNSConfigOption{{
+							Name:  "ndots",
+							Value: &oneStr,
+						}},
+					},
+				},
+			},
+		},
+	}
+	retiredExpectedReplicaSet = &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testtag",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				"test": "label",
+			},
+		},
+		Spec: appsv1.ReplicaSetSpec{
+			Replicas: &zero,
 			Selector: metav1.SetAsLabelSelector(map[string]string{
 				picchuv1alpha1.LabelTag: "testtag",
 				picchuv1alpha1.LabelApp: "testapp",
@@ -159,7 +280,7 @@ func TestSyncRevisionNoChange(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithChange(t *testing.T) {
@@ -186,7 +307,61 @@ func TestSyncRevisionWithChange(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
+}
+
+func TestSyncRevisionExistingReplicasZero(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
+			*rs.Spec.Replicas = 0
+			return true
+		})).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Update(ctx, k8sEqual(defaultExpectedReplicaSet)).
+		Return(nil).
+		Times(1)
+
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
+}
+
+func TestSyncRevisionRetirement(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
+			*rs.Spec.Replicas = 20
+			return true
+		})).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Update(ctx, k8sEqual(retiredExpectedReplicaSet)).
+		Return(nil).
+		Times(1)
+
+	assert.NoError(t, retiredRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithCreate(t *testing.T) {
@@ -213,7 +388,7 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
@@ -226,7 +401,7 @@ func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
 	cmok := client.ObjectKey{Name: "testconfigmap", Namespace: "testnamespace"}
 	ctx := context.TODO()
 
-	copy := *defaultPlan
+	copy := *defaultRevisionPlan
 	plan := &copy
 	plan.Configs = []runtime.Object{
 		&corev1.ConfigMap{
