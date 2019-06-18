@@ -36,13 +36,14 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled       bool              `json:"enabled"`
-	Config        *ClusterConfig    `json:"config,omitempty"`
-	Weight        float64           `json:"weight"`
-	AWS           *ClusterAWSInfo   `json:"aws,omitempty"`
-	DNS           []ClusterDNSGroup `json:"dns,omitempty"`
-	Ingresses     ClusterIngresses  `json:"ingresses"`
-	DefaultDomain string            `json:"defaultDomain"`
+	Enabled        bool              `json:"enabled"`
+	Config         *ClusterConfig    `json:"config,omitempty"`
+	Weight         float64           `json:"weight"`
+	AWS            *ClusterAWSInfo   `json:"aws,omitempty"`
+	DNS            []ClusterDNSGroup `json:"dns,omitempty"`
+	Ingresses      ClusterIngresses  `json:"ingresses"`
+	DefaultDomain  string            `json:"defaultDomain"`
+	UseNewTagStyle bool              `json:"useNewTagStyle,omitempty"`
 }
 
 type ClusterConfig struct {

@@ -31,6 +31,7 @@ type Controller interface {
 	getConfigMaps(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	fleetSize() int32
+	useNewTagStyle() bool
 }
 
 type Incarnation struct {
@@ -45,7 +46,6 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 	status := controller.releaseManager().RevisionStatus(tag)
 	if status.State.Target == "" || status.State.Target == "created" || status.State.Target == "deployed" {
 		if revision != nil {
-			status.UseNewTagStyle = revision.Spec.UseNewTagStyle
 			status.GitTimestamp = &metav1.Time{revision.GitTimestamp()}
 			for _, target := range revision.Spec.Targets {
 				if target.Name == controller.releaseManager().Spec.Target {
@@ -132,7 +132,7 @@ func (i *Incarnation) sync() error {
 			Resources:          i.target().Resources,
 			IAMRole:            i.target().AWS.IAM.RoleARN,
 			ServiceAccountName: i.target().ServiceAccountName,
-			UseNewTagStyle:     i.status.UseNewTagStyle,
+			UseNewTagStyle:     i.controller.useNewTagStyle(),
 			ReadinessProbe:     i.target().ReadinessProbe,
 			LivenessProbe:      i.target().LivenessProbe,
 		},

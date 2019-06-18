@@ -143,7 +143,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 	if p.UseNewTagStyle {
 		podLabels = map[string]string{
 			"tag.picchu.medium.engineering": p.Tag,
-			"app.picchu.medium.engineering": p.App,
+			picchuv1alpha1.LabelApp:         p.App,
 		}
 	}
 
@@ -190,7 +190,10 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 				obj.Data = orig.(*corev1.ConfigMap).Data
 				obj.Labels = p.Labels
 			case *appsv1.ReplicaSet:
-				obj.Spec = orig.(*appsv1.ReplicaSet).Spec
+				if *orig.(*appsv1.ReplicaSet).Spec.Replicas == 0 {
+					obj.Spec.Replicas = orig.(*appsv1.ReplicaSet).Spec.Replicas
+				}
+				obj.Spec.Template = orig.(*appsv1.ReplicaSet).Spec.Template
 				obj.Labels = p.Labels
 			default:
 				e := errors.New("Unknown type")
