@@ -502,8 +502,8 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 			if percRemaining <= 0 {
 				break
 			}
-			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
-			candidates[0].setReleaseEligible(true)
+			i.controller.log().Info("Unretiring", "tag", candidate.tag)
+			candidate.setReleaseEligible(true)
 			unretiredCount++
 			percRemaining -= candidate.getStatus().PeakPercent
 		}
