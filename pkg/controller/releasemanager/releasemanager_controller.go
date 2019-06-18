@@ -38,7 +38,7 @@ const (
 )
 
 var (
-	log                          = logf.Log.WithName("controller_releasemanager")
+	clog                         = logf.Log.WithName("controller_releasemanager")
 	incarnationGitReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name:    "picchu_git_release_latency",
 		Help:    "track time from git revision creation to incarnation release",
@@ -110,7 +110,7 @@ type ReconcileReleaseManager struct {
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
 // and what is in the ReleaseManager.Spec
 func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLog := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLog := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLog.Info("Reconciling ReleaseManager")
 
 	// Fetch the ReleaseManager instance
@@ -128,6 +128,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	r.scheme.Default(rm)
 
 	rmLog := reqLog.WithValues("App", rm.Spec.App, "Cluster", rm.Spec.Cluster, "Target", rm.Spec.Target)
+	rmLog.Info("Reconciling Existing ReleaseManager")
 
 	cluster := &picchuv1alpha1.Cluster{}
 	key := client.ObjectKey{request.Namespace, rm.Spec.Cluster}
@@ -142,7 +143,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	fleetSize, err := r.countFleetCohort(request.Namespace, cluster.Fleet())
+	fleetSize, err := r.countFleetCohort(rmLog, request.Namespace, cluster.Fleet())
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -153,10 +154,11 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		logger:       rmLog,
 		rm:           rm,
 		fs:           fleetSize,
+		newTagStyle:  cluster.Spec.UseNewTagStyle,
 	}
 
 	incarnations := newIncarnationCollection(ic)
-	revisions, err := r.getRevisions(request.Namespace, cluster.Fleet(), rm.Spec.App)
+	revisions, err := r.getRevisions(rmLog, request.Namespace, cluster.Fleet(), rm.Spec.App)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -187,9 +189,9 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileReleaseManager) getRevisions(namespace, fleet, app string) (*picchuv1alpha1.RevisionList, error) {
+func (r *ReconcileReleaseManager) getRevisions(log logr.Logger, namespace, fleet, app string) (*picchuv1alpha1.RevisionList, error) {
 	fleetLabel := fmt.Sprintf("%s%s", picchuv1alpha1.LabelFleetPrefix, fleet)
-	log.Info("Looking for revisions", "namespace", namespace, "fleet", fleet, "app", app)
+	log.Info("Looking for revisions")
 	listOptions := client.
 		InNamespace(namespace).
 		MatchingLabels(map[string]string{
@@ -201,7 +203,7 @@ func (r *ReconcileReleaseManager) getRevisions(namespace, fleet, app string) (*p
 	return rl, err
 }
 
-func (r *ReconcileReleaseManager) countFleetCohort(namespace, fleet string) (uint32, error) {
+func (r *ReconcileReleaseManager) countFleetCohort(log logr.Logger, namespace, fleet string) (uint32, error) {
 	log.Info("Counting clusters in fleet cohort")
 	listOptions := client.
 		InNamespace(namespace).
@@ -443,7 +445,7 @@ func (r *ResourceSyncer) syncDestinationRule() error {
 	for _, incarnation := range r.incarnations.deployed() {
 		tag := incarnation.tag
 		tagLabel := picchuv1alpha1.LabelTag
-		if incarnation.status.UseNewTagStyle {
+		if r.cluster.Spec.UseNewTagStyle {
 			tagLabel = "tag.picchu.medium.engineering"
 		}
 		subsets = append(subsets, istiov1alpha3.Subset{

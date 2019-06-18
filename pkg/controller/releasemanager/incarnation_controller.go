@@ -18,6 +18,7 @@ type IncarnationController struct {
 	logger       logr.Logger
 	rm           *picchuv1alpha1.ReleaseManager
 	fs           uint32
+	newTagStyle  bool
 }
 
 func (i *IncarnationController) scheme() *runtime.Scheme {
@@ -50,4 +51,8 @@ func (i *IncarnationController) getConfigMaps(ctx context.Context, opts *client.
 
 func (i *IncarnationController) fleetSize() int32 {
 	return int32(i.fs)
+}
+
+func (i *IncarnationController) useNewTagStyle() bool {
+	return i.newTagStyle
 }

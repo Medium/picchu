@@ -174,7 +174,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
-			*rs.Spec.Replicas = 20
+			rs.Spec.Template.Spec.ServiceAccountName = "updateme"
 			return true
 		})).
 		Return(nil).
@@ -201,7 +201,7 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
-			*rs.Spec.Replicas = 20
+			rs.Spec.Template.Spec.ServiceAccountName = "updateme"
 			return true
 		})).
 		Return(notFoundError).
