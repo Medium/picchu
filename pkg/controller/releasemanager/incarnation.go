@@ -11,7 +11,6 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
@@ -20,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type Controller interface {
@@ -361,36 +359,6 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 		})
 	}
 	return http
-}
-
-func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
-	rule := &monitoringv1.PrometheusRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus-rule",
-			Namespace: i.targetNamespace(),
-		},
-	}
-	if i.target() != nil && len(i.target().AlertRules) > 0 {
-		op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), rule, func(runtime.Object) error {
-			rule.Labels = map[string]string{picchuv1alpha1.LabelTag: i.tag}
-			rule.Spec.Groups = []monitoringv1.RuleGroup{{
-				Name:  "picchu.rules",
-				Rules: i.target().AlertRules,
-			}}
-			return nil
-		})
-		plan.LogSync(i.log, op, err, rule)
-		if err != nil {
-			return err
-		}
-	} else {
-		if err := i.controller.client().Delete(ctx, rule); err != nil && !errors.IsNotFound(err) {
-			i.log.Info("Failed to delete PrometheusRule")
-			return err
-		}
-		i.log.Info("Deleted PrometheusRule")
-	}
-	return nil
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {

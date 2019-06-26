@@ -42,7 +42,8 @@ func UpdateStatus(ctx context.Context, client client.Client, obj runtime.Object)
 func MustGetKind(obj runtime.Object) schema.GroupVersionKind {
 	kinds, _, err := scheme.Scheme.ObjectKinds(obj)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to get kind for (%#v)", obj))
+		fmt.Printf("Failed to get kind for (%#v)\n", obj)
+		panic(err)
 	}
 	if len(kinds) <= 0 {
 		panic("Assertion failed!")
