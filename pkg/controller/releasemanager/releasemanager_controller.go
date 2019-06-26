@@ -11,6 +11,7 @@ import (
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
+	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	corev1 "k8s.io/api/core/v1"
@@ -369,7 +370,7 @@ func (r *ResourceSyncer) syncApp() error {
 	revisions, alertRules := r.prepareRevisionsAndRules()
 
 	err := r.applyPlan(&plan.SyncApp{
-		AppName:           r.instance.Spec.App,
+		App:               r.instance.Spec.App,
 		Namespace:         r.instance.TargetNamespace(),
 		Labels:            labels,
 		DefaultDomain:     r.cluster.Spec.DefaultDomain,
@@ -401,14 +402,14 @@ func (r *ResourceSyncer) syncApp() error {
 // currentTrafficPolicy gets the latest releases traffic policy, or if there
 // are no releases, then the latest revisions traffic policy.
 func (r *ResourceSyncer) currentTrafficPolicy() *istiov1alpha3.TrafficPolicy {
-	for _, incarnation := range r.incarnations.releaseable() {
+	for _, incarnation := range r.incarnations.releasable() {
 		if incarnation.revision != nil {
-			return incarnations.revision.Spec.TrafficPolicy
+			return incarnation.revision.Spec.TrafficPolicy
 		}
 	}
 	for _, incarnation := range r.incarnations.sorted() {
 		if incarnation.revision != nil {
-			return incarnations.revision.Spec.TrafficPolicy
+			return incarnation.revision.Spec.TrafficPolicy
 		}
 	}
 	return nil

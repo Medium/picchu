@@ -20,10 +20,9 @@ import (
 )
 
 const (
-	StatusPort                  = "status"
-	PrometheusScrapeLabel       = "prometheus.io/scrape"
-	PrometheusScrapeLabelValue  = "true"
-	TrafficPolicyMaxConnections = 10000
+	StatusPort                 = "status"
+	PrometheusScrapeLabel      = "prometheus.io/scrape"
+	PrometheusScrapeLabelValue = "true"
 )
 
 type Revision struct {
@@ -62,6 +61,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 
 	serviceSpec := *service.Spec.DeepCopy()
 	serviceLabels := service.Labels
+	log.Info("CreateOrUpdate service")
 	op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func(runtime.Object) error {
 		service.Spec = serviceSpec
 		service.Labels = serviceLabels
@@ -74,6 +74,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 
 	drSpec := *destinationRule.Spec.DeepCopy()
 	drLabels := destinationRule.Labels
+	log.Info("CreateOrUpdate destinationRule")
 	op, err = controllerutil.CreateOrUpdate(ctx, cli, destinationRule, func(runtime.Object) error {
 		destinationRule.Spec = drSpec
 		destinationRule.Labels = drLabels
@@ -83,7 +84,6 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	if err != nil {
 		return err
 	}
-	return nil
 
 	if len(prometheusRule.Spec.Groups) == 0 {
 		err = cli.Delete(ctx, prometheusRule)
@@ -97,6 +97,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	} else {
 		prSpec := *prometheusRule.Spec.DeepCopy()
 		prLabels := prometheusRule.Labels
+		log.Info("CreateOrUpdate prometheusRule")
 		op, err = controllerutil.CreateOrUpdate(ctx, cli, prometheusRule, func(runtime.Object) error {
 			prometheusRule.Spec = prSpec
 			prometheusRule.Labels = prLabels
@@ -109,11 +110,13 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	}
 
 	if virtualService == nil {
+		log.Info("No virtualService")
 		return nil
 	}
 
 	vsSpec := *virtualService.Spec.DeepCopy()
 	vsLabels := virtualService.Labels
+	log.Info("CreateOrUpdate virtualService")
 	op, err = controllerutil.CreateOrUpdate(ctx, cli, virtualService, func(runtime.Object) error {
 		virtualService.Spec = vsSpec
 		virtualService.Labels = vsLabels
@@ -123,6 +126,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	if err != nil {
 		return err
 	}
+	log.Info("Done")
 	return nil
 }
 
@@ -162,7 +166,7 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 		portNumber = uint32(port.IngressPort)
 	}
 
-	for _, host := range port.Hosts {
+	for _, host := range hosts {
 		matches = append(matches, istiov1alpha3.HTTPMatchRequest{
 			Authority: &istiocommonv1alpha1.StringMatch{Prefix: host},
 			Port:      portNumber,
@@ -183,11 +187,16 @@ func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, tag string) []isti
 	}}
 
 	gateways := []string{}
-	if p.PublicGateway != "" {
-		gateways = append(gateways, p.PublicGateway)
-	}
-	if p.PrivateGateway != "" {
-		gateways = append(gateways, p.PrivateGateway)
+
+	switch port.Mode {
+	case picchuv1alpha1.PortPublic:
+		if p.PublicGateway != "" {
+			gateways = append(gateways, p.PublicGateway)
+		}
+	case picchuv1alpha1.PortPrivate:
+		if p.PrivateGateway != "" {
+			gateways = append(gateways, p.PrivateGateway)
+		}
 	}
 
 	if len(gateways) > 0 {
@@ -390,7 +399,7 @@ func (p *SyncApp) prometheusRule() *monitoringv1.PrometheusRule {
 	if len(p.AlertRules) == 0 {
 		return &monitoringv1.PrometheusRule{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "prometheus-rule",
+				Name:      p.App,
 				Namespace: p.Namespace,
 				Labels:    p.Labels,
 			},
@@ -398,7 +407,7 @@ func (p *SyncApp) prometheusRule() *monitoringv1.PrometheusRule {
 	}
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus-rule",
+			Name:      p.App,
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
