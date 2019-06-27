@@ -136,7 +136,7 @@ func (p *SyncApp) serviceHost() string {
 }
 
 func (p *SyncApp) defaultHost() string {
-	return fmt.Sprintf("%s.%s", p.App, p.DefaultDomain)
+	return fmt.Sprintf("%s.%s", p.Namespace, p.DefaultDomain)
 }
 
 func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) []istiov1alpha3.HTTPMatchRequest {
