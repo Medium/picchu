@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -294,6 +295,7 @@ func (p *SyncApp) hosts() []string {
 	for host, _ := range hostsMap {
 		hosts = append(hosts, host)
 	}
+	sort.Strings(hosts)
 	return hosts
 }
 

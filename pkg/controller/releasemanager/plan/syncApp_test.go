@@ -74,8 +74,8 @@ var (
 		},
 		Spec: istiov1alpha3.VirtualServiceSpec{
 			Hosts: []string{
-				"testapp.doki-pen.org",
 				"testapp.testnamespace.svc.cluster.local",
+				"testnamespace.doki-pen.org",
 			},
 			Gateways: []string{
 				"mesh",
@@ -125,7 +125,7 @@ var (
 					Gateways: []string{"mesh"},
 					Port:     uint32(80),
 				}, {
-					Authority: &istiocommonv1alpha1.StringMatch{Prefix: "testapp.doki-pen.org"},
+					Authority: &istiocommonv1alpha1.StringMatch{Prefix: "testnamespace.doki-pen.org"},
 					Gateways:  []string{"private-gateway"},
 					Port:      uint32(443),
 				}},
