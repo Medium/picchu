@@ -63,7 +63,8 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	serviceLabels := service.Labels
 	log.Info("CreateOrUpdate service")
 	op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func(runtime.Object) error {
-		service.Spec = serviceSpec
+		service.Spec.Ports = serviceSpec.Ports
+		service.Spec.Selector = serviceSpec.Selector
 		service.Labels = serviceLabels
 		return nil
 	})
