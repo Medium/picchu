@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -63,7 +64,8 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	serviceLabels := service.Labels
 	log.Info("CreateOrUpdate service")
 	op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func(runtime.Object) error {
-		service.Spec = serviceSpec
+		service.Spec.Ports = serviceSpec.Ports
+		service.Spec.Selector = serviceSpec.Selector
 		service.Labels = serviceLabels
 		return nil
 	})
@@ -135,7 +137,7 @@ func (p *SyncApp) serviceHost() string {
 }
 
 func (p *SyncApp) defaultHost() string {
-	return fmt.Sprintf("%s.%s", p.App, p.DefaultDomain)
+	return fmt.Sprintf("%s.%s", p.Namespace, p.DefaultDomain)
 }
 
 func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) []istiov1alpha3.HTTPMatchRequest {
@@ -293,6 +295,7 @@ func (p *SyncApp) hosts() []string {
 	for host, _ := range hostsMap {
 		hosts = append(hosts, host)
 	}
+	sort.Strings(hosts)
 	return hosts
 }
 

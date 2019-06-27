@@ -390,9 +390,10 @@ func (r *ResourceSyncer) syncApp() error {
 	for _, revision := range revisions {
 		revisionReleaseWeightGauge.
 			With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"tag":    revision.Tag,
-				"target": r.instance.Spec.Target,
+				"app":            r.instance.Spec.App,
+				"tag":            revision.Tag,
+				"target":         r.instance.Spec.Target,
+				"target_cluster": r.cluster.Name,
 			}).
 			Set(float64(revision.Weight))
 	}

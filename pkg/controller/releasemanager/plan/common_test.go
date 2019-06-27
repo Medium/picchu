@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	"github.com/andreyvit/diff"
 	"github.com/golang/mock/gomock"
@@ -74,7 +75,7 @@ func k8sEqual(expected runtime.Object) gomock.Matcher {
 		switch o := x.(type) {
 		case runtime.Object:
 			r := reflect.DeepEqual(expected, o)
-			if !r {
+			if !r && utils.MustGetKind(expected) == utils.MustGetKind(o) {
 				diff, err := resourceDiff(expected, o)
 				if err != nil {
 					panic(err)
