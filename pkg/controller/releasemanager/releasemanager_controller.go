@@ -100,6 +100,10 @@ type ReconcileReleaseManager struct {
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
 // and what is in the ReleaseManager.Spec
 func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	start := time.Now()
+	defer func() {
+		clog.Info("Finished releasemanager reconcile", "Elapsed", time.Since(start))
+	}()
 	reqLog := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLog.Info("Reconciling ReleaseManager")
 
@@ -132,55 +136,85 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	r.scheme.Default(revisions)
 
+	statusCh := make(chan []picchuv1alpha1.ReleaseManagerRevisionStatus)
+	errorCh := make(chan error)
+	done := make(chan bool)
+
+	for i, _ := range clusters {
+		go func(cluster *picchuv1alpha1.Cluster) {
+			defer func() { done <- true }()
+
+			remoteClient, err := utils.RemoteClient(r.client, cluster)
+			if err != nil {
+				rmLog.Error(err, "Failed to create remote client", "Cluster.Name", cluster.Name)
+				errorCh <- err
+				return
+			}
+
+			ic := &IncarnationController{
+				rrm:          r,
+				remoteClient: remoteClient,
+				logger:       rmLog.WithValues("Cluster", cluster.Name),
+				rm:           rm,
+				fs:           fleetSize,
+			}
+
+			incarnations := newIncarnationCollection(ic)
+
+			for _, rev := range revisions.Items {
+				incarnations.add(&rev)
+			}
+
+			syncer := ResourceSyncer{
+				instance:     rm,
+				incarnations: incarnations,
+				cluster:      cluster,
+				client:       remoteClient,
+				reconciler:   r,
+				log:          rmLog.WithValues("Cluster", cluster.Name),
+			}
+			// -------------------------------------------------------------------------
+
+			if !rm.IsDeleted() {
+				rmLog.Info("Sync'ing releasemanager", "index", i, "count", fleetSize)
+				rs, err := syncer.sync()
+				if err != nil {
+					errorCh <- err
+					return
+				}
+				statusCh <- rs
+				return
+			}
+			if !rm.IsFinalized() {
+				rmLog.Info("Deleting releasemanager", "index", i, "count", fleetSize)
+				err := syncer.del()
+				if err != nil {
+					errorCh <- err
+				}
+			}
+		}(clusters[i])
+	}
+
 	revisionStatuses := [][]picchuv1alpha1.ReleaseManagerRevisionStatus{}
-	for i, cluster := range clusters {
-		remoteClient, err := utils.RemoteClient(r.client, cluster)
-		if err != nil {
-			rmLog.Error(err, "Failed to create remote client", "Cluster.Name", cluster.Name)
-			return reconcile.Result{}, err
-		}
-
-		ic := &IncarnationController{
-			rrm:          r,
-			remoteClient: remoteClient,
-			logger:       rmLog.WithValues("Cluster", cluster.Name),
-			rm:           rm,
-			fs:           fleetSize,
-		}
-
-		incarnations := newIncarnationCollection(ic)
-
-		for _, rev := range revisions.Items {
-			incarnations.add(&rev)
-		}
-
-		syncer := ResourceSyncer{
-			instance:     rm,
-			incarnations: incarnations,
-			cluster:      cluster,
-			client:       remoteClient,
-			reconciler:   r,
-			log:          rmLog,
-		}
-		// -------------------------------------------------------------------------
-
-		if !rm.IsDeleted() {
-			rmLog.Info("Sync'ing releasemanager", "index", i, "count", fleetSize)
-			rs, err := syncer.sync()
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			revisionStatuses = append(revisionStatuses, rs)
-			continue
-		}
-		if !rm.IsFinalized() {
-			rmLog.Info("Deleting releasemanager", "index", i, "count", fleetSize)
-			err := syncer.del()
-			if err != nil {
-				return reconcile.Result{}, err
-			}
+	errors := []error{}
+	for remaining := fleetSize; remaining > 0; {
+		select {
+		case status := <-statusCh:
+			revisionStatuses = append(revisionStatuses, status)
+		case err := <-errorCh:
+			errors = append(errors, err)
+		case <-done:
+			remaining -= 1
 		}
 	}
+
+	if len(errors) > 0 {
+		for _, err := range errors {
+			rmLog.Error(err, "Failed to update a cluster")
+		}
+		return reconcile.Result{}, fmt.Errorf("Failed to reconcile")
+	}
+
 	if !rm.IsDeleted() && len(revisionStatuses) > 0 {
 		rm.Status.Revisions = r.resolveStatus(rmLog, revisionStatuses)
 		if err := utils.UpdateStatus(context.TODO(), r.client, rm); err != nil {
@@ -486,7 +520,8 @@ func (r *ReconcileReleaseManager) getClustersByFleet(namespace string, fleet str
 	r.scheme.Default(clusterList)
 
 	clusters := []*picchuv1alpha1.Cluster{}
-	for _, cluster := range clusterList.Items {
+	for i, _ := range clusterList.Items {
+		cluster := clusterList.Items[i]
 		if !cluster.Spec.Enabled {
 			continue
 		}

@@ -128,7 +128,7 @@ func (s *Released) tick(deployment Deployment) (State, error) {
 	if !deployment.isReleaseEligible() {
 		return retired, nil
 	}
-	return released, deployment.scale()
+	return released, deployment.sync()
 }
 
 func (s *Released) reached(deployment Deployment) bool {
