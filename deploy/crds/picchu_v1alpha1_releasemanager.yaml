@@ -35,12 +35,12 @@ spec:
           properties:
             app:
               type: string
-            cluster:
+            fleet:
               type: string
             target:
               type: string
           required:
-          - cluster
+          - fleet
           - app
           - target
           type: object

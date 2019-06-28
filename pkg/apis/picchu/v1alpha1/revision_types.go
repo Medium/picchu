@@ -130,10 +130,9 @@ func (r *RevisionStatus) GetTarget(name string) *RevisionTargetStatus {
 
 // RevisionStatus defines the observed state of Revision
 type RevisionTargetStatus struct {
-	Name     string                 `json:"name"`
-	Scale    RevisionScaleStatus    `json:"scale"`
-	Release  RevisionReleaseStatus  `json:"release"`
-	Clusters RevisionClustersStatus `json:"clusters"`
+	Name    string                `json:"name"`
+	Scale   RevisionScaleStatus   `json:"scale"`
+	Release RevisionReleaseStatus `json:"release"`
 }
 
 type RevisionScaleStatus struct {
@@ -147,38 +146,12 @@ type RevisionReleaseStatus struct {
 	PeakPercent    uint32 `json:"peakPercent"`
 }
 
-type RevisionClustersStatus struct {
-	Names         []string `json:"names,omitempty"`
-	MinPercent    uint32   `json:"minPercent"`
-	MaxPercent    uint32   `json:"maxPercent"`
-	ReleasedCount uint32   `json:"releasedCount"`
-}
-
-func (r *RevisionClustersStatus) Count() uint32 {
-	return uint32(len(r.Names))
-}
-
-func (r *RevisionTargetStatus) AddReleaseManagerStatus(name string, status ReleaseManagerRevisionStatus) {
-	weightedPercent := r.Release.CurrentPercent*r.Clusters.Count() + status.CurrentPercent
-	r.Clusters.Names = append(r.Clusters.Names, name)
-	r.Release.CurrentPercent = weightedPercent / r.Clusters.Count()
-	r.Scale.Current += uint32(status.Scale.Current)
-	r.Scale.Desired += uint32(status.Scale.Desired)
-	if status.CurrentPercent > 0 {
-		r.Clusters.ReleasedCount++
-	}
-	if status.CurrentPercent < r.Clusters.MinPercent {
-		r.Clusters.MinPercent = status.CurrentPercent
-	}
-	if status.CurrentPercent > r.Clusters.MaxPercent {
-		r.Clusters.MaxPercent = status.CurrentPercent
-	}
-	if r.Release.CurrentPercent > r.Release.PeakPercent {
-		r.Release.PeakPercent = r.Release.CurrentPercent
-	}
-	if r.Scale.Current > r.Scale.Peak {
-		r.Scale.Peak = r.Scale.Current
-	}
+func (r *RevisionTargetStatus) AddReleaseManagerStatus(status ReleaseManagerRevisionStatus) {
+	r.Release.CurrentPercent = status.CurrentPercent
+	r.Release.PeakPercent = status.PeakPercent
+	r.Scale.Current = uint32(status.Scale.Current)
+	r.Scale.Desired = uint32(status.Scale.Desired)
+	r.Scale.Peak = uint32(status.Scale.Peak)
 }
 
 func (r *Revision) GitTimestamp() time.Time {

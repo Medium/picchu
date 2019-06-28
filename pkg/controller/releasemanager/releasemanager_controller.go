@@ -117,66 +117,109 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	r.scheme.Default(rm)
 
-	rmLog := reqLog.WithValues("App", rm.Spec.App, "Cluster", rm.Spec.Cluster, "Target", rm.Spec.Target)
+	rmLog := reqLog.WithValues("App", rm.Spec.App, "Fleet", rm.Spec.Fleet, "Target", rm.Spec.Target)
 	rmLog.Info("Reconciling Existing ReleaseManager")
 
-	cluster := &picchuv1alpha1.Cluster{}
-	key := client.ObjectKey{request.Namespace, rm.Spec.Cluster}
-	if err := r.client.Get(context.TODO(), key, cluster); err != nil {
-		return reconcile.Result{}, err
-	}
-	r.scheme.Default(cluster)
-
-	remoteClient, err := utils.RemoteClient(r.client, cluster)
+	clusters, err := r.getClustersByFleet(rm.Namespace, rm.Spec.Fleet)
 	if err != nil {
-		rmLog.Error(err, "Failed to create remote client", "Cluster.Key", key)
-		return reconcile.Result{}, err
+		rmLog.Error(err, "Failed to get clusters for fleet", "Fleet.Name", rm.Spec.Fleet)
 	}
+	var fleetSize uint32 = uint32(len(clusters))
 
-	fleetSize, err := r.countFleetCohort(rmLog, request.Namespace, cluster.Fleet())
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	ic := &IncarnationController{
-		rrm:          r,
-		remoteClient: remoteClient,
-		logger:       rmLog,
-		rm:           rm,
-		fs:           fleetSize,
-		newTagStyle:  cluster.Spec.UseNewTagStyle,
-	}
-
-	incarnations := newIncarnationCollection(ic)
-	revisions, err := r.getRevisions(rmLog, request.Namespace, cluster.Fleet(), rm.Spec.App)
+	revisions, err := r.getRevisions(rmLog, request.Namespace, rm.Spec.Fleet, rm.Spec.App)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(revisions)
 
-	for _, rev := range revisions.Items {
-		incarnations.add(&rev)
-	}
+	revisionStatuses := [][]picchuv1alpha1.ReleaseManagerRevisionStatus{}
+	for i, cluster := range clusters {
+		remoteClient, err := utils.RemoteClient(r.client, cluster)
+		if err != nil {
+			rmLog.Error(err, "Failed to create remote client", "Cluster.Name", cluster.Name)
+			return reconcile.Result{}, err
+		}
 
-	syncer := ResourceSyncer{
-		instance:     rm,
-		incarnations: incarnations,
-		cluster:      cluster,
-		client:       remoteClient,
-		reconciler:   r,
-		log:          rmLog,
-	}
-	// -------------------------------------------------------------------------
+		ic := &IncarnationController{
+			rrm:          r,
+			remoteClient: remoteClient,
+			logger:       rmLog.WithValues("Cluster", cluster.Name),
+			rm:           rm,
+			fs:           fleetSize,
+		}
 
-	if !rm.IsDeleted() {
-		rmLog.Info("Sync'ing releasemanager")
-		return syncer.sync()
+		incarnations := newIncarnationCollection(ic)
+
+		for _, rev := range revisions.Items {
+			incarnations.add(&rev)
+		}
+
+		syncer := ResourceSyncer{
+			instance:     rm,
+			incarnations: incarnations,
+			cluster:      cluster,
+			client:       remoteClient,
+			reconciler:   r,
+			log:          rmLog,
+		}
+		// -------------------------------------------------------------------------
+
+		if !rm.IsDeleted() {
+			rmLog.Info("Sync'ing releasemanager", "index", i, "count", fleetSize)
+			rs, err := syncer.sync()
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			revisionStatuses = append(revisionStatuses, rs)
+			continue
+		}
+		if !rm.IsFinalized() {
+			rmLog.Info("Deleting releasemanager", "index", i, "count", fleetSize)
+			err := syncer.del()
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+		}
+	}
+	if !rm.IsDeleted() && len(revisionStatuses) > 0 {
+		rm.Status.Revisions = r.resolveStatus(rmLog, revisionStatuses)
+		if err := utils.UpdateStatus(context.TODO(), r.client, rm); err != nil {
+			rmLog.Error(err, "Failed to update releasemanager status")
+			return reconcile.Result{}, err
+		}
+		rmLog.Info("Updated releasemanager status", "Content", rm.Status, "Type", "ReleaseManager.Status")
+		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !rm.IsFinalized() {
-		rmLog.Info("Deleting releasemanager")
-		return syncer.del()
+		rm.Finalize()
+		err := r.client.Update(context.TODO(), rm)
+		return reconcile.Result{}, err
 	}
+
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileReleaseManager) resolveStatus(log logr.Logger, statuses [][]picchuv1alpha1.ReleaseManagerRevisionStatus) []picchuv1alpha1.ReleaseManagerRevisionStatus {
+	if len(statuses) == 1 {
+		return statuses[0]
+	}
+
+	combined := statuses[0]
+	for i, combinedRevStatus := range combined {
+		for _, status := range statuses[1:] {
+			for _, revStatus := range status {
+				if revStatus.Tag == combinedRevStatus.Tag {
+					combinedRevStatus.Scale.Current += revStatus.Scale.Current
+					combinedRevStatus.Scale.Desired += revStatus.Scale.Desired
+				}
+			}
+		}
+		if combinedRevStatus.Scale.Current > combinedRevStatus.Scale.Peak {
+			combinedRevStatus.Scale.Peak = combinedRevStatus.Scale.Current
+		}
+		combined[i] = combinedRevStatus
+	}
+	return combined
 }
 
 func (r *ReconcileReleaseManager) getRevisions(log logr.Logger, namespace, fleet, app string) (*picchuv1alpha1.RevisionList, error) {
@@ -191,26 +234,6 @@ func (r *ReconcileReleaseManager) getRevisions(log logr.Logger, namespace, fleet
 	rl := &picchuv1alpha1.RevisionList{}
 	err := r.client.List(context.TODO(), listOptions, rl)
 	return rl, err
-}
-
-func (r *ReconcileReleaseManager) countFleetCohort(log logr.Logger, namespace, fleet string) (uint32, error) {
-	log.Info("Counting clusters in fleet cohort")
-	listOptions := client.
-		InNamespace(namespace).
-		MatchingLabels(map[string]string{
-			picchuv1alpha1.LabelFleet: fleet,
-		})
-	cl := &picchuv1alpha1.ClusterList{}
-	err := r.client.List(context.TODO(), listOptions, cl)
-	var cnt uint32 = 0
-	for _, cluster := range cl.Items {
-		for _, cond := range cluster.Status.Conditions {
-			if cond.Name == "Ready" && cond.Status == "True" && cluster.Spec.Enabled {
-				cnt++
-			}
-		}
-	}
-	return cnt, err
 }
 
 type ResourceSyncer struct {
@@ -241,67 +264,53 @@ func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOpt
 	return utils.MustExtractList(configMaps), err
 }
 
-func (r *ResourceSyncer) sync() (reconcile.Result, error) {
+func (r *ResourceSyncer) sync() ([]picchuv1alpha1.ReleaseManagerRevisionStatus, error) {
+	rs := []picchuv1alpha1.ReleaseManagerRevisionStatus{}
+
 	// No more incarnations, delete myself
 	if len(r.incarnations.revisioned()) == 0 {
 		r.log.Info("No revisions found for releasemanager, deleting")
-		return reconcile.Result{}, r.reconciler.client.Delete(context.TODO(), r.instance)
+		return rs, r.reconciler.client.Delete(context.TODO(), r.instance)
 	}
 
 	if r.cluster.IsDeleted() {
 		r.log.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
-		return reconcile.Result{}, nil
+		return rs, nil
 	}
 
 	if err := r.syncNamespace(); err != nil {
-		return reconcile.Result{}, err
+		return rs, err
 	}
 	if err := r.tickIncarnations(); err != nil {
-		return reconcile.Result{}, err
+		return rs, err
 	}
 	if err := r.syncApp(); err != nil {
-		return reconcile.Result{}, err
+		return rs, err
 	}
-	rs := []picchuv1alpha1.ReleaseManagerRevisionStatus{}
+
 	sorted := r.incarnations.sorted()
 	for i := len(sorted) - 1; i >= 0; i-- {
 		status := sorted[i].status
-		r.log.Info("Get status", "state", status.State)
 		if !(status.State.Current == "deleted" && sorted[i].revision == nil) {
 			rs = append(rs, *status)
 		}
 	}
-	r.instance.Status.Revisions = rs
-	if err := utils.UpdateStatus(context.TODO(), r.reconciler.client, r.instance); err != nil {
-		r.log.Error(err, "Failed to update releasemanager status")
-		return reconcile.Result{}, err
-	}
-	r.log.Info("Updated releasemanager status", "Content", r.instance.Status, "Type", "ReleaseManager.Status")
-	return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
+	return rs, nil
 }
 
-func (r *ResourceSyncer) del() (reconcile.Result, error) {
-	r.log.Info("Finalizing releasemanager")
-	if err := r.deleteNamespace(); err != nil {
-		return reconcile.Result{}, err
-	}
-	r.instance.Finalize()
-	err := r.reconciler.client.Update(context.TODO(), r.instance)
-	return reconcile.Result{}, err
-}
-
-func (r *ResourceSyncer) deleteNamespace() error {
-	return r.applyPlan(&plan.DeleteApp{
+func (r *ResourceSyncer) del() error {
+	return r.applyPlan("Delete App", &plan.DeleteApp{
 		Namespace: r.instance.TargetNamespace(),
 	})
 }
 
-func (r *ResourceSyncer) applyPlan(p plan.Plan) error {
+func (r *ResourceSyncer) applyPlan(name string, p plan.Plan) error {
+	r.log.Info("Applying plan", "Name", name, "Plan", p)
 	return p.Apply(context.TODO(), r.client, r.log)
 }
 
 func (r *ResourceSyncer) syncNamespace() error {
-	return r.applyPlan(&plan.EnsureNamespace{
+	return r.applyPlan("Ensure Namespace", &plan.EnsureNamespace{
 		Name:      r.instance.TargetNamespace(),
 		OwnerName: r.instance.Name,
 		OwnerType: picchuv1alpha1.OwnerReleaseManager,
@@ -317,7 +326,6 @@ func (r *ResourceSyncer) tickIncarnations() error {
 			return err
 		}
 		current := incarnation.status.State.Current
-		r.log.Info("metrics", "metrics", incarnation.status.Metrics)
 		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
 			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.GitDeploySeconds = &gitElapsed
@@ -369,7 +377,7 @@ func (r *ResourceSyncer) syncApp() error {
 
 	revisions, alertRules := r.prepareRevisionsAndRules()
 
-	err := r.applyPlan(&plan.SyncApp{
+	err := r.applyPlan("Sync Application", &plan.SyncApp{
 		App:               r.instance.Spec.App,
 		Namespace:         r.instance.TargetNamespace(),
 		Labels:            labels,
@@ -380,7 +388,6 @@ func (r *ResourceSyncer) syncApp() error {
 		AlertRules:        alertRules,
 		Ports:             ports,
 		TagRoutingHeader:  "",
-		UseNewTagStyle:    r.cluster.Spec.UseNewTagStyle,
 		TrafficPolicy:     r.currentTrafficPolicy(),
 	})
 	if err != nil {
@@ -438,7 +445,6 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitori
 	var percRemaining uint32 = 100
 	// Tracking one route per port number
 	incarnations := r.incarnations.releasable()
-	r.log.Info("Got my releases", "Count", len(incarnations))
 	count := len(incarnations)
 
 	// setup alerts from latest release
@@ -469,4 +475,23 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitori
 		revisions = append(revisions, revision)
 	}
 	return revisions, alertRules
+}
+
+func (r *ReconcileReleaseManager) getClustersByFleet(namespace string, fleet string) ([]*picchuv1alpha1.Cluster, error) {
+	clusterList := &picchuv1alpha1.ClusterList{}
+	opts := client.
+		MatchingLabels(map[string]string{picchuv1alpha1.LabelFleet: fleet}).
+		InNamespace(namespace)
+	err := r.client.List(context.TODO(), opts, clusterList)
+	r.scheme.Default(clusterList)
+
+	clusters := []*picchuv1alpha1.Cluster{}
+	for _, cluster := range clusterList.Items {
+		if !cluster.Spec.Enabled {
+			continue
+		}
+		clusters = append(clusters, &cluster)
+	}
+
+	return clusters, err
 }

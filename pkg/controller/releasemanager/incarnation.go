@@ -29,7 +29,6 @@ type Controller interface {
 	getConfigMaps(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	fleetSize() int32
-	useNewTagStyle() bool
 }
 
 type Incarnation struct {
@@ -117,7 +116,7 @@ func (i *Incarnation) sync() error {
 		return err
 	}
 
-	return i.applyPlan(plan.All(
+	return i.applyPlan("Sync and Scale Revision", plan.All(
 		&plan.SyncRevision{
 			App:                i.appName(),
 			Tag:                i.tag,
@@ -130,7 +129,6 @@ func (i *Incarnation) sync() error {
 			Resources:          i.target().Resources,
 			IAMRole:            i.target().AWS.IAM.RoleARN,
 			ServiceAccountName: i.target().ServiceAccountName,
-			UseNewTagStyle:     i.controller.useNewTagStyle(),
 			ReadinessProbe:     i.target().ReadinessProbe,
 			LivenessProbe:      i.target().LivenessProbe,
 		},
@@ -146,7 +144,7 @@ func (i *Incarnation) sync() error {
 }
 
 func (i *Incarnation) scale() error {
-	return i.applyPlan(&plan.ScaleRevision{
+	return i.applyPlan("Scale Revision", &plan.ScaleRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 		Min:       i.divideReplicas(*i.target().Scale.Min),
@@ -156,7 +154,8 @@ func (i *Incarnation) scale() error {
 	})
 }
 
-func (i *Incarnation) applyPlan(p plan.Plan) error {
+func (i *Incarnation) applyPlan(name string, p plan.Plan) error {
+	i.log.Info("Applying plan", "Name", name, "Plan", p)
 	ctx := context.TODO()
 	err := p.Apply(ctx, i.controller.client(), i.log)
 	if err != nil {
@@ -174,7 +173,7 @@ func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 }
 
 func (i *Incarnation) retire() error {
-	return i.applyPlan(&plan.RetireRevision{
+	return i.applyPlan("Retire Revision", &plan.RetireRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 	})
@@ -205,7 +204,7 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 }
 
 func (i *Incarnation) del() error {
-	return i.applyPlan(&plan.DeleteRevision{
+	return i.applyPlan("Delete Revision", &plan.DeleteRevision{
 		Labels:    i.defaultLabels(),
 		Namespace: i.targetNamespace(),
 	})
@@ -442,7 +441,7 @@ func (i *IncarnationCollection) add(revision *picchuv1alpha1.Revision) {
 func (i *IncarnationCollection) deployed() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		state := i.status.State.Current
+		state := i.status.State.Target
 		if state == "deployed" || state == "released" {
 			r = append(r, i)
 		}

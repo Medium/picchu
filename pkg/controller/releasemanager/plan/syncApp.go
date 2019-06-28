@@ -42,7 +42,6 @@ type SyncApp struct {
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
 	TagRoutingHeader  string
-	UseNewTagStyle    bool
 	TrafficPolicy     *istiov1alpha3.TrafficPolicy
 }
 
@@ -55,6 +54,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 		log.Info("Not syncing app", "Reason", "there are no exposed ports")
 		return nil
 	}
+
 	service := p.service()
 	destinationRule := p.destinationRule()
 	virtualService := p.virtualService(log)
@@ -62,7 +62,6 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 
 	serviceSpec := *service.Spec.DeepCopy()
 	serviceLabels := service.Labels
-	log.Info("CreateOrUpdate service")
 	op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func(runtime.Object) error {
 		service.Spec.Ports = serviceSpec.Ports
 		service.Spec.Selector = serviceSpec.Selector
@@ -76,7 +75,6 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 
 	drSpec := *destinationRule.Spec.DeepCopy()
 	drLabels := destinationRule.Labels
-	log.Info("CreateOrUpdate destinationRule")
 	op, err = controllerutil.CreateOrUpdate(ctx, cli, destinationRule, func(runtime.Object) error {
 		destinationRule.Spec = drSpec
 		destinationRule.Labels = drLabels
@@ -99,7 +97,6 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	} else {
 		prSpec := *prometheusRule.Spec.DeepCopy()
 		prLabels := prometheusRule.Labels
-		log.Info("CreateOrUpdate prometheusRule")
 		op, err = controllerutil.CreateOrUpdate(ctx, cli, prometheusRule, func(runtime.Object) error {
 			prometheusRule.Spec = prSpec
 			prometheusRule.Labels = prLabels
@@ -118,7 +115,6 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 
 	vsSpec := *virtualService.Spec.DeepCopy()
 	vsLabels := virtualService.Labels
-	log.Info("CreateOrUpdate virtualService")
 	op, err = controllerutil.CreateOrUpdate(ctx, cli, virtualService, func(runtime.Object) error {
 		virtualService.Spec = vsSpec
 		virtualService.Labels = vsLabels
@@ -128,7 +124,6 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	if err != nil {
 		return err
 	}
-	log.Info("Done")
 	return nil
 }
 
@@ -144,6 +139,7 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 	matches := []istiov1alpha3.HTTPMatchRequest{{
 		Port:     uint32(port.Port),
 		Gateways: []string{"mesh"},
+		Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 	}}
 
 	portNumber := uint32(port.Port)
@@ -173,6 +169,7 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 			Authority: &istiocommonv1alpha1.StringMatch{Prefix: host},
 			Port:      portNumber,
 			Gateways:  gateway,
+			Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 		})
 	}
 	return matches
@@ -186,6 +183,7 @@ func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, tag string) []isti
 		Headers:  headers,
 		Port:     uint32(port.Port),
 		Gateways: []string{"mesh"},
+		Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 	}}
 
 	gateways := []string{}
@@ -206,6 +204,7 @@ func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, tag string) []isti
 			Headers:  headers,
 			Port:     uint32(port.IngressPort),
 			Gateways: gateways,
+			Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 		})
 	}
 	return matches
@@ -349,10 +348,7 @@ func (p *SyncApp) service() *corev1.Service {
 }
 
 func (p *SyncApp) destinationRule() *istiov1alpha3.DestinationRule {
-	labelTag := picchuv1alpha1.LabelTag
-	if p.UseNewTagStyle {
-		labelTag = "tag.picchu.medium.engineering"
-	}
+	labelTag := "tag.picchu.medium.engineering"
 	subsets := []istiov1alpha3.Subset{}
 	for _, revision := range p.DeployedRevisions {
 		subsets = append(subsets, istiov1alpha3.Subset{

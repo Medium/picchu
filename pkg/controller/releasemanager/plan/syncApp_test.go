@@ -54,7 +54,6 @@ var (
 			Mode:          picchuv1alpha1.PortLocal,
 		}},
 		TagRoutingHeader: "MEDIUM-TAG",
-		UseNewTagStyle:   true,
 		TrafficPolicy: &istiov1alpha3.TrafficPolicy{
 			ConnectionPool: &istiov1alpha3.ConnectionPoolSettings{
 				Http: &istiov1alpha3.HTTPSettings{
@@ -89,12 +88,14 @@ var (
 						"MEDIUM-TAG": {Exact: "testtag"},
 					},
 					Port: uint32(80),
+					Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 				}, {
 					Gateways: []string{"private-gateway"},
 					Headers: map[string]istiocommonv1alpha1.StringMatch{
 						"MEDIUM-TAG": {Exact: "testtag"},
 					},
 					Port: uint32(443),
+					Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 				}},
 				Route: []istiov1alpha3.DestinationWeight{{
 					Destination: istiov1alpha3.Destination{
@@ -111,6 +112,7 @@ var (
 						"MEDIUM-TAG": {Exact: "testtag"},
 					},
 					Port: uint32(4242),
+					Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 				}},
 				Route: []istiov1alpha3.DestinationWeight{{
 					Destination: istiov1alpha3.Destination{
@@ -124,10 +126,12 @@ var (
 				Match: []istiov1alpha3.HTTPMatchRequest{{
 					Gateways: []string{"mesh"},
 					Port:     uint32(80),
+					Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 				}, {
 					Authority: &istiocommonv1alpha1.StringMatch{Prefix: "testnamespace.doki-pen.org"},
 					Gateways:  []string{"private-gateway"},
 					Port:      uint32(443),
+					Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 				}},
 				Route: []istiov1alpha3.DestinationWeight{{
 					Destination: istiov1alpha3.Destination{
@@ -141,6 +145,7 @@ var (
 				Match: []istiov1alpha3.HTTPMatchRequest{{
 					Gateways: []string{"mesh"},
 					Port:     uint32(4242),
+					Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
 				}},
 				Route: []istiov1alpha3.DestinationWeight{{
 					Destination: istiov1alpha3.Destination{
