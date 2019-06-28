@@ -64,13 +64,11 @@ type SyncRevision struct {
 	Resources          corev1.ResourceRequirements
 	IAMRole            string // AWS iam role
 	ServiceAccountName string // k8s ServiceAccount
-	UseNewTagStyle     bool
 	LivenessProbe      *corev1.Probe
 	ReadinessProbe     *corev1.Probe
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
-	log.Info("Applying Plan", "Plan", p)
 	envs := []corev1.EnvFromSource{}
 
 	for _, i := range p.Configs {
@@ -137,14 +135,8 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 	}
 
 	podLabels := map[string]string{
-		picchuv1alpha1.LabelTag: p.Tag,
-		picchuv1alpha1.LabelApp: p.App,
-	}
-	if p.UseNewTagStyle {
-		podLabels = map[string]string{
-			"tag.picchu.medium.engineering": p.Tag,
-			picchuv1alpha1.LabelApp:         p.App,
-		}
+		"tag.picchu.medium.engineering": p.Tag,
+		picchuv1alpha1.LabelApp:         p.App,
 	}
 
 	template := corev1.PodTemplateSpec{

@@ -31,9 +31,9 @@ type ReleaseManagerList struct {
 // ReleaseManagerSpec defines the desired state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerSpec struct {
-	Cluster string `json:"cluster"`
-	App     string `json:"app"`
-	Target  string `json:"target"`
+	Fleet  string `json:"fleet"`
+	App    string `json:"app"`
+	Target string `json:"target"`
 }
 
 // ReleaseManagerStatus defines the observed state of ReleaseManager
@@ -56,7 +56,6 @@ type ReleaseManagerRevisionStatus struct {
 	Metrics           ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
 	Scale             ReleaseManagerRevisionScaleStatus   `json:"scale"`
 	Deleted           bool                                `json:"deleted,omitempty"`
-	UseNewTagStyle    bool                                `json:"useNewTagStyle,omitempty"`
 }
 
 type ReleaseManagerRevisionMetricsStatus struct {

@@ -214,7 +214,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 			SchemaProps: spec.SchemaProps{
 				Description: "ReleaseManagerSpec defines the desired state of ReleaseManager",
 				Properties: map[string]spec.Schema{
-					"cluster": {
+					"fleet": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -233,7 +233,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"cluster", "app", "target"},
+				Required: []string{"fleet", "app", "target"},
 			},
 		},
 		Dependencies: []string{},

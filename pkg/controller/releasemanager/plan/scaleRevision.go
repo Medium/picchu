@@ -23,7 +23,6 @@ type ScaleRevision struct {
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
-	log.Info("Applying plan", "Plan", p)
 	if p.Min > p.Max {
 		p.Max = p.Min
 	}
