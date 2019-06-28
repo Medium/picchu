@@ -499,9 +499,10 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitori
 		if percRemaining+current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
-		revision := revisionsMap[incarnation.tag]
-		revision.Weight = current
-		revisionsMap[incarnation.tag] = revision
+		revisionsMap[incarnation.tag] = plan.Revision{
+			Tag:    incarnation.tag,
+			Weight: current,
+		}
 	}
 
 	revisions := make([]plan.Revision, 0, len(revisionsMap))
