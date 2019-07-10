@@ -50,7 +50,7 @@ func (r *reconcileRequest) reconcile(ctx context.Context) error {
 			continue
 		}
 		r.log.Info("Syncing cluster", "cluster", cluster.Name)
-		remoteClient, err := utils.RemoteClient(r.client, &cluster)
+		remoteClient, err := utils.RemoteClient(ctx, r.log, r.client, &cluster)
 		if err != nil {
 			r.log.Error(err, "Failed to get remote client", "cluster.Name", cluster.Name)
 			errs = append(errs, err)

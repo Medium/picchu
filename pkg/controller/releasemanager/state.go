@@ -1,6 +1,8 @@
 package releasemanager
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 )
@@ -29,15 +31,15 @@ type State string
 type InvalidState error
 
 type StateHandler interface {
-	tick(Deployment) (State, error)
+	tick(context.Context, Deployment) (State, error)
 	reached(Deployment) bool
 }
 
 type Deployment interface {
-	sync() error
-	retire() error
-	del() error
-	scale() error
+	sync(context.Context) error
+	retire(context.Context) error
+	del(context.Context) error
+	scale(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	isAlarmTriggered() bool
@@ -45,6 +47,7 @@ type Deployment interface {
 	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
 	setState(target string, reached bool)
 	getLog() logr.Logger
+	isDeployed() bool
 }
 
 type DeploymentStateManager struct {
@@ -55,11 +58,11 @@ func NewDeploymentStateManager(deployment Deployment) *DeploymentStateManager {
 	return &DeploymentStateManager{deployment}
 }
 
-func (s *DeploymentStateManager) tick() error {
+func (s *DeploymentStateManager) tick(ctx context.Context) error {
 	target := s.deployment.getStatus().State.Target
 	current := s.deployment.getStatus().State.Current
 	s.deployment.getLog().Info("Advancing state", "tag", s.deployment.getStatus().Tag, "current", current, "target", target)
-	state, err := handlers[target].tick(s.deployment)
+	state, err := handlers[target].tick(ctx, s.deployment)
 	if err != nil {
 		return err
 	}
@@ -81,7 +84,7 @@ func (s *DeploymentStateManager) reached() bool {
 
 type Created struct{}
 
-func (s *Created) tick(deployment Deployment) (State, error) {
+func (s *Created) tick(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleted, nil
 	}
@@ -95,11 +98,11 @@ func (s *Created) reached(deployment Deployment) bool {
 
 type Deployed struct{}
 
-func (s *Deployed) tick(deployment Deployment) (State, error) {
+func (s *Deployed) tick(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleted, nil
 	}
-	if err := deployment.sync(); err != nil {
+	if err := deployment.sync(ctx); err != nil {
 		return deployed, err
 	}
 	if deployment.isAlarmTriggered() {
@@ -113,12 +116,12 @@ func (s *Deployed) tick(deployment Deployment) (State, error) {
 
 func (s *Deployed) reached(deployment Deployment) bool {
 	scale := deployment.getStatus().Scale
-	return scale.Current >= scale.Desired && scale.Current >= 1
+	return scale.Current >= scale.Desired && deployment.isDeployed()
 }
 
 type Released struct{}
 
-func (s *Released) tick(deployment Deployment) (State, error) {
+func (s *Released) tick(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleted, nil
 	}
@@ -128,7 +131,10 @@ func (s *Released) tick(deployment Deployment) (State, error) {
 	if !deployment.isReleaseEligible() {
 		return retired, nil
 	}
-	return released, deployment.sync()
+	if !deployment.isDeployed() {
+		return deployed, nil
+	}
+	return released, deployment.sync(ctx)
 }
 
 func (s *Released) reached(deployment Deployment) bool {
@@ -137,7 +143,7 @@ func (s *Released) reached(deployment Deployment) bool {
 
 type Retired struct{}
 
-func (s *Retired) tick(deployment Deployment) (State, error) {
+func (s *Retired) tick(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleted, nil
 	}
@@ -145,7 +151,7 @@ func (s *Retired) tick(deployment Deployment) (State, error) {
 		return deployed, nil
 	}
 	if deployment.getStatus().CurrentPercent <= 0 {
-		return retired, deployment.retire()
+		return retired, deployment.retire(ctx)
 	}
 	return retired, nil
 }
@@ -156,12 +162,14 @@ func (s *Retired) reached(deployment Deployment) bool {
 
 type Deleted struct{}
 
-func (s *Deleted) tick(deployment Deployment) (State, error) {
-	err := deployment.del()
+func (s *Deleted) tick(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.hasRevision() {
 		return deployed, nil
 	}
-	return deleted, err
+	if deployment.getStatus() == nil || deployment.getStatus().CurrentPercent <= 0 {
+		return deleted, deployment.del(ctx)
+	}
+	return deleted, nil
 }
 
 func (s *Deleted) reached(deployment Deployment) bool {
@@ -171,7 +179,7 @@ func (s *Deleted) reached(deployment Deployment) bool {
 
 type Failed struct{}
 
-func (s *Failed) tick(deployment Deployment) (State, error) {
+func (s *Failed) tick(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleted, nil
 	}
@@ -179,7 +187,7 @@ func (s *Failed) tick(deployment Deployment) (State, error) {
 		return deployed, nil
 	}
 	if deployment.getStatus().CurrentPercent <= 0 {
-		return failed, deployment.retire()
+		return failed, deployment.retire(ctx)
 	}
 	return failed, nil
 }

@@ -8,9 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type ScaleRevision struct {
@@ -23,10 +21,15 @@ type ScaleRevision struct {
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	var cpuTarget *int32
+	if p.CPUTarget != nil {
+		t := *p.CPUTarget
+		cpuTarget = &t
+	}
 	if p.Min > p.Max {
 		p.Max = p.Min
 	}
-	if p.CPUTarget != nil && *p.CPUTarget == 0 {
+	if cpuTarget != nil && *cpuTarget == 0 {
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      p.Tag,
@@ -55,16 +58,9 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.L
 			},
 			MinReplicas:                    &copyMin,
 			MaxReplicas:                    p.Max,
-			TargetCPUUtilizationPercentage: p.CPUTarget,
+			TargetCPUUtilizationPercentage: cpuTarget,
 		},
 	}
 
-	op, err := controllerutil.CreateOrUpdate(ctx, cli, hpa, func(runtime.Object) error {
-		min := p.Min
-		hpa.Spec.MinReplicas = &min
-		hpa.Spec.MaxReplicas = p.Max
-		return nil
-	})
-	LogSync(log, op, err, hpa)
-	return err
+	return CreateOrUpdate(ctx, log, cli, hpa)
 }
