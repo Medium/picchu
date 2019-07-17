@@ -13,9 +13,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	promapi "go.medium.engineering/picchu/pkg/prometheus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -31,7 +34,9 @@ import (
 const AcceptancePercentage uint32 = 50
 
 var (
-	clog                = logf.Log.WithName("controller_revision")
+	clog              = logf.Log.WithName("controller_revision")
+	AcceptanceTargets = []string{"production"}
+
 	revisionFailedGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_failed",
 		Help: "track failed revisions",
@@ -40,7 +45,10 @@ var (
 		Name: "picchu_revision_cluster_weight_drift",
 		Help: "Measures greatest difference between clusters of a revisions load balanced weight",
 	}, []string{"app", "tag", "target"})
-	AcceptanceTargets = []string{"production"}
+	mirrorFailureCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "picchu_mirror_failure_counter",
+		Help: "Record picchu mirror failures",
+	}, []string{"app", "mirror"})
 )
 
 // Add creates a new Revision Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -48,6 +56,7 @@ var (
 func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(revisionFailedGauge)
 	metrics.Registry.MustRegister(revisionClusterWeightDriftGauge)
+	metrics.Registry.MustRegister(mirrorFailureCounter)
 	return add(mgr, newReconciler(mgr, c))
 }
 
@@ -104,8 +113,9 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	reqLogger.Info("Reconciling Revision")
 
 	// Fetch the Revision instance
+	ctx := context.TODO()
 	instance := &picchuv1alpha1.Revision{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.client.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -118,6 +128,12 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	r.scheme.Default(instance)
 	log := reqLogger.WithValues("App", instance.Spec.App.Name, "Tag", instance.Spec.App.Tag)
+
+	mirrors := &picchuv1alpha1.MirrorList{}
+	err = r.client.List(ctx, nil, mirrors)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	if err = r.LabelWithAppAndFleets(log, instance); err != nil {
 		return reconcile.Result{}, err
@@ -132,6 +148,20 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	for i := range mirrors.Items {
+		mirror := mirrors.Items[i]
+		err = r.mirrorRevision(ctx, log, &mirror, instance)
+		if err != nil {
+			log.Error(err, "Failed to mirror revision", "Mirror", mirror.Spec.ClusterName)
+			mLabels := prometheus.Labels{
+				"app":    instance.Spec.App.Name,
+				"mirror": mirror.Spec.ClusterName,
+			}
+			mirrorFailureCounter.With(mLabels).Inc()
+		}
+	}
+
 	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -216,7 +246,7 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 	cluster *picchuv1alpha1.Cluster,
 	revision *picchuv1alpha1.Revision,
 ) (*picchuv1alpha1.ReleaseManager, error) {
-	labels := map[string]string{
+	lbls := map[string]string{
 		picchuv1alpha1.LabelTarget:  target.Name,
 		picchuv1alpha1.LabelFleet:   target.Fleet,
 		picchuv1alpha1.LabelCluster: cluster.Name,
@@ -224,11 +254,11 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 	}
 	rms := &picchuv1alpha1.ReleaseManagerList{}
 	opts := client.
-		MatchingLabels(labels).
+		MatchingLabels(lbls).
 		InNamespace(revision.Namespace)
 	r.client.List(context.TODO(), opts, rms)
 	if len(rms.Items) > 1 {
-		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", labels))
+		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", lbls))
 	}
 	if len(rms.Items) == 1 {
 		return &rms.Items[0], nil
@@ -237,7 +267,7 @@ func (r *ReconcileRevision) GetOrCreateReleaseManager(
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", revision.Spec.App.Name),
 			Namespace:    revision.Namespace,
-			Labels:       labels,
+			Labels:       lbls,
 			Finalizers: []string{
 				picchuv1alpha1.FinalizerReleaseManager,
 			},
@@ -335,6 +365,139 @@ func (r *ReconcileRevision) DeleteRevision(log logr.Logger, revision *picchuv1al
 	log.Info("Deleting revision", "Name", revision.Name, "Namespace", revision.Namespace)
 	if err := r.client.Delete(context.TODO(), revision); err != nil && !errors.IsNotFound(err) {
 		return err
+	}
+	return nil
+}
+
+func (r *ReconcileRevision) mirrorRevision(
+	ctx context.Context,
+	log logr.Logger,
+	mirror *picchuv1alpha1.Mirror,
+	revision *picchuv1alpha1.Revision,
+) error {
+	log.Info("Mirroring revision", "Mirror", mirror.Spec.ClusterName)
+	cluster := &picchuv1alpha1.Cluster{}
+	key := types.NamespacedName{revision.Namespace, mirror.Spec.ClusterName}
+	if err := r.client.Get(ctx, key, cluster); err != nil {
+		return err
+	}
+	remoteClient, err := utils.RemoteClient(r.client, cluster)
+	if err != nil {
+		return err
+	}
+	for i := range revision.Spec.Targets {
+		target := revision.Spec.Targets[i]
+		selector, err := metav1.LabelSelectorAsSelector(target.ConfigSelector)
+		if err != nil {
+			return err
+		}
+		opts := &client.ListOptions{
+			LabelSelector: selector,
+			Namespace:     revision.Namespace,
+		}
+		configMapList := &corev1.ConfigMapList{}
+		if err := r.client.List(ctx, opts, configMapList); err != nil {
+			return err
+		}
+		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
+			return err
+		}
+		secretList := &corev1.SecretList{}
+		if err := r.client.List(ctx, opts, secretList); err != nil {
+			return err
+		}
+		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
+			return err
+		}
+	}
+
+	// TODO(bob): this is bad because it makes picchu aware of kbfd and should be generalized, probably in the Mirror spec.
+	opts := &client.ListOptions{
+		LabelSelector: labels.Set(map[string]string{
+			"config.kbfd.medium.build/type": "inputs",
+			"medium.build/app":              revision.Spec.App.Name,
+			"medium.build/tag":              revision.Spec.App.Tag,
+		}).AsSelector(),
+		Namespace: "build",
+	}
+	configMapList := &corev1.ConfigMapList{}
+	if err := r.client.List(ctx, opts, configMapList); err != nil {
+		return err
+	}
+	if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
+		return err
+	}
+	// end badness
+
+	revCopy := &picchuv1alpha1.Revision{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: revision.Annotations,
+			Name:        revision.Name,
+			Namespace:   revision.Namespace,
+			Labels:      revision.Labels,
+		},
+		Spec: revision.DeepCopy().Spec,
+	}
+	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func(runtime.Object) error {
+		revCopy.Spec = revision.Spec
+		return nil
+	})
+	return err
+}
+
+func (r *ReconcileRevision) copyConfigMapList(
+	ctx context.Context,
+	log logr.Logger,
+	remoteClient client.Client,
+	configMapList *corev1.ConfigMapList,
+) error {
+	for i := range configMapList.Items {
+		orig := configMapList.Items[i]
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: orig.Annotations,
+				Name:        orig.Name,
+				Namespace:   orig.Namespace,
+				Labels:      orig.Labels,
+			},
+			Data: orig.Data,
+		}
+		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, configMap, func(runtime.Object) error {
+			configMap.Data = configMapList.Items[i].Data
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ReconcileRevision) copySecretList(
+	ctx context.Context,
+	log logr.Logger,
+	remoteClient client.Client,
+	secretList *corev1.SecretList,
+) error {
+	for i := range secretList.Items {
+		orig := secretList.Items[i]
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: orig.Annotations,
+				Name:        orig.Name,
+				Namespace:   orig.Namespace,
+				Labels:      orig.Labels,
+			},
+			Type: orig.Type,
+			Data: orig.Data,
+		}
+		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, secret, func(runtime.Object) error {
+			secret.Data = orig.Data
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

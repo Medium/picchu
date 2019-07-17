@@ -16,6 +16,7 @@ type PicchuV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClustersGetter
 	ClusterSecretsesGetter
+	MirrorsGetter
 	ReleaseManagersGetter
 	RevisionsGetter
 }
@@ -31,6 +32,10 @@ func (c *PicchuV1alpha1Client) Clusters(namespace string) ClusterInterface {
 
 func (c *PicchuV1alpha1Client) ClusterSecretses(namespace string) ClusterSecretsInterface {
 	return newClusterSecretses(c, namespace)
+}
+
+func (c *PicchuV1alpha1Client) Mirrors(namespace string) MirrorInterface {
+	return newMirrors(c, namespace)
 }
 
 func (c *PicchuV1alpha1Client) ReleaseManagers(namespace string) ReleaseManagerInterface {
