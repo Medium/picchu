@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -69,10 +68,27 @@ type SyncRevision struct {
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	var livenessProbe *corev1.Probe
+	var readinessProbe *corev1.Probe
+	if p.LivenessProbe != nil {
+		probe := *p.LivenessProbe
+		livenessProbe = &probe
+	}
+	if p.ReadinessProbe != nil {
+		probe := *p.ReadinessProbe
+		readinessProbe = &probe
+	}
 	envs := []corev1.EnvFromSource{}
 
-	for _, i := range p.Configs {
-		switch resource := i.(type) {
+	// Clone passed in objects to prevent concurrency issues
+	configs := []runtime.Object{}
+	for i := range p.Configs {
+		configs = append(configs, p.Configs[i].DeepCopyObject())
+	}
+
+	for i := range configs {
+		config := configs[i]
+		switch resource := config.(type) {
 		case *corev1.Secret:
 			resource.ObjectMeta = metav1.ObjectMeta{
 				Name:      resource.Name,
@@ -97,7 +113,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 			})
 		default:
 			e := errors.New("Unsupported config")
-			log.Error(e, "config", i)
+			log.Error(e, "Unsupported config", "Config", config)
 			return e
 		}
 	}
@@ -121,16 +137,18 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		Name:           p.App,
 		Ports:          ports,
 		Resources:      p.Resources,
-		LivenessProbe:  p.LivenessProbe,
-		ReadinessProbe: p.ReadinessProbe,
+		LivenessProbe:  livenessProbe,
+		ReadinessProbe: readinessProbe,
 	}
 
 	if hasStatusPort {
 		if p.LivenessProbe == nil {
-			appContainer.LivenessProbe = defaultLivenessProbe
+			probe := *defaultLivenessProbe
+			appContainer.LivenessProbe = &probe
 		}
 		if p.ReadinessProbe == nil {
-			appContainer.ReadinessProbe = defaultReadinessProbe
+			probe := *defaultReadinessProbe
+			appContainer.ReadinessProbe = &probe
 		}
 	}
 
@@ -171,31 +189,8 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		},
 	}
 
-	for _, i := range append(p.Configs, replicaSet) {
-		orig := i.DeepCopyObject()
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, i, func(runtime.Object) error {
-			switch obj := i.(type) {
-			case *corev1.Secret:
-				obj.Data = orig.(*corev1.Secret).Data
-				obj.Labels = p.Labels
-			case *corev1.ConfigMap:
-				obj.Data = orig.(*corev1.ConfigMap).Data
-				obj.Labels = p.Labels
-			case *appsv1.ReplicaSet:
-				if *orig.(*appsv1.ReplicaSet).Spec.Replicas == 0 || *obj.Spec.Replicas == 0 {
-					obj.Spec.Replicas = orig.(*appsv1.ReplicaSet).Spec.Replicas
-				}
-				obj.Spec.Template = orig.(*appsv1.ReplicaSet).Spec.Template
-				obj.Labels = p.Labels
-			default:
-				e := errors.New("Unknown type")
-				log.Error(e, "item", i)
-				return e
-			}
-			return nil
-		})
-		LogSync(log, op, err, i)
-		if err != nil {
+	for _, i := range append(configs, replicaSet) {
+		if err := CreateOrUpdate(ctx, log, cli, i); err != nil {
 			return err
 		}
 	}

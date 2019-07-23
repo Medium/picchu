@@ -14,10 +14,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -60,33 +58,15 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	virtualService := p.virtualService(log)
 	prometheusRule := p.prometheusRule()
 
-	serviceSpec := *service.Spec.DeepCopy()
-	serviceLabels := service.Labels
-	op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func(runtime.Object) error {
-		service.Spec.Ports = serviceSpec.Ports
-		service.Spec.Selector = serviceSpec.Selector
-		service.Labels = serviceLabels
-		return nil
-	})
-	LogSync(log, op, err, service)
-	if err != nil {
+	if err := CreateOrUpdate(ctx, log, cli, service); err != nil {
 		return err
 	}
-
-	drSpec := *destinationRule.Spec.DeepCopy()
-	drLabels := destinationRule.Labels
-	op, err = controllerutil.CreateOrUpdate(ctx, cli, destinationRule, func(runtime.Object) error {
-		destinationRule.Spec = drSpec
-		destinationRule.Labels = drLabels
-		return nil
-	})
-	LogSync(log, op, err, destinationRule)
-	if err != nil {
+	if err := CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
 		return err
 	}
 
 	if len(prometheusRule.Spec.Groups) == 0 {
-		err = cli.Delete(ctx, prometheusRule)
+		err := cli.Delete(ctx, prometheusRule)
 		if err != nil && !errors.IsNotFound(err) {
 			LogSync(log, "deleted", err, prometheusRule)
 			return nil
@@ -95,15 +75,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 			LogSync(log, "deleted", err, prometheusRule)
 		}
 	} else {
-		prSpec := *prometheusRule.Spec.DeepCopy()
-		prLabels := prometheusRule.Labels
-		op, err = controllerutil.CreateOrUpdate(ctx, cli, prometheusRule, func(runtime.Object) error {
-			prometheusRule.Spec = prSpec
-			prometheusRule.Labels = prLabels
-			return nil
-		})
-		LogSync(log, op, err, prometheusRule)
-		if err != nil {
+		if err := CreateOrUpdate(ctx, log, cli, prometheusRule); err != nil {
 			return err
 		}
 	}
@@ -113,18 +85,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 		return nil
 	}
 
-	vsSpec := *virtualService.Spec.DeepCopy()
-	vsLabels := virtualService.Labels
-	op, err = controllerutil.CreateOrUpdate(ctx, cli, virtualService, func(runtime.Object) error {
-		virtualService.Spec = vsSpec
-		virtualService.Labels = vsLabels
-		return nil
-	})
-	LogSync(log, op, err, virtualService)
-	if err != nil {
-		return err
-	}
-	return nil
+	return CreateOrUpdate(ctx, log, cli, virtualService)
 }
 
 func (p *SyncApp) serviceHost() string {
@@ -260,6 +221,9 @@ func (p *SyncApp) makeRoute(
 func (p *SyncApp) releaseRoutes(log logr.Logger) []istiov1alpha3.HTTPRoute {
 	routes := []istiov1alpha3.HTTPRoute{}
 	for _, port := range p.Ports {
+		if len(p.releaseRoute(port)) == 0 {
+			continue
+		}
 		routes = append(routes, p.makeRoute(port, p.releaseMatches(log, port), p.releaseRoute(port)))
 	}
 	return routes
