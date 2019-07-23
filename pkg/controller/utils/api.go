@@ -15,10 +15,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var cache = map[client.ObjectKey]client.Client{}
+
 func RemoteClient(reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
 	key, err := client.ObjectKeyFromObject(cluster)
 	if err != nil {
 		return nil, err
+	}
+	if client, ok := cache[key]; ok {
+		return client, nil
 	}
 	secret := &corev1.Secret{}
 	if err = reader.Get(context.TODO(), key, secret); err != nil {
@@ -29,7 +34,12 @@ func RemoteClient(reader client.Reader, cluster *picchuv1alpha1.Cluster) (client
 		return nil, err
 	}
 	if config != nil {
-		return client.New(config, client.Options{})
+		cli, err := client.New(config, client.Options{})
+		if err != nil {
+			return cli, err
+		}
+		cache[key] = cli
+		return cli, nil
 	}
 	return nil, nil
 }
@@ -42,7 +52,8 @@ func UpdateStatus(ctx context.Context, client client.Client, obj runtime.Object)
 func MustGetKind(obj runtime.Object) schema.GroupVersionKind {
 	kinds, _, err := scheme.Scheme.ObjectKinds(obj)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to get kind for (%#v)", obj))
+		fmt.Printf("Failed to get kind for (%#v)\n", obj)
+		panic(err)
 	}
 	if len(kinds) <= 0 {
 		panic("Assertion failed!")

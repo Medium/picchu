@@ -20,6 +20,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecrets":       schema_pkg_apis_picchu_v1alpha1_ClusterSecrets(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretsSpec":   schema_pkg_apis_picchu_v1alpha1_ClusterSecretsSpec(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretsStatus": schema_pkg_apis_picchu_v1alpha1_ClusterSecretsStatus(ref),
+		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Mirror":               schema_pkg_apis_picchu_v1alpha1_Mirror(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManager":       schema_pkg_apis_picchu_v1alpha1_ReleaseManager(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerSpec":   schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref),
 		"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerStatus": schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref),
@@ -165,6 +166,49 @@ func schema_pkg_apis_picchu_v1alpha1_ClusterSecretsStatus(ref common.ReferenceCa
 	}
 }
 
+func schema_pkg_apis_picchu_v1alpha1_Mirror(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Mirror is the Schema for the mirrors API",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorSpec", "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
 func schema_pkg_apis_picchu_v1alpha1_ReleaseManager(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -214,7 +258,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 			SchemaProps: spec.SchemaProps{
 				Description: "ReleaseManagerSpec defines the desired state of ReleaseManager",
 				Properties: map[string]spec.Schema{
-					"cluster": {
+					"fleet": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -233,7 +277,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"cluster", "app", "target"},
+				Required: []string{"fleet", "app", "target"},
 			},
 		},
 		Dependencies: []string{},

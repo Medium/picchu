@@ -119,13 +119,16 @@ func (s *Deployed) reached(deployment Deployment) bool {
 type Released struct{}
 
 func (s *Released) tick(deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
 	if deployment.isAlarmTriggered() {
 		return failed, nil
 	}
 	if !deployment.isReleaseEligible() {
 		return retired, nil
 	}
-	return released, deployment.scale()
+	return released, deployment.sync()
 }
 
 func (s *Released) reached(deployment Deployment) bool {

@@ -11,18 +11,14 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type Controller interface {
@@ -55,12 +51,15 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 				}
 			}
 		} else {
-			status.GitTimestamp = &metav1.Time{}
 			status.ReleaseEligible = false
 		}
 		if status.State.Target == "" {
 			status.State.Target = "created"
 		}
+	}
+
+	if status.GitTimestamp == nil {
+		status.GitTimestamp = &metav1.Time{}
 	}
 
 	if status.RevisionTimestamp == nil {
@@ -117,7 +116,7 @@ func (i *Incarnation) sync() error {
 		return err
 	}
 
-	return i.applyPlan(plan.All(
+	return i.applyPlan("Sync and Scale Revision", plan.All(
 		&plan.SyncRevision{
 			App:                i.appName(),
 			Tag:                i.tag,
@@ -130,6 +129,8 @@ func (i *Incarnation) sync() error {
 			Resources:          i.target().Resources,
 			IAMRole:            i.target().AWS.IAM.RoleARN,
 			ServiceAccountName: i.target().ServiceAccountName,
+			ReadinessProbe:     i.target().ReadinessProbe,
+			LivenessProbe:      i.target().LivenessProbe,
 		},
 		&plan.ScaleRevision{
 			Tag:       i.tag,
@@ -143,7 +144,7 @@ func (i *Incarnation) sync() error {
 }
 
 func (i *Incarnation) scale() error {
-	return i.applyPlan(&plan.ScaleRevision{
+	return i.applyPlan("Scale Revision", &plan.ScaleRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 		Min:       i.divideReplicas(*i.target().Scale.Min),
@@ -153,7 +154,8 @@ func (i *Incarnation) scale() error {
 	})
 }
 
-func (i *Incarnation) applyPlan(p plan.Plan) error {
+func (i *Incarnation) applyPlan(name string, p plan.Plan) error {
+	i.log.Info("Applying plan", "Name", name, "Plan", p)
 	ctx := context.TODO()
 	err := p.Apply(ctx, i.controller.client(), i.log)
 	if err != nil {
@@ -171,7 +173,7 @@ func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 }
 
 func (i *Incarnation) retire() error {
-	return i.applyPlan(&plan.RetireRevision{
+	return i.applyPlan("Retire Revision", &plan.RetireRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 	})
@@ -202,7 +204,7 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 }
 
 func (i *Incarnation) del() error {
-	return i.applyPlan(&plan.DeleteRevision{
+	return i.applyPlan("Delete Revision", &plan.DeleteRevision{
 		Labels:    i.defaultLabels(),
 		Namespace: i.targetNamespace(),
 	})
@@ -248,6 +250,10 @@ func (i *Incarnation) appName() string {
 	return i.controller.releaseManager().Spec.App
 }
 
+func (i *Incarnation) targetName() string {
+	return i.controller.releaseManager().Spec.Target
+}
+
 func (i *Incarnation) targetNamespace() string {
 	return i.controller.releaseManager().TargetNamespace()
 }
@@ -271,7 +277,7 @@ func (i *Incarnation) defaultLabels() map[string]string {
 	return map[string]string{
 		picchuv1alpha1.LabelApp:    i.appName(),
 		picchuv1alpha1.LabelTag:    i.tag,
-		picchuv1alpha1.LabelTarget: i.target().Name,
+		picchuv1alpha1.LabelTarget: i.targetName(),
 	}
 }
 
@@ -352,124 +358,6 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 		})
 	}
 	return http
-}
-
-func (i *Incarnation) syncPrometheusRules(ctx context.Context) error {
-	rule := &monitoringv1.PrometheusRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "prometheus-rule",
-			Namespace: i.targetNamespace(),
-		},
-	}
-	if i.target() != nil && len(i.target().AlertRules) > 0 {
-		op, err := controllerutil.CreateOrUpdate(ctx, i.controller.client(), rule, func(runtime.Object) error {
-			rule.Labels = map[string]string{picchuv1alpha1.LabelTag: i.tag}
-			rule.Spec.Groups = []monitoringv1.RuleGroup{{
-				Name:  "picchu.rules",
-				Rules: i.target().AlertRules,
-			}}
-			return nil
-		})
-		if err != nil {
-			i.log.Info("Failed to sync'd PrometheusRule")
-			return err
-		}
-		i.log.Info("Sync'd PrometheusRule", "Op", op)
-	} else {
-		if err := i.controller.client().Delete(ctx, rule); err != nil && !errors.IsNotFound(err) {
-			i.log.Info("Failed to delete PrometheusRule")
-			return err
-		}
-		i.log.Info("Deleted PrometheusRule")
-	}
-	return nil
-}
-
-func (i *Incarnation) replicaSet(envs []corev1.EnvFromSource) *appsv1.ReplicaSet {
-	target := i.target()
-	ports := []corev1.ContainerPort{}
-	hasStatusPort := false
-	for _, port := range i.revision.Spec.Ports {
-		ports = append(ports, corev1.ContainerPort{
-			Name:          port.Name,
-			Protocol:      port.Protocol,
-			ContainerPort: port.ContainerPort,
-		})
-		if port.Name == "status" {
-			hasStatusPort = true
-		}
-	}
-	podAnnotations := make(map[string]string, 1)
-	if role := target.AWS.IAM.RoleARN; role != "" {
-		podAnnotations[picchuv1alpha1.AnnotationIAMRole] = role
-	}
-	// Used for Container label and Container Selector
-	podLabels := map[string]string{
-		picchuv1alpha1.LabelApp: i.appName(),
-		picchuv1alpha1.LabelTag: i.tag,
-	}
-	replicaCount := i.divideReplicas(target.Scale.Default)
-
-	appContainer := corev1.Container{
-		EnvFrom:   envs,
-		Image:     i.image(),
-		Name:      i.appName(),
-		Ports:     ports,
-		Resources: target.Resources,
-	}
-	if hasStatusPort {
-		appContainer.LivenessProbe = &corev1.Probe{
-			Handler: corev1.Handler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/running",
-					Port: intstr.FromString("status"),
-				},
-			},
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       10,
-			TimeoutSeconds:      1,
-			SuccessThreshold:    1,
-			FailureThreshold:    7, // FIXME(lyra)
-		}
-		appContainer.ReadinessProbe = &corev1.Probe{
-			Handler: corev1.Handler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path: "/running", // FIXME(lyra)
-					Port: intstr.FromString("status"),
-				},
-			},
-			InitialDelaySeconds: 10,
-			PeriodSeconds:       10,
-			TimeoutSeconds:      1,
-			SuccessThreshold:    1,
-			FailureThreshold:    3,
-		}
-	}
-
-	i.log.Info("Creating ReplicaSet", "Replicas", target.Scale.Default)
-	return &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      i.tag,
-			Namespace: i.targetNamespace(),
-			Labels:    i.defaultLabels(),
-		},
-		Spec: appsv1.ReplicaSetSpec{
-			Replicas: &replicaCount,
-			Selector: metav1.SetAsLabelSelector(podLabels),
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        i.tag,
-					Namespace:   i.targetNamespace(),
-					Annotations: podAnnotations,
-					Labels:      podLabels,
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: target.ServiceAccountName,
-					Containers:         []corev1.Container{appContainer},
-				},
-			},
-		},
-	}
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
@@ -553,7 +441,7 @@ func (i *IncarnationCollection) add(revision *picchuv1alpha1.Revision) {
 func (i *IncarnationCollection) deployed() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		state := i.status.State.Current
+		state := i.status.State.Target
 		if state == "deployed" || state == "released" {
 			r = append(r, i)
 		}
@@ -581,8 +469,8 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 			if percRemaining <= 0 {
 				break
 			}
-			i.controller.log().Info("Unretiring", "tag", candidates[0].tag)
-			candidates[0].setReleaseEligible(true)
+			i.controller.log().Info("Unretiring", "tag", candidate.tag)
+			candidate.setReleaseEligible(true)
 			unretiredCount++
 			percRemaining -= candidate.getStatus().PeakPercent
 		}

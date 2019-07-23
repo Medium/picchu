@@ -4,6 +4,7 @@ import (
 	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -65,12 +66,15 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App        RevisionApp      `json:"app"`
-	Ports      []PortInfo       `json:"ports"`
-	Targets    []RevisionTarget `json:"targets"`
-	Failed     bool             `json:"failed"`
-	IgnoreSLOs bool             `json:"ignoreSLOs,omitempty"`
-	Sentry     SentryInfo       `json:"sentry"`
+	App           RevisionApp                  `json:"app"`
+	Ports         []PortInfo                   `json:"ports"`
+	Targets       []RevisionTarget             `json:"targets"`
+	TrafficPolicy *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
+	Failed        bool                         `json:"failed"`
+	IgnoreSLOs    bool                         `json:"ignoreSLOs,omitempty"`
+        Sentry        SentryInfo                   `json:"sentry"`
+	// This is immutable. Changing it has undefined behavior
+	UseNewTagStyle bool `json:"useNewTagStyle,omitempty"`
 }
 
 type RevisionApp struct {
@@ -81,16 +85,20 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name               string                      `json:"name"`
-	Fleet              string                      `json:"fleet"`
-	Resources          corev1.ResourceRequirements `json:"resources,omitempty"`
-	Scale              ScaleInfo                   `json:"scale"`
-	Release            ReleaseInfo                 `json:"release,omitempty"`
-	Metrics            []RevisionTargetMetric      `json:"metrics,omitempty"`
-	ConfigSelector     *metav1.LabelSelector       `json:"configSelector,omitempty"`
-	AWS                AWSInfo                     `json:"aws,omitempty"`
-	AlertRules         []monitoringv1.Rule         `json:"alertRules,omitempty"`
-	ServiceAccountName string                      `json:"serviceAccountName,omitempty"`
+	Name           string                 `json:"name"`
+	Fleet          string                 `json:"fleet"`
+	Scale          ScaleInfo              `json:"scale"`
+	Release        ReleaseInfo            `json:"release,omitempty"`
+	Metrics        []RevisionTargetMetric `json:"metrics,omitempty"`
+	ConfigSelector *metav1.LabelSelector  `json:"configSelector,omitempty"`
+	AWS            AWSInfo                `json:"aws,omitempty"`
+	AlertRules     []monitoringv1.Rule    `json:"alertRules,omitempty"`
+
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
+	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
+	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
+	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 }
 
 type RevisionTargetMetric struct {
@@ -113,20 +121,6 @@ func (r *RevisionStatus) AddTarget(ts RevisionTargetStatus) {
 	r.Targets = append(r.Targets, ts)
 }
 
-// IsRolloutComplete returns true if all rolloutTargets are rollout complete
-func (r *RevisionStatus) IsRolloutComplete() bool {
-	for _, target := range rolloutTargets {
-		ts := r.GetTarget(target)
-		if ts == nil {
-			return false
-		}
-		if !ts.IsRolloutComplete() {
-			return false
-		}
-	}
-	return true
-}
-
 func (r *RevisionStatus) GetTarget(name string) *RevisionTargetStatus {
 	for _, ts := range r.Targets {
 		if ts.Name == name {
@@ -138,10 +132,9 @@ func (r *RevisionStatus) GetTarget(name string) *RevisionTargetStatus {
 
 // RevisionStatus defines the observed state of Revision
 type RevisionTargetStatus struct {
-	Name     string                 `json:"name"`
-	Scale    RevisionScaleStatus    `json:"scale"`
-	Release  RevisionReleaseStatus  `json:"release"`
-	Clusters RevisionClustersStatus `json:"clusters"`
+	Name    string                `json:"name"`
+	Scale   RevisionScaleStatus   `json:"scale"`
+	Release RevisionReleaseStatus `json:"release"`
 }
 
 type RevisionScaleStatus struct {
@@ -155,42 +148,12 @@ type RevisionReleaseStatus struct {
 	PeakPercent    uint32 `json:"peakPercent"`
 }
 
-type RevisionClustersStatus struct {
-	Names         []string `json:"names,omitempty"`
-	MinPercent    uint32   `json:"minPercent"`
-	MaxPercent    uint32   `json:"maxPercent"`
-	ReleasedCount uint32   `json:"releasedCount"`
-}
-
-func (r *RevisionClustersStatus) Count() uint32 {
-	return uint32(len(r.Names))
-}
-
-func (r *RevisionTargetStatus) AddReleaseManagerStatus(name string, status ReleaseManagerRevisionStatus) {
-	weightedPercent := r.Release.CurrentPercent*r.Clusters.Count() + status.CurrentPercent
-	r.Clusters.Names = append(r.Clusters.Names, name)
-	r.Release.CurrentPercent = weightedPercent / r.Clusters.Count()
-	r.Scale.Current += uint32(status.Scale.Current)
-	r.Scale.Desired += uint32(status.Scale.Desired)
-	if status.CurrentPercent > 0 {
-		r.Clusters.ReleasedCount++
-	}
-	if status.CurrentPercent < r.Clusters.MinPercent {
-		r.Clusters.MinPercent = status.CurrentPercent
-	}
-	if status.CurrentPercent > r.Clusters.MaxPercent {
-		r.Clusters.MaxPercent = status.CurrentPercent
-	}
-	if r.Release.CurrentPercent > r.Release.PeakPercent {
-		r.Release.PeakPercent = r.Release.CurrentPercent
-	}
-	if r.Scale.Current > r.Scale.Peak {
-		r.Scale.Peak = r.Scale.Current
-	}
-}
-
-func (r *RevisionTargetStatus) IsRolloutComplete() bool {
-	return r.Release.PeakPercent >= 100
+func (r *RevisionTargetStatus) AddReleaseManagerStatus(status ReleaseManagerRevisionStatus) {
+	r.Release.CurrentPercent = status.CurrentPercent
+	r.Release.PeakPercent = status.PeakPercent
+	r.Scale.Current = uint32(status.Scale.Current)
+	r.Scale.Desired = uint32(status.Scale.Desired)
+	r.Scale.Peak = uint32(status.Scale.Peak)
 }
 
 func (r *Revision) GitTimestamp() time.Time {

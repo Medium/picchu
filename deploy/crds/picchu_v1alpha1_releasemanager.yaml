@@ -10,6 +10,9 @@ spec:
   names:
     kind: ReleaseManager
     plural: releasemanagers
+    categories:
+    - all
+    - picchu
   scope: Namespaced
   subresources:
     status: {}
@@ -32,12 +35,12 @@ spec:
           properties:
             app:
               type: string
-            cluster:
+            fleet:
               type: string
             target:
               type: string
           required:
-          - cluster
+          - fleet
           - app
           - target
           type: object

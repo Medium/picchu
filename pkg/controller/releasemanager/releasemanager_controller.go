@@ -9,19 +9,16 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
-	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -30,14 +27,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-const (
-	StatusPort                 = "status"
-	PrometheusScrapeLabel      = "prometheus.io/scrape"
-	PrometheusScrapeLabelValue = "true"
-)
-
 var (
-	log                          = logf.Log.WithName("controller_releasemanager")
+	clog                         = logf.Log.WithName("controller_releasemanager")
 	incarnationGitReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name:    "picchu_git_release_latency",
 		Help:    "track time from git revision creation to incarnation release",
@@ -109,7 +100,11 @@ type ReconcileReleaseManager struct {
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
 // and what is in the ReleaseManager.Spec
 func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLog := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	start := time.Now()
+	defer func() {
+		clog.Info("Finished releasemanager reconcile", "Elapsed", time.Since(start))
+	}()
+	reqLog := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLog.Info("Reconciling ReleaseManager")
 
 	// Fetch the ReleaseManager instance
@@ -126,67 +121,144 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	r.scheme.Default(rm)
 
-	cluster := &picchuv1alpha1.Cluster{}
-	key := client.ObjectKey{request.Namespace, rm.Spec.Cluster}
-	if err := r.client.Get(context.TODO(), key, cluster); err != nil {
-		return reconcile.Result{}, err
-	}
-	r.scheme.Default(cluster)
+	rmLog := reqLog.WithValues("App", rm.Spec.App, "Fleet", rm.Spec.Fleet, "Target", rm.Spec.Target)
+	rmLog.Info("Reconciling Existing ReleaseManager")
 
-	remoteClient, err := utils.RemoteClient(r.client, cluster)
+	clusters, err := r.getClustersByFleet(rm.Namespace, rm.Spec.Fleet)
 	if err != nil {
-		reqLog.Error(err, "Failed to create remote client", "Cluster.Key", key)
-		return reconcile.Result{}, err
+		rmLog.Error(err, "Failed to get clusters for fleet", "Fleet.Name", rm.Spec.Fleet)
 	}
+	var fleetSize uint32 = uint32(len(clusters))
 
-	fleetSize, err := r.countFleetCohort(request.Namespace, cluster.Fleet())
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	ic := &IncarnationController{
-		rrm:          r,
-		remoteClient: remoteClient,
-		logger:       reqLog,
-		rm:           rm,
-		fs:           fleetSize,
-	}
-
-	incarnations := newIncarnationCollection(ic)
-	revisions, err := r.getRevisions(request.Namespace, cluster.Fleet(), rm.Spec.App)
+	revisions, err := r.getRevisions(rmLog, request.Namespace, rm.Spec.Fleet, rm.Spec.App)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(revisions)
 
-	for _, rev := range revisions.Items {
-		incarnations.add(&rev)
+	statusCh := make(chan []picchuv1alpha1.ReleaseManagerRevisionStatus)
+	errorCh := make(chan error)
+	done := make(chan bool)
+
+	for i, _ := range clusters {
+		go func(cluster *picchuv1alpha1.Cluster) {
+			defer func() { done <- true }()
+
+			remoteClient, err := utils.RemoteClient(r.client, cluster)
+			if err != nil {
+				rmLog.Error(err, "Failed to create remote client", "Cluster.Name", cluster.Name)
+				errorCh <- err
+				return
+			}
+
+			ic := &IncarnationController{
+				rrm:          r,
+				remoteClient: remoteClient,
+				logger:       rmLog.WithValues("Cluster", cluster.Name),
+				rm:           rm,
+				fs:           fleetSize,
+			}
+
+			incarnations := newIncarnationCollection(ic)
+
+			for _, rev := range revisions.Items {
+				incarnations.add(&rev)
+			}
+
+			syncer := ResourceSyncer{
+				instance:     rm,
+				incarnations: incarnations,
+				cluster:      cluster,
+				client:       remoteClient,
+				reconciler:   r,
+				log:          rmLog.WithValues("Cluster", cluster.Name),
+			}
+			// -------------------------------------------------------------------------
+
+			if !rm.IsDeleted() {
+				rmLog.Info("Sync'ing releasemanager", "index", i, "count", fleetSize)
+				rs, err := syncer.sync()
+				if err != nil {
+					errorCh <- err
+					return
+				}
+				statusCh <- rs
+				return
+			}
+			if !rm.IsFinalized() {
+				rmLog.Info("Deleting releasemanager", "index", i, "count", fleetSize)
+				err := syncer.del()
+				if err != nil {
+					errorCh <- err
+				}
+			}
+		}(clusters[i])
 	}
 
-	syncer := ResourceSyncer{
-		instance:     rm,
-		incarnations: incarnations,
-		cluster:      cluster,
-		client:       remoteClient,
-		reconciler:   r,
-		log:          reqLog,
+	revisionStatuses := [][]picchuv1alpha1.ReleaseManagerRevisionStatus{}
+	errors := []error{}
+	for remaining := fleetSize; remaining > 0; {
+		select {
+		case status := <-statusCh:
+			revisionStatuses = append(revisionStatuses, status)
+		case err := <-errorCh:
+			errors = append(errors, err)
+		case <-done:
+			remaining -= 1
+		}
 	}
-	// -------------------------------------------------------------------------
 
-	if !rm.IsDeleted() {
-		reqLog.Info("Sync'ing releasemanager")
-		return syncer.sync()
+	if len(errors) > 0 {
+		for _, err := range errors {
+			rmLog.Error(err, "Failed to update a cluster")
+		}
+		return reconcile.Result{}, fmt.Errorf("Failed to reconcile")
+	}
+
+	if !rm.IsDeleted() && len(revisionStatuses) > 0 {
+		rm.Status.Revisions = r.resolveStatus(rmLog, revisionStatuses)
+		if err := utils.UpdateStatus(context.TODO(), r.client, rm); err != nil {
+			rmLog.Error(err, "Failed to update releasemanager status")
+			return reconcile.Result{}, err
+		}
+		rmLog.Info("Updated releasemanager status", "Content", rm.Status, "Type", "ReleaseManager.Status")
+		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !rm.IsFinalized() {
-		reqLog.Info("Deleting releasemanager")
-		return syncer.del()
+		rm.Finalize()
+		err := r.client.Update(context.TODO(), rm)
+		return reconcile.Result{}, err
 	}
+
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileReleaseManager) getRevisions(namespace, fleet, app string) (*picchuv1alpha1.RevisionList, error) {
+func (r *ReconcileReleaseManager) resolveStatus(log logr.Logger, statuses [][]picchuv1alpha1.ReleaseManagerRevisionStatus) []picchuv1alpha1.ReleaseManagerRevisionStatus {
+	if len(statuses) == 1 {
+		return statuses[0]
+	}
+
+	combined := statuses[0]
+	for i, combinedRevStatus := range combined {
+		for _, status := range statuses[1:] {
+			for _, revStatus := range status {
+				if revStatus.Tag == combinedRevStatus.Tag {
+					combinedRevStatus.Scale.Current += revStatus.Scale.Current
+					combinedRevStatus.Scale.Desired += revStatus.Scale.Desired
+				}
+			}
+		}
+		if combinedRevStatus.Scale.Current > combinedRevStatus.Scale.Peak {
+			combinedRevStatus.Scale.Peak = combinedRevStatus.Scale.Current
+		}
+		combined[i] = combinedRevStatus
+	}
+	return combined
+}
+
+func (r *ReconcileReleaseManager) getRevisions(log logr.Logger, namespace, fleet, app string) (*picchuv1alpha1.RevisionList, error) {
 	fleetLabel := fmt.Sprintf("%s%s", picchuv1alpha1.LabelFleetPrefix, fleet)
-	log.Info("Looking for revisions", "namespace", namespace, "fleet", fleet, "app", app)
+	log.Info("Looking for revisions")
 	listOptions := client.
 		InNamespace(namespace).
 		MatchingLabels(map[string]string{
@@ -196,26 +268,6 @@ func (r *ReconcileReleaseManager) getRevisions(namespace, fleet, app string) (*p
 	rl := &picchuv1alpha1.RevisionList{}
 	err := r.client.List(context.TODO(), listOptions, rl)
 	return rl, err
-}
-
-func (r *ReconcileReleaseManager) countFleetCohort(namespace, fleet string) (uint32, error) {
-	log.Info("Counting clusters in fleet cohort")
-	listOptions := client.
-		InNamespace(namespace).
-		MatchingLabels(map[string]string{
-			picchuv1alpha1.LabelFleet: fleet,
-		})
-	cl := &picchuv1alpha1.ClusterList{}
-	err := r.client.List(context.TODO(), listOptions, cl)
-	var cnt uint32 = 0
-	for _, cluster := range cl.Items {
-		for _, cond := range cluster.Status.Conditions {
-			if cond.Name == "Ready" && cond.Status == "True" {
-				cnt++
-			}
-		}
-	}
-	return cnt, err
 }
 
 type ResourceSyncer struct {
@@ -246,73 +298,53 @@ func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOpt
 	return utils.MustExtractList(configMaps), err
 }
 
-func (r *ResourceSyncer) sync() (reconcile.Result, error) {
+func (r *ResourceSyncer) sync() ([]picchuv1alpha1.ReleaseManagerRevisionStatus, error) {
+	rs := []picchuv1alpha1.ReleaseManagerRevisionStatus{}
+
 	// No more incarnations, delete myself
 	if len(r.incarnations.revisioned()) == 0 {
 		r.log.Info("No revisions found for releasemanager, deleting")
-		return reconcile.Result{}, r.reconciler.client.Delete(context.TODO(), r.instance)
+		return rs, r.reconciler.client.Delete(context.TODO(), r.instance)
 	}
 
 	if r.cluster.IsDeleted() {
 		r.log.Info("Cluster is deleted, waiting for all incarnations to be deleted before finalizing")
-		return reconcile.Result{}, nil
+		return rs, nil
 	}
 
 	if err := r.syncNamespace(); err != nil {
-		return reconcile.Result{}, err
+		return rs, err
 	}
 	if err := r.tickIncarnations(); err != nil {
-		return reconcile.Result{}, err
+		return rs, err
 	}
-	if err := r.syncService(); err != nil {
-		return reconcile.Result{}, err
+	if err := r.syncApp(); err != nil {
+		return rs, err
 	}
-	if err := r.syncDestinationRule(); err != nil {
-		return reconcile.Result{}, err
-	}
-	if err := r.syncVirtualService(); err != nil {
-		return reconcile.Result{}, err
-	}
-	rs := []picchuv1alpha1.ReleaseManagerRevisionStatus{}
+
 	sorted := r.incarnations.sorted()
 	for i := len(sorted) - 1; i >= 0; i-- {
 		status := sorted[i].status
-		r.log.Info("Get status", "state", status.State)
 		if !(status.State.Current == "deleted" && sorted[i].revision == nil) {
 			rs = append(rs, *status)
 		}
 	}
-	r.instance.Status.Revisions = rs
-	if err := utils.UpdateStatus(context.TODO(), r.reconciler.client, r.instance); err != nil {
-		r.log.Error(err, "Failed to update releasemanager status")
-		return reconcile.Result{}, err
-	}
-	r.log.Info("Updated releasemanager status", "Content", r.instance.Status, "Type", "ReleaseManager.Status")
-	return reconcile.Result{RequeueAfter: r.reconciler.config.RequeueAfter}, nil
+	return rs, nil
 }
 
-func (r *ResourceSyncer) del() (reconcile.Result, error) {
-	r.log.Info("Finalizing releasemanager")
-	if err := r.deleteNamespace(); err != nil {
-		return reconcile.Result{}, err
-	}
-	r.instance.Finalize()
-	err := r.reconciler.client.Update(context.TODO(), r.instance)
-	return reconcile.Result{}, err
-}
-
-func (r *ResourceSyncer) deleteNamespace() error {
-	return r.applyPlan(&plan.DeleteApp{
+func (r *ResourceSyncer) del() error {
+	return r.applyPlan("Delete App", &plan.DeleteApp{
 		Namespace: r.instance.TargetNamespace(),
 	})
 }
 
-func (r *ResourceSyncer) applyPlan(p plan.Plan) error {
+func (r *ResourceSyncer) applyPlan(name string, p plan.Plan) error {
+	r.log.Info("Applying plan", "Name", name, "Plan", p)
 	return p.Apply(context.TODO(), r.client, r.log)
 }
 
 func (r *ResourceSyncer) syncNamespace() error {
-	return r.applyPlan(&plan.EnsureNamespace{
+	return r.applyPlan("Ensure Namespace", &plan.EnsureNamespace{
 		Name:      r.instance.TargetNamespace(),
 		OwnerName: r.instance.Name,
 		OwnerType: picchuv1alpha1.OwnerReleaseManager,
@@ -328,7 +360,6 @@ func (r *ResourceSyncer) tickIncarnations() error {
 			return err
 		}
 		current := incarnation.status.State.Current
-		r.log.Info("metrics", "metrics", incarnation.status.Metrics)
 		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
 			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.GitDeploySeconds = &gitElapsed
@@ -356,28 +387,17 @@ func (r *ResourceSyncer) tickIncarnations() error {
 	return nil
 }
 
-func (r *ResourceSyncer) syncService() error {
-	portMap := map[string]corev1.ServicePort{}
+func (r *ResourceSyncer) syncApp() error {
+	portMap := map[string]picchuv1alpha1.PortInfo{}
 	for _, incarnation := range r.incarnations.deployed() {
-		if incarnation.revision == nil {
-			continue
-		}
 		for _, port := range incarnation.revision.Spec.Ports {
 			_, ok := portMap[port.Name]
 			if !ok {
-				portMap[port.Name] = corev1.ServicePort{
-					Name:       port.Name,
-					Protocol:   port.Protocol,
-					Port:       port.Port,
-					TargetPort: intstr.FromString(port.Name),
-				}
+				portMap[port.Name] = port
 			}
 		}
 	}
-	if len(portMap) == 0 {
-		return nil
-	}
-	ports := make([]corev1.ServicePort, 0, len(portMap))
+	ports := make([]picchuv1alpha1.PortInfo, 0, len(portMap))
 	for _, port := range portMap {
 		ports = append(ports, port)
 	}
@@ -388,107 +408,67 @@ func (r *ResourceSyncer) syncService() error {
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
 		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
-	if _, hasStatus := portMap[StatusPort]; hasStatus {
-		labels[PrometheusScrapeLabel] = PrometheusScrapeLabelValue
-	}
 
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.instance.Spec.App,
-			Namespace: r.instance.TargetNamespace(),
-			Labels:    labels,
-		},
-	}
+	revisions, alertRules := r.prepareRevisionsAndRules()
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, service, func(runtime.Object) error {
-		service.Spec.Ports = ports
-		service.Spec.Selector = map[string]string{picchuv1alpha1.LabelApp: r.instance.Spec.App}
-		return nil
+	err := r.applyPlan("Sync Application", &plan.SyncApp{
+		App:               r.instance.Spec.App,
+		Namespace:         r.instance.TargetNamespace(),
+		Labels:            labels,
+		DefaultDomain:     r.cluster.Spec.DefaultDomain,
+		PublicGateway:     r.cluster.Spec.Ingresses.Public.Gateway,
+		PrivateGateway:    r.cluster.Spec.Ingresses.Private.Gateway,
+		DeployedRevisions: revisions,
+		AlertRules:        alertRules,
+		Ports:             ports,
+		TagRoutingHeader:  "",
+		TrafficPolicy:     r.currentTrafficPolicy(),
 	})
+	if err != nil {
+		return err
+	}
 
-	r.log.Info("Service sync'd", "Op", op)
-	return err
+	for _, revision := range revisions {
+		revisionReleaseWeightGauge.
+			With(prometheus.Labels{
+				"app":            r.instance.Spec.App,
+				"tag":            revision.Tag,
+				"target":         r.instance.Spec.Target,
+				"target_cluster": r.cluster.Name,
+			}).
+			Set(float64(revision.Weight))
+	}
+	return nil
 }
 
-func (r *ResourceSyncer) syncDestinationRule() error {
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
-		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.instance.Name,
+// currentTrafficPolicy gets the latest releases traffic policy, or if there
+// are no releases, then the latest revisions traffic policy.
+func (r *ResourceSyncer) currentTrafficPolicy() *istiov1alpha3.TrafficPolicy {
+	for _, incarnation := range r.incarnations.releasable() {
+		if incarnation.revision != nil {
+			return incarnation.revision.Spec.TrafficPolicy
+		}
 	}
-	appName := r.instance.Spec.App
-	service := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
-	drule := &istiov1alpha3.DestinationRule{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.instance.Spec.App,
-			Namespace: r.instance.TargetNamespace(),
-			Labels:    labels,
-		},
+	for _, incarnation := range r.incarnations.sorted() {
+		if incarnation.revision != nil {
+			return incarnation.revision.Spec.TrafficPolicy
+		}
 	}
-	subsets := []istiov1alpha3.Subset{}
-	for _, incarnation := range r.incarnations.deployed() {
-		tag := incarnation.tag
-		subsets = append(subsets, istiov1alpha3.Subset{
-			Name:   tag,
-			Labels: map[string]string{picchuv1alpha1.LabelTag: tag},
-		})
-	}
-	spec := istiov1alpha3.DestinationRuleSpec{
-		Host:    service,
-		Subsets: subsets,
-	}
-
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, drule, func(runtime.Object) error {
-		drule.Spec.Host = spec.Host
-		drule.Spec.Subsets = spec.Subsets
-		return nil
-	})
-	r.log.Info("DestinationRule sync'd", "Type", "DestinationRule", "Audit", true, "Content", drule, "Op", op)
-	return err
+	return nil
 }
 
-func (r *ResourceSyncer) syncVirtualService() error {
+func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitoringv1.Rule) {
+	alertRules := []monitoringv1.Rule{}
+
 	if len(r.incarnations.deployed()) == 0 {
-		return nil
+		return []plan.Revision{}, alertRules
 	}
-	appName := r.instance.Spec.App
-	defaultDomain := r.cluster.Spec.DefaultDomain
-	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       appName,
-		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.instance.Name,
-	}
-	defaultHost := fmt.Sprintf("%s.%s", r.instance.TargetNamespace(), defaultDomain)
-	meshHost := fmt.Sprintf("%s.%s.svc.cluster.local", appName, r.instance.TargetNamespace())
-	// keep a set of hosts
-	hosts := map[string]bool{defaultHost: true, meshHost: true}
-	publicGateway := r.cluster.Spec.Ingresses.Public.Gateway
-	privateGateway := r.cluster.Spec.Ingresses.Private.Gateway
-	gateways := []string{"mesh"}
-	if publicGateway != "" {
-		gateways = append(gateways, publicGateway)
-	}
-	if privateGateway != "" {
-		gateways = append(gateways, privateGateway)
-	}
-	vs := &istiov1alpha3.VirtualService{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      appName,
-			Namespace: r.instance.TargetNamespace(),
-			Labels:    labels,
-		},
-	}
-	http := []istiov1alpha3.HTTPRoute{}
 
-	// NOTE: We are iterating through the incarnations twice, these loops could
-	// be combined if we sorted the incarnations by git timestamp at the expense
-	// of readability
-
-	// Incarnation specific releases are made for each port on private ingress
-	if r.reconciler.config.TaggedRoutesEnabled {
-		for _, incarnation := range r.incarnations.deployed() {
-			http = append(http, incarnation.taggedRoutes(privateGateway, serviceHost)...)
+	revisionsMap := map[string]plan.Revision{}
+	for _, i := range r.incarnations.deployed() {
+		revisionsMap[i.tag] = plan.Revision{
+			Tag:    i.tag,
+			Weight: 0,
 		}
 	}
 
@@ -498,15 +478,12 @@ func (r *ResourceSyncer) syncVirtualService() error {
 	// to take from oldest fnord release.
 	var percRemaining uint32 = 100
 	// Tracking one route per port number
-	releaseRoutes := map[string]istiov1alpha3.HTTPRoute{}
 	incarnations := r.incarnations.releasable()
-	r.log.Info("Got my releases", "Count", len(incarnations))
 	count := len(incarnations)
+
 	// setup alerts from latest release
 	if count > 0 {
-		if err := incarnations[0].syncPrometheusRules(context.TODO()); err != nil {
-			return err
-		}
+		alertRules = incarnations[0].target().AlertRules
 	}
 
 	for i, incarnation := range incarnations {
@@ -522,106 +499,35 @@ func (r *ResourceSyncer) syncVirtualService() error {
 		if percRemaining+current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
-
-		tag := incarnation.tag
-
-		if current > 0 && incarnation.revision != nil {
-			for _, port := range incarnation.revision.Spec.Ports {
-				portNumber := uint32(port.Port)
-				filterHosts := port.Hosts
-				gateway := []string{"mesh"}
-				switch port.Mode {
-				case picchuv1alpha1.PortPublic:
-					if publicGateway == "" {
-						r.log.Info("Can't configure publicGateway, undefined in Cluster")
-						continue
-					}
-					gateway = []string{publicGateway}
-					portNumber = uint32(port.IngressPort)
-				case picchuv1alpha1.PortPrivate:
-					if privateGateway == "" {
-						r.log.Info("Can't configure privateGateway, undefined in Cluster")
-						continue
-					}
-					gateway = []string{privateGateway}
-					filterHosts = append(filterHosts, defaultHost)
-					portNumber = uint32(port.IngressPort)
-				}
-				releaseRoute, ok := releaseRoutes[port.Name]
-				if !ok {
-					releaseRoute = istiov1alpha3.HTTPRoute{
-						Redirect:              port.Istio.HTTP.Redirect,
-						Rewrite:               port.Istio.HTTP.Rewrite,
-						Retries:               port.Istio.HTTP.Retries,
-						Fault:                 port.Istio.HTTP.Fault,
-						Mirror:                port.Istio.HTTP.Mirror,
-						AppendHeaders:         port.Istio.HTTP.AppendHeaders,
-						RemoveResponseHeaders: port.Istio.HTTP.RemoveResponseHeaders,
-					}
-					for _, filterHost := range filterHosts {
-						hosts[filterHost] = true
-						releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{
-							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
-							Authority: &istiocommonv1alpha1.StringMatch{Prefix: filterHost},
-							Port:      portNumber,
-							Gateways:  gateway,
-						})
-					}
-					releaseRoute.Match = append(releaseRoute.Match, istiov1alpha3.HTTPMatchRequest{
-						Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
-						Port:     uint32(port.Port),
-						Gateways: []string{"mesh"},
-					})
-				}
-
-				releaseRoute.Route = append(releaseRoute.Route, istiov1alpha3.DestinationWeight{
-					Destination: istiov1alpha3.Destination{
-						Host:   serviceHost,
-						Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
-						Subset: tag,
-					},
-					Weight: int(current),
-				})
-				releaseRoutes[port.Name] = releaseRoute
-			}
+		revisionsMap[incarnation.tag] = plan.Revision{
+			Tag:    incarnation.tag,
+			Weight: current,
 		}
 	}
 
-	for _, route := range releaseRoutes {
-		http = append(http, route)
+	revisions := make([]plan.Revision, 0, len(revisionsMap))
+	for _, revision := range revisionsMap {
+		revisions = append(revisions, revision)
 	}
+	return revisions, alertRules
+}
 
-	// This can happen if there are released incarnations with deleted revisions
-	// we want to wait until another revision is ready before updating.
-	if len(http) < 1 {
-		r.log.Info("Not sync'ing VirtualService, there are no valid releases")
-		return nil
-	}
+func (r *ReconcileReleaseManager) getClustersByFleet(namespace string, fleet string) ([]*picchuv1alpha1.Cluster, error) {
+	clusterList := &picchuv1alpha1.ClusterList{}
+	opts := client.
+		MatchingLabels(map[string]string{picchuv1alpha1.LabelFleet: fleet}).
+		InNamespace(namespace)
+	err := r.client.List(context.TODO(), opts, clusterList)
+	r.scheme.Default(clusterList)
 
-	op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, vs, func(runtime.Object) error {
-		hostSlice := make([]string, 0, len(hosts))
-		for h := range hosts {
-			hostSlice = append(hostSlice, h)
+	clusters := []*picchuv1alpha1.Cluster{}
+	for i, _ := range clusterList.Items {
+		cluster := clusterList.Items[i]
+		if !cluster.Spec.Enabled {
+			continue
 		}
-		vs.Spec.Hosts = hostSlice
-		vs.Spec.Gateways = gateways
-		vs.Spec.Http = http
-		return nil
-	})
-	if err != nil {
-		return err
+		clusters = append(clusters, &cluster)
 	}
 
-	r.log.Info("VirtualService sync'd", "Type", "VirtualService", "Audit", true, "Content", vs, "Op", op)
-	for _, incarnation := range r.incarnations.sorted() {
-		revisionReleaseWeightGauge.
-			With(prometheus.Labels{
-				"app":            appName,
-				"tag":            incarnation.tag,
-				"target_cluster": r.cluster.Name,
-				"target":         r.instance.Spec.Target,
-			}).
-			Set(float64(incarnation.status.CurrentPercent))
-	}
-	return nil
+	return clusters, err
 }
