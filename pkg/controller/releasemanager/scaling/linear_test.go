@@ -9,13 +9,18 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling/mocks"
 )
 
-func prepareMock(ctrl *gomock.Controller, currentPercent, peakPercent, increment, max, delay int, lastUpdated time.Time) ScalableTarget {
+func prepareMock(ctrl *gomock.Controller, isReconciled bool, currentPercent, peakPercent, increment, max, delay int, lastUpdated time.Time) ScalableTarget {
 	m := mocks.NewMockScalableTarget(ctrl)
 
 	m.
 		EXPECT().
 		CurrentPercent().
 		Return(uint32(currentPercent)).
+		AnyTimes()
+	m.
+		EXPECT().
+		IsReconciled().
+		Return(isReconciled).
 		AnyTimes()
 	m.
 		EXPECT().
@@ -51,31 +56,45 @@ func TestLinearScaling(t *testing.T) {
 
 	defer ctrl.Finish()
 
-	m := prepareMock(ctrl, 0, 0, 5, 100, 5, time.Time{})
+	m := prepareMock(ctrl, true, 0, 0, 5, 100, 5, time.Time{})
 
 	assert.Equal(t, 5, int(LinearScale(m, 100, time.Now())), "Scale should increment by 5")
 
-	m = prepareMock(ctrl, 100, 100, 5, 100, 5, time.Time{})
+	m = prepareMock(ctrl, true, 100, 100, 5, 100, 5, time.Time{})
 
 	assert.Equal(t, 100, int(LinearScale(m, 100, time.Now())), "Scale shouldn't increment by 5 when at max")
 
-	m = prepareMock(ctrl, 50, 100, 5, 100, 5, time.Time{})
+	m = prepareMock(ctrl, true, 50, 100, 5, 100, 5, time.Time{})
 
 	assert.Equal(t, 50, int(LinearScale(m, 50, time.Now())), "Scale shouldn't increment by 5 when at max remaining")
 
-	m = prepareMock(ctrl, 50, 100, 5, 50, 5, time.Time{})
+	m = prepareMock(ctrl, true, 50, 100, 5, 50, 5, time.Time{})
 
 	assert.Equal(t, 50, int(LinearScale(m, 100, time.Now())), "Scale shouldn't increment by 5 when at max")
 
-	m = prepareMock(ctrl, 50, 50, 5, 100, 5, time.Time{})
+	m = prepareMock(ctrl, true, 50, 50, 5, 100, 5, time.Time{})
 
 	assert.Equal(t, 55, int(LinearScale(m, 100, time.Now())), "Scale should increment by 5")
 
-	m = prepareMock(ctrl, 0, 100, 5, 100, 5, time.Time{})
+	m = prepareMock(ctrl, false, 50, 50, 5, 100, 5, time.Time{})
 
-	assert.Equal(t, 100, int(LinearScale(m, 100, time.Now())), "Scale should skip to peak")
+	assert.Equal(t, 50, int(LinearScale(m, 100, time.Now())), "Scale shouldn't be incremented")
 
-	m = prepareMock(ctrl, 0, 100, 5, 100, 5, time.Time{})
+	/*
+		m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
 
-	assert.Equal(t, 80, int(LinearScale(m, 80, time.Now())), "Scale should skip to max remaining")
+		assert.Equal(t, 100, int(LinearScale(m, 100, time.Now())), "Scale should skip to peak")
+
+		m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
+
+		assert.Equal(t, 80, int(LinearScale(m, 80, time.Now())), "Scale should skip to max remaining")
+	*/
+
+	m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
+
+	assert.Equal(t, 5, int(LinearScale(m, 100, time.Now())), "Scale should not skip to peak")
+
+	m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
+
+	assert.Equal(t, 5, int(LinearScale(m, 80, time.Now())), "Scale should not skip to max remaining")
 }
