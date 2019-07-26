@@ -32,8 +32,9 @@ var (
 		PublicGateway:  "public-gateway",
 		PrivateGateway: "private-gateway",
 		DeployedRevisions: []Revision{{
-			Tag:    "testtag",
-			Weight: 100,
+			Tag:              "testtag",
+			Weight:           100,
+			TagRoutingHeader: "MEDIUM-TAG",
 		}},
 		AlertRules: []monitoringv1.Rule{{
 			Expr: intstr.FromString("hello world"),
@@ -53,7 +54,6 @@ var (
 			Protocol:      corev1.ProtocolTCP,
 			Mode:          picchuv1alpha1.PortLocal,
 		}},
-		TagRoutingHeader: "MEDIUM-TAG",
 		TrafficPolicy: &istiov1alpha3.TrafficPolicy{
 			ConnectionPool: &istiov1alpha3.ConnectionPoolSettings{
 				Http: &istiov1alpha3.HTTPSettings{

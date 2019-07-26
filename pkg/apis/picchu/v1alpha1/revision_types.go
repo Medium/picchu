@@ -66,14 +66,13 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App           RevisionApp                  `json:"app"`
-	Ports         []PortInfo                   `json:"ports"`
-	Targets       []RevisionTarget             `json:"targets"`
-	TrafficPolicy *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
-	Failed        bool                         `json:"failed"`
-	IgnoreSLOs    bool                         `json:"ignoreSLOs,omitempty"`
-	// This is immutable. Changing it has undefined behavior
-	UseNewTagStyle bool `json:"useNewTagStyle,omitempty"`
+	App              RevisionApp                  `json:"app"`
+	Ports            []PortInfo                   `json:"ports"`
+	Targets          []RevisionTarget             `json:"targets"`
+	TrafficPolicy    *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
+	Failed           bool                         `json:"failed"`
+	IgnoreSLOs       bool                         `json:"ignoreSLOs,omitempty"`
+	TagRoutingHeader string                       `json:"tagRoutingHeader,omitempty"`
 }
 
 type RevisionApp struct {

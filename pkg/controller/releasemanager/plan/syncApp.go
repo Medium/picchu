@@ -25,8 +25,9 @@ const (
 )
 
 type Revision struct {
-	Tag    string
-	Weight uint32
+	Tag              string
+	Weight           uint32
+	TagRoutingHeader string
 }
 
 type SyncApp struct {
@@ -39,7 +40,6 @@ type SyncApp struct {
 	DeployedRevisions []Revision
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
-	TagRoutingHeader  string
 	TrafficPolicy     *istiov1alpha3.TrafficPolicy
 }
 
@@ -136,9 +136,9 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 	return matches
 }
 
-func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, tag string) []istiov1alpha3.HTTPMatchRequest {
+func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, revision Revision) []istiov1alpha3.HTTPMatchRequest {
 	headers := map[string]istiocommonv1alpha1.StringMatch{
-		p.TagRoutingHeader: {Exact: tag},
+		revision.TagRoutingHeader: {Exact: revision.Tag},
 	}
 	matches := []istiov1alpha3.HTTPMatchRequest{{
 		Headers:  headers,
@@ -189,12 +189,12 @@ func (p *SyncApp) releaseRoute(port picchuv1alpha1.PortInfo) []istiov1alpha3.Des
 	return weights
 }
 
-func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, tag string) []istiov1alpha3.DestinationWeight {
+func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, revision Revision) []istiov1alpha3.DestinationWeight {
 	return []istiov1alpha3.DestinationWeight{{
 		Destination: istiov1alpha3.Destination{
 			Host:   p.serviceHost(),
 			Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
-			Subset: tag,
+			Subset: revision.Tag,
 		},
 		Weight: 100,
 	}}
@@ -230,14 +230,13 @@ func (p *SyncApp) releaseRoutes(log logr.Logger) []istiov1alpha3.HTTPRoute {
 }
 
 func (p *SyncApp) taggedRoutes() []istiov1alpha3.HTTPRoute {
-	if p.TagRoutingHeader == "" {
-		return []istiov1alpha3.HTTPRoute{}
-	}
 	routes := []istiov1alpha3.HTTPRoute{}
 	for _, revision := range p.DeployedRevisions {
+		if revision.TagRoutingHeader == "" {
+			continue
+		}
 		for _, port := range p.Ports {
-			tag := revision.Tag
-			routes = append(routes, p.makeRoute(port, p.taggedMatches(port, tag), p.taggedRoute(port, tag)))
+			routes = append(routes, p.makeRoute(port, p.taggedMatches(port, revision), p.taggedRoute(port, revision)))
 		}
 	}
 	return routes
