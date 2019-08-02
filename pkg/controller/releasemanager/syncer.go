@@ -262,9 +262,14 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitori
 		if percRemaining+current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
+		tagRoutingHeader := ""
+		if incarnation.revision != nil {
+			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
+		}
 		revisionsMap[incarnation.tag] = plan.Revision{
-			Tag:    incarnation.tag,
-			Weight: current,
+			Tag:              incarnation.tag,
+			Weight:           current,
+			TagRoutingHeader: tagRoutingHeader,
 		}
 	}
 
