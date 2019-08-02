@@ -20,15 +20,14 @@ import (
 )
 
 type ResourceSyncer struct {
-	deliveryClient   client.Client
-	planApplier      plan.Applier
-	observer         observe.Observer
-	instance         *picchuv1alpha1.ReleaseManager
-	incarnations     *IncarnationCollection
-	reconciler       *ReconcileReleaseManager
-	log              logr.Logger
-	clusterConfig    ClusterConfig
-	tagRoutingHeader string
+	deliveryClient client.Client
+	planApplier    plan.Applier
+	observer       observe.Observer
+	instance       *picchuv1alpha1.ReleaseManager
+	incarnations   *IncarnationCollection
+	reconciler     *ReconcileReleaseManager
+	log            logr.Logger
+	clusterConfig  ClusterConfig
 }
 
 func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
@@ -179,7 +178,6 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		DeployedRevisions: revisions,
 		AlertRules:        alertRules,
 		Ports:             ports,
-		TagRoutingHeader:  r.tagRoutingHeader,
 		TrafficPolicy:     r.currentTrafficPolicy(),
 	})
 	if err != nil {
@@ -223,9 +221,14 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitori
 
 	revisionsMap := map[string]plan.Revision{}
 	for _, i := range r.incarnations.deployed() {
+		tagRoutingHeader := ""
+		if i.revision != nil {
+			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
+		}
 		revisionsMap[i.tag] = plan.Revision{
-			Tag:    i.tag,
-			Weight: 0,
+			Tag:              i.tag,
+			Weight:           0,
+			TagRoutingHeader: tagRoutingHeader,
 		}
 	}
 
@@ -259,9 +262,14 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitori
 		if percRemaining+current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
+		tagRoutingHeader := ""
+		if incarnation.revision != nil {
+			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
+		}
 		revisionsMap[incarnation.tag] = plan.Revision{
-			Tag:    incarnation.tag,
-			Weight: current,
+			Tag:              incarnation.tag,
+			Weight:           current,
+			TagRoutingHeader: tagRoutingHeader,
 		}
 	}
 
