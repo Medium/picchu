@@ -8,30 +8,28 @@ import (
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
-	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Controller interface {
-	scheme() *runtime.Scheme
-	client() client.Client
-	releaseManager() *picchuv1alpha1.ReleaseManager
-	log() logr.Logger
+	applyPlan(context.Context, string, plan.Plan) error
+	divideReplicas(int32, int32) int32
+	getReleaseManager() *picchuv1alpha1.ReleaseManager
+	getLog() logr.Logger
 	getConfigMaps(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
-	fleetSize() int32
 }
 
 type Incarnation struct {
+	deployed   bool
 	controller Controller
 	tag        string
 	revision   *picchuv1alpha1.Revision
@@ -39,13 +37,13 @@ type Incarnation struct {
 	status     *picchuv1alpha1.ReleaseManagerRevisionStatus
 }
 
-func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger) Incarnation {
-	status := controller.releaseManager().RevisionStatus(tag)
+func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo) Incarnation {
+	status := controller.getReleaseManager().RevisionStatus(tag)
 	if status.State.Target == "" || status.State.Target == "created" || status.State.Target == "deployed" {
 		if revision != nil {
 			status.GitTimestamp = &metav1.Time{revision.GitTimestamp()}
 			for _, target := range revision.Spec.Targets {
-				if target.Name == controller.releaseManager().Spec.Target {
+				if target.Name == controller.getReleaseManager().Spec.Target {
 					status.ReleaseEligible = target.Release.Eligible
 					status.TTL = target.Release.TTL
 				}
@@ -77,20 +75,25 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		rev := *revision
 		r = &rev
 	}
-	return Incarnation{
+	i := Incarnation{
 		controller: controller,
 		tag:        tag,
 		revision:   r,
 		log:        log,
 		status:     status,
 	}
+	i.update(di)
+	return i
 }
 
 // = Start Deployment interface
-// Remotely sync the incarnation for it's current state
-func (i *Incarnation) sync() error {
-	ctx := context.TODO()
+// Returns true if all target clusters are in deployed state
+func (i *Incarnation) isDeployed() bool {
+	return i.deployed
+}
 
+// Remotely sync the incarnation for it's current state
+func (i *Incarnation) sync(ctx context.Context) error {
 	// Revision deleted
 	if !i.hasRevision() {
 		return nil
@@ -116,7 +119,7 @@ func (i *Incarnation) sync() error {
 		return err
 	}
 
-	return i.applyPlan("Sync and Scale Revision", plan.All(
+	return i.controller.applyPlan(ctx, "Sync and Scale Revision", plan.All(
 		&plan.SyncRevision{
 			App:                i.appName(),
 			Tag:                i.tag,
@@ -143,8 +146,8 @@ func (i *Incarnation) sync() error {
 	))
 }
 
-func (i *Incarnation) scale() error {
-	return i.applyPlan("Scale Revision", &plan.ScaleRevision{
+func (i *Incarnation) scale(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Scale Revision", &plan.ScaleRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 		Min:       i.divideReplicas(*i.target().Scale.Min),
@@ -152,16 +155,6 @@ func (i *Incarnation) scale() error {
 		Labels:    i.defaultLabels(),
 		CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
 	})
-}
-
-func (i *Incarnation) applyPlan(name string, p plan.Plan) error {
-	i.log.Info("Applying plan", "Name", name, "Plan", p)
-	ctx := context.TODO()
-	err := p.Apply(ctx, i.controller.client(), i.log)
-	if err != nil {
-		return err
-	}
-	return i.updateHealthStatus(ctx)
 }
 
 func (i *Incarnation) getLog() logr.Logger {
@@ -172,8 +165,8 @@ func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 	return i.status
 }
 
-func (i *Incarnation) retire() error {
-	return i.applyPlan("Retire Revision", &plan.RetireRevision{
+func (i *Incarnation) retire(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Retire Revision", &plan.RetireRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 	})
@@ -203,8 +196,8 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 	return false
 }
 
-func (i *Incarnation) del() error {
-	return i.applyPlan("Delete Revision", &plan.DeleteRevision{
+func (i *Incarnation) del(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Revision", &plan.DeleteRevision{
 		Labels:    i.defaultLabels(),
 		Namespace: i.targetNamespace(),
 	})
@@ -239,7 +232,7 @@ func (i *Incarnation) target() *picchuv1alpha1.RevisionTarget {
 		return nil
 	}
 	for _, target := range i.revision.Spec.Targets {
-		if target.Name == i.controller.releaseManager().Spec.Target {
+		if target.Name == i.controller.getReleaseManager().Spec.Target {
 			return &target
 		}
 	}
@@ -247,15 +240,15 @@ func (i *Incarnation) target() *picchuv1alpha1.RevisionTarget {
 }
 
 func (i *Incarnation) appName() string {
-	return i.controller.releaseManager().Spec.App
+	return i.controller.getReleaseManager().Spec.App
 }
 
 func (i *Incarnation) targetName() string {
-	return i.controller.releaseManager().Spec.Target
+	return i.controller.getReleaseManager().Spec.Target
 }
 
 func (i *Incarnation) targetNamespace() string {
-	return i.controller.releaseManager().TargetNamespace()
+	return i.controller.getReleaseManager().TargetNamespace()
 }
 
 func (i *Incarnation) image() string {
@@ -269,7 +262,7 @@ func (i *Incarnation) listOptions() (*client.ListOptions, error) {
 	}
 	return &client.ListOptions{
 		LabelSelector: selector,
-		Namespace:     i.controller.releaseManager().Namespace,
+		Namespace:     i.controller.getReleaseManager().Namespace,
 	}, nil
 }
 
@@ -285,34 +278,27 @@ func (i *Incarnation) setReleaseEligible(flag bool) {
 	i.status.ReleaseEligible = flag
 }
 
-func (i *Incarnation) updateHealthStatus(ctx context.Context) error {
-	rs := &appsv1.ReplicaSet{}
-	key := client.ObjectKey{
-		Name:      i.tag,
-		Namespace: i.targetNamespace(),
-	}
-	if err := i.controller.client().Get(ctx, key, rs); err != nil {
-		if errors.IsNotFound(err) {
-			if i.status.CurrentPercent != 0 {
-				now := metav1.Now()
-				i.status.LastUpdated = &now
-				i.status.CurrentPercent = 0
-			}
-			i.status.Scale.Current = 0
-			i.status.Scale.Desired = 0
-			i.status.Deleted = true
-			return nil
+func (i *Incarnation) update(di *observe.DeploymentInfo) {
+	if di == nil {
+		i.deployed = false
+		// Replicaset for revision is missing, make sure it's not released
+		if i.status.CurrentPercent != 0 {
+			now := metav1.Now()
+			i.status.LastUpdated = &now
+			i.status.CurrentPercent = 0
 		}
-		return err
+		i.status.Scale.Current = 0
+		i.status.Scale.Desired = 0
+		i.status.Deleted = true
+	} else {
+		i.deployed = di.Deployed
+		i.status.Deleted = false
+		i.status.Scale.Desired = di.Desired
+		i.status.Scale.Current = di.Current
+		if i.status.Scale.Current > i.status.Scale.Peak {
+			i.status.Scale.Peak = i.status.Scale.Current
+		}
 	}
-
-	i.status.Deleted = false
-	i.status.Scale.Desired = *rs.Spec.Replicas
-	i.status.Scale.Current = rs.Status.AvailableReplicas
-	if i.status.Scale.Current > i.status.Scale.Peak {
-		i.status.Scale.Peak = i.status.Scale.Current
-	}
-	return nil
 }
 
 func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []istiov1alpha3.HTTPRoute {
@@ -361,21 +347,14 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
-	r := utils.Max(count/i.controller.fleetSize(), 1)
 	release := i.target().Release
+	perc := int32(100)
 	if release.Eligible {
 		// since we sync before incrementing, we'll just err on the side of
-		// caution.
-		i.log.Info("Compute count", "CurrentPercent", i.status.CurrentPercent, "Increment", release.Rate.Increment, "Count", r)
-		c := i.status.CurrentPercent + release.Rate.Increment
-		if c > 100 {
-			c = 100
-		}
-		r = int32(float64(r) * float64(c) / float64(100))
-		r = utils.Max(r, 1)
-		i.log.Info("Resulting count", "Result", r)
+		// caution and use the next increment percent.
+		perc = int32(i.status.CurrentPercent + release.Rate.Increment)
 	}
-	return r
+	return i.controller.divideReplicas(count, perc)
 }
 
 func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
@@ -413,28 +392,29 @@ type IncarnationCollection struct {
 	controller Controller
 }
 
-func newIncarnationCollection(
-	controller Controller,
-) *IncarnationCollection {
+func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
 		itemSet:    make(map[string]Incarnation),
 	}
-	// First seed all known revisions from status, since some might have been
-	// deleted and don't have associated resources that are Add'd. If an
-	// Incarnation has a nil Revision, it means it's been deleted.
-	rm := controller.releaseManager()
-	for _, r := range rm.Status.Revisions {
-		l := controller.log().WithValues("Incarnation.Tag", r.Tag)
-		ic.itemSet[r.Tag] = NewIncarnation(controller, r.Tag, nil, l)
+	rm := controller.getReleaseManager()
+	for _, r := range revisionList.Items {
+		tag := r.Spec.App.Tag
+		l := controller.getLog().WithValues("Tag", tag)
+		di := observation.ForTag(tag)
+		ic.itemSet[tag] = NewIncarnation(controller, tag, &r, l, di)
 	}
-	return ic
-}
+	// add any deleted revisions that still have status
+	for _, r := range rm.Status.Revisions {
+		l := controller.getLog().WithValues("Tag", r.Tag)
+		if _, ok := ic.itemSet[r.Tag]; ok {
+			continue
+		}
+		di := observation.ForTag(r.Tag)
+		ic.itemSet[r.Tag] = NewIncarnation(controller, r.Tag, nil, l, di)
+	}
 
-// Add adds a new Incarnation to the IncarnationManager
-func (i *IncarnationCollection) add(revision *picchuv1alpha1.Revision) {
-	l := i.controller.log().WithValues("Incarnation.Tag", revision.Spec.App.Tag)
-	i.itemSet[revision.Spec.App.Tag] = NewIncarnation(i.controller, revision.Spec.App.Tag, revision, l)
+	return ic
 }
 
 // deployed returns deployed incarnation
@@ -459,7 +439,7 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 		}
 	}
 	if len(r) == 0 {
-		i.controller.log().Info("there are no releases, looking for retired release to unretire")
+		i.controller.getLog().Info("there are no releases, looking for retired release to unretire")
 		candidates := i.unretirable()
 		unretiredCount := 0
 		// We scale retired back up to `peakPercent`. We want to unretire enough to make 100% as
@@ -469,14 +449,14 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 			if percRemaining <= 0 {
 				break
 			}
-			i.controller.log().Info("Unretiring", "tag", candidate.tag)
+			i.controller.getLog().Info("Unretiring", "tag", candidate.tag)
 			candidate.setReleaseEligible(true)
 			unretiredCount++
 			percRemaining -= candidate.getStatus().PeakPercent
 		}
 
 		if unretiredCount <= 0 {
-			i.controller.log().Info("No available releases retired")
+			i.controller.getLog().Info("No available releases retired")
 		}
 	}
 	for _, i := range i.sorted() {
@@ -512,20 +492,26 @@ func (i *IncarnationCollection) revisioned() []Incarnation {
 
 func (i *IncarnationCollection) sorted() []Incarnation {
 	r := []Incarnation{}
-	for _, i := range i.itemSet {
-		r = append(r, i)
+	for _, item := range i.itemSet {
+		r = append(r, item)
 	}
 
-	sort.Slice(r, func(i, j int) bool {
+	sort.Slice(r, func(x, y int) bool {
 		a := time.Time{}
 		b := time.Time{}
-		if r[i].revision != nil {
-			a = r[i].revision.GitTimestamp()
+		if r[x].revision != nil {
+			a = r[x].revision.GitTimestamp()
 		}
-		if r[j].revision != nil {
-			b = r[j].revision.GitTimestamp()
+		if r[y].revision != nil {
+			b = r[y].revision.GitTimestamp()
 		}
 		return a.After(b)
 	})
 	return r
+}
+
+func (i *IncarnationCollection) update(observation *observe.Observation) {
+	for _, item := range i.itemSet {
+		item.update(observation.ForTag(item.tag))
+	}
 }

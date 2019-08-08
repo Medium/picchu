@@ -5,8 +5,20 @@ import (
 	"time"
 )
 
+const reconcileRatio = 0.9
+
 type ScalableTargetAdapter struct {
 	Incarnation
+}
+
+// IsReconciled returns true if the target is considered ready to be scaled to the next increment.
+func (s *ScalableTargetAdapter) IsReconciled() bool {
+	status := s.Incarnation.status
+	if status.Scale.Desired == 0 {
+		return false
+	}
+	ratio := float64(status.Scale.Current) / float64(status.Scale.Desired)
+	return ratio > reconcileRatio
 }
 
 func (s *ScalableTargetAdapter) CurrentPercent() uint32 {

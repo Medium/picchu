@@ -52,7 +52,6 @@ func main() {
 
 	manageRoute53 := pflag.Bool("manage-route53", false, "Should picchu manage route53?")
 	requeuePeriodSeconds := pflag.Int("sync-period-seconds", 15, "Delay between requeues")
-	taggedRoutesEnabled := pflag.Bool("tagged-routes", false, "Enable tagged routes in istio")
 	prometheusQueryAddress := pflag.String("prometheus-query-address", "", "The (usually thanos) address that picchu should query to SLO alerts")
 	prometheusQueryTTL := pflag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
 	sentryAuthToken := pflag.String("sentry-auth-token", "", "Sentry API auth token")
@@ -131,7 +130,6 @@ func main() {
 	config := utils.Config{
 		ManageRoute53:          *manageRoute53,
 		RequeueAfter:           requeuePeriod,
-		TaggedRoutesEnabled:    *taggedRoutesEnabled,
 		PrometheusQueryAddress: *prometheusQueryAddress,
 		PrometheusQueryTTL:     *prometheusQueryTTL,
 		SentryAuthToken:        *sentryAuthToken,

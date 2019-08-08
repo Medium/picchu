@@ -280,6 +280,12 @@ func TestSyncRevisionNoChange(t *testing.T) {
 		Return(nil).
 		Times(1)
 
+	m.
+		EXPECT().
+		Update(ctx, k8sEqual(defaultExpectedReplicaSet)).
+		Return(nil).
+		Times(1)
+
 	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
@@ -322,7 +328,8 @@ func TestSyncRevisionExistingReplicasZero(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
-			*rs.Spec.Replicas = 0
+			var zero int32 = 0
+			rs.Spec.Replicas = &zero
 			return true
 		})).
 		Return(nil).
@@ -349,7 +356,8 @@ func TestSyncRevisionRetirement(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
-			*rs.Spec.Replicas = 20
+			var twenty int32 = 20
+			rs.Spec.Replicas = &twenty
 			return true
 		})).
 		Return(nil).

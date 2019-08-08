@@ -6,6 +6,7 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -17,7 +18,7 @@ import (
 
 var cache = map[client.ObjectKey]client.Client{}
 
-func RemoteClient(reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
+func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
 	key, err := client.ObjectKeyFromObject(cluster)
 	if err != nil {
 		return nil, err
@@ -25,8 +26,9 @@ func RemoteClient(reader client.Reader, cluster *picchuv1alpha1.Cluster) (client
 	if client, ok := cache[key]; ok {
 		return client, nil
 	}
+	log.Info("Initializing remote client", "Cluster", cluster.Name)
 	secret := &corev1.Secret{}
-	if err = reader.Get(context.TODO(), key, secret); err != nil {
+	if err = reader.Get(ctx, key, secret); err != nil {
 		return nil, err
 	}
 	config, err := cluster.Config(secret)

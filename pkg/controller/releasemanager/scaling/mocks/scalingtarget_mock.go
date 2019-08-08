@@ -33,6 +33,20 @@ func (m *MockScalableTarget) EXPECT() *MockScalableTargetMockRecorder {
 	return m.recorder
 }
 
+// IsReconciled mocks base method
+func (m *MockScalableTarget) IsReconciled() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsReconciled")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsReconciled indicates an expected call of IsReconciled
+func (mr *MockScalableTargetMockRecorder) IsReconciled() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReconciled", reflect.TypeOf((*MockScalableTarget)(nil).IsReconciled))
+}
+
 // CurrentPercent mocks base method
 func (m *MockScalableTarget) CurrentPercent() uint32 {
 	m.ctrl.T.Helper()

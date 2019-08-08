@@ -358,7 +358,7 @@ func (r *ReconcileRevision) mirrorRevision(
 	if err := r.client.Get(ctx, key, cluster); err != nil {
 		return err
 	}
-	remoteClient, err := utils.RemoteClient(r.client, cluster)
+	remoteClient, err := utils.RemoteClient(ctx, log, r.client, cluster)
 	if err != nil {
 		return err
 	}

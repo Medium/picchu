@@ -6,6 +6,7 @@ import (
 
 // ScalableTarget is an interface to a revision target that is scalable.
 type ScalableTarget interface {
+	IsReconciled() bool
 	CurrentPercent() uint32
 	PeakPercent() uint32
 	Delay() time.Duration
