@@ -72,6 +72,7 @@ type RevisionSpec struct {
 	TrafficPolicy    *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
 	Failed           bool                         `json:"failed"`
 	IgnoreSLOs       bool                         `json:"ignoreSLOs,omitempty"`
+	Sentry           SentryInfo                   `json:"sentry"`
 	TagRoutingHeader string                       `json:"tagRoutingHeader,omitempty"`
 }
 
@@ -111,6 +112,7 @@ type RevisionTargetMetricQueries struct {
 }
 
 type RevisionStatus struct {
+	Sentry  SentryInfo             `json:"sentry"`
 	Targets []RevisionTargetStatus `json:"targets"`
 }
 

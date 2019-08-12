@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/controller/utils"
-
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	promapi "go.medium.engineering/picchu/pkg/prometheus"
+	sentry "go.medium.engineering/picchu/pkg/sentry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,11 +61,21 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 	if err != nil {
 		panic(err)
 	}
+
+	var sentryClient *sentry.Client
+	if c.SentryAuthToken != "" {
+		sentryClient, err = sentry.NewClient(c.SentryAuthToken, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	return &ReconcileRevision{
-		client:  mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
-		config:  c,
-		promAPI: api,
+		client:       mgr.GetClient(),
+		scheme:       mgr.GetScheme(),
+		config:       c,
+		promAPI:      api,
+		sentryClient: sentryClient,
 	}
 }
 
@@ -92,10 +102,11 @@ var _ reconcile.Reconciler = &ReconcileRevision{}
 type ReconcileRevision struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client  client.Client
-	scheme  *runtime.Scheme
-	config  utils.Config
-	promAPI *promapi.API
+	client       client.Client
+	scheme       *runtime.Scheme
+	config       utils.Config
+	promAPI      *promapi.API
+	sentryClient *sentry.Client
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
@@ -187,6 +198,16 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	} else {
 		revisionFailedGauge.With(promLabels).Set(float64(0))
+	}
+
+	if r.config.SentryAuthToken != "" && r.config.SentryOrg != "" && instance.Spec.Sentry.Release && !status.Sentry.Release {
+		s, err := r.CreateSentryReleaseForRevision(log, instance, r.config)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if s.DateCreated != nil {
+			status.Sentry.Release = true
+		}
 	}
 
 	instance.Status = status
@@ -284,6 +305,7 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
 	// Sync releasemanagers
 	rstatus := picchuv1alpha1.RevisionStatus{}
+	rstatus.Sentry = revision.Status.Sentry
 	rmCount, retiredCount := 0, 0
 	for _, target := range revision.Spec.Targets {
 		status := picchuv1alpha1.RevisionTargetStatus{Name: target.Name}
@@ -323,6 +345,41 @@ func (r *ReconcileRevision) deleteRevision(log logr.Logger, revision *picchuv1al
 		return err
 	}
 	return nil
+}
+
+func (r *ReconcileRevision) CreateSentryReleaseForRevision(log logr.Logger, revision *picchuv1alpha1.Revision, config utils.Config) (sentry.Release, error) {
+	tag, foundtag := revision.Labels[picchuv1alpha1.LabelTag]
+	commit, foundref := revision.Labels[picchuv1alpha1.LabelCommit]
+	repo, foundrepo := revision.Annotations[picchuv1alpha1.AnnotationRepo]
+	app, foundapp := revision.Labels[picchuv1alpha1.LabelApp]
+
+	if r.sentryClient != nil && foundtag && foundref && foundrepo && foundapp {
+		log.Info("Registering release with Sentry", "Name", revision.Name, "Namespace", revision.Namespace, "Version", tag, "Commit", commit)
+
+		if _, err := r.sentryClient.GetProject(config.SentryOrg, app); err != nil {
+			log.Info("Could not get project, trying to create it", "Project", app)
+			if _, err := r.sentryClient.CreateProject(config.SentryOrg, app); err != nil {
+				return sentry.Release{}, err
+			}
+		}
+		ref := &sentry.Ref{
+			Repository: repo,
+			Commit:     commit,
+		}
+		rel := &sentry.NewRelease{
+			Version: tag,
+			Ref:     commit,
+			Projects: []string{
+				app,
+			},
+			Refs: []sentry.Ref{
+				*ref,
+			},
+		}
+		return r.sentryClient.CreateRelease(config.SentryOrg, *rel)
+	}
+
+	return sentry.Release{}, nil
 }
 
 func (r *ReconcileRevision) mirrorRevision(

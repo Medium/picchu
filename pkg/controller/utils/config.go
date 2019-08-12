@@ -7,4 +7,6 @@ type Config struct {
 	RequeueAfter           time.Duration
 	PrometheusQueryAddress string
 	PrometheusQueryTTL     time.Duration
+	SentryAuthToken        string
+	SentryOrg              string
 }

@@ -54,6 +54,8 @@ func main() {
 	requeuePeriodSeconds := pflag.Int("sync-period-seconds", 15, "Delay between requeues")
 	prometheusQueryAddress := pflag.String("prometheus-query-address", "", "The (usually thanos) address that picchu should query to SLO alerts")
 	prometheusQueryTTL := pflag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
+	sentryAuthToken := pflag.String("sentry-auth-token", "", "Sentry API auth token")
+	sentryOrg := pflag.String("sentry-org", "", "Sentry API Organization")
 
 	pflag.Parse()
 
@@ -130,6 +132,8 @@ func main() {
 		RequeueAfter:           requeuePeriod,
 		PrometheusQueryAddress: *prometheusQueryAddress,
 		PrometheusQueryTTL:     *prometheusQueryTTL,
+		SentryAuthToken:        *sentryAuthToken,
+		SentryOrg:              *sentryOrg,
 	}
 
 	// Setup all Controllers
