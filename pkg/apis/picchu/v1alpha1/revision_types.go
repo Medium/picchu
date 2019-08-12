@@ -98,8 +98,13 @@ type RevisionTarget struct {
 	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 
-	ExternalTestingEnabled bool `json:"externalTestingEnabled"`
-	ExternalTestingPassed  bool `json:"externalTestingPassed"`
+	ExternalTesting ExternalTesting `json:"externalTesting"`
+}
+
+type ExternalTesting struct {
+	Enabled bool `json:"enabled"`
+	Started bool `json:"started"`
+	Passed  bool `json:"passed"`
 }
 
 type RevisionTargetMetric struct {

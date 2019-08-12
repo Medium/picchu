@@ -12,58 +12,6 @@ import (
 	reflect "reflect"
 )
 
-// MockStateHandler is a mock of StateHandler interface
-type MockStateHandler struct {
-	ctrl     *gomock.Controller
-	recorder *MockStateHandlerMockRecorder
-}
-
-// MockStateHandlerMockRecorder is the mock recorder for MockStateHandler
-type MockStateHandlerMockRecorder struct {
-	mock *MockStateHandler
-}
-
-// NewMockStateHandler creates a new mock instance
-func NewMockStateHandler(ctrl *gomock.Controller) *MockStateHandler {
-	mock := &MockStateHandler{ctrl: ctrl}
-	mock.recorder = &MockStateHandlerMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockStateHandler) EXPECT() *MockStateHandlerMockRecorder {
-	return m.recorder
-}
-
-// tick mocks base method
-func (m *MockStateHandler) tick(arg0 context.Context, arg1 Deployment) (State, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "tick", arg0, arg1)
-	ret0, _ := ret[0].(State)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// tick indicates an expected call of tick
-func (mr *MockStateHandlerMockRecorder) tick(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "tick", reflect.TypeOf((*MockStateHandler)(nil).tick), arg0, arg1)
-}
-
-// reached mocks base method
-func (m *MockStateHandler) reached(arg0 Deployment) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "reached", arg0)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// reached indicates an expected call of reached
-func (mr *MockStateHandlerMockRecorder) reached(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "reached", reflect.TypeOf((*MockStateHandler)(nil).reached), arg0)
-}
-
 // MockDeployment is a mock of Deployment interface
 type MockDeployment struct {
 	ctrl     *gomock.Controller
@@ -265,4 +213,18 @@ func (m *MockDeployment) isTestingComplete() bool {
 func (mr *MockDeploymentMockRecorder) isTestingComplete() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestingComplete", reflect.TypeOf((*MockDeployment)(nil).isTestingComplete))
+}
+
+// isTestingStarted mocks base method
+func (m *MockDeployment) isTestingStarted() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "isTestingStarted")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// isTestingStarted indicates an expected call of isTestingStarted
+func (mr *MockDeploymentMockRecorder) isTestingStarted() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestingStarted", reflect.TypeOf((*MockDeployment)(nil).isTestingStarted))
 }

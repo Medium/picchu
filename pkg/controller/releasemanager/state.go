@@ -9,26 +9,28 @@ import (
 
 var (
 	handlers = map[string]StateHandler{
-		string(created):  &Created{},
-		string(deployed): &Deployed{},
-		string(released): &Released{},
-		string(retired):  &Retired{},
-		string(deleted):  &Deleted{},
-		string(failed):   &Failed{},
-		string(testing):  &Testing{},
-		string(tested):   &Tested{},
+		string(created):    &Created{},
+		string(deployed):   &Deployed{},
+		string(released):   &Released{},
+		string(retired):    &Retired{},
+		string(deleted):    &Deleted{},
+		string(failed):     &Failed{},
+		string(pretesting): &PreTesting{},
+		string(testing):    &Testing{},
+		string(tested):     &Tested{},
 	}
 )
 
 const (
-	created  State = "created"
-	deployed State = "deployed"
-	released State = "released"
-	retired  State = "retired"
-	deleted  State = "deleted"
-	failed   State = "failed"
-	testing  State = "testing"
-	tested   State = "tested"
+	created    State = "created"
+	deployed   State = "deployed"
+	released   State = "released"
+	retired    State = "retired"
+	deleted    State = "deleted"
+	failed     State = "failed"
+	pretesting State = "pretesting"
+	testing    State = "testing"
+	tested     State = "tested"
 )
 
 type State string
@@ -53,6 +55,7 @@ type Deployment interface {
 	getLog() logr.Logger
 	isDeployed() bool
 	isTestingComplete() bool
+	isTestingStarted() bool
 }
 
 type DeploymentStateManager struct {
@@ -114,7 +117,11 @@ func (s *Deployed) tick(ctx context.Context, deployment Deployment) (State, erro
 		return failed, nil
 	}
 	if deployment.isReleaseEligible() && s.reached(deployment) && deployment.schedulePermitsRelease() {
-		return released, nil
+		if deployment.isTestingComplete() {
+			return released, nil
+		} else {
+			return pretesting, nil
+		}
 	}
 	return deployed, nil
 }
@@ -122,6 +129,25 @@ func (s *Deployed) tick(ctx context.Context, deployment Deployment) (State, erro
 func (s *Deployed) reached(deployment Deployment) bool {
 	scale := deployment.getStatus().Scale
 	return scale.Current >= scale.Desired && deployment.isDeployed()
+}
+
+type PreTesting struct{}
+
+func (s *PreTesting) tick(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failed, nil
+	}
+	if deployment.isTestingStarted() {
+		return testing, nil
+	}
+	return pretesting, nil
+}
+
+func (s *PreTesting) reached(deployment Deployment) bool {
+	return true
 }
 
 type Testing struct{}
