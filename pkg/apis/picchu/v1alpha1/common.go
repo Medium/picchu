@@ -40,6 +40,7 @@ const (
 	AnnotationRevisionCreationTimestamp = "revisionCreationTimestamp"
 	AnnotationIAMRole                   = "iam.amazonaws.com/role"
 	AnnotationFailedAt                  = "picchu.medium.engineering/failed-at-timestamp"
+	AnnotationRepo                      = "github.com/repository"
 	LabelCommit                         = "medium.build/commit"
 )
 
@@ -90,7 +91,7 @@ type RateInfo struct {
 }
 
 type SentryInfo struct {
-	Released bool `json:"released,omitempty"`
+	Release bool `json:"release,omitempty"`
 }
 
 // TODO(lyra): PodTemplate

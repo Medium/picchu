@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atlassian/go-sentry-api"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	promapi "go.medium.engineering/picchu/pkg/prometheus"
+	sentry "go.medium.engineering/picchu/pkg/sentry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -189,13 +189,13 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		revisionFailedGauge.With(promLabels).Set(float64(0))
 	}
 
-	if r.config.SentryAuthToken != "" && r.config.SentryOrg != "" && instance.Spec.Sentry.Released {
-		s, err := r.CreateSentryReleaseForRevision(instance, r.config.SentryOrg, r.config.SentryAuthToken)
+	if r.config.SentryAuthToken != "" && r.config.SentryOrg != "" && instance.Spec.Sentry.Release && !status.Sentry.Release {
+		s, err := r.CreateSentryReleaseForRevision(log, instance, r.config)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 		if s.DateCreated != nil {
-			status.Sentry.Released = true
+			status.Sentry.Release = true
 		}
 	}
 
@@ -294,6 +294,7 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
 	// Sync releasemanagers
 	rstatus := picchuv1alpha1.RevisionStatus{}
+	rstatus.Sentry = revision.Status.Sentry
 	rmCount, retiredCount := 0, 0
 	for _, target := range revision.Spec.Targets {
 		status := picchuv1alpha1.RevisionTargetStatus{Name: target.Name}
@@ -335,14 +336,42 @@ func (r *ReconcileRevision) deleteRevision(log logr.Logger, revision *picchuv1al
 	return nil
 }
 
-func (r *ReconcileRevision) CreateSentryReleaseForRevision(revision *picchuv1alpha1.Revision, org string, token string) (sentry.Release, error) {
-	if version, ok := revision.Labels[picchuv1alpha1.LabelCommit]; !ok {
-		client, _ := sentry.NewClient(token, nil, nil)
-		o := &sentry.Organization{Slug: &org}
-		p := &sentry.Project{Slug: &revision.Spec.App.Name}
-		rel := &sentry.NewRelease{Version: version}
-		return client.CreateRelease(*o, *p, *rel)
+func (r *ReconcileRevision) CreateSentryReleaseForRevision(log logr.Logger, revision *picchuv1alpha1.Revision, config utils.Config) (sentry.Release, error) {
+	tag, foundtag := revision.Labels[picchuv1alpha1.LabelTag]
+	ref, foundref := revision.Labels[picchuv1alpha1.LabelCommit]
+	repo, foundrepo := revision.Annotations[picchuv1alpha1.AnnotationRepo]
+	app, foundapp := revision.Labels[picchuv1alpha1.LabelApp]
+
+	if foundtag && foundref && foundrepo && foundapp {
+		log.Info("Registering release with Sentry", "Name", revision.Name, "Namespace", revision.Namespace, "Version", tag, "Ref", ref)
+		client, _ := sentry.NewClient(config.SentryAuthToken, nil, nil)
+
+		proj := app
+		_, err := client.GetProject(config.SentryOrg, proj)
+		if err != nil {
+			log.Info("Could not get project, trying to create it", "Project", proj)
+			_, err := client.CreateProject(config.SentryOrg, proj)
+			if err != nil {
+				return sentry.Release{}, err
+			}
+		}
+		r := &sentry.Ref{
+			Repository: repo,
+			Commit:     ref,
+		}
+		rel := &sentry.NewRelease{
+			Version: tag,
+			Ref:     ref,
+			Projects: []string{
+				proj,
+			},
+			Refs: []sentry.Ref{
+				*r,
+			},
+		}
+		return client.CreateRelease(config.SentryOrg, *rel)
 	}
+
 	return sentry.Release{}, nil
 }
 

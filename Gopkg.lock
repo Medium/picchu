@@ -42,17 +42,6 @@
   version = "1.0.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:a2a6e1b643b39809590ae32344e2defdef45245143942185c295dad2645325fe"
-  name = "github.com/atlassian/go-sentry-api"
-  packages = [
-    ".",
-    "datatype",
-  ]
-  pruneopts = "NT"
-  revision = "728464ecc9cb871f0114a66929141c3178d6c814"
-
-[[projects]]
   digest = "1:dea5614bbc54987b99337227781e5146a28c6e899edf2fc76207595cfb1ec76a"
   name = "github.com/aws/aws-sdk-go-v2"
   packages = [
@@ -1030,7 +1019,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/andreyvit/diff",
-    "github.com/atlassian/go-sentry-api",
     "github.com/aws/aws-sdk-go-v2/aws",
     "github.com/aws/aws-sdk-go-v2/aws/external",
     "github.com/aws/aws-sdk-go-v2/service/route53",
