@@ -92,6 +92,17 @@ func (i *Incarnation) isDeployed() bool {
 	return i.deployed
 }
 
+// Returns true if testing is disabled or testing has passed
+func (i *Incarnation) isTestingComplete() bool {
+	if !i.hasRevision() {
+		return true
+	}
+	if !i.target().ExternalTestingEnabled || i.target().ExternalTestingPassed {
+		return true
+	}
+	return false
+}
+
 // Remotely sync the incarnation for it's current state
 func (i *Incarnation) sync(ctx context.Context) error {
 	// Revision deleted

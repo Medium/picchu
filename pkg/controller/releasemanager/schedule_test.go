@@ -1,11 +1,11 @@
 package releasemanager
 
 import (
-	"testing"
+	tt "testing"
 	"time"
 )
 
-func TestSchedulePermitsRelease(t *testing.T) {
+func TestSchedulePermitsRelease(t *tt.T) {
 	parse := func(isoDatetime string) time.Time {
 		tm, err := time.Parse(time.RFC3339, isoDatetime)
 		if err != nil {

@@ -97,6 +97,9 @@ type RevisionTarget struct {
 	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
 	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
+
+	ExternalTestingEnabled bool `json:"externalTestingEnabled"`
+	ExternalTestingPassed  bool `json:"externalTestingPassed"`
 }
 
 type RevisionTargetMetric struct {
