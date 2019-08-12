@@ -31,6 +31,7 @@ const (
 	LabelTarget                         = "picchu.medium.engineering/target"
 	LabelOwnerName                      = "picchu.medium.engineering/ownerName"
 	LabelOwnerType                      = "picchu.medium.engineering/ownerType"
+	LabelCommit                         = "picchu.medium.engineering/commit"
 	LabelFleetPrefix                    = "fleet.picchu.medium.engineering/"
 	FinalizerReleaseManager             = "picchu.medium.engineering/releasemanager"
 	FinalizerCluster                    = "picchu.medium.engineering/cluster"
@@ -40,8 +41,7 @@ const (
 	AnnotationRevisionCreationTimestamp = "revisionCreationTimestamp"
 	AnnotationIAMRole                   = "iam.amazonaws.com/role"
 	AnnotationFailedAt                  = "picchu.medium.engineering/failed-at-timestamp"
-	AnnotationRepo                      = "github.com/repository"
-	LabelCommit                         = "medium.build/commit"
+	AnnotationRepo                      = "picchu.medium.engineering/repo"
 )
 
 type PortInfo struct {

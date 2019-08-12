@@ -61,11 +61,21 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 	if err != nil {
 		panic(err)
 	}
+
+	var sentryClient *sentry.Client
+	if c.SentryAuthToken != "" {
+		sentryClient, err = sentry.NewClient(c.SentryAuthToken, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	return &ReconcileRevision{
-		client:  mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
-		config:  c,
-		promAPI: api,
+		client:       mgr.GetClient(),
+		scheme:       mgr.GetScheme(),
+		config:       c,
+		promAPI:      api,
+		sentryClient: sentryClient,
 	}
 }
 
@@ -92,10 +102,11 @@ var _ reconcile.Reconciler = &ReconcileRevision{}
 type ReconcileRevision struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client  client.Client
-	scheme  *runtime.Scheme
-	config  utils.Config
-	promAPI *promapi.API
+	client       client.Client
+	scheme       *runtime.Scheme
+	config       utils.Config
+	promAPI      *promapi.API
+	sentryClient *sentry.Client
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
@@ -338,38 +349,34 @@ func (r *ReconcileRevision) deleteRevision(log logr.Logger, revision *picchuv1al
 
 func (r *ReconcileRevision) CreateSentryReleaseForRevision(log logr.Logger, revision *picchuv1alpha1.Revision, config utils.Config) (sentry.Release, error) {
 	tag, foundtag := revision.Labels[picchuv1alpha1.LabelTag]
-	ref, foundref := revision.Labels[picchuv1alpha1.LabelCommit]
+	commit, foundref := revision.Labels[picchuv1alpha1.LabelCommit]
 	repo, foundrepo := revision.Annotations[picchuv1alpha1.AnnotationRepo]
 	app, foundapp := revision.Labels[picchuv1alpha1.LabelApp]
 
-	if foundtag && foundref && foundrepo && foundapp {
-		log.Info("Registering release with Sentry", "Name", revision.Name, "Namespace", revision.Namespace, "Version", tag, "Ref", ref)
-		client, _ := sentry.NewClient(config.SentryAuthToken, nil, nil)
+	if r.sentryClient != nil && foundtag && foundref && foundrepo && foundapp {
+		log.Info("Registering release with Sentry", "Name", revision.Name, "Namespace", revision.Namespace, "Version", tag, "Commit", commit)
 
-		proj := app
-		_, err := client.GetProject(config.SentryOrg, proj)
-		if err != nil {
-			log.Info("Could not get project, trying to create it", "Project", proj)
-			_, err := client.CreateProject(config.SentryOrg, proj)
-			if err != nil {
+		if _, err := r.sentryClient.GetProject(config.SentryOrg, app); err != nil {
+			log.Info("Could not get project, trying to create it", "Project", app)
+			if _, err := r.sentryClient.CreateProject(config.SentryOrg, app); err != nil {
 				return sentry.Release{}, err
 			}
 		}
-		r := &sentry.Ref{
+		ref := &sentry.Ref{
 			Repository: repo,
-			Commit:     ref,
+			Commit:     commit,
 		}
 		rel := &sentry.NewRelease{
 			Version: tag,
-			Ref:     ref,
+			Ref:     commit,
 			Projects: []string{
-				proj,
+				app,
 			},
 			Refs: []sentry.Ref{
-				*r,
+				*ref,
 			},
 		}
-		return client.CreateRelease(config.SentryOrg, *rel)
+		return r.sentryClient.CreateRelease(config.SentryOrg, *rel)
 	}
 
 	return sentry.Release{}, nil
