@@ -9,22 +9,28 @@ import (
 
 var (
 	handlers = map[string]StateHandler{
-		string(created):  &Created{},
-		string(deployed): &Deployed{},
-		string(released): &Released{},
-		string(retired):  &Retired{},
-		string(deleted):  &Deleted{},
-		string(failed):   &Failed{},
+		string(created):     &Created{},
+		string(deployed):    &Deployed{},
+		string(released):    &Released{},
+		string(retired):     &Retired{},
+		string(deleted):     &Deleted{},
+		string(failed):      &Failed{},
+		string(pendingtest): &PendingTest{},
+		string(testing):     &Testing{},
+		string(tested):      &Tested{},
 	}
 )
 
 const (
-	created  State = "created"
-	deployed State = "deployed"
-	released State = "released"
-	retired  State = "retired"
-	deleted  State = "deleted"
-	failed   State = "failed"
+	created     State = "created"
+	deployed    State = "deployed"
+	released    State = "released"
+	retired     State = "retired"
+	deleted     State = "deleted"
+	failed      State = "failed"
+	pendingtest State = "pendingtest"
+	testing     State = "testing"
+	tested      State = "tested"
 )
 
 type State string
@@ -48,6 +54,8 @@ type Deployment interface {
 	setState(target string, reached bool)
 	getLog() logr.Logger
 	isDeployed() bool
+	isTestPending() bool
+	isTestStarted() bool
 }
 
 type DeploymentStateManager struct {
@@ -108,8 +116,13 @@ func (s *Deployed) tick(ctx context.Context, deployment Deployment) (State, erro
 	if deployment.isAlarmTriggered() {
 		return failed, nil
 	}
-	if deployment.isReleaseEligible() && s.reached(deployment) && deployment.schedulePermitsRelease() {
-		return released, nil
+	if s.reached(deployment) {
+		if deployment.isTestPending() {
+			return pendingtest, nil
+		}
+		if deployment.isReleaseEligible() && deployment.schedulePermitsRelease() {
+			return released, nil
+		}
 	}
 	return deployed, nil
 }
@@ -117,6 +130,63 @@ func (s *Deployed) tick(ctx context.Context, deployment Deployment) (State, erro
 func (s *Deployed) reached(deployment Deployment) bool {
 	scale := deployment.getStatus().Scale
 	return scale.Current >= scale.Desired && deployment.isDeployed()
+}
+
+type PendingTest struct{}
+
+func (s *PendingTest) tick(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failed, nil
+	}
+	if deployment.isTestStarted() {
+		return testing, nil
+	}
+	return pendingtest, nil
+}
+
+func (s *PendingTest) reached(deployment Deployment) bool {
+	return true
+}
+
+type Testing struct{}
+
+func (s *Testing) tick(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failed, nil
+	}
+	if !deployment.isTestPending() {
+		return tested, nil
+	}
+	return testing, nil
+}
+
+func (s *Testing) reached(deployment Deployment) bool {
+	return true
+}
+
+type Tested struct{}
+
+func (s *Tested) tick(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleted, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failed, nil
+	}
+	if deployment.isReleaseEligible() && deployment.schedulePermitsRelease() {
+		return released, nil
+	}
+	return tested, nil
+}
+
+func (s *Tested) reached(deployment Deployment) bool {
+	return true
 }
 
 type Released struct{}

@@ -18,3 +18,14 @@ func TestFailRevision(t *testing.T) {
 	failedAtNow := r.Annotations[AnnotationFailedAt]
 	assert.Equal(t, failedAt, failedAtNow, "FailedAt shouldn't update on subsequent calls")
 }
+
+func TestExternalTestPending(t *testing.T) {
+	target := &RevisionTarget{}
+	assert.False(t, target.IsExternalTestPending())
+
+	target.ExternalTest.Enabled = true
+	assert.True(t, target.IsExternalTestPending())
+
+	target.ExternalTest.Completed = true
+	assert.False(t, target.IsExternalTestPending())
+}
