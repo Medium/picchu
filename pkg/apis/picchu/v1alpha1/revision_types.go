@@ -98,13 +98,13 @@ type RevisionTarget struct {
 	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 
-	ExternalTesting ExternalTesting `json:"externalTesting"`
+	ExternalTest ExternalTest `json:"externalTest"`
 }
 
-type ExternalTesting struct {
-	Enabled bool `json:"enabled"`
-	Started bool `json:"started"`
-	Passed  bool `json:"passed"`
+type ExternalTest struct {
+	Enabled   bool `json:"enabled"`
+	Started   bool `json:"started"`
+	Completed bool `json:"completed"`
 }
 
 type RevisionTargetMetric struct {
@@ -171,6 +171,10 @@ func (r *Revision) GitTimestamp() time.Time {
 		return time.Time{}
 	}
 	return t
+}
+
+func (r *RevisionTarget) IsExternalTestPending() bool {
+	return r.ExternalTest.Enabled && !r.ExternalTest.Completed
 }
 
 func init() {

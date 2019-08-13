@@ -93,25 +93,22 @@ func (i *Incarnation) isDeployed() bool {
 }
 
 // Returns true if testing is disabled or testing has passed
-func (i *Incarnation) isTestingComplete() bool {
-	if !i.hasRevision() {
-		return true
-	}
-	if i.revision.Spec.Failed {
-		return true
-	}
-	if !i.target().ExternalTesting.Enabled || i.target().ExternalTesting.Passed {
-		return true
-	}
-	return false
-}
-
-// Returns true if testing is started
-func (i *Incarnation) isTestingStarted() bool {
+func (i *Incarnation) isTestPending() bool {
 	if !i.hasRevision() {
 		return false
 	}
-	return i.target().ExternalTesting.Started
+	if i.revision.Spec.Failed {
+		return false
+	}
+	return i.target().IsExternalTestPending()
+}
+
+// Returns true if testing is started
+func (i *Incarnation) isTestStarted() bool {
+	if !i.hasRevision() {
+		return false
+	}
+	return i.target().ExternalTest.Started
 }
 
 // Remotely sync the incarnation for it's current state

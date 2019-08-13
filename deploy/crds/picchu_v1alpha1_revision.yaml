@@ -259,6 +259,15 @@ spec:
                     peak:
                       format: int32
                       type: integer
+                externalTest:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    started:
+                      type: boolean
+                    completed:
+                      type: boolean
   version: v1alpha1
 status:
   acceptedNames:

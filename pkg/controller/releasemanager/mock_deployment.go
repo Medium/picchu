@@ -201,30 +201,30 @@ func (mr *MockDeploymentMockRecorder) isDeployed() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isDeployed", reflect.TypeOf((*MockDeployment)(nil).isDeployed))
 }
 
-// isTestingComplete mocks base method
-func (m *MockDeployment) isTestingComplete() bool {
+// isTestPending mocks base method
+func (m *MockDeployment) isTestPending() bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isTestingComplete")
+	ret := m.ctrl.Call(m, "isTestPending")
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// isTestingComplete indicates an expected call of isTestingComplete
-func (mr *MockDeploymentMockRecorder) isTestingComplete() *gomock.Call {
+// isTestPending indicates an expected call of isTestPending
+func (mr *MockDeploymentMockRecorder) isTestPending() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestingComplete", reflect.TypeOf((*MockDeployment)(nil).isTestingComplete))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestPending", reflect.TypeOf((*MockDeployment)(nil).isTestPending))
 }
 
-// isTestingStarted mocks base method
-func (m *MockDeployment) isTestingStarted() bool {
+// isTestStarted mocks base method
+func (m *MockDeployment) isTestStarted() bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isTestingStarted")
+	ret := m.ctrl.Call(m, "isTestStarted")
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// isTestingStarted indicates an expected call of isTestingStarted
-func (mr *MockDeploymentMockRecorder) isTestingStarted() *gomock.Call {
+// isTestStarted indicates an expected call of isTestStarted
+func (mr *MockDeploymentMockRecorder) isTestStarted() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestingStarted", reflect.TypeOf((*MockDeployment)(nil).isTestingStarted))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestStarted", reflect.TypeOf((*MockDeployment)(nil).isTestStarted))
 }
