@@ -1,5 +1,7 @@
 package releasemanager
 
+// TODO(bob): errors on the deployment interface aren't tested here, and should be
+
 import (
 	"context"
 	tt "testing"
@@ -8,249 +10,572 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPreTestingState(t *tt.T) {
+func TestCreated(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := getMockDeployment(ctrl, false, false, false, false, false, true)
-	state, err := handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["pendingtest"].reached(m))
+	m := func(hasRevision bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision: hasRevision,
+		})
+	}
 
-	m = getMockDeployment(ctrl, false, false, false, false, true, true)
-	state, err = handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["pendingtest"].reached(m))
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "created", expected, mock)
+	}
 
-	m = getMockDeployment(ctrl, false, true, false, false, false, true)
-	state, err = handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["pendingtest"].reached(m))
-
-	m = getMockDeployment(ctrl, false, true, false, false, true, true)
-	state, err = handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["pendingtest"].reached(m))
-
-	m = getMockDeployment(ctrl, true, false, false, false, false, true)
-	state, err = handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, pendingtest)
-	assert.True(t, handlers["pendingtest"].reached(m))
-
-	m = getMockDeployment(ctrl, true, false, false, false, true, true)
-	state, err = handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, testing)
-	assert.True(t, handlers["pendingtest"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, false, false, false, true)
-	state, err = handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["pendingtest"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, false, false, true, true)
-	state, err = handlers["pendingtest"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["pendingtest"].reached(m))
+	testcase(deleting, m(false))
+	testcase(deploying, m(true))
 }
 
-func TestTestingState(t *tt.T) {
+func TestDeploying(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := getMockDeployment(ctrl, false, false, false, false, true, true)
-	state, err := handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["testing"].reached(m))
+	m := func(hasRevision, isAlarmTriggered, isDeployed bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:      hasRevision,
+			isAlarmTriggered: isAlarmTriggered,
+			isDeployed:       isDeployed,
+		})
+	}
 
-	m = getMockDeployment(ctrl, false, false, false, false, true, false)
-	state, err = handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["testing"].reached(m))
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "deploying", expected, mock)
+	}
 
-	m = getMockDeployment(ctrl, false, true, false, false, true, true)
-	state, err = handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["testing"].reached(m))
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
 
-	m = getMockDeployment(ctrl, false, true, false, false, true, false)
-	state, err = handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["testing"].reached(m))
+	testcase(deploying, expectSync(m(true, false, false)))
 
-	m = getMockDeployment(ctrl, true, false, false, false, true, true)
-	state, err = handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, testing)
-	assert.True(t, handlers["testing"].reached(m))
-
-	m = getMockDeployment(ctrl, true, false, false, false, true, false)
-	state, err = handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, tested)
-	assert.True(t, handlers["testing"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, false, false, true, true)
-	state, err = handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["testing"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, false, false, true, false)
-	state, err = handlers["testing"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["testing"].reached(m))
+	testcase(deployed, expectSync(m(true, false, true)))
 }
 
-func TestTestedStates(t *tt.T) {
+func TestDeployed(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := getMockDeployment(ctrl, false, false, false, false, true, false)
-	state, err := handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
+	m := func(hasRevision, isAlarmTriggered, isDeployed, isTestPending, isReleaseEligible bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			isAlarmTriggered:  isAlarmTriggered,
+			isDeployed:        isDeployed,
+			isTestPending:     isTestPending,
+			isReleaseEligible: isReleaseEligible,
+		})
+	}
 
-	m = getMockDeployment(ctrl, false, false, false, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "deployed", expected, mock)
+	}
 
-	m = getMockDeployment(ctrl, false, false, true, false, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
+	testcase(deleting, m(false, false, false, false, false))
+	testcase(deleting, m(false, false, false, false, true))
+	testcase(deleting, m(false, false, false, true, false))
+	testcase(deleting, m(false, false, false, true, true))
+	testcase(deleting, m(false, false, true, false, false))
+	testcase(deleting, m(false, false, true, false, true))
+	testcase(deleting, m(false, false, true, true, false))
+	testcase(deleting, m(false, false, true, true, true))
+	testcase(deleting, m(false, false, true, false, false))
+	testcase(deleting, m(false, false, true, false, true))
+	testcase(deleting, m(false, false, true, true, false))
+	testcase(deleting, m(false, false, true, true, true))
+	testcase(deleting, m(false, true, false, false, false))
+	testcase(deleting, m(false, true, false, false, true))
+	testcase(deleting, m(false, true, false, true, false))
+	testcase(deleting, m(false, true, false, true, true))
+	testcase(deleting, m(false, true, true, false, false))
+	testcase(deleting, m(false, true, true, false, true))
+	testcase(deleting, m(false, true, true, true, false))
+	testcase(deleting, m(false, true, true, true, true))
 
-	m = getMockDeployment(ctrl, false, false, true, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
+	testcase(failing, m(true, true, false, false, false))
+	testcase(failing, m(true, true, false, false, true))
+	testcase(failing, m(true, true, false, true, false))
+	testcase(failing, m(true, true, false, true, true))
+	testcase(failing, m(true, true, true, false, false))
+	testcase(failing, m(true, true, true, false, true))
+	testcase(failing, m(true, true, true, true, false))
+	testcase(failing, m(true, true, true, true, true))
 
-	m = getMockDeployment(ctrl, false, true, false, false, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
+	testcase(deploying, expectSync(m(true, false, false, false, false)))
+	testcase(deploying, expectSync(m(true, false, false, false, true)))
+	testcase(deploying, expectSync(m(true, false, false, true, false)))
+	testcase(deploying, expectSync(m(true, false, false, true, true)))
 
-	m = getMockDeployment(ctrl, false, true, false, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
+	testcase(deployed, expectSync(m(true, false, true, false, false)))
 
-	m = getMockDeployment(ctrl, false, true, true, false, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
+	testcase(pendingtest, expectSync(m(true, false, true, true, true)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, false)))
 
-	m = getMockDeployment(ctrl, false, true, true, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, deleted)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, false, false, false, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, tested)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, false, false, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, tested)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, false, true, false, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, tested)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, false, true, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, released)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, false, false, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, false, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, true, false, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["tested"].reached(m))
-
-	m = getMockDeployment(ctrl, true, true, true, true, true, false)
-	state, err = handlers["tested"].tick(ctx, m)
-	assert.NoError(t, err)
-	assert.Equal(t, state, failed)
-	assert.True(t, handlers["tested"].reached(m))
+	testcase(pendingrelease, expectSync(m(true, false, true, false, true)))
 }
 
-func getMockDeployment(ctrl *gomock.Controller, hasRevision, isAlarmTriggered, isReleaseEligible, schedulePermitsRelease, isTestStarted, isTestPending bool) *MockDeployment {
+func TestPendingTest(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isTestStarted bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:      hasRevision,
+			isAlarmTriggered: isAlarmTriggered,
+			isTestStarted:    isTestStarted,
+			isTestPending:    true,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "pendingtest", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(pendingtest, m(true, false, false))
+	testcase(testing, m(true, false, true))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
+func TestTesting(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isTestPending bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:      hasRevision,
+			isAlarmTriggered: isAlarmTriggered,
+			isTestStarted:    true,
+			isTestPending:    isTestPending,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "testing", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(tested, m(true, false, false))
+	testcase(testing, m(true, false, true))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
+func TestTested(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			isAlarmTriggered:  isAlarmTriggered,
+			isReleaseEligible: isReleaseEligible,
+			isTestStarted:     true,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "tested", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(tested, m(true, false, false))
+	testcase(pendingrelease, m(true, false, true))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
+func TestPendingRelease(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible, schedulePermitsRelease bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:            hasRevision,
+			isAlarmTriggered:       isAlarmTriggered,
+			isReleaseEligible:      isReleaseEligible,
+			schedulePermitsRelease: schedulePermitsRelease,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "pendingrelease", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false, false))
+	testcase(deleting, m(false, false, false, true))
+	testcase(deleting, m(false, false, true, false))
+	testcase(deleting, m(false, false, true, true))
+	testcase(deleting, m(false, true, false, false))
+	testcase(deleting, m(false, true, false, true))
+	testcase(deleting, m(false, true, true, false))
+	testcase(deleting, m(false, true, true, true))
+
+	testcase(failing, m(true, true, false, false))
+	testcase(failing, m(true, true, false, true))
+	testcase(failing, m(true, true, true, false))
+	testcase(failing, m(true, true, true, true))
+
+	testcase(retiring, m(true, false, false, true))
+	testcase(retiring, m(true, false, false, false))
+
+	testcase(releasing, m(true, false, true, true))
+
+	testcase(pendingrelease, m(true, false, true, false))
+}
+
+func TestReleasing(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, currentPercent uint32) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			isAlarmTriggered:  isAlarmTriggered,
+			isReleaseEligible: isReleaseEligible,
+			currentPercent:    currentPercent,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "releasing", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false, 0))
+	testcase(deleting, m(false, false, true, 0))
+	testcase(deleting, m(false, true, false, 0))
+	testcase(deleting, m(false, true, true, 0))
+	testcase(deleting, m(false, false, false, 100))
+	testcase(deleting, m(false, false, true, 100))
+	testcase(deleting, m(false, true, false, 100))
+	testcase(deleting, m(false, true, true, 100))
+
+	testcase(failing, m(true, true, false, 0))
+	testcase(failing, m(true, true, true, 0))
+	testcase(failing, m(true, true, false, 100))
+	testcase(failing, m(true, true, true, 100))
+
+	testcase(retiring, m(true, false, false, 0))
+	testcase(retiring, m(true, false, false, 100))
+
+	testcase(releasing, expectSync(m(true, false, true, 0)))
+	testcase(releasing, expectSync(m(true, false, true, 99)))
+	testcase(released, expectSync(m(true, false, true, 100)))
+}
+
+func TestReleased(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, currentPercent uint32) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			isAlarmTriggered:  isAlarmTriggered,
+			isReleaseEligible: isReleaseEligible,
+			currentPercent:    currentPercent,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "released", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false, 0))
+	testcase(deleting, m(false, false, true, 0))
+	testcase(deleting, m(false, true, false, 0))
+	testcase(deleting, m(false, true, true, 0))
+	testcase(deleting, m(false, false, false, 100))
+	testcase(deleting, m(false, false, true, 100))
+	testcase(deleting, m(false, true, false, 100))
+	testcase(deleting, m(false, true, true, 100))
+
+	testcase(failing, m(true, true, false, 0))
+	testcase(failing, m(true, true, true, 0))
+	testcase(failing, m(true, true, false, 100))
+	testcase(failing, m(true, true, true, 100))
+
+	testcase(retiring, m(true, false, false, 0))
+	testcase(retiring, m(true, false, false, 100))
+
+	testcase(releasing, expectSync(m(true, false, true, 0)))
+	testcase(releasing, expectSync(m(true, false, true, 99)))
+	testcase(released, expectSync(m(true, false, true, 100)))
+}
+
+func TestRetiring(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, currentPercent uint32) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			isAlarmTriggered:  isAlarmTriggered,
+			isReleaseEligible: isReleaseEligible,
+			currentPercent:    currentPercent,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "retiring", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false, 0))
+	testcase(deleting, m(false, false, true, 0))
+	testcase(deleting, m(false, true, false, 0))
+	testcase(deleting, m(false, true, true, 0))
+	testcase(deleting, m(false, false, false, 100))
+	testcase(deleting, m(false, false, true, 100))
+	testcase(deleting, m(false, true, false, 100))
+	testcase(deleting, m(false, true, true, 100))
+
+	testcase(failing, m(true, true, false, 0))
+	testcase(failing, m(true, true, true, 0))
+	testcase(failing, m(true, true, false, 100))
+	testcase(failing, m(true, true, true, 100))
+
+	testcase(retired, expectRetire(m(true, false, false, 0)))
+	testcase(retiring, m(true, false, false, 1))
+	testcase(retiring, m(true, false, false, 100))
+
+	testcase(deploying, m(true, false, true, 0))
+	testcase(deploying, m(true, false, true, 100))
+}
+
+func TestRetired(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			isAlarmTriggered:  isAlarmTriggered,
+			isReleaseEligible: isReleaseEligible,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "retired", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+
+	testcase(retired, m(true, false, false))
+	testcase(deploying, m(true, false, true))
+}
+
+func TestDeleting(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision bool, currentPercent uint32) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:    hasRevision,
+			currentPercent: currentPercent,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "deleting", expected, mock)
+	}
+
+	testcase(deleting, m(false, 100))
+	testcase(deleting, m(false, 1))
+	testcase(deleted, expectDelete(m(false, 0)))
+	testcase(deploying, m(true, 0))
+	testcase(deploying, m(true, 100))
+}
+
+func TestDeleted(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision: hasRevision,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "deleted", expected, mock)
+	}
+
+	testcase(deleted, m(false))
+	testcase(deploying, m(true))
+}
+
+func TestFailing(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered bool, currentPercent uint32) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:      hasRevision,
+			isAlarmTriggered: isAlarmTriggered,
+			currentPercent:   currentPercent,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "failing", expected, mock)
+	}
+
+	testcase(deleting, m(false, true, 0))
+	testcase(deleting, m(false, true, 100))
+	testcase(deleting, m(false, false, 0))
+	testcase(deleting, m(false, false, 100))
+
+	testcase(deploying, m(true, false, 0))
+	testcase(deploying, m(true, false, 100))
+
+	testcase(failed, expectRetire(m(true, true, 0)))
+	testcase(failing, m(true, true, 1))
+	testcase(failing, m(true, true, 100))
+}
+
+func TestFailed(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:      hasRevision,
+			isAlarmTriggered: isAlarmTriggered,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "failed", expected, mock)
+	}
+
+	testcase(deleting, m(false, true))
+	testcase(deleting, m(false, false))
+
+	testcase(deploying, m(true, false))
+
+	testcase(failed, m(true, true))
+}
+
+func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m *MockDeployment) {
+	state, err := handlers[handler](ctx, m)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, state)
+}
+
+type responses struct {
+	hasRevision            bool
+	isAlarmTriggered       bool
+	isReleaseEligible      bool
+	isTestStarted          bool
+	isTestPending          bool
+	isDeployed             bool
+	schedulePermitsRelease bool
+	currentPercent         uint32
+}
+
+func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment {
 	m := NewMockDeployment(ctrl)
 
 	m.
 		EXPECT().
 		hasRevision().
-		Return(hasRevision).
+		Return(r.hasRevision).
 		AnyTimes()
 	m.
 		EXPECT().
 		isReleaseEligible().
-		Return(isReleaseEligible).
-		AnyTimes()
-	m.
-		EXPECT().
-		schedulePermitsRelease().
-		Return(schedulePermitsRelease).
+		Return(r.isReleaseEligible).
 		AnyTimes()
 	m.
 		EXPECT().
 		isAlarmTriggered().
-		Return(isAlarmTriggered).
+		Return(r.isAlarmTriggered).
 		AnyTimes()
 	m.
 		EXPECT().
 		isTestPending().
-		Return(isTestPending).
+		Return(r.isTestPending).
 		AnyTimes()
 	m.
 		EXPECT().
 		isTestStarted().
-		Return(isTestStarted).
+		Return(r.isTestStarted).
+		AnyTimes()
+	m.
+		EXPECT().
+		isDeployed().
+		Return(r.isDeployed).
+		AnyTimes()
+	m.
+		EXPECT().
+		schedulePermitsRelease().
+		Return(r.schedulePermitsRelease).
+		AnyTimes()
+	m.
+		EXPECT().
+		currentPercent().
+		Return(r.currentPercent).
 		AnyTimes()
 
 	return m
+}
+
+func expectSync(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		sync(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
+}
+
+func expectRetire(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		retire(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
+}
+
+func expectDelete(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		del(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
 }

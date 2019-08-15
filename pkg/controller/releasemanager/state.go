@@ -9,43 +9,49 @@ import (
 
 var (
 	handlers = map[string]StateHandler{
-		string(created):     &Created{},
-		string(deployed):    &Deployed{},
-		string(released):    &Released{},
-		string(retired):     &Retired{},
-		string(deleted):     &Deleted{},
-		string(failed):      &Failed{},
-		string(pendingtest): &PendingTest{},
-		string(testing):     &Testing{},
-		string(tested):      &Tested{},
+		string(created):        Created,
+		string(deploying):      Deploying,
+		string(deployed):       Deployed,
+		string(pendingrelease): PendingRelease,
+		string(releasing):      Releasing,
+		string(released):       Released,
+		string(retiring):       Retiring,
+		string(retired):        Retired,
+		string(deleting):       Deleting,
+		string(deleted):        Deleted,
+		string(failing):        Failing,
+		string(failed):         Failed,
+		string(pendingtest):    PendingTest,
+		string(testing):        Testing,
+		string(tested):         Tested,
 	}
 )
 
 const (
-	created     State = "created"
-	deployed    State = "deployed"
-	released    State = "released"
-	retired     State = "retired"
-	deleted     State = "deleted"
-	failed      State = "failed"
-	pendingtest State = "pendingtest"
-	testing     State = "testing"
-	tested      State = "tested"
+	created        State = "created"
+	deploying      State = "deploying"
+	deployed       State = "deployed"
+	pendingrelease State = "pendingrelease"
+	releasing      State = "releasing"
+	released       State = "released"
+	retiring       State = "retiring"
+	retired        State = "retired"
+	deleting       State = "deleting"
+	deleted        State = "deleted"
+	failing        State = "failing"
+	failed         State = "failed"
+	pendingtest    State = "pendingtest"
+	testing        State = "testing"
+	tested         State = "tested"
 )
 
 type State string
-type InvalidState error
-
-type StateHandler interface {
-	tick(context.Context, Deployment) (State, error)
-	reached(Deployment) bool
-}
+type StateHandler func(context.Context, Deployment) (State, error)
 
 type Deployment interface {
 	sync(context.Context) error
 	retire(context.Context) error
 	del(context.Context) error
-	scale(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	isAlarmTriggered() bool
@@ -56,6 +62,7 @@ type Deployment interface {
 	isDeployed() bool
 	isTestPending() bool
 	isTestStarted() bool
+	currentPercent() uint32
 }
 
 type DeploymentStateManager struct {
@@ -67,79 +74,68 @@ func NewDeploymentStateManager(deployment Deployment) *DeploymentStateManager {
 }
 
 func (s *DeploymentStateManager) tick(ctx context.Context) error {
-	target := s.deployment.getStatus().State.Target
 	current := s.deployment.getStatus().State.Current
-	s.deployment.getLog().Info("Advancing state", "tag", s.deployment.getStatus().Tag, "current", current, "target", target)
-	state, err := handlers[target].tick(ctx, s.deployment)
+	s.deployment.getLog().Info("Advancing state", "tag", s.deployment.getStatus().Tag, "current", current)
+	state, err := handlers[current](ctx, s.deployment)
 	if err != nil {
 		return err
 	}
-	reached := handlers[target].reached(s.deployment)
-	s.deployment.setState(target, reached)
-	target = string(state)
-	reached = handlers[target].reached(s.deployment)
-	s.deployment.setState(target, reached)
-	target = s.deployment.getStatus().State.Target
-	current = s.deployment.getStatus().State.Current
-	s.deployment.getLog().Info("Advanced state", "tag", s.deployment.getStatus().Tag, "current", current, "target", target)
+	s.deployment.setState(string(state), true)
+	s.deployment.getLog().Info("Advanced state", "tag", s.deployment.getStatus().Tag, "current", string(state))
 	return nil
 }
 
-func (s *DeploymentStateManager) reached() bool {
-	target := s.deployment.getStatus().State.Target
-	return handlers[target].reached(s.deployment)
-}
-
-type Created struct{}
-
-func (s *Created) tick(ctx context.Context, deployment Deployment) (State, error) {
+func Created(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
 	}
-	return deployed, nil
+	return deploying, nil
 }
 
-// probably never called since sync'ing triggers transition to deployed
-func (s *Created) reached(deployment Deployment) bool {
-	return deployment.hasRevision()
-}
-
-type Deployed struct{}
-
-func (s *Deployed) tick(ctx context.Context, deployment Deployment) (State, error) {
+func Deploying(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failing, nil
+	}
+	if err := deployment.sync(ctx); err != nil {
+		return deploying, err
+	}
+	if deployment.isDeployed() {
+		return deployed, nil
+	}
+	return deploying, nil
+}
+
+func Deployed(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failing, nil
 	}
 	if err := deployment.sync(ctx); err != nil {
 		return deployed, err
 	}
-	if deployment.isAlarmTriggered() {
-		return failed, nil
+	if !deployment.isDeployed() {
+		return deploying, nil
 	}
-	if s.reached(deployment) {
-		if deployment.isTestPending() {
-			return pendingtest, nil
-		}
-		if deployment.isReleaseEligible() && deployment.schedulePermitsRelease() {
-			return released, nil
-		}
+	if deployment.isTestPending() {
+		return pendingtest, nil
+	}
+	if deployment.isReleaseEligible() {
+		return pendingrelease, nil
 	}
 	return deployed, nil
 }
 
-func (s *Deployed) reached(deployment Deployment) bool {
-	scale := deployment.getStatus().Scale
-	return scale.Current >= scale.Desired && deployment.isDeployed()
-}
-
-type PendingTest struct{}
-
-func (s *PendingTest) tick(ctx context.Context, deployment Deployment) (State, error) {
+func PendingTest(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
 	}
 	if deployment.isAlarmTriggered() {
-		return failed, nil
+		return failing, nil
 	}
 	if deployment.isTestStarted() {
 		return testing, nil
@@ -147,18 +143,12 @@ func (s *PendingTest) tick(ctx context.Context, deployment Deployment) (State, e
 	return pendingtest, nil
 }
 
-func (s *PendingTest) reached(deployment Deployment) bool {
-	return true
-}
-
-type Testing struct{}
-
-func (s *Testing) tick(ctx context.Context, deployment Deployment) (State, error) {
+func Testing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
 	}
 	if deployment.isAlarmTriggered() {
-		return failed, nil
+		return failing, nil
 	}
 	if !deployment.isTestPending() {
 		return tested, nil
@@ -166,102 +156,123 @@ func (s *Testing) tick(ctx context.Context, deployment Deployment) (State, error
 	return testing, nil
 }
 
-func (s *Testing) reached(deployment Deployment) bool {
-	return true
-}
-
-type Tested struct{}
-
-func (s *Tested) tick(ctx context.Context, deployment Deployment) (State, error) {
+func Tested(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
 	}
 	if deployment.isAlarmTriggered() {
-		return failed, nil
+		return failing, nil
 	}
-	if deployment.isReleaseEligible() && deployment.schedulePermitsRelease() {
-		return released, nil
+	if deployment.isReleaseEligible() {
+		return pendingrelease, nil
 	}
 	return tested, nil
 }
 
-func (s *Tested) reached(deployment Deployment) bool {
-	return true
-}
-
-type Released struct{}
-
-func (s *Released) tick(ctx context.Context, deployment Deployment) (State, error) {
+func PendingRelease(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
 	}
 	if deployment.isAlarmTriggered() {
-		return failed, nil
+		return failing, nil
 	}
 	if !deployment.isReleaseEligible() {
-		return retired, nil
+		return retiring, nil
 	}
-	if !deployment.isDeployed() {
-		return deployed, nil
+	if deployment.schedulePermitsRelease() {
+		return releasing, nil
 	}
-	return released, deployment.sync(ctx)
+	return pendingrelease, nil
 }
 
-func (s *Released) reached(deployment Deployment) bool {
-	return deployment.getStatus().CurrentPercent > 0
-}
-
-type Retired struct{}
-
-func (s *Retired) tick(ctx context.Context, deployment Deployment) (State, error) {
+func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failing, nil
+	}
+	if !deployment.isReleaseEligible() {
+		return retiring, nil
+	}
+	if err := deployment.sync(ctx); err != nil {
+		return releasing, err
+	}
+	if deployment.currentPercent() >= 100 {
+		return released, nil
+	}
+	return releasing, nil
+}
+
+func Released(ctx context.Context, deployment Deployment) (State, error) {
+	return Releasing(ctx, deployment)
+}
+
+func Retiring(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failing, nil
 	}
 	if deployment.isReleaseEligible() {
-		return deployed, nil
+		return deploying, nil
 	}
-	if deployment.getStatus().CurrentPercent <= 0 {
+	if deployment.currentPercent() <= 0 {
 		return retired, deployment.retire(ctx)
+	}
+	return retiring, nil
+}
+
+func Retired(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failing, nil
+	}
+	if deployment.isReleaseEligible() {
+		return deploying, nil
 	}
 	return retired, nil
 }
 
-func (s *Retired) reached(deployment Deployment) bool {
-	return deployment.getStatus().Scale.Current+deployment.getStatus().Scale.Desired == 0
+func Deleting(ctx context.Context, deployment Deployment) (State, error) {
+	if deployment.hasRevision() {
+		return deploying, nil
+	}
+	if deployment.currentPercent() <= 0 {
+		return deleted, deployment.del(ctx)
+	}
+	return deleting, nil
 }
 
-type Deleted struct{}
-
-func (s *Deleted) tick(ctx context.Context, deployment Deployment) (State, error) {
+func Deleted(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.hasRevision() {
-		return deployed, nil
-	}
-	if deployment.getStatus() == nil || deployment.getStatus().CurrentPercent <= 0 {
-		return deleted, deployment.del(ctx)
+		return deploying, nil
 	}
 	return deleted, nil
 }
 
-func (s *Deleted) reached(deployment Deployment) bool {
-	status := deployment.getStatus()
-	return status == nil || status.Deleted
-}
-
-type Failed struct{}
-
-func (s *Failed) tick(ctx context.Context, deployment Deployment) (State, error) {
+func Failing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
-		return deleted, nil
+		return deleting, nil
 	}
 	if !deployment.isAlarmTriggered() {
-		return deployed, nil
+		return deploying, nil
 	}
-	if deployment.getStatus().CurrentPercent <= 0 {
+	if deployment.currentPercent() <= 0 {
 		return failed, deployment.retire(ctx)
 	}
-	return failed, nil
+	return failing, nil
 }
 
-func (s *Failed) reached(deployment Deployment) bool {
-	return deployment.getStatus().Scale.Current == 0
+func Failed(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if !deployment.isAlarmTriggered() {
+		return deploying, nil
+	}
+	return failed, nil
 }
