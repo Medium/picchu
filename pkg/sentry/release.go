@@ -31,6 +31,15 @@ type NewRelease struct {
 	Refs     []Ref    `json:"refs,omitempty"`
 }
 
+type NewDeploy struct {
+	Environment  string     `json:"environment"`
+	Name         string     `json:"name,omitempty"`
+	URL          string     `json:"url,omitempty"`
+	DateStarted  *time.Time `json:"dateStarted,omitempty"`
+	DateFinished *time.Time `json:"dateFinished,omitempty"`
+	Version      string
+}
+
 func (c *Client) GetProject(oslug string, pslug string) (Project, error) {
 	var proj Project
 	err := c.do("GET", fmt.Sprintf("projects/%s/%s", oslug, pslug), &proj, nil)
@@ -51,4 +60,9 @@ func (c *Client) CreateRelease(oslug string, r NewRelease) (Release, error) {
 	var rel Release
 	err := c.do("POST", fmt.Sprintf("organizations/%s/releases", oslug), &rel, &r)
 	return rel, err
+}
+
+func (c *Client) CreateDeploy(oslug string, r NewDeploy) error {
+	err := c.do("POST", fmt.Sprintf("organizations/%s/releases/%s/deploys", oslug, r.Version), nil, &r)
+	return err
 }
