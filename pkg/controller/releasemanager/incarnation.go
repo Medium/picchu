@@ -89,7 +89,11 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 // = Start Deployment interface
 // Returns true if all target clusters are in deployed state
 func (i *Incarnation) isDeployed() bool {
-	return i.deployed
+	if i.getStatus() == nil {
+		return false
+	}
+	scale := i.getStatus().Scale
+	return scale.Current >= scale.Desired && i.deployed
 }
 
 func (i *Incarnation) currentPercent() uint32 {
