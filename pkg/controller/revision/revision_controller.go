@@ -201,7 +201,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	if r.config.SentryAuthToken != "" && r.config.SentryOrg != "" && instance.Spec.Sentry.Release && !status.Sentry.Release {
-		s, err := r.CreateSentryReleaseForRevision(log, instance, r.config)
+		s, err := r.createSentryReleaseForRevision(log, instance, r.config)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -347,7 +347,10 @@ func (r *ReconcileRevision) deleteRevision(log logr.Logger, revision *picchuv1al
 	return nil
 }
 
-func (r *ReconcileRevision) CreateSentryReleaseForRevision(log logr.Logger, revision *picchuv1alpha1.Revision, config utils.Config) (sentry.Release, error) {
+// createSentryReleaseForRevision performs the Sentry API calls to register a Revision with Sentry.
+// It creates Project if missing (based on app name), a Release for the Project (based on tag and commit sha),
+// and a Deployment for the Release (based on tag and target).
+func (r *ReconcileRevision) createSentryReleaseForRevision(log logr.Logger, revision *picchuv1alpha1.Revision, config utils.Config) (sentry.Release, error) {
 	tag, foundtag := revision.Labels[picchuv1alpha1.LabelTag]
 	commit, foundref := revision.Labels[picchuv1alpha1.LabelCommit]
 	repo, foundrepo := revision.Annotations[picchuv1alpha1.AnnotationRepo]
@@ -376,7 +379,23 @@ func (r *ReconcileRevision) CreateSentryReleaseForRevision(log logr.Logger, revi
 				*ref,
 			},
 		}
-		return r.sentryClient.CreateRelease(config.SentryOrg, *rel)
+		newrel, err := r.sentryClient.CreateRelease(config.SentryOrg, *rel)
+		if err != nil {
+			return sentry.Release{}, err
+		}
+
+		for _, target := range revision.Spec.Targets {
+			deploy := &sentry.NewDeploy{
+				Version:     tag,
+				Environment: target.Name,
+			}
+			err := r.sentryClient.CreateDeploy(config.SentryOrg, *deploy)
+			if err != nil {
+				return sentry.Release{}, err
+			}
+		}
+
+		return newrel, err
 	}
 
 	return sentry.Release{}, nil
