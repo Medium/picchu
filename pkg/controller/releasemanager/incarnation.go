@@ -92,6 +92,13 @@ func (i *Incarnation) isDeployed() bool {
 	return i.deployed
 }
 
+func (i *Incarnation) currentPercent() uint32 {
+	if i.getStatus() == nil {
+		return 0
+	}
+	return i.getStatus().CurrentPercent
+}
+
 // Returns true if testing is disabled or testing has passed
 func (i *Incarnation) isTestPending() bool {
 	if !i.hasRevision() {
