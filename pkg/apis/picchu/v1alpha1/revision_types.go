@@ -185,14 +185,14 @@ func (r *RevisionTarget) IsExternalTestPending() bool {
 	return r.ExternalTest.Enabled && !r.ExternalTest.Completed
 }
 
-func (r *RevisionTarget) IsCanaryPending(startTime *time.Time) bool {
+func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 	if r.Canary.Percent == 0 || r.Canary.TTL == 0 {
 		return false
 	}
 	if startTime == nil {
 		return true
 	}
-	return startTime.Add(time.Duration(r.Canary.TTL) * time.Second).After(time.Now())
+	return startTime.Time.Add(time.Duration(r.Canary.TTL) * time.Second).After(time.Now())
 }
 
 func init() {

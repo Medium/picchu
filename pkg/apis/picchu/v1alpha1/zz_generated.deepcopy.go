@@ -847,6 +847,10 @@ func (in *ReleaseManagerRevisionStatus) DeepCopyInto(out *ReleaseManagerRevision
 		in, out := &in.RevisionTimestamp, &out.RevisionTimestamp
 		*out = (*in).DeepCopy()
 	}
+	if in.CanaryStartTimestamp != nil {
+		in, out := &in.CanaryStartTimestamp, &out.CanaryStartTimestamp
+		*out = (*in).DeepCopy()
+	}
 	in.Metrics.DeepCopyInto(&out.Metrics)
 	out.Scale = in.Scale
 	return
