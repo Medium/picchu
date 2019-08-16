@@ -63,6 +63,7 @@ type Deployment interface {
 	isTestPending() bool
 	isTestStarted() bool
 	currentPercent() uint32
+	peakPercent() uint32
 }
 
 type DeploymentStateManager struct {
@@ -198,7 +199,7 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.sync(ctx); err != nil {
 		return releasing, err
 	}
-	if deployment.currentPercent() >= 100 {
+	if deployment.peakPercent() >= 100 {
 		return released, nil
 	}
 	return releasing, nil

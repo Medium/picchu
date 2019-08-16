@@ -242,3 +242,17 @@ func (mr *MockDeploymentMockRecorder) currentPercent() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "currentPercent", reflect.TypeOf((*MockDeployment)(nil).currentPercent))
 }
+
+// peakPercent mocks base method
+func (m *MockDeployment) peakPercent() uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "peakPercent")
+	ret0, _ := ret[0].(uint32)
+	return ret0
+}
+
+// peakPercent indicates an expected call of peakPercent
+func (mr *MockDeploymentMockRecorder) peakPercent() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "peakPercent", reflect.TypeOf((*MockDeployment)(nil).peakPercent))
+}
