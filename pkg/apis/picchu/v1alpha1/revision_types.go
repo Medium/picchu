@@ -100,12 +100,18 @@ type RevisionTarget struct {
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 
 	ExternalTest ExternalTest `json:"externalTest"`
+	Canary       Canary       `json:"canary"`
 }
 
 type ExternalTest struct {
 	Enabled   bool `json:"enabled"`
 	Started   bool `json:"started"`
 	Completed bool `json:"completed"`
+}
+
+type Canary struct {
+	Percent uint32 `json:"percent"`
+	TTL     int64  `json:"ttl"`
 }
 
 type RevisionTargetMetric struct {
@@ -177,6 +183,16 @@ func (r *Revision) GitTimestamp() time.Time {
 
 func (r *RevisionTarget) IsExternalTestPending() bool {
 	return r.ExternalTest.Enabled && !r.ExternalTest.Completed
+}
+
+func (r *RevisionTarget) IsCanaryPending(startTime *time.Time) bool {
+	if r.Canary.Percent == 0 || r.Canary.TTL == 0 {
+		return false
+	}
+	if startTime == nil {
+		return true
+	}
+	return startTime.Add(time.Duration(r.Canary.TTL) * time.Second).After(time.Now())
 }
 
 func init() {

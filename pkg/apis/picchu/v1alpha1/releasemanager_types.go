@@ -43,19 +43,20 @@ type ReleaseManagerStatus struct {
 }
 
 type ReleaseManagerRevisionStatus struct {
-	Tag               string                              `json:"tag"`
-	State             ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
-	CurrentPercent    uint32                              `json:"currentPercent"`
-	PeakPercent       uint32                              `json:"peakPercent"`
-	ReleaseEligible   bool                                `json:"releaseEligible"`
-	TriggeredAlarms   []string                            `json:"triggeredAlerts,omitempty"`
-	LastUpdated       *metav1.Time                        `json:"lastUpdated"`
-	GitTimestamp      *metav1.Time                        `json:"gitTimestamp,omitempty"`
-	RevisionTimestamp *metav1.Time                        `json:"revisionTimestamp,omitempty"`
-	TTL               int64                               `json:"ttl,omitempty"`
-	Metrics           ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
-	Scale             ReleaseManagerRevisionScaleStatus   `json:"scale"`
-	Deleted           bool                                `json:"deleted,omitempty"`
+	Tag                  string                              `json:"tag"`
+	State                ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
+	CurrentPercent       uint32                              `json:"currentPercent"`
+	PeakPercent          uint32                              `json:"peakPercent"`
+	ReleaseEligible      bool                                `json:"releaseEligible"`
+	TriggeredAlarms      []string                            `json:"triggeredAlerts,omitempty"`
+	LastUpdated          *metav1.Time                        `json:"lastUpdated"`
+	GitTimestamp         *metav1.Time                        `json:"gitTimestamp,omitempty"`
+	RevisionTimestamp    *metav1.Time                        `json:"revisionTimestamp,omitempty"`
+	CanaryStartTimestamp *metav1.Time                        `json:"canaryStartTimestamp,omitempty"`
+	TTL                  int64                               `json:"ttl,omitempty"`
+	Metrics              ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
+	Scale                ReleaseManagerRevisionScaleStatus   `json:"scale"`
+	Deleted              bool                                `json:"deleted,omitempty"`
 }
 
 type ReleaseManagerRevisionMetricsStatus struct {

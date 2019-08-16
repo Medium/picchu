@@ -99,7 +99,11 @@ func (i *Incarnation) isDeployed() bool {
 }
 
 func (i *Incarnation) isCanaryPending() bool {
-	return false
+	target := i.target()
+	if target == nil {
+		return false
+	}
+	return target.IsCanaryPending(&i.status.CanaryStartTimestamp.Time)
 }
 
 func (i *Incarnation) currentPercent() uint32 {
@@ -257,9 +261,15 @@ func (i *Incarnation) isAlarmTriggered() bool {
 	return false
 }
 
-func (i *Incarnation) setState(target string) {
-	i.status.State.Current = target
-	i.status.State.Target = target
+func (i *Incarnation) setState(state string) {
+	if state == "canarying" {
+		if i.status.CanaryStartTimestamp == nil {
+			t := metav1.Now()
+			i.status.CanaryStartTimestamp = &t
+		}
+	}
+	i.status.State.Current = state
+	i.status.State.Target = state
 }
 
 func (i *Incarnation) isReleaseEligible() bool {

@@ -29,3 +29,19 @@ func TestExternalTestPending(t *testing.T) {
 	target.ExternalTest.Completed = true
 	assert.False(t, target.IsExternalTestPending())
 }
+
+func TestCanaryTestPending(t *testing.T) {
+	target := &RevisionTarget{}
+	dt := time.Time{}
+	assert.False(t, target.IsCanaryPending(&dt))
+
+	target.Canary.Percent = 1
+	assert.False(t, target.IsCanaryPending(&dt))
+
+	target.Canary.TTL = 1
+	now := time.Now()
+	assert.True(t, target.IsCanaryPending(&now))
+
+	lastSecond := time.Now().Add(-time.Second)
+	assert.False(t, target.IsCanaryPending(&lastSecond))
+}
