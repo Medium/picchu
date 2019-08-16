@@ -98,6 +98,10 @@ func (i *Incarnation) isDeployed() bool {
 	return scale.Current >= scale.Desired && i.deployed
 }
 
+func (i *Incarnation) isCanaryPending() bool {
+	return false
+}
+
 func (i *Incarnation) currentPercent() uint32 {
 	if i.getStatus() == nil {
 		return 0

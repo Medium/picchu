@@ -63,13 +63,14 @@ func TestDeployed(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isDeployed, isTestPending, isReleaseEligible bool) *MockDeployment {
+	m := func(hasRevision, isAlarmTriggered, isDeployed, isTestPending, isReleaseEligible, isCanaryPending bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
 			isAlarmTriggered:  isAlarmTriggered,
 			isDeployed:        isDeployed,
 			isTestPending:     isTestPending,
 			isReleaseEligible: isReleaseEligible,
+			isCanaryPending:   isCanaryPending,
 		})
 	}
 
@@ -77,47 +78,90 @@ func TestDeployed(t *tt.T) {
 		testHandler(ctx, t, "deployed", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false, false, false))
-	testcase(deleting, m(false, false, false, false, true))
-	testcase(deleting, m(false, false, false, true, false))
-	testcase(deleting, m(false, false, false, true, true))
-	testcase(deleting, m(false, false, true, false, false))
-	testcase(deleting, m(false, false, true, false, true))
-	testcase(deleting, m(false, false, true, true, false))
-	testcase(deleting, m(false, false, true, true, true))
-	testcase(deleting, m(false, false, true, false, false))
-	testcase(deleting, m(false, false, true, false, true))
-	testcase(deleting, m(false, false, true, true, false))
-	testcase(deleting, m(false, false, true, true, true))
-	testcase(deleting, m(false, true, false, false, false))
-	testcase(deleting, m(false, true, false, false, true))
-	testcase(deleting, m(false, true, false, true, false))
-	testcase(deleting, m(false, true, false, true, true))
-	testcase(deleting, m(false, true, true, false, false))
-	testcase(deleting, m(false, true, true, false, true))
-	testcase(deleting, m(false, true, true, true, false))
-	testcase(deleting, m(false, true, true, true, true))
+	testcase(deleting, m(false, false, false, false, false, false))
+	testcase(deleting, m(false, false, false, false, true, false))
+	testcase(deleting, m(false, false, false, true, false, false))
+	testcase(deleting, m(false, false, false, true, true, false))
+	testcase(deleting, m(false, false, true, false, false, false))
+	testcase(deleting, m(false, false, true, false, true, false))
+	testcase(deleting, m(false, false, true, true, false, false))
+	testcase(deleting, m(false, false, true, true, true, false))
+	testcase(deleting, m(false, false, true, false, false, false))
+	testcase(deleting, m(false, false, true, false, true, false))
+	testcase(deleting, m(false, false, true, true, false, false))
+	testcase(deleting, m(false, false, true, true, true, false))
+	testcase(deleting, m(false, true, false, false, false, false))
+	testcase(deleting, m(false, true, false, false, true, false))
+	testcase(deleting, m(false, true, false, true, false, false))
+	testcase(deleting, m(false, true, false, true, true, false))
+	testcase(deleting, m(false, true, true, false, false, false))
+	testcase(deleting, m(false, true, true, false, true, false))
+	testcase(deleting, m(false, true, true, true, false, false))
+	testcase(deleting, m(false, true, true, true, true, false))
 
-	testcase(failing, m(true, true, false, false, false))
-	testcase(failing, m(true, true, false, false, true))
-	testcase(failing, m(true, true, false, true, false))
-	testcase(failing, m(true, true, false, true, true))
-	testcase(failing, m(true, true, true, false, false))
-	testcase(failing, m(true, true, true, false, true))
-	testcase(failing, m(true, true, true, true, false))
-	testcase(failing, m(true, true, true, true, true))
+	testcase(failing, m(true, true, false, false, false, false))
+	testcase(failing, m(true, true, false, false, true, false))
+	testcase(failing, m(true, true, false, true, false, false))
+	testcase(failing, m(true, true, false, true, true, false))
+	testcase(failing, m(true, true, true, false, false, false))
+	testcase(failing, m(true, true, true, false, true, false))
+	testcase(failing, m(true, true, true, true, false, false))
+	testcase(failing, m(true, true, true, true, true, false))
 
-	testcase(deploying, expectSync(m(true, false, false, false, false)))
-	testcase(deploying, expectSync(m(true, false, false, false, true)))
-	testcase(deploying, expectSync(m(true, false, false, true, false)))
-	testcase(deploying, expectSync(m(true, false, false, true, true)))
+	testcase(deploying, expectSync(m(true, false, false, false, false, false)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, false)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, false)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, false)))
 
-	testcase(deployed, expectSync(m(true, false, true, false, false)))
+	testcase(deployed, expectSync(m(true, false, true, false, false, false)))
 
-	testcase(pendingtest, expectSync(m(true, false, true, true, true)))
-	testcase(pendingtest, expectSync(m(true, false, true, true, false)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, true, false)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, false, false)))
 
-	testcase(pendingrelease, expectSync(m(true, false, true, false, true)))
+	testcase(pendingrelease, expectSync(m(true, false, true, false, true, false)))
+
+	// now with canaries
+	testcase(deleting, m(false, false, false, false, false, true))
+	testcase(deleting, m(false, false, false, false, true, true))
+	testcase(deleting, m(false, false, false, true, false, true))
+	testcase(deleting, m(false, false, false, true, true, true))
+	testcase(deleting, m(false, false, true, false, false, true))
+	testcase(deleting, m(false, false, true, false, true, true))
+	testcase(deleting, m(false, false, true, true, false, true))
+	testcase(deleting, m(false, false, true, true, true, true))
+	testcase(deleting, m(false, false, true, false, false, true))
+	testcase(deleting, m(false, false, true, false, true, true))
+	testcase(deleting, m(false, false, true, true, false, true))
+	testcase(deleting, m(false, false, true, true, true, true))
+	testcase(deleting, m(false, true, false, false, false, true))
+	testcase(deleting, m(false, true, false, false, true, true))
+	testcase(deleting, m(false, true, false, true, false, true))
+	testcase(deleting, m(false, true, false, true, true, true))
+	testcase(deleting, m(false, true, true, false, false, true))
+	testcase(deleting, m(false, true, true, false, true, true))
+	testcase(deleting, m(false, true, true, true, false, true))
+	testcase(deleting, m(false, true, true, true, true, true))
+
+	testcase(failing, m(true, true, false, false, false, true))
+	testcase(failing, m(true, true, false, false, true, true))
+	testcase(failing, m(true, true, false, true, false, true))
+	testcase(failing, m(true, true, false, true, true, true))
+	testcase(failing, m(true, true, true, false, false, true))
+	testcase(failing, m(true, true, true, false, true, true))
+	testcase(failing, m(true, true, true, true, false, true))
+	testcase(failing, m(true, true, true, true, true, true))
+
+	testcase(deploying, expectSync(m(true, false, false, false, false, true)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, true)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, true)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, true)))
+
+	testcase(canarying, expectSync(m(true, false, true, false, false, true)))
+
+	testcase(pendingtest, expectSync(m(true, false, true, true, true, true)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, false, true)))
+
+	testcase(canarying, expectSync(m(true, false, true, false, true, true)))
 }
 
 func TestPendingTest(t *tt.T) {
@@ -181,12 +225,13 @@ func TestTested(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool) *MockDeployment {
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible, isCanaryPending bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
 			isAlarmTriggered:  isAlarmTriggered,
 			isReleaseEligible: isReleaseEligible,
 			isTestStarted:     true,
+			isCanaryPending:   isCanaryPending,
 		})
 	}
 
@@ -194,11 +239,75 @@ func TestTested(t *tt.T) {
 		testHandler(ctx, t, "tested", expected, mock)
 	}
 
+	testcase(deleting, m(false, false, false, false))
+	testcase(deleting, m(false, false, true, false))
+	testcase(deleting, m(false, true, false, false))
+	testcase(deleting, m(false, true, true, false))
+	testcase(tested, m(true, false, false, false))
+	testcase(pendingrelease, m(true, false, true, false))
+	testcase(failing, m(true, true, false, false))
+	testcase(failing, m(true, true, true, false))
+
+	// now with canary
+	testcase(deleting, m(false, false, false, true))
+	testcase(deleting, m(false, false, true, true))
+	testcase(deleting, m(false, true, false, true))
+	testcase(deleting, m(false, true, true, true))
+	testcase(canarying, m(true, false, false, true))
+	testcase(canarying, m(true, false, true, true))
+	testcase(failing, m(true, true, false, true))
+	testcase(failing, m(true, true, true, true))
+}
+
+func TestCanarying(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isCanaryPending bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:      hasRevision,
+			isAlarmTriggered: isAlarmTriggered,
+			isCanaryPending:  isCanaryPending,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "canarying", expected, mock)
+	}
+
 	testcase(deleting, m(false, false, false))
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(tested, m(true, false, false))
+	testcase(canaried, m(true, false, false))
+	testcase(canarying, m(true, false, true))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
+func TestCanaried(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			isAlarmTriggered:  isAlarmTriggered,
+			isReleaseEligible: isReleaseEligible,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "canaried", expected, mock)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(canaried, m(true, false, false))
 	testcase(pendingrelease, m(true, false, true))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
@@ -501,6 +610,7 @@ type responses struct {
 	isReleaseEligible      bool
 	isTestStarted          bool
 	isTestPending          bool
+	isCanaryPending        bool
 	isDeployed             bool
 	schedulePermitsRelease bool
 	currentPercent         uint32
@@ -529,6 +639,11 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		EXPECT().
 		isTestPending().
 		Return(r.isTestPending).
+		AnyTimes()
+	m.
+		EXPECT().
+		isCanaryPending().
+		Return(r.isCanaryPending).
 		AnyTimes()
 	m.
 		EXPECT().

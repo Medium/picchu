@@ -215,6 +215,20 @@ func (mr *MockDeploymentMockRecorder) isTestPending() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestPending", reflect.TypeOf((*MockDeployment)(nil).isTestPending))
 }
 
+// isCanaryPending mocks base method
+func (m *MockDeployment) isCanaryPending() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "isCanaryPending")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// isCanaryPending indicates an expected call of isTestPending
+func (mr *MockDeploymentMockRecorder) isCanaryPending() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isCanaryPending", reflect.TypeOf((*MockDeployment)(nil).isTestPending))
+}
+
 // isTestStarted mocks base method
 func (m *MockDeployment) isTestStarted() bool {
 	m.ctrl.T.Helper()
