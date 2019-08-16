@@ -249,12 +249,12 @@ func TestReleasing(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, currentPercent uint32) *MockDeployment {
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
 			isAlarmTriggered:  isAlarmTriggered,
 			isReleaseEligible: isReleaseEligible,
-			currentPercent:    currentPercent,
+			peakPercent:       peakPercent,
 		})
 	}
 
@@ -289,12 +289,12 @@ func TestReleased(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, currentPercent uint32) *MockDeployment {
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
 			isAlarmTriggered:  isAlarmTriggered,
 			isReleaseEligible: isReleaseEligible,
-			currentPercent:    currentPercent,
+			peakPercent:       peakPercent,
 		})
 	}
 
@@ -504,6 +504,7 @@ type responses struct {
 	isDeployed             bool
 	schedulePermitsRelease bool
 	currentPercent         uint32
+	peakPercent            uint32
 }
 
 func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment {
@@ -548,6 +549,11 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		EXPECT().
 		currentPercent().
 		Return(r.currentPercent).
+		AnyTimes()
+	m.
+		EXPECT().
+		peakPercent().
+		Return(r.peakPercent).
 		AnyTimes()
 
 	return m

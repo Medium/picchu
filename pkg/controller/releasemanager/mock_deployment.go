@@ -162,15 +162,15 @@ func (mr *MockDeploymentMockRecorder) getStatus() *gomock.Call {
 }
 
 // setState mocks base method
-func (m *MockDeployment) setState(target string, reached bool) {
+func (m *MockDeployment) setState(target string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setState", target, reached)
+	m.ctrl.Call(m, "setState", target)
 }
 
 // setState indicates an expected call of setState
-func (mr *MockDeploymentMockRecorder) setState(target, reached interface{}) *gomock.Call {
+func (mr *MockDeploymentMockRecorder) setState(target interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setState", reflect.TypeOf((*MockDeployment)(nil).setState), target, reached)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setState", reflect.TypeOf((*MockDeployment)(nil).setState), target)
 }
 
 // getLog mocks base method
@@ -241,4 +241,18 @@ func (m *MockDeployment) currentPercent() uint32 {
 func (mr *MockDeploymentMockRecorder) currentPercent() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "currentPercent", reflect.TypeOf((*MockDeployment)(nil).currentPercent))
+}
+
+// peakPercent mocks base method
+func (m *MockDeployment) peakPercent() uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "peakPercent")
+	ret0, _ := ret[0].(uint32)
+	return ret0
+}
+
+// peakPercent indicates an expected call of peakPercent
+func (mr *MockDeploymentMockRecorder) peakPercent() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "peakPercent", reflect.TypeOf((*MockDeployment)(nil).peakPercent))
 }

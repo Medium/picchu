@@ -57,12 +57,13 @@ type Deployment interface {
 	isAlarmTriggered() bool
 	isReleaseEligible() bool
 	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
-	setState(target string, reached bool)
+	setState(target string)
 	getLog() logr.Logger
 	isDeployed() bool
 	isTestPending() bool
 	isTestStarted() bool
 	currentPercent() uint32
+	peakPercent() uint32
 }
 
 type DeploymentStateManager struct {
@@ -80,7 +81,7 @@ func (s *DeploymentStateManager) tick(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	s.deployment.setState(string(state), true)
+	s.deployment.setState(string(state))
 	s.deployment.getLog().Info("Advanced state", "tag", s.deployment.getStatus().Tag, "current", string(state))
 	return nil
 }
@@ -198,7 +199,7 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.sync(ctx); err != nil {
 		return releasing, err
 	}
-	if deployment.currentPercent() >= 100 {
+	if deployment.peakPercent() >= 100 {
 		return released, nil
 	}
 	return releasing, nil

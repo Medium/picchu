@@ -39,7 +39,12 @@ type Incarnation struct {
 
 func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo) Incarnation {
 	status := controller.getReleaseManager().RevisionStatus(tag)
-	if status.State.Target == "" || status.State.Target == "created" || status.State.Target == "deployed" {
+
+	if status.State.Current == "" {
+		status.State.Current = "created"
+	}
+
+	if status.State.Current == "created" || status.State.Current == "deploying" {
 		if revision != nil {
 			status.GitTimestamp = &metav1.Time{revision.GitTimestamp()}
 			for _, target := range revision.Spec.Targets {
@@ -50,9 +55,6 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 			}
 		} else {
 			status.ReleaseEligible = false
-		}
-		if status.State.Target == "" {
-			status.State.Target = "created"
 		}
 	}
 
@@ -101,6 +103,13 @@ func (i *Incarnation) currentPercent() uint32 {
 		return 0
 	}
 	return i.getStatus().CurrentPercent
+}
+
+func (i *Incarnation) peakPercent() uint32 {
+	if i.getStatus() == nil {
+		return 0
+	}
+	return i.getStatus().PeakPercent
 }
 
 // Returns true if testing is disabled or testing has passed
@@ -244,11 +253,9 @@ func (i *Incarnation) isAlarmTriggered() bool {
 	return false
 }
 
-func (i *Incarnation) setState(target string, reached bool) {
+func (i *Incarnation) setState(target string) {
+	i.status.State.Current = target
 	i.status.State.Target = target
-	if reached {
-		i.status.State.Current = target
-	}
 }
 
 func (i *Incarnation) isReleaseEligible() bool {
@@ -451,20 +458,31 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 func (i *IncarnationCollection) deployed() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		state := i.status.State.Target
-		if state == "deployed" || state == "released" {
+		switch i.status.State.Current {
+		case "deployed":
+			r = append(r, i)
+		case "tested":
+			r = append(r, i)
+		case "pendingrelease":
+			r = append(r, i)
+		case "releasing":
+			r = append(r, i)
+		case "released":
 			r = append(r, i)
 		}
 	}
 	return r
 }
 
-// releasable returns deployed release eligible incarnations in order from
-// releaseEligible to !releaseEligible, then latest to oldest
+// releasable returns deployed release eligible and released incarnations in
+// order from releaseEligible to !releaseEligible, then latest to oldest
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Target == "released" {
+		switch i.status.State.Current {
+		case "releasing":
+			r = append(r, i)
+		case "released":
 			r = append(r, i)
 		}
 	}
@@ -489,9 +507,17 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 			i.controller.getLog().Info("No available releases retired")
 		}
 	}
+	// Add incarnations transitioned out of released/releasing
 	for _, i := range i.sorted() {
-		if i.status.State.Current == "released" && i.status.State.Target != "released" {
-			r = append(r, i)
+		if i.currentPercent() > 0 {
+			switch i.getStatus().State.Current {
+			case "retiring":
+				r = append(r, i)
+			case "deleting":
+				r = append(r, i)
+			case "failing":
+				r = append(r, i)
+			}
 		}
 	}
 	return r
@@ -503,7 +529,7 @@ func (i *IncarnationCollection) unretirable() []Incarnation {
 		cur := i.status.State.Current
 		elig := i.isReleaseEligible()
 		triggered := i.isAlarmTriggered()
-		if cur == "retired" || (cur == "released" && !elig && !triggered) {
+		if cur == "retired" || ((cur == "released" || cur == "releasing") && !elig && !triggered) {
 			r = append(r, i)
 		}
 	}
