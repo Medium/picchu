@@ -162,15 +162,15 @@ func (mr *MockDeploymentMockRecorder) getStatus() *gomock.Call {
 }
 
 // setState mocks base method
-func (m *MockDeployment) setState(target string, reached bool) {
+func (m *MockDeployment) setState(target string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setState", target, reached)
+	m.ctrl.Call(m, "setState", target)
 }
 
 // setState indicates an expected call of setState
-func (mr *MockDeploymentMockRecorder) setState(target, reached interface{}) *gomock.Call {
+func (mr *MockDeploymentMockRecorder) setState(target interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setState", reflect.TypeOf((*MockDeployment)(nil).setState), target, reached)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setState", reflect.TypeOf((*MockDeployment)(nil).setState), target)
 }
 
 // getLog mocks base method

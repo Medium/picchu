@@ -57,7 +57,7 @@ type Deployment interface {
 	isAlarmTriggered() bool
 	isReleaseEligible() bool
 	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
-	setState(target string, reached bool)
+	setState(target string)
 	getLog() logr.Logger
 	isDeployed() bool
 	isTestPending() bool
@@ -80,7 +80,7 @@ func (s *DeploymentStateManager) tick(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	s.deployment.setState(string(state), true)
+	s.deployment.setState(string(state))
 	s.deployment.getLog().Info("Advanced state", "tag", s.deployment.getStatus().Tag, "current", string(state))
 	return nil
 }
