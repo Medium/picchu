@@ -24,6 +24,8 @@ var (
 		string(pendingtest):    PendingTest,
 		string(testing):        Testing,
 		string(tested):         Tested,
+		string(canarying):      Canarying,
+		string(canaried):       Canaried,
 	}
 )
 
@@ -43,6 +45,8 @@ const (
 	pendingtest    State = "pendingtest"
 	testing        State = "testing"
 	tested         State = "tested"
+	canarying      State = "canarying"
+	canaried       State = "canaried"
 )
 
 type State string
@@ -64,6 +68,7 @@ type Deployment interface {
 	isTestStarted() bool
 	currentPercent() uint32
 	peakPercent() uint32
+	isCanaryPending() bool
 }
 
 type DeploymentStateManager struct {
@@ -125,6 +130,9 @@ func Deployed(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isTestPending() {
 		return pendingtest, nil
 	}
+	if deployment.isCanaryPending() {
+		return canarying, nil
+	}
 	if deployment.isReleaseEligible() {
 		return pendingrelease, nil
 	}
@@ -163,6 +171,9 @@ func Tested(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if deployment.isAlarmTriggered() {
 		return failing, nil
+	}
+	if deployment.isCanaryPending() {
+		return canarying, nil
 	}
 	if deployment.isReleaseEligible() {
 		return pendingrelease, nil
@@ -276,4 +287,30 @@ func Failed(ctx context.Context, deployment Deployment) (State, error) {
 		return deploying, nil
 	}
 	return failed, nil
+}
+
+func Canarying(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failing, nil
+	}
+	if !deployment.isCanaryPending() {
+		return canaried, nil
+	}
+	return canarying, nil
+}
+
+func Canaried(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if deployment.isAlarmTriggered() {
+		return failing, nil
+	}
+	if deployment.isReleaseEligible() {
+		return pendingrelease, nil
+	}
+	return canaried, nil
 }

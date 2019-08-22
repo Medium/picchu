@@ -81,6 +81,8 @@ spec:
                     type: boolean
                   revisionTimestamp:
                     type: string
+                  canaryStartTimestamp:
+                    type: string
                   gitTimestamp:
                     type: string
                   state:

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestFailRevision(t *testing.T) {
@@ -28,4 +29,20 @@ func TestExternalTestPending(t *testing.T) {
 
 	target.ExternalTest.Completed = true
 	assert.False(t, target.IsExternalTestPending())
+}
+
+func TestCanaryTestPending(t *testing.T) {
+	target := &RevisionTarget{}
+	dt := metav1.Time{}
+	assert.False(t, target.IsCanaryPending(&dt))
+
+	target.Canary.Percent = 1
+	assert.False(t, target.IsCanaryPending(&dt))
+
+	target.Canary.TTL = 1
+	now := metav1.Now()
+	assert.True(t, target.IsCanaryPending(&now))
+
+	lastSecond := metav1.Time{time.Now().Add(-time.Second)}
+	assert.False(t, target.IsCanaryPending(&lastSecond))
 }

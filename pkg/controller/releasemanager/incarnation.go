@@ -98,6 +98,14 @@ func (i *Incarnation) isDeployed() bool {
 	return scale.Current >= scale.Desired && i.deployed
 }
 
+func (i *Incarnation) isCanaryPending() bool {
+	target := i.target()
+	if target == nil {
+		return false
+	}
+	return target.IsCanaryPending(i.status.CanaryStartTimestamp)
+}
+
 func (i *Incarnation) currentPercent() uint32 {
 	if i.getStatus() == nil {
 		return 0
@@ -253,9 +261,15 @@ func (i *Incarnation) isAlarmTriggered() bool {
 	return false
 }
 
-func (i *Incarnation) setState(target string) {
-	i.status.State.Current = target
-	i.status.State.Target = target
+func (i *Incarnation) setState(state string) {
+	if state == "canarying" {
+		if i.status.CanaryStartTimestamp == nil {
+			t := metav1.Now()
+			i.status.CanaryStartTimestamp = &t
+		}
+	}
+	i.status.State.Current = state
+	i.status.State.Target = state
 }
 
 func (i *Incarnation) isReleaseEligible() bool {
@@ -398,6 +412,9 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	if i.revision == nil {
 		return 0
 	}
+	if i.getStatus().State.Current == "canarying" {
+		return i.target().Canary.Percent
+	}
 	return LinearScale(*i, max, time.Now())
 }
 
@@ -469,6 +486,10 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 			r = append(r, i)
 		case "released":
 			r = append(r, i)
+		case "canarying":
+			r = append(r, i)
+		case "canaried":
+			r = append(r, i)
 		}
 	}
 	return r
@@ -478,6 +499,11 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 // order from releaseEligible to !releaseEligible, then latest to oldest
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
+	for _, i := range i.sorted() {
+		if i.status.State.Current == "canarying" {
+			r = append(r, i)
+		}
+	}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
 		case "releasing":
