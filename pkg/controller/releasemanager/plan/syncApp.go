@@ -44,23 +44,27 @@ type SyncApp struct {
 }
 
 func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
-	if len(p.DeployedRevisions) == 0 {
-		log.Info("Not syncing app", "Reason", "there are no deployed revisions")
-		return nil
-	}
 	if len(p.Ports) == 0 {
 		log.Info("Not syncing app", "Reason", "there are no exposed ports")
 		return nil
 	}
 
+	// Create the Service even before the Deployment is ready as a workaround to an Istio bug:
+	// https://github.com/istio/istio/issues/11979
 	service := p.service()
+	if err := CreateOrUpdate(ctx, log, cli, service); err != nil {
+		return err
+	}
+
+	if len(p.DeployedRevisions) == 0 {
+		log.Info("Not syncing app", "Reason", "there are no deployed revisions")
+		return nil
+	}
+
 	destinationRule := p.destinationRule()
 	virtualService := p.virtualService(log)
 	prometheusRule := p.prometheusRule()
 
-	if err := CreateOrUpdate(ctx, log, cli, service); err != nil {
-		return err
-	}
 	if err := CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
 		return err
 	}
