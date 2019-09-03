@@ -72,6 +72,7 @@ type RevisionSpec struct {
 	TrafficPolicy    *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
 	Failed           bool                         `json:"failed"`
 	IgnoreSLOs       bool                         `json:"ignoreSLOs,omitempty"`
+	CanaryType       CanaryType                   `json:"canaryType,omitempty"`
 	Sentry           SentryInfo                   `json:"sentry"`
 	TagRoutingHeader string                       `json:"tagRoutingHeader,omitempty"`
 }
@@ -113,6 +114,13 @@ type Canary struct {
 	Percent uint32 `json:"percent"`
 	TTL     int64  `json:"ttl"`
 }
+
+type CanaryType string
+
+const (
+	SLO CanaryType = "slo"
+	SLI CanaryType = "sli"
+)
 
 type RevisionTargetMetric struct {
 	Name      string                      `json:"name"`

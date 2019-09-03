@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/prometheus/mocks"
 )
 
@@ -20,7 +21,7 @@ func TestPrometheusCache(t *testing.T) {
 	m := mocks.NewMockPromAPI(ctrl)
 	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
-	aq := NewAlertQuery("tutu")
+	aq := NewAlertQuery("tutu", string(picchuv1alpha1.SLO))
 
 	q := bytes.NewBufferString("")
 	assert.Nil(t, alertTemplate.Execute(q, aq), "Template execute shouldn't fail")
@@ -50,7 +51,7 @@ func TestPrometheusAlerts(t *testing.T) {
 	m := mocks.NewMockPromAPI(ctrl)
 	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
-	aq := NewAlertQuery("tutu")
+	aq := NewAlertQuery("tutu", string(picchuv1alpha1.SLO))
 
 	q := bytes.NewBufferString("")
 	assert.Nil(t, alertTemplate.Execute(q, aq), "Template execute shouldn't fail")

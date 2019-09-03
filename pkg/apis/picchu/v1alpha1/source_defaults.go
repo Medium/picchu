@@ -18,6 +18,7 @@ const (
 	defaultPortPort          = int32(80)
 	defaultPortProtocol      = corev1.ProtocolTCP
 	defaultPortMode          = PortPrivate
+	defaultCanaryType        = SLO
 )
 
 func SetDefaults_RevisionSpec(spec *RevisionSpec) {
@@ -27,6 +28,9 @@ func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 	}
 	for i, _ := range spec.Ports {
 		SetPortDefaults(&spec.Ports[i])
+	}
+	if spec.CanaryType == "" {
+		spec.CanaryType = defaultCanaryType
 	}
 }
 
