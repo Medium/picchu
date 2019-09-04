@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
+	"go.medium.engineering/picchu/pkg/mocks"
+	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
@@ -17,7 +18,7 @@ func TestCreatesNamespace(t *testing.T) {
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	plan := &EnsureNamespace{
+	en := &EnsureNamespace{
 		Name: "testnamespace",
 	}
 	ctx := context.TODO()
@@ -25,7 +26,7 @@ func TestCreatesNamespace(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, gomock.Any(), mocks.Kind("Namespace")).
-		Return(notFoundError).
+		Return(common.NotFoundError).
 		Times(1)
 	m.
 		EXPECT().
@@ -33,7 +34,7 @@ func TestCreatesNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
 func TestIngoreNamespace(t *testing.T) {
@@ -42,7 +43,7 @@ func TestIngoreNamespace(t *testing.T) {
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	plan := &EnsureNamespace{
+	en := &EnsureNamespace{
 		Name: "testnamespace",
 	}
 	ctx := context.TODO()
@@ -53,7 +54,7 @@ func TestIngoreNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
 func TestUpdatesNamespace(t *testing.T) {
@@ -62,7 +63,7 @@ func TestUpdatesNamespace(t *testing.T) {
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	plan := &EnsureNamespace{
+	en := &EnsureNamespace{
 		Name: "testnamespace",
 	}
 	ctx := context.TODO()
@@ -78,5 +79,5 @@ func TestUpdatesNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, log), "Shouldn't return error.")
 }

@@ -9,7 +9,8 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
+	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
@@ -167,7 +168,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 	}
 
 	return i.controller.applyPlan(ctx, "Sync and Scale Revision", plan.All(
-		&plan.SyncRevision{
+		&rmplan.SyncRevision{
 			App:                i.appName(),
 			Tag:                i.tag,
 			Namespace:          i.targetNamespace(),
@@ -182,7 +183,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 			ReadinessProbe:     i.target().ReadinessProbe,
 			LivenessProbe:      i.target().LivenessProbe,
 		},
-		&plan.ScaleRevision{
+		&rmplan.ScaleRevision{
 			Tag:       i.tag,
 			Namespace: i.targetNamespace(),
 			Min:       i.divideReplicas(*i.target().Scale.Min),
@@ -194,7 +195,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 }
 
 func (i *Incarnation) scale(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Scale Revision", &plan.ScaleRevision{
+	return i.controller.applyPlan(ctx, "Scale Revision", &rmplan.ScaleRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 		Min:       i.divideReplicas(*i.target().Scale.Min),
@@ -213,7 +214,7 @@ func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 }
 
 func (i *Incarnation) retire(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Retire Revision", &plan.RetireRevision{
+	return i.controller.applyPlan(ctx, "Retire Revision", &rmplan.RetireRevision{
 		Tag:       i.tag,
 		Namespace: i.targetNamespace(),
 	})
@@ -244,7 +245,7 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 }
 
 func (i *Incarnation) del(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete Revision", &plan.DeleteRevision{
+	return i.controller.applyPlan(ctx, "Delete Revision", &rmplan.DeleteRevision{
 		Labels:    i.defaultLabels(),
 		Namespace: i.targetNamespace(),
 	})

@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -190,7 +191,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 	}
 
 	for _, i := range append(configs, replicaSet) {
-		if err := CreateOrUpdate(ctx, log, cli, i); err != nil {
+		if err := plan.CreateOrUpdate(ctx, log, cli, i); err != nil {
 			return err
 		}
 	}

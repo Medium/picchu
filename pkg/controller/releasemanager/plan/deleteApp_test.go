@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
+	"go.medium.engineering/picchu/pkg/mocks"
+	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
@@ -17,7 +18,7 @@ func TestDeleteApp(t *testing.T) {
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	plan := &DeleteApp{
+	deleteapp := &DeleteApp{
 		Namespace: "testnamespace",
 	}
 	ctx := context.TODO()
@@ -28,7 +29,7 @@ func TestDeleteApp(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, deleteapp.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
 func TestDeleteAlreadyDeletedApp(t *testing.T) {
@@ -37,7 +38,7 @@ func TestDeleteAlreadyDeletedApp(t *testing.T) {
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	plan := &DeleteApp{
+	deleteapp := &DeleteApp{
 		Namespace: "testnamespace",
 	}
 	ctx := context.TODO()
@@ -45,8 +46,8 @@ func TestDeleteAlreadyDeletedApp(t *testing.T) {
 	m.
 		EXPECT().
 		Delete(ctx, mocks.And(mocks.NamespacedName("", "testnamespace"), mocks.Kind("Namespace"))).
-		Return(notFoundError).
+		Return(common.NotFoundError).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, deleteapp.Apply(ctx, m, log), "Shouldn't return error.")
 }

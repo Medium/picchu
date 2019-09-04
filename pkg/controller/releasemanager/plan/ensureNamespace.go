@@ -4,6 +4,7 @@ import (
 	"context"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +39,6 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, log logr
 		ns.ObjectMeta.Labels = om.Labels
 		return nil
 	})
-	LogSync(log, op, err, ns)
+	plan.LogSync(log, op, err, ns)
 	return err
 }
