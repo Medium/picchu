@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
@@ -52,7 +53,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	// Create the Service even before the Deployment is ready as a workaround to an Istio bug:
 	// https://github.com/istio/istio/issues/11979
 	service := p.service()
-	if err := CreateOrUpdate(ctx, log, cli, service); err != nil {
+	if err := plan.CreateOrUpdate(ctx, log, cli, service); err != nil {
 		return err
 	}
 
@@ -65,21 +66,21 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 	virtualService := p.virtualService(log)
 	prometheusRule := p.prometheusRule()
 
-	if err := CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
+	if err := plan.CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
 		return err
 	}
 
 	if len(prometheusRule.Spec.Groups) == 0 {
 		err := cli.Delete(ctx, prometheusRule)
 		if err != nil && !errors.IsNotFound(err) {
-			LogSync(log, "deleted", err, prometheusRule)
+			plan.LogSync(log, "deleted", err, prometheusRule)
 			return nil
 		}
 		if err == nil {
-			LogSync(log, "deleted", err, prometheusRule)
+			plan.LogSync(log, "deleted", err, prometheusRule)
 		}
 	} else {
-		if err := CreateOrUpdate(ctx, log, cli, prometheusRule); err != nil {
+		if err := plan.CreateOrUpdate(ctx, log, cli, prometheusRule); err != nil {
 			return err
 		}
 	}
@@ -89,7 +90,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger)
 		return nil
 	}
 
-	return CreateOrUpdate(ctx, log, cli, virtualService)
+	return plan.CreateOrUpdate(ctx, log, cli, virtualService)
 }
 
 func (p *SyncApp) serviceHost() string {

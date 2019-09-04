@@ -6,8 +6,9 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
+	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
@@ -81,7 +82,7 @@ func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseMana
 }
 
 func (r *ResourceSyncer) del(ctx context.Context) error {
-	return r.applyPlan(ctx, "Delete App", &plan.DeleteApp{
+	return r.applyPlan(ctx, "Delete App", &rmplan.DeleteApp{
 		Namespace: r.instance.TargetNamespace(),
 	})
 }
@@ -92,7 +93,7 @@ func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan
 }
 
 func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
-	return r.applyPlan(ctx, "Ensure Namespace", &plan.EnsureNamespace{
+	return r.applyPlan(ctx, "Ensure Namespace", &rmplan.EnsureNamespace{
 		Name:      r.instance.TargetNamespace(),
 		OwnerName: r.instance.Name,
 		OwnerType: picchuv1alpha1.OwnerReleaseManager,
@@ -177,7 +178,7 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	revisions, alertRules := r.prepareRevisionsAndRules()
 
 	// TODO(bob): figure out defaultDomain and gateway names
-	err := r.applyPlan(ctx, "Sync Application", &plan.SyncApp{
+	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
 		App:               r.instance.Spec.App,
 		Namespace:         r.instance.TargetNamespace(),
 		Labels:            labels,
@@ -221,20 +222,20 @@ func (r *ResourceSyncer) currentTrafficPolicy() *istiov1alpha3.TrafficPolicy {
 	return nil
 }
 
-func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitoringv1.Rule) {
+func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monitoringv1.Rule) {
 	alertRules := []monitoringv1.Rule{}
 
 	if len(r.incarnations.deployed()) == 0 {
-		return []plan.Revision{}, alertRules
+		return []rmplan.Revision{}, alertRules
 	}
 
-	revisionsMap := map[string]plan.Revision{}
+	revisionsMap := map[string]rmplan.Revision{}
 	for _, i := range r.incarnations.deployed() {
 		tagRoutingHeader := ""
 		if i.revision != nil {
 			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
 		}
-		revisionsMap[i.tag] = plan.Revision{
+		revisionsMap[i.tag] = rmplan.Revision{
 			Tag:              i.tag,
 			Weight:           0,
 			TagRoutingHeader: tagRoutingHeader,
@@ -275,14 +276,14 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]plan.Revision, []monitori
 		if incarnation.revision != nil {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
 		}
-		revisionsMap[incarnation.tag] = plan.Revision{
+		revisionsMap[incarnation.tag] = rmplan.Revision{
 			Tag:              incarnation.tag,
 			Weight:           current,
 			TagRoutingHeader: tagRoutingHeader,
 		}
 	}
 
-	revisions := make([]plan.Revision, 0, len(revisionsMap))
+	revisions := make([]rmplan.Revision, 0, len(revisionsMap))
 	for _, revision := range revisionsMap {
 		revisions = append(revisions, revision)
 	}

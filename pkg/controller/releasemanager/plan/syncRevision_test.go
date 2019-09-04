@@ -5,13 +5,15 @@ import (
 	"testing"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
+	"go.medium.engineering/picchu/pkg/mocks"
+	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -282,7 +284,7 @@ func TestSyncRevisionNoChange(t *testing.T) {
 
 	m.
 		EXPECT().
-		Update(ctx, k8sEqual(defaultExpectedReplicaSet)).
+		Update(ctx, common.K8sEqual(defaultExpectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
@@ -300,7 +302,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 
 	m.
 		EXPECT().
-		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
+		Get(ctx, mocks.ObjectKey(ok), common.ReplicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
 			rs.Spec.Template.Spec.ServiceAccountName = "updateme"
 			return true
 		})).
@@ -309,7 +311,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 
 	m.
 		EXPECT().
-		Update(ctx, k8sEqual(defaultExpectedReplicaSet)).
+		Update(ctx, common.K8sEqual(defaultExpectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
@@ -327,7 +329,7 @@ func TestSyncRevisionExistingReplicasZero(t *testing.T) {
 
 	m.
 		EXPECT().
-		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
+		Get(ctx, mocks.ObjectKey(ok), common.ReplicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
 			var zero int32 = 0
 			rs.Spec.Replicas = &zero
 			return true
@@ -337,7 +339,7 @@ func TestSyncRevisionExistingReplicasZero(t *testing.T) {
 
 	m.
 		EXPECT().
-		Update(ctx, k8sEqual(defaultExpectedReplicaSet)).
+		Update(ctx, common.K8sEqual(defaultExpectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
@@ -355,7 +357,7 @@ func TestSyncRevisionRetirement(t *testing.T) {
 
 	m.
 		EXPECT().
-		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
+		Get(ctx, mocks.ObjectKey(ok), common.ReplicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
 			var twenty int32 = 20
 			rs.Spec.Replicas = &twenty
 			return true
@@ -365,7 +367,7 @@ func TestSyncRevisionRetirement(t *testing.T) {
 
 	m.
 		EXPECT().
-		Update(ctx, k8sEqual(retiredExpectedReplicaSet)).
+		Update(ctx, common.K8sEqual(retiredExpectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
@@ -383,16 +385,16 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 
 	m.
 		EXPECT().
-		Get(ctx, mocks.ObjectKey(ok), replicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
+		Get(ctx, mocks.ObjectKey(ok), common.ReplicaSetCallback(func(rs *appsv1.ReplicaSet) bool {
 			rs.Spec.Template.Spec.ServiceAccountName = "updateme"
 			return true
 		})).
-		Return(notFoundError).
+		Return(common.NotFoundError).
 		Times(1)
 
 	m.
 		EXPECT().
-		Create(ctx, k8sEqual(defaultExpectedReplicaSet)).
+		Create(ctx, common.K8sEqual(defaultExpectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
@@ -447,26 +449,34 @@ func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(cmok), mocks.Kind("ConfigMap")).
-		Return(notFoundError).
+		Return(common.NotFoundError).
 		Times(1)
 
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(rsok), mocks.Kind("ReplicaSet")).
-		Return(notFoundError).
+		Return(common.NotFoundError).
 		Times(1)
 
 	m.
 		EXPECT().
-		Create(ctx, k8sEqual(expectedConfigMap)).
+		Create(ctx, common.K8sEqual(expectedConfigMap)).
 		Return(nil).
 		Times(1)
 
 	m.
 		EXPECT().
-		Create(ctx, k8sEqual(expectedReplicaSet)).
+		Create(ctx, common.K8sEqual(expectedReplicaSet)).
 		Return(nil).
 		Times(1)
 
 	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+}
+
+func mustParseQuantity(val string) resource.Quantity {
+	r, err := resource.ParseQuantity(val)
+	if err != nil {
+		panic("Failed to parse Quantity")
+	}
+	return r
 }

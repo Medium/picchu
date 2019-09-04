@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
+	"go.medium.engineering/picchu/pkg/mocks"
+	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -223,7 +224,7 @@ func TestSyncNewApp(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), gomock.Any()).
-		Return(notFoundError).
+		Return(common.NotFoundError).
 		Times(4)
 
 	m.
@@ -239,7 +240,7 @@ func TestSyncNewApp(t *testing.T) {
 	} {
 		m.
 			EXPECT().
-			Create(ctx, k8sEqual(obj)).
+			Create(ctx, common.K8sEqual(obj)).
 			Return(nil).
 			Times(1)
 	}

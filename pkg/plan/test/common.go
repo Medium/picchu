@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"reflect"
 
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	"go.medium.engineering/picchu/pkg/mocks"
 
 	"github.com/andreyvit/diff"
 	"github.com/golang/mock/gomock"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 )
 
 var (
-	notFoundError = &errors.StatusError{metav1.Status{
+	NotFoundError = &errors.StatusError{metav1.Status{
 		Reason: metav1.StatusReasonNotFound,
 	}}
 	yamlSerializer runtime.Serializer
@@ -29,9 +28,9 @@ func init() {
 	yamlSerializer = json.NewYAMLSerializer(json.DefaultMetaFactory, nil, nil)
 }
 
-type replicaSetMatcher func(*appsv1.ReplicaSet) bool
+type ReplicaSetMatcher func(*appsv1.ReplicaSet) bool
 
-func replicaSetCallback(fn replicaSetMatcher) gomock.Matcher {
+func ReplicaSetCallback(fn ReplicaSetMatcher) gomock.Matcher {
 	return mocks.Callback(func(x interface{}) bool {
 		switch o := x.(type) {
 		case *appsv1.ReplicaSet:
@@ -40,14 +39,6 @@ func replicaSetCallback(fn replicaSetMatcher) gomock.Matcher {
 			return false
 		}
 	}, "replicaSet callback")
-}
-
-func mustParseQuantity(val string) resource.Quantity {
-	r, err := resource.ParseQuantity(val)
-	if err != nil {
-		panic("Failed to parse Quantity")
-	}
-	return r
 }
 
 func encodeResource(o runtime.Object) (string, error) {
@@ -70,7 +61,7 @@ func resourceDiff(expected, actual runtime.Object) (string, error) {
 	return diff.LineDiff(eYaml, aYaml), nil
 }
 
-func k8sEqual(expected runtime.Object) gomock.Matcher {
+func K8sEqual(expected runtime.Object) gomock.Matcher {
 	return mocks.Callback(func(x interface{}) bool {
 		switch o := x.(type) {
 		case runtime.Object:

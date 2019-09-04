@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
-	planmocks "go.medium.engineering/picchu/pkg/controller/releasemanager/plan/mocks"
+	"go.medium.engineering/picchu/pkg/mocks"
+	planmocks "go.medium.engineering/picchu/pkg/plan/mocks"
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"

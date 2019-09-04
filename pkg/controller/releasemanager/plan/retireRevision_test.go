@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/mocks"
+	"go.medium.engineering/picchu/pkg/mocks"
+	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
@@ -19,7 +20,7 @@ func TestRetireMissingRevision(t *testing.T) {
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	plan := &RetireRevision{
+	rr := &RetireRevision{
 		Tag:       "testtag",
 		Namespace: "testnamespace",
 	}
@@ -29,10 +30,10 @@ func TestRetireMissingRevision(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), mocks.Kind("ReplicaSet")).
-		Return(notFoundError).
+		Return(common.NotFoundError).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, rr.Apply(ctx, m, log), "Shouldn't return error.")
 }
 
 func TestRetireExistingRevision(t *testing.T) {
@@ -41,7 +42,7 @@ func TestRetireExistingRevision(t *testing.T) {
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	plan := &RetireRevision{
+	rr := &RetireRevision{
 		Tag:       "testtag",
 		Namespace: "testnamespace",
 	}
@@ -76,5 +77,5 @@ func TestRetireExistingRevision(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, rr.Apply(ctx, m, log), "Shouldn't return error.")
 }

@@ -7,8 +7,8 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"

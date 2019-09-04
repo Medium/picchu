@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	"github.com/go-logr/logr"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -62,5 +63,5 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.L
 		},
 	}
 
-	return CreateOrUpdate(ctx, log, cli, hpa)
+	return plan.CreateOrUpdate(ctx, log, cli, hpa)
 }
