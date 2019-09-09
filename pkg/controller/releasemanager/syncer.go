@@ -70,6 +70,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseMana
 	if err := r.syncApp(ctx); err != nil {
 		return rs, err
 	}
+	if err := r.syncCanary(ctx); err != nil {
+		return rs, err
+	}
 
 	sorted := r.incarnations.sorted()
 	for i := len(sorted) - 1; i >= 0; i-- {
@@ -203,6 +206,30 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 			}).
 			Set(float64(revision.Weight))
 	}
+	return nil
+}
+
+func (r *ResourceSyncer) syncCanary(ctx context.Context) error {
+	labels := map[string]string{
+		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
+		picchuv1alpha1.LabelOwnerName: r.instance.Name,
+	}
+
+	incarnations := r.incarnations.incarnationsInStates(string(canarying))
+	for _, i := range incarnations {
+		err := r.applyPlan(ctx, "Sync Canaries", &rmplan.SyncCanary{
+			App:                    r.instance.Spec.App,
+			Namespace:              r.instance.TargetNamespace(),
+			Labels:                 labels,
+			Tag:                    i.tag,
+			ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

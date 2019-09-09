@@ -620,6 +620,18 @@ func (i *IncarnationCollection) revisioned() []Incarnation {
 	return r
 }
 
+func (i *IncarnationCollection) incarnationsInStates(states ...string) []Incarnation {
+	r := []Incarnation{}
+	for _, i := range i.sorted() {
+		for _, s := range states {
+			if i.status.State.Current == s {
+				r = append(r, i)
+			}
+		}
+	}
+	return r
+}
+
 func (i *IncarnationCollection) sorted() []Incarnation {
 	r := []Incarnation{}
 	for _, item := range i.itemSet {

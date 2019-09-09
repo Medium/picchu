@@ -20,7 +20,7 @@ func TestPrometheusCache(t *testing.T) {
 	m := mocks.NewMockPromAPI(ctrl)
 	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
-	aq := NewAlertQuery("tutu")
+	aq := NewAlertQuery("tutu", "slo")
 
 	q := bytes.NewBufferString("")
 	assert.Nil(t, alertTemplate.Execute(q, aq), "Template execute shouldn't fail")
@@ -50,7 +50,7 @@ func TestPrometheusAlerts(t *testing.T) {
 	m := mocks.NewMockPromAPI(ctrl)
 	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
-	aq := NewAlertQuery("tutu")
+	aq := NewAlertQuery("tutu", "slo")
 
 	q := bytes.NewBufferString("")
 	assert.Nil(t, alertTemplate.Execute(q, aq), "Template execute shouldn't fail")
