@@ -3,6 +3,7 @@ package utils
 import "time"
 
 type Config struct {
+	HumaneReleasesEnabled  bool
 	ManageRoute53          bool
 	RequeueAfter           time.Duration
 	PrometheusQueryAddress string

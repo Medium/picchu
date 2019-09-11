@@ -56,6 +56,7 @@ func main() {
 	prometheusQueryTTL := pflag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
 	sentryAuthToken := pflag.String("sentry-auth-token", "", "Sentry API auth token")
 	sentryOrg := pflag.String("sentry-org", "", "Sentry API Organization")
+	humaneReleasesEnabled := pflag.Bool("humane-releases-enabled", true, "Release apps on the humane schedule")
 
 	pflag.Parse()
 
@@ -70,6 +71,10 @@ func main() {
 	logf.SetLogger(zap.Logger())
 
 	printVersion()
+
+	if !*humaneReleasesEnabled {
+		log.Info("New revisions with the default (humane) schedule will not be released (--humane-releases-enabled=false)")
+	}
 
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
@@ -129,6 +134,7 @@ func main() {
 
 	config := utils.Config{
 		ManageRoute53:          *manageRoute53,
+		HumaneReleasesEnabled:  *humaneReleasesEnabled,
 		RequeueAfter:           requeuePeriod,
 		PrometheusQueryAddress: *prometheusQueryAddress,
 		PrometheusQueryTTL:     *prometheusQueryTTL,
