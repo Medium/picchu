@@ -72,6 +72,10 @@ func main() {
 
 	printVersion()
 
+	if !*humaneReleasesEnabled {
+		log.Info("New revisions with the default (humane) schedule will not be released (--humane-releases-enabled=false)")
+	}
+
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
