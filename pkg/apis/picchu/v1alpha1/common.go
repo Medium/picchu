@@ -32,6 +32,7 @@ const (
 	LabelOwnerName                      = "picchu.medium.engineering/ownerName"
 	LabelOwnerType                      = "picchu.medium.engineering/ownerType"
 	LabelCommit                         = "picchu.medium.engineering/commit"
+	LabelRuleType                       = "picchu.medium.engineering/ruleType"
 	LabelFleetPrefix                    = "fleet.picchu.medium.engineering/"
 	FinalizerReleaseManager             = "picchu.medium.engineering/releasemanager"
 	FinalizerCluster                    = "picchu.medium.engineering/cluster"

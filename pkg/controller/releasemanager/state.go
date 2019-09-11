@@ -56,6 +56,8 @@ type Deployment interface {
 	sync(context.Context) error
 	retire(context.Context) error
 	del(context.Context) error
+	syncCanary(context.Context) error
+	deleteCanary(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	isAlarmTriggered() bool
@@ -253,6 +255,7 @@ func Deleting(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.hasRevision() {
 		return deploying, nil
 	}
+
 	if deployment.currentPercent() <= 0 {
 		return deleted, deployment.del(ctx)
 	}
@@ -296,6 +299,9 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isAlarmTriggered() {
 		return failing, nil
 	}
+	if err := deployment.syncCanary(ctx); err != nil {
+		return canarying, err
+	}
 	if !deployment.isCanaryPending() {
 		return canaried, nil
 	}
@@ -308,6 +314,9 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if deployment.isAlarmTriggered() {
 		return failing, nil
+	}
+	if err := deployment.deleteCanary(ctx); err != nil {
+		return canaried, err
 	}
 	if deployment.isReleaseEligible() {
 		return pendingrelease, nil

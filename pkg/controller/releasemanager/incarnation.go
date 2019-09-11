@@ -213,6 +213,25 @@ func (i *Incarnation) sync(ctx context.Context) error {
 	))
 }
 
+func (i *Incarnation) syncCanary(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync Canary", &rmplan.SyncCanary{
+		App:                    i.appName(),
+		Namespace:              i.targetNamespace(),
+		Tag:                    i.tag,
+		Target:                 i.target().Name,
+		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+	})
+}
+
+func (i *Incarnation) deleteCanary(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Canary", &rmplan.DeleteCanary{
+		App:       i.appName(),
+		Namespace: i.targetNamespace(),
+		Tag:       i.tag,
+		Target:    i.target().Name,
+	})
+}
+
 func (i *Incarnation) scale(ctx context.Context) error {
 	return i.controller.applyPlan(ctx, "Scale Revision", &rmplan.ScaleRevision{
 		Tag:       i.tag,
@@ -532,7 +551,12 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Current == "canarying" {
+		switch i.status.State.Current {
+		case "canarying":
+			r = append(r, i)
+		case "canaried":
+			r = append(r, i)
+		case "pendingrelease":
 			r = append(r, i)
 		}
 	}
@@ -615,18 +639,6 @@ func (i *IncarnationCollection) revisioned() []Incarnation {
 	for _, i := range i.sorted() {
 		if i.revision != nil {
 			r = append(r, i)
-		}
-	}
-	return r
-}
-
-func (i *IncarnationCollection) incarnationsInStates(states ...string) []Incarnation {
-	r := []Incarnation{}
-	for _, i := range i.sorted() {
-		for _, s := range states {
-			if i.status.State.Current == s {
-				r = append(r, i)
-			}
 		}
 	}
 	return r
