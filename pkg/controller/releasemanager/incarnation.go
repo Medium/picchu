@@ -36,9 +36,12 @@ type Incarnation struct {
 	revision   *picchuv1alpha1.Revision
 	log        logr.Logger
 	status     *picchuv1alpha1.ReleaseManagerRevisionStatus
+
+	// TODO(lyra): should this be a parameter of schedulePermitsRelease()?
+	humaneReleasesEnabled bool
 }
 
-func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo) Incarnation {
+func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, humaneReleasesEnabled bool) Incarnation {
 	status := controller.getReleaseManager().RevisionStatus(tag)
 
 	if status.State.Current == "" {
@@ -79,11 +82,12 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		r = &rev
 	}
 	i := Incarnation{
-		controller: controller,
-		tag:        tag,
-		revision:   r,
-		log:        log,
-		status:     status,
+		controller:            controller,
+		tag:                   tag,
+		revision:              r,
+		log:                   log,
+		status:                status,
+		humaneReleasesEnabled: humaneReleasesEnabled,
 	}
 	i.update(di)
 	return i
@@ -228,6 +232,11 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 	// If previously released, allow outside of schedule
 	if i.status.PeakPercent > 0 && i.status.PeakPercent > i.target().Canary.Percent {
 		return true
+	}
+
+	// If engineers are out of office, don't start new releases
+	if !i.humaneReleasesEnabled && i.target().Release.Schedule != "always" {
+		return false
 	}
 
 	// if the revision was created during release schedule or we are currently
@@ -447,26 +456,29 @@ type IncarnationCollection struct {
 	controller Controller
 }
 
-func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation) *IncarnationCollection {
+func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, humaneReleasesEnabled bool) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
 		itemSet:    make(map[string]Incarnation),
 	}
-	rm := controller.getReleaseManager()
-	for _, r := range revisionList.Items {
-		tag := r.Spec.App.Tag
+	add := func(tag string, revision *picchuv1alpha1.Revision) {
+		if _, ok := ic.itemSet[tag]; revision == nil && ok {
+			return
+		}
+
 		l := controller.getLog().WithValues("Tag", tag)
 		di := observation.ForTag(tag)
-		ic.itemSet[tag] = NewIncarnation(controller, tag, &r, l, di)
+		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, di, humaneReleasesEnabled)
 	}
+
+	for _, r := range revisionList.Items {
+		add(r.Spec.App.Tag, &r)
+	}
+
 	// add any deleted revisions that still have status
+	rm := controller.getReleaseManager()
 	for _, r := range rm.Status.Revisions {
-		l := controller.getLog().WithValues("Tag", r.Tag)
-		if _, ok := ic.itemSet[r.Tag]; ok {
-			continue
-		}
-		di := observation.ForTag(r.Tag)
-		ic.itemSet[r.Tag] = NewIncarnation(controller, r.Tag, nil, l, di)
+		add(r.Tag, nil)
 	}
 
 	return ic

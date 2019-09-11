@@ -173,7 +173,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		planApplier:    planApplier,
 		observer:       observer,
 		instance:       rm,
-		incarnations:   newIncarnationCollection(ic, revisions, observation),
+		incarnations:   newIncarnationCollection(ic, revisions, observation, r.config.HumaneReleasesEnabled),
 		reconciler:     r,
 		log:            rmLog,
 		clusterConfig:  clusterConfig,
