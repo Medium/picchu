@@ -343,6 +343,16 @@ func (i *Incarnation) isReleaseEligible() bool {
 	return i.status.ReleaseEligible
 }
 
+// Pre-exit hook to execute code just before exiting a state
+func (i *Incarnation) exitState(ctx context.Context, state string) error {
+	switch state {
+	case "canarying":
+		return i.deleteCanaryRules(ctx)
+	}
+
+	return nil
+}
+
 // = End Deployment interface
 
 func (i *Incarnation) target() *picchuv1alpha1.RevisionTarget {
@@ -577,10 +587,6 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 		switch i.status.State.Current {
 		case "canarying":
 			r = append(r, i)
-		case "canaried":
-			r = append(r, i)
-		case "pendingrelease":
-			r = append(r, i)
 		}
 	}
 	for _, i := range i.sorted() {
@@ -642,6 +648,31 @@ func (i *IncarnationCollection) unreleasable() []Incarnation {
 		unreleasable = append(unreleasable, incarnation)
 	}
 	return unreleasable
+}
+
+// alertable returns the incarnations which could currently
+// have alerting enabled
+func (i *IncarnationCollection) alertable() []Incarnation {
+	r := []Incarnation{}
+	for _, i := range i.revisioned() {
+		switch i.status.State.Current {
+		case "canarying":
+			r = append(r, i)
+		case "canaried":
+			r = append(r, i)
+		case "pendingrelease":
+			r = append(r, i)
+		}
+	}
+	for _, i := range i.revisioned() {
+		switch i.status.State.Current {
+		case "releasing":
+			r = append(r, i)
+		case "released":
+			r = append(r, i)
+		}
+	}
+	return r
 }
 
 func (i *IncarnationCollection) unretirable() []Incarnation {

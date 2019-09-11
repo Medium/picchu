@@ -41,7 +41,7 @@ func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		err := cli.Delete(ctx, rule)
 		if err != nil && !errors.IsNotFound(err) {
 			plan.LogSync(log, "deleted", err, rule)
-			return nil
+			return err
 		}
 		if err == nil {
 			plan.LogSync(log, "deleted", err, rule)

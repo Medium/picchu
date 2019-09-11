@@ -56,6 +56,7 @@ type Deployment interface {
 	sync(context.Context) error
 	retire(context.Context) error
 	del(context.Context) error
+	exitState(context.Context, string) error
 	syncCanaryRules(context.Context) error
 	deleteCanaryRules(context.Context) error
 	syncSLIRules(context.Context) error
@@ -89,6 +90,12 @@ func (s *DeploymentStateManager) tick(ctx context.Context) error {
 	state, err := handlers[current](ctx, s.deployment)
 	if err != nil {
 		return err
+	}
+	if current != string(state) {
+		err = s.deployment.exitState(ctx, current)
+		if err != nil {
+			return err
+		}
 	}
 	s.deployment.setState(string(state))
 	s.deployment.getLog().Info("Advanced state", "tag", s.deployment.getStatus().Tag, "current", string(state))
@@ -331,9 +338,6 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if deployment.isAlarmTriggered() {
 		return failing, nil
-	}
-	if err := deployment.deleteCanaryRules(ctx); err != nil {
-		return canaried, err
 	}
 	if deployment.isReleaseEligible() {
 		return pendingrelease, nil
