@@ -226,7 +226,7 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 	}
 
 	// If previously released, allow outside of schedule
-	if i.status.PeakPercent > 0 {
+	if i.status.PeakPercent > 0 && i.status.PeakPercent > i.target().Canary.Percent {
 		return true
 	}
 
