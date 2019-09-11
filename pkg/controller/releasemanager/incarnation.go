@@ -213,22 +213,45 @@ func (i *Incarnation) sync(ctx context.Context) error {
 	))
 }
 
-func (i *Incarnation) syncCanary(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync Canary", &rmplan.SyncCanary{
+func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync Canary", &rmplan.SyncAlerts{
 		App:                    i.appName(),
 		Namespace:              i.targetNamespace(),
 		Tag:                    i.tag,
 		Target:                 i.target().Name,
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+		AlertType:              rmplan.Canary,
 	})
 }
 
-func (i *Incarnation) deleteCanary(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete Canary", &rmplan.DeleteCanary{
+func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Canary", &rmplan.DeleteAlerts{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
 		Target:    i.target().Name,
+		AlertType: rmplan.Canary,
+	})
+}
+
+func (i *Incarnation) syncSLIRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync Alerts", &rmplan.SyncAlerts{
+		App:                    i.appName(),
+		Namespace:              i.targetNamespace(),
+		Tag:                    i.tag,
+		Target:                 i.target().Name,
+		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+		AlertType:              rmplan.SLI,
+	})
+}
+
+func (i *Incarnation) deleteSLIRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Alerts", &rmplan.DeleteAlerts{
+		App:       i.appName(),
+		Namespace: i.targetNamespace(),
+		Tag:       i.tag,
+		Target:    i.target().Name,
+		AlertType: rmplan.SLI,
 	})
 }
 

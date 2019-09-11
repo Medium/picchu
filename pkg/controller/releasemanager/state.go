@@ -56,8 +56,10 @@ type Deployment interface {
 	sync(context.Context) error
 	retire(context.Context) error
 	del(context.Context) error
-	syncCanary(context.Context) error
-	deleteCanary(context.Context) error
+	syncCanaryRules(context.Context) error
+	deleteCanaryRules(context.Context) error
+	syncSLIRules(context.Context) error
+	deleteSLIRules(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	isAlarmTriggered() bool
@@ -212,6 +214,9 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.sync(ctx); err != nil {
 		return releasing, err
 	}
+	if err := deployment.syncSLIRules(ctx); err != nil {
+		return releasing, err
+	}
 	if deployment.peakPercent() >= 100 {
 		return released, nil
 	}
@@ -231,6 +236,9 @@ func Retiring(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if deployment.isReleaseEligible() {
 		return deploying, nil
+	}
+	if err := deployment.deleteSLIRules(ctx); err != nil {
+		return retiring, err
 	}
 	if deployment.currentPercent() <= 0 {
 		return retired, deployment.retire(ctx)
@@ -256,9 +264,18 @@ func Deleting(ctx context.Context, deployment Deployment) (State, error) {
 		return deploying, nil
 	}
 
+	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return deleting, err
+	}
+
+	if err := deployment.deleteSLIRules(ctx); err != nil {
+		return deleting, err
+	}
+
 	if deployment.currentPercent() <= 0 {
 		return deleted, deployment.del(ctx)
 	}
+
 	return deleting, nil
 }
 
@@ -299,7 +316,7 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isAlarmTriggered() {
 		return failing, nil
 	}
-	if err := deployment.syncCanary(ctx); err != nil {
+	if err := deployment.syncCanaryRules(ctx); err != nil {
 		return canarying, err
 	}
 	if !deployment.isCanaryPending() {
@@ -315,7 +332,7 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isAlarmTriggered() {
 		return failing, nil
 	}
-	if err := deployment.deleteCanary(ctx); err != nil {
+	if err := deployment.deleteCanaryRules(ctx); err != nil {
 		return canaried, err
 	}
 	if deployment.isReleaseEligible() {

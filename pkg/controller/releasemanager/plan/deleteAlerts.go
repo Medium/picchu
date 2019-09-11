@@ -11,38 +11,40 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type DeleteCanary struct {
+type DeleteAlerts struct {
 	App       string
 	Namespace string
 	Tag       string
 	Target    string
+	AlertType AlertType
 }
 
-func (p *DeleteCanary) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
-	canaryRules := &monitoringv1.PrometheusRuleList{}
+func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+	rules := &monitoringv1.PrometheusRuleList{}
+	alertType := string(p.AlertType)
 
 	opts := client.
 		MatchingLabels(map[string]string{
 			picchuv1alpha1.LabelApp:      p.App,
 			picchuv1alpha1.LabelTag:      p.Tag,
 			picchuv1alpha1.LabelTarget:   p.Target,
-			picchuv1alpha1.LabelRuleType: DefaultCanaryLabel,
+			picchuv1alpha1.LabelRuleType: alertType,
 		}).
 		InNamespace(p.Namespace)
 
-	if err := cli.List(ctx, opts, canaryRules); err != nil {
-		log.Error(err, "Failed to fetch canary rules")
+	if err := cli.List(ctx, opts, rules); err != nil {
+		log.Error(err, "Failed to fetch rules")
 		return err
 	}
 
-	for _, canaryRule := range canaryRules.Items {
-		err := cli.Delete(ctx, canaryRule)
+	for _, rule := range rules.Items {
+		err := cli.Delete(ctx, rule)
 		if err != nil && !errors.IsNotFound(err) {
-			plan.LogSync(log, "deleted", err, canaryRule)
+			plan.LogSync(log, "deleted", err, rule)
 			return nil
 		}
 		if err == nil {
-			plan.LogSync(log, "deleted", err, canaryRule)
+			plan.LogSync(log, "deleted", err, rule)
 		}
 	}
 

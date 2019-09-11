@@ -16,7 +16,7 @@ import (
 var (
 	alertTemplate = template.Must(template.
 			New("taggedAlerts").
-			Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.AlertType}}="true",alertstate="{{.AlertState}}"})`))
+			Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
 	log = logf.Log.WithName("prometheus_alerts")
 )
 
@@ -28,15 +28,13 @@ type AlertQuery struct {
 	App        string
 	AlertState string
 	TagLabel   string
-	AlertType  string
 }
 
-func NewAlertQuery(app, alertType string) AlertQuery {
+func NewAlertQuery(app string) AlertQuery {
 	return AlertQuery{
 		App:        app,
 		AlertState: "firing",
 		TagLabel:   "tag",
-		AlertType:  alertType,
 	}
 }
 
@@ -133,8 +131,8 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([
 
 // IsRevisionTriggered returns true if any slo alerts are currently triggered
 // for the app/tag pair.
-func (a API) IsRevisionTriggered(ctx context.Context, app, tag, alertType string) (bool, error) {
-	q := NewAlertQuery(app, alertType)
+func (a API) IsRevisionTriggered(ctx context.Context, app, tag string) (bool, error) {
+	q := NewAlertQuery(app)
 	tags, err := a.TaggedAlerts(ctx, q, time.Now())
 	if err != nil {
 		return false, err
