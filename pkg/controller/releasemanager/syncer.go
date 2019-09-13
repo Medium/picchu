@@ -263,15 +263,18 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
 		current := incarnation.currentPercentTarget(percRemaining)
+		if current > percRemaining {
+			panic("Assertion failed")
+		}
 		if i+1 == count {
 			current = percRemaining
 		}
 		incarnation.updateCurrentPercent(current)
 		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
-		percRemaining -= current
-		if percRemaining+current <= 0 {
+		if current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
+		percRemaining -= current
 		tagRoutingHeader := ""
 		if incarnation.revision != nil {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
