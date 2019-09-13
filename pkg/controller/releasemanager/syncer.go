@@ -246,7 +246,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	// incrementing their weight if enough time has passed since their last
 	// update, and stopping when we reach 100%. This will cause newer releases
 	// to take from oldest fnord release.
-	var percRemaining uint32 = 100
+	var percRemaining int32 = 100
 	// Tracking one route per port number
 	incarnations := r.incarnations.releasable()
 	count := len(incarnations)
@@ -260,13 +260,22 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	}
 
 	for i, incarnation := range incarnations {
+		if percRemaining < 0 {
+			// TODO(lyra): do we need this? retrofit uint32 -> int32 better
+			percRemaining = 0
+		}
+
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
-		current := incarnation.currentPercentTarget(percRemaining)
+		current := int32(incarnation.currentPercentTarget(uint32(percRemaining)))
 		if i+1 == count {
 			current = percRemaining
 		}
-		incarnation.updateCurrentPercent(current)
+
+		if current < 0 {
+			current = 0
+		}
+		incarnation.updateCurrentPercent(uint32(current))
 		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
 		percRemaining -= current
 		if percRemaining+current <= 0 {
@@ -278,7 +287,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		}
 		revisionsMap[incarnation.tag] = rmplan.Revision{
 			Tag:              incarnation.tag,
-			Weight:           current,
+			Weight:           uint32(current),
 			TagRoutingHeader: tagRoutingHeader,
 		}
 	}
