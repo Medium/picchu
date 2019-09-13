@@ -89,6 +89,7 @@ type RevisionTarget struct {
 	Scale          ScaleInfo              `json:"scale"`
 	Release        ReleaseInfo            `json:"release,omitempty"`
 	ServiceLevelObjectives []ServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
+	AcceptanceTarget       bool                    `json:"acceptanceTarget,omitempty"`
 	ConfigSelector *metav1.LabelSelector  `json:"configSelector,omitempty"`
 	AWS            AWSInfo                `json:"aws,omitempty"`
 	AlertRules     []monitoringv1.Rule    `json:"alertRules,omitempty"`
@@ -118,6 +119,7 @@ type Canary struct {
 type ServiceLevelIndicator struct {
 	UseForCanary    bool    `json:"useForCanary"`
 	CanaryAllowance float64 `json:"canaryAllowance,omitempty"`
+	TagExpression   string  `json:"tagExpression,omitempty"`
 	AlertAfter      string  `json:"alertAfter,omitempty"`
 	TotalQuery      string  `json:"totalQuery"`
 	ErrorQuery      string  `json:"errorQuery"`

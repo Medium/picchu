@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	DefaultAlertAfter             = "5m"
-	CanarySLIFailingQueryTemplate = "100 * (1 - %s / %s) + %f < %f"
-	SLIFailingQueryTemplate       = "100 * (1 - %s / %s) < %f"
-
-	RuleNameTemplate           = "picchu.%s.rules"
-	Canary           AlertType = "canary"
-	SLI              AlertType = "sli"
+	DefaultAlertAfter                       = "2m"
+	CanarySLIFailingQueryTemplate           = "100 * (1 - %s / %s) + %f < %f"
+	SLIFailingQueryTemplate                 = "100 * (1 - %s / %s) < %f"
+	DefaultTagExpression                    = "{{ $labels.destination_workload }}"
+	RuleNameTemplate                        = "picchu.%s.rules"
+	Canary                        AlertType = "canary"
+	SLI                           AlertType = "sli"
 )
 
 type SyncAlerts struct {
@@ -69,10 +69,15 @@ func (p *SyncAlerts) rules() *monitoringv1.PrometheusRule {
 			if slo.ServiceLevelIndicator.AlertAfter != "" {
 				alertAfter = slo.ServiceLevelIndicator.AlertAfter
 			}
+			tagExpression := DefaultTagExpression
+			if slo.ServiceLevelIndicator.TagExpression != "" {
+				tagExpression = slo.ServiceLevelIndicator.TagExpression
+			}
 
 			labels := make(map[string]string)
 			labels["app"] = p.App
 			labels["alertType"] = alertType
+			labels["tag"] = tagExpression
 			labels["slo"] = "true"
 
 			var expr intstr.IntOrString
