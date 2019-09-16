@@ -567,18 +567,15 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 }
 
 func (i *IncarnationCollection) unreleasable() []Incarnation {
-	releasableTags := []string{}
+	releasableTags := map[string]bool{}
 	for _, incarnation := range i.releasable() {
-		releasableTags = append(releasableTags, incarnation.tag)
+		releasableTags[incarnation.tag] = true
 	}
 
 	unreleasable := []Incarnation{}
-Outer:
 	for _, incarnation := range i.sorted() {
-		for _, tag := range releasableTags {
-			if incarnation.tag == tag {
-				continue Outer
-			}
+		if _, ok := releasableTags[incarnation.tag]; ok {
+			continue
 		}
 		unreleasable = append(unreleasable, incarnation)
 	}
