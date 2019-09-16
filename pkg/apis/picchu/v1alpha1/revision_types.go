@@ -72,6 +72,7 @@ type RevisionSpec struct {
 	TrafficPolicy    *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
 	Failed           bool                         `json:"failed"`
 	IgnoreSLOs       bool                         `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
 	Sentry           SentryInfo                   `json:"sentry"`
 	TagRoutingHeader string                       `json:"tagRoutingHeader,omitempty"`
 }
@@ -119,7 +120,7 @@ type Canary struct {
 type ServiceLevelIndicator struct {
 	UseForCanary    bool    `json:"useForCanary"`
 	CanaryAllowance float64 `json:"canaryAllowance,omitempty"`
-	TagExpression   string  `json:"tagExpression,omitempty"`
+	TagKey          string  `json:"tagKey,omitempty"`
 	AlertAfter      string  `json:"alertAfter,omitempty"`
 	TotalQuery      string  `json:"totalQuery"`
 	ErrorQuery      string  `json:"errorQuery"`

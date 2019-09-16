@@ -14,9 +14,12 @@ import (
 )
 
 var (
-	alertTemplate = template.Must(template.
-			New("taggedAlerts").
-			Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
+	CanaryFiringTemplate = template.Must(template.
+				New("canaryFiringAlerts").
+				Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.TagLabel}}="{{.Tag}}",alertType="canary",alertstate="{{.AlertState}}"})`))
+	SLOFiringQueryTemplate = template.Must(template.
+				New("sloFiringAlerts").
+				Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
 	log = logf.Log.WithName("prometheus_alerts")
 )
 
@@ -28,13 +31,15 @@ type AlertQuery struct {
 	App        string
 	AlertState string
 	TagLabel   string
+	Tag        string
 }
 
-func NewAlertQuery(app string) AlertQuery {
+func NewAlertQuery(app, tag string) AlertQuery {
 	return AlertQuery{
 		App:        app,
 		AlertState: "firing",
 		TagLabel:   "tag",
+		Tag:        tag,
 	}
 }
 
@@ -90,9 +95,15 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 
 // TaggedAlerts returns a list of tags that are firing slo alerts for an app at
 // a particular time.
-func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([]string, error) {
+func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, canariesOnly bool) ([]string, error) {
 	q := bytes.NewBufferString("")
-	if err := alertTemplate.Execute(q, query); err != nil {
+	var template template.Template
+	if canariesOnly {
+		template = *CanaryFiringTemplate
+	} else {
+		template = *SLOFiringQueryTemplate
+	}
+	if err := template.Execute(q, query); err != nil {
 		return nil, err
 	}
 	val, err := a.queryWithCache(ctx, q.String(), t)
@@ -131,9 +142,10 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time) ([
 
 // IsRevisionTriggered returns true if any slo alerts are currently triggered
 // for the app/tag pair.
-func (a API) IsRevisionTriggered(ctx context.Context, app, tag string) (bool, error) {
-	q := NewAlertQuery(app)
-	tags, err := a.TaggedAlerts(ctx, q, time.Now())
+func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesOnly bool) (bool, error) {
+	q := NewAlertQuery(app, tag)
+
+	tags, err := a.TaggedAlerts(ctx, q, time.Now(), canariesOnly)
 	if err != nil {
 		return false, err
 	}

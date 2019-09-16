@@ -1,8 +1,10 @@
 package plan
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"text/template"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
@@ -14,14 +16,28 @@ import (
 )
 
 const (
-	DefaultAlertAfter                       = "2m"
-	CanarySLIFailingQueryTemplate           = "100 * (1 - %s / %s) + %f < %f"
-	SLIFailingQueryTemplate                 = "100 * (1 - %s / %s) < %f"
-	DefaultTagExpression                    = "{{ $labels.destination_workload }}"
-	RuleNameTemplate                        = "picchu.%s.rules"
-	Canary                        AlertType = "canary"
-	SLI                           AlertType = "sli"
+	DefaultAlertAfter           = "2m"
+	DefaultTagKey               = "destination_workload"
+	RuleNameTemplate            = "%s-%s-%s"
+	Canary            AlertType = "canary"
+	SLI               AlertType = "sli"
 )
+
+var (
+	CanarySLIFailingQueryTemplate = template.Must(template.New("canaryTaggedAlerts").
+					Parse(`100 * (1 - {{.ErrorQuery}}{ {{.TagKey}}="{{.TagValue}}" } / {{.TotalQuery}}{ {{.TagKey}}="{{.TagValue}}" }) + {{.CanaryAllowance}} < (100 * (1 - sum({{.ErrorQuery}}) / sum({{.TotalQuery}})))`))
+	SLIFailingQueryTemplate = template.Must(template.New("sliTaggedAlerts").
+				Parse(`100 * (1 - {{.ErrorQuery}}{ {{.TagKey}}="{{.TagValue}}" } / {{.TotalQuery}}{ {{.TagKey}}="{{.TagValue}}" }) < {{.AvailabilityObjective}}`))
+)
+
+type SLIQuery struct {
+	ErrorQuery            string
+	TotalQuery            string
+	TagKey                string
+	TagValue              string
+	CanaryAllowance       float64
+	AvailabilityObjective float64
+}
 
 type SyncAlerts struct {
 	App                    string
@@ -35,8 +51,10 @@ type SyncAlerts struct {
 type AlertType string
 
 func (p *SyncAlerts) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
-	rules := p.rules()
-
+	rules, err := p.rules()
+	if err != nil {
+		return err
+	}
 	if len(rules.Spec.Groups) > 0 {
 		if err := plan.CreateOrUpdate(ctx, log, cli, rules); err != nil {
 			return err
@@ -46,12 +64,12 @@ func (p *SyncAlerts) Apply(ctx context.Context, cli client.Client, log logr.Logg
 	return nil
 }
 
-func (p *SyncAlerts) rules() *monitoringv1.PrometheusRule {
+func (p *SyncAlerts) rules() (*monitoringv1.PrometheusRule, error) {
 	alertType := string(p.AlertType)
 
 	rule := &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s-%s", p.App, p.Tag, alertType),
+			Name:      fmt.Sprintf(RuleNameTemplate, p.App, p.Tag, alertType),
 			Namespace: p.Namespace,
 			Labels: map[string]string{
 				picchuv1alpha1.LabelApp:      p.App,
@@ -64,36 +82,48 @@ func (p *SyncAlerts) rules() *monitoringv1.PrometheusRule {
 	rules := []monitoringv1.Rule{}
 
 	for _, slo := range p.ServiceLevelObjectives {
-		if p.AlertType != Canary || slo.ServiceLevelIndicator.UseForCanary {
+		if slo.Enabled && p.AlertType != Canary || slo.ServiceLevelIndicator.UseForCanary {
 			alertAfter := DefaultAlertAfter
 			if slo.ServiceLevelIndicator.AlertAfter != "" {
 				alertAfter = slo.ServiceLevelIndicator.AlertAfter
 			}
-			tagExpression := DefaultTagExpression
-			if slo.ServiceLevelIndicator.TagExpression != "" {
-				tagExpression = slo.ServiceLevelIndicator.TagExpression
+			tagKey := DefaultTagKey
+			if slo.ServiceLevelIndicator.TagKey != "" {
+				tagKey = slo.ServiceLevelIndicator.TagKey
 			}
 
 			labels := make(map[string]string)
 			labels["app"] = p.App
 			labels["alertType"] = alertType
-			labels["tag"] = tagExpression
-			labels["slo"] = "true"
+			labels["tag"] = p.Tag
 
 			var expr intstr.IntOrString
+			var template template.Template
+			q := bytes.NewBufferString("")
+			query := SLIQuery{
+				ErrorQuery:            slo.ServiceLevelIndicator.ErrorQuery,
+				TotalQuery:            slo.ServiceLevelIndicator.TotalQuery,
+				CanaryAllowance:       slo.ServiceLevelIndicator.CanaryAllowance,
+				AvailabilityObjective: slo.AvailabilityObjectivePercent,
+				TagKey:                tagKey,
+				TagValue:              p.Tag,
+			}
+
 			switch p.AlertType {
 			case Canary:
-				expr = intstr.FromString(fmt.Sprintf(CanarySLIFailingQueryTemplate,
-					slo.ServiceLevelIndicator.ErrorQuery, slo.ServiceLevelIndicator.TotalQuery,
-					slo.ServiceLevelIndicator.CanaryAllowance, slo.AvailabilityObjectivePercent))
+				template = *CanarySLIFailingQueryTemplate
 			case SLI:
-				expr = intstr.FromString(fmt.Sprintf(SLIFailingQueryTemplate,
-					slo.ServiceLevelIndicator.ErrorQuery, slo.ServiceLevelIndicator.TotalQuery, slo.AvailabilityObjectivePercent))
+				template = *SLIFailingQueryTemplate
 			}
+
+			if err := template.Execute(q, query); err != nil {
+				return nil, err
+			}
+			expr = intstr.FromString(q.String())
 
 			rules = append(rules, monitoringv1.Rule{
 				Labels: labels,
-				Alert:  slo.Name,
+				Alert:  fmt.Sprintf(RuleNameTemplate, slo.Name, p.Tag, alertType),
 				For:    alertAfter,
 				Expr:   expr,
 			})
@@ -101,10 +131,10 @@ func (p *SyncAlerts) rules() *monitoringv1.PrometheusRule {
 	}
 	rule.Spec = monitoringv1.PrometheusRuleSpec{
 		Groups: []monitoringv1.RuleGroup{{
-			Name:  fmt.Sprintf(RuleNameTemplate, alertType),
+			Name:  fmt.Sprintf(RuleNameTemplate, p.App, p.Tag, alertType),
 			Rules: rules,
 		}},
 	}
 
-	return rule
+	return rule, nil
 }

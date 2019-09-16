@@ -37,6 +37,8 @@ spec:
               type: boolean
             ignoreSLOs:
               type: boolean
+            canaryWithSLIRules:
+              type: boolean
             app:
               properties:
                 image:
