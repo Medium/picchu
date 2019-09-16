@@ -286,6 +286,10 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		}
 	}
 
+	for _, incarnation := range r.incarnations.unreleasable() {
+		incarnation.updateCurrentPercent(0)
+	}
+
 	revisions := make([]rmplan.Revision, 0, len(revisionsMap))
 	for _, revision := range revisionsMap {
 		revisions = append(revisions, revision)
