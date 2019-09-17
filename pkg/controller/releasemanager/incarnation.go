@@ -348,6 +348,8 @@ func (i *Incarnation) exitState(ctx context.Context, state string) error {
 	switch state {
 	case "canarying":
 		return i.deleteCanaryRules(ctx)
+	case "released":
+		return i.deleteSLIRules(ctx)
 	}
 
 	return nil

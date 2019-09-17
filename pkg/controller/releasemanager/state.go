@@ -244,9 +244,6 @@ func Retiring(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isReleaseEligible() {
 		return deploying, nil
 	}
-	if err := deployment.deleteSLIRules(ctx); err != nil {
-		return retiring, err
-	}
 	if deployment.currentPercent() <= 0 {
 		return retired, deployment.retire(ctx)
 	}
