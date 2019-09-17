@@ -498,7 +498,7 @@ func TestRetired(t *tt.T) {
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 
-	testcase(retired, m(true, false, false))
+	testcase(retired, expectRetire(m(true, false, false)))
 	testcase(deploying, m(true, false, true))
 }
 
@@ -595,7 +595,7 @@ func TestFailed(t *tt.T) {
 
 	testcase(deploying, m(true, false))
 
-	testcase(failed, m(true, true))
+	testcase(failed, expectRetire(m(true, true)))
 }
 
 func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m *MockDeployment) {
