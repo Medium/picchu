@@ -246,7 +246,7 @@ func Retired(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isReleaseEligible() {
 		return deploying, nil
 	}
-	return retired, nil
+	return retired, deployment.retire(ctx)
 }
 
 func Deleting(ctx context.Context, deployment Deployment) (State, error) {
@@ -286,7 +286,7 @@ func Failed(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.isAlarmTriggered() {
 		return deploying, nil
 	}
-	return failed, nil
+	return failed, deployment.retire(ctx)
 }
 
 func Canarying(ctx context.Context, deployment Deployment) (State, error) {
