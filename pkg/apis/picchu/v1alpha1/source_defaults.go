@@ -28,11 +28,6 @@ func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 	for i, _ := range spec.Ports {
 		SetPortDefaults(&spec.Ports[i])
 	}
-	for i, _ := range spec.Targets {
-		for j, _ := range spec.Targets[i].Ports {
-			SetPortDefaults(&spec.Targets[i].Ports[j])
-		}
-	}
 }
 
 func SetReleaseDefaults(release *ReleaseInfo) {
