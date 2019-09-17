@@ -113,11 +113,16 @@ func (i *Incarnation) isCanaryPending() bool {
 
 func (i *Incarnation) ports() []picchuv1alpha1.PortInfo {
 	ports := i.revision.Spec.Ports
-	if len(i.target().Ports) > 0 {
-		ports = i.target().Ports
-	} else {
-		i.log.Info("revision.spec.ports is deprecated", "tag", i.tag)
+	target := i.target()
+
+	if target != nil {
+		if len(target.Ports) > 0 {
+			ports = target.Ports
+		} else {
+			i.log.Info("revision.spec.ports is deprecated", "tag", i.tag)
+		}
 	}
+
 	return ports
 }
 
