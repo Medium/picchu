@@ -242,6 +242,12 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		}
 	}
 
+	// This ensures that incarnations that are no longer releasable get their
+	// currentPercent status set to 0%.
+	for _, incarnation := range r.incarnations.unreleasable() {
+		incarnation.updateCurrentPercent(0)
+	}
+
 	// The idea here is we will work through releases from newest to oldest,
 	// incrementing their weight if enough time has passed since their last
 	// update, and stopping when we reach 100%. This will cause newer releases
