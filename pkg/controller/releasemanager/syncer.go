@@ -156,7 +156,7 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	}
 
 	for _, incarnation := range incarnations {
-		for _, port := range incarnation.ports() {
+		for _, port := range incarnation.revision.Spec.Ports {
 			_, ok := portMap[port.Name]
 			if !ok {
 				portMap[port.Name] = port
