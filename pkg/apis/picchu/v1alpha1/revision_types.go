@@ -67,7 +67,7 @@ type RevisionList struct {
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
 	App              RevisionApp                  `json:"app"`
-	Ports            []PortInfo                   `json:"ports"`
+	Ports            []PortInfo                   `json:"ports,omitempty"`
 	Targets          []RevisionTarget             `json:"targets"`
 	TrafficPolicy    *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
 	Failed           bool                         `json:"failed"`
@@ -101,6 +101,7 @@ type RevisionTarget struct {
 
 	ExternalTest ExternalTest `json:"externalTest"`
 	Canary       Canary       `json:"canary"`
+	Ports        []PortInfo   `json:"ports,omitempty"`
 }
 
 type ExternalTest struct {

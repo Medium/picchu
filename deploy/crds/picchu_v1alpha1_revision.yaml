@@ -104,6 +104,33 @@ spec:
             targets:
               items:
                 properties:
+                  ports:
+                    items:
+                      properties:
+                        containerPort:
+                          format: int32
+                          type: integer
+                        hosts:
+                          items:
+                            type: string
+                          type: array
+                        ingressPort:
+                          format: int32
+                          type: integer
+                        mode:
+                          type: string
+                        name:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        protocol:
+                          type: string
+                      required:
+                      - name
+                      - mode
+                      type: object
+                    type: array
                   aws:
                     properties:
                       iam:
@@ -210,7 +237,6 @@ spec:
               type: array
           required:
           - app
-          - ports
           - targets
           type: object
         status:

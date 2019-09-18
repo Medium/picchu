@@ -111,6 +111,21 @@ func (i *Incarnation) isCanaryPending() bool {
 	return target.IsCanaryPending(i.status.CanaryStartTimestamp)
 }
 
+func (i *Incarnation) ports() []picchuv1alpha1.PortInfo {
+	ports := i.revision.Spec.Ports
+	target := i.target()
+
+	if target != nil {
+		if len(target.Ports) > 0 {
+			ports = target.Ports
+		} else {
+			i.log.Info("revision.spec.ports is deprecated", "tag", i.tag)
+		}
+	}
+
+	return ports
+}
+
 func (i *Incarnation) currentPercent() uint32 {
 	if i.getStatus() == nil {
 		return 0
@@ -178,7 +193,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 			Namespace:          i.targetNamespace(),
 			Labels:             i.defaultLabels(),
 			Configs:            append(append(configs, secrets...), configMaps...),
-			Ports:              i.revision.Spec.Ports,
+			Ports:              i.ports(),
 			Replicas:           i.divideReplicas(i.target().Scale.Default),
 			Image:              i.image(),
 			Resources:          i.target().Resources,
@@ -368,7 +383,7 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 		return http
 	}
 	overrideLabel := fmt.Sprintf("pin/%s", i.appName())
-	for _, port := range i.revision.Spec.Ports {
+	for _, port := range i.ports() {
 		matches := []istiov1alpha3.HTTPMatchRequest{{
 			// mesh traffic from same tag'd service with and test tag
 			SourceLabels: map[string]string{
