@@ -17,7 +17,7 @@ var (
 	CanaryFiringTemplate = template.Must(template.
 				New("canaryFiringAlerts").
 				Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.TagLabel}}="{{.Tag}}",alertType="canary",alertstate="{{.AlertState}}"})`))
-	SLOFiringQueryTemplate = template.Must(template.
+	SLOFiringTemplate = template.Must(template.
 				New("sloFiringAlerts").
 				Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
 	log = logf.Log.WithName("prometheus_alerts")
@@ -101,7 +101,7 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 	if canariesOnly {
 		template = *CanaryFiringTemplate
 	} else {
-		template = *SLOFiringQueryTemplate
+		template = *SLOFiringTemplate
 	}
 	if err := template.Execute(q, query); err != nil {
 		return nil, err

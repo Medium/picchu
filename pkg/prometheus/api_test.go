@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/golang/mock/gomock"
@@ -13,6 +14,22 @@ import (
 )
 
 func TestPrometheusCache(t *testing.T) {
+	canaryTemplate := CanaryFiringTemplate
+	testAlertCache(t, *canaryTemplate, true)
+
+	sloTemplate := SLOFiringTemplate
+	testAlertCache(t, *sloTemplate, false)
+}
+
+func TestPrometheusAlerts(t *testing.T) {
+	canaryTemplate := CanaryFiringTemplate
+	testAlert(t, *canaryTemplate, true)
+
+	sloTemplate := SLOFiringTemplate
+	testAlert(t, *sloTemplate, false)
+}
+
+func testAlertCache(t *testing.T, template template.Template, canariesOnly bool) {
 	ctrl := gomock.NewController(t)
 
 	defer ctrl.Finish()
@@ -20,10 +37,10 @@ func TestPrometheusCache(t *testing.T) {
 	m := mocks.NewMockPromAPI(ctrl)
 	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
-	aq := NewAlertQuery("tutu")
+	aq := NewAlertQuery("tutu", "v1")
 
 	q := bytes.NewBufferString("")
-	assert.Nil(t, alertTemplate.Execute(q, aq), "Template execute shouldn't fail")
+	assert.Nil(t, template.Execute(q, aq), "Template execute shouldn't fail")
 
 	m.
 		EXPECT().
@@ -32,17 +49,17 @@ func TestPrometheusCache(t *testing.T) {
 		Times(2)
 
 	for i := 0; i < 5; i++ {
-		r, err := api.TaggedAlerts(context.TODO(), aq, time.Now())
+		r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 		assert.Nil(t, err, "Should succeed in querying alerts")
 		assert.Equal(t, []string{}, r, "Should get no firing alerts")
 	}
 	time.Sleep(time.Duration(25) * time.Millisecond)
-	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now())
+	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 	assert.Nil(t, err, "Should succeed in querying alerts")
 	assert.Equal(t, []string{}, r, "Should get no firing alerts")
 }
 
-func TestPrometheusAlerts(t *testing.T) {
+func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 	ctrl := gomock.NewController(t)
 
 	defer ctrl.Finish()
@@ -50,10 +67,10 @@ func TestPrometheusAlerts(t *testing.T) {
 	m := mocks.NewMockPromAPI(ctrl)
 	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
-	aq := NewAlertQuery("tutu")
+	aq := NewAlertQuery("tutu", "v1")
 
 	q := bytes.NewBufferString("")
-	assert.Nil(t, alertTemplate.Execute(q, aq), "Template execute shouldn't fail")
+	assert.Nil(t, template.Execute(q, aq), "Template execute shouldn't fail")
 
 	response := model.Vector{
 		&model.Sample{
@@ -88,7 +105,7 @@ func TestPrometheusAlerts(t *testing.T) {
 		Return(response, nil).
 		Times(1)
 
-	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now())
+	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 	assert.Nil(t, err, "Should succeed in querying alerts")
 	assert.Equal(t, []string{"v1"}, r, "Should get 1 firing alerts (v1)")
 }
