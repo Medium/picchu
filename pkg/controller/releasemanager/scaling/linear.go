@@ -14,9 +14,8 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	if !st.IsReconciled() {
 		if current > max {
 			return max
-		} else {
-			return current
 		}
+		return current
 	}
 	increment := st.Increment()
 	// We can skip scale up for revisions that already scaled
@@ -32,9 +31,8 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	if deadline.After(t) {
 		if current > max {
 			return max
-		} else {
-			return current
 		}
+		return current
 	}
 
 	current = current + increment
