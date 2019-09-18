@@ -27,16 +27,16 @@ var (
 	CanarySLIFailingQueryTemplate = template.Must(template.New("canaryTaggedAlerts").
 					Parse(`100 * (1 - {{.ErrorQuery}}{ {{.TagKey}}="{{.TagValue}}" } / {{.TotalQuery}}{ {{.TagKey}}="{{.TagValue}}" }) + {{.CanaryAllowance}} < (100 * (1 - sum({{.ErrorQuery}}) / sum({{.TotalQuery}})))`))
 	SLIFailingQueryTemplate = template.Must(template.New("sliTaggedAlerts").
-				Parse(`100 * (1 - {{.ErrorQuery}}{ {{.TagKey}}="{{.TagValue}}" } / {{.TotalQuery}}{ {{.TagKey}}="{{.TagValue}}" }) < {{.AvailabilityObjective}}`))
+				Parse(`100 * (1 - {{.ErrorQuery}}{ {{.TagKey}}="{{.TagValue}}" } / {{.TotalQuery}}{ {{.TagKey}}="{{.TagValue}}" }) < {{.ObjectivePercent}}`))
 )
 
 type SLIQuery struct {
-	ErrorQuery            string
-	TotalQuery            string
-	TagKey                string
-	TagValue              string
-	CanaryAllowance       float64
-	AvailabilityObjective float64
+	ErrorQuery       string
+	TotalQuery       string
+	TagKey           string
+	TagValue         string
+	CanaryAllowance  float64
+	ObjectivePercent float64
 }
 
 type SyncAlerts struct {
@@ -101,12 +101,12 @@ func (p *SyncAlerts) rules() (*monitoringv1.PrometheusRule, error) {
 			var template template.Template
 			q := bytes.NewBufferString("")
 			query := SLIQuery{
-				ErrorQuery:            slo.ServiceLevelIndicator.ErrorQuery,
-				TotalQuery:            slo.ServiceLevelIndicator.TotalQuery,
-				CanaryAllowance:       slo.ServiceLevelIndicator.CanaryAllowance,
-				AvailabilityObjective: slo.AvailabilityObjectivePercent,
-				TagKey:                tagKey,
-				TagValue:              p.Tag,
+				ErrorQuery:       slo.ServiceLevelIndicator.ErrorQuery,
+				TotalQuery:       slo.ServiceLevelIndicator.TotalQuery,
+				CanaryAllowance:  slo.ServiceLevelIndicator.CanaryAllowance,
+				ObjectivePercent: slo.ObjectivePercent,
+				TagKey:           tagKey,
+				TagValue:         p.Tag,
 			}
 
 			switch p.AlertType {
@@ -117,7 +117,7 @@ func (p *SyncAlerts) rules() (*monitoringv1.PrometheusRule, error) {
 			}
 
 			if err := template.Execute(q, query); err != nil {
-				return nil, err
+				return rule, err
 			}
 			expr = intstr.FromString(q.String())
 

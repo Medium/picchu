@@ -86,7 +86,7 @@ spec:
                     type: string
                   enabled:
                     type: boolean
-                  availabilityObjectivePercent:
+                  objectivePercent:
                     type: float64
                   serviceLevelIndicator:
                     type: object
@@ -106,7 +106,7 @@ spec:
                       - totalQuery
                 required:
                 - name
-                - availabilityObjectivePercent
+                - objectivePercent
                 - serviceLevelIndicator
               type: array
             ports:

@@ -130,7 +130,7 @@ type ServiceLevelObjective struct {
 	Name                         string                `json:"name"`
 	Description                  string                `json:"description,omitempty"`
 	Enabled                      bool                  `json:"enabled"`
-	AvailabilityObjectivePercent float64               `json:"availabilityObjectivePercent"`
+	ObjectivePercent      float64               `json:"objectivePercent"`
 	ServiceLevelIndicator        ServiceLevelIndicator `json:"serviceLevelIndicator"`
 }
 

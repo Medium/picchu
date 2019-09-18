@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -69,6 +70,22 @@ func InjectHorizontalPodAutoscalers(hpas []autoscalingv1.HorizontalPodAutoscaler
 		}
 	}
 	return Callback(fn, "injects horizontalpodautoscalers")
+}
+
+// InjectPrometheusRules puts PrometheusRules into a *PrometheusRuleList
+func InjectPrometheusRules(rules []monitoringv1.PrometheusRule) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *monitoringv1.PrometheusRuleList:
+			for _, rule := range rules {
+				o.Items = append(o.Items, &rule)
+			}
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "injects PrometheusRules")
 }
 
 // UpdateNamespaceLabes sets the labels on a *Namespace
