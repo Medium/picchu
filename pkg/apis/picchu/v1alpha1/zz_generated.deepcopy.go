@@ -1109,6 +1109,13 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 	}
 	out.ExternalTest = in.ExternalTest
 	out.Canary = in.Canary
+	if in.Ports != nil {
+		in, out := &in.Ports, &out.Ports
+		*out = make([]PortInfo, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 

@@ -101,6 +101,7 @@ type RevisionTarget struct {
 
 	ExternalTest ExternalTest `json:"externalTest"`
 	Canary       Canary       `json:"canary"`
+	Ports        []PortInfo   `json:"ports"`
 }
 
 type ExternalTest struct {
