@@ -12,6 +12,9 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	}
 	// Only scale if previous target is met.
 	if !st.IsReconciled() {
+		if current > max {
+			return max
+		}
 		return current
 	}
 	increment := st.Increment()
@@ -26,6 +29,9 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	}
 	deadline := st.LastUpdated().Add(st.Delay())
 	if deadline.After(t) {
+		if current > max {
+			return max
+		}
 		return current
 	}
 

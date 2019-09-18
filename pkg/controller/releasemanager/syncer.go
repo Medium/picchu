@@ -270,6 +270,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		oldCurrent := status.CurrentPercent
 		current := incarnation.currentPercentTarget(percRemaining)
 		if current > percRemaining {
+			r.log.Info("Percent target greater than percRemaining", "current", current, "percRemaining", percRemaining)
 			panic("Assertion failed")
 		}
 		if i+1 == count {
