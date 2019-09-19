@@ -17,13 +17,6 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 		}
 		return current
 	}
-	increment := st.Increment()
-	// We can skip scale up for revisions that already scaled
-	/* TODO(bob): Is this still needed? causes scaling problems.
-	if current+st.Increment() < st.PeakPercent() {
-		increment = st.PeakPercent()
-	}
-	*/
 	if st.Max() < max {
 		max = st.Max()
 	}
@@ -35,7 +28,12 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 		return current
 	}
 
-	current = current + increment
+	increment := st.Increment()
+	if st.PeakPercent() >= 100 {
+		current = 100
+	} else {
+		current = current + increment
+	}
 	if current > max {
 		return max
 	}

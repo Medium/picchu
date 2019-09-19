@@ -80,21 +80,19 @@ func TestLinearScaling(t *testing.T) {
 
 	assert.Equal(t, 50, int(LinearScale(m, 100, time.Now())), "Scale shouldn't be incremented")
 
-	/*
-		m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
+	m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
 
-		assert.Equal(t, 100, int(LinearScale(m, 100, time.Now())), "Scale should skip to peak")
-
-		m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
-
-		assert.Equal(t, 80, int(LinearScale(m, 80, time.Now())), "Scale should skip to max remaining")
-	*/
+	assert.Equal(t, 100, int(LinearScale(m, 100, time.Now())), "Scale should skip to peak")
 
 	m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
+
+	assert.Equal(t, 80, int(LinearScale(m, 80, time.Now())), "Scale should skip to max remaining")
+
+	m = prepareMock(ctrl, true, 0, 99, 5, 100, 5, time.Time{})
 
 	assert.Equal(t, 5, int(LinearScale(m, 100, time.Now())), "Scale should not skip to peak")
 
-	m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
+	m = prepareMock(ctrl, true, 0, 99, 5, 100, 5, time.Time{})
 
 	assert.Equal(t, 5, int(LinearScale(m, 80, time.Now())), "Scale should not skip to max remaining")
 }
