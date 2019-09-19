@@ -15,7 +15,6 @@ type DeleteAlerts struct {
 	App       string
 	Namespace string
 	Tag       string
-	Target    string
 	AlertType AlertType
 }
 
@@ -27,7 +26,6 @@ func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		MatchingLabels(map[string]string{
 			picchuv1alpha1.LabelApp:      p.App,
 			picchuv1alpha1.LabelTag:      p.Tag,
-			picchuv1alpha1.LabelTarget:   p.Target,
 			picchuv1alpha1.LabelRuleType: alertType,
 		}).
 		InNamespace(p.Namespace)
@@ -37,16 +35,17 @@ func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		return err
 	}
 
-	for _, rule := range rules.Items {
-		err := cli.Delete(ctx, rule)
-		if err != nil && !errors.IsNotFound(err) {
-			plan.LogSync(log, "deleted", err, rule)
-			return err
-		}
-		if err == nil {
-			plan.LogSync(log, "deleted", err, rule)
+	if rules.Items != nil {
+		for _, rule := range rules.Items {
+			err := cli.Delete(ctx, rule)
+			if err != nil && !errors.IsNotFound(err) {
+				plan.LogSync(log, "deleted", err, rule)
+				return err
+			}
+			if err == nil {
+				plan.LogSync(log, "deleted", err, rule)
+			}
 		}
 	}
-
 	return nil
 }

@@ -25,7 +25,6 @@ func TestDeleteAlerts(t *testing.T) {
 		App:       "testapp",
 		Namespace: "testnamespace",
 		Tag:       "testtag",
-		Target:    "test",
 		AlertType: Canary,
 	}
 	ctx := context.TODO()
@@ -34,7 +33,6 @@ func TestDeleteAlerts(t *testing.T) {
 		MatchingLabels(map[string]string{
 			picchuv1alpha1.LabelApp:      deleteAlerts.App,
 			picchuv1alpha1.LabelTag:      deleteAlerts.Tag,
-			picchuv1alpha1.LabelTarget:   deleteAlerts.Target,
 			picchuv1alpha1.LabelRuleType: string(deleteAlerts.AlertType),
 		}).
 		InNamespace(deleteAlerts.Namespace)

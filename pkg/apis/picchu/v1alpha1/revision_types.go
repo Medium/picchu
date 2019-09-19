@@ -66,15 +66,15 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App              RevisionApp                  `json:"app"`
-	Ports            []PortInfo                   `json:"ports,omitempty"`
-	Targets          []RevisionTarget             `json:"targets"`
-	TrafficPolicy    *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
-	Failed           bool                         `json:"failed"`
-	IgnoreSLOs       bool                         `json:"ignoreSLOs,omitempty"`
+	App                RevisionApp                  `json:"app"`
+	Ports              []PortInfo                   `json:"ports,omitempty"`
+	Targets            []RevisionTarget             `json:"targets"`
+	TrafficPolicy      *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
+	Failed             bool                         `json:"failed"`
+	IgnoreSLOs         bool                         `json:"ignoreSLOs,omitempty"`
 	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
-	Sentry           SentryInfo                   `json:"sentry"`
-	TagRoutingHeader string                       `json:"tagRoutingHeader,omitempty"`
+	Sentry             SentryInfo                   `json:"sentry"`
+	TagRoutingHeader   string                       `json:"tagRoutingHeader,omitempty"`
 }
 
 type RevisionApp struct {
@@ -85,15 +85,15 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name           string                 `json:"name"`
-	Fleet          string                 `json:"fleet"`
-	Scale          ScaleInfo              `json:"scale"`
-	Release        ReleaseInfo            `json:"release,omitempty"`
+	Name                   string                  `json:"name"`
+	Fleet                  string                  `json:"fleet"`
+	Scale                  ScaleInfo               `json:"scale"`
+	Release                ReleaseInfo             `json:"release,omitempty"`
 	ServiceLevelObjectives []ServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
 	AcceptanceTarget       bool                    `json:"acceptanceTarget,omitempty"`
-	ConfigSelector *metav1.LabelSelector  `json:"configSelector,omitempty"`
-	AWS            AWSInfo                `json:"aws,omitempty"`
-	AlertRules     []monitoringv1.Rule    `json:"alertRules,omitempty"`
+	ConfigSelector         *metav1.LabelSelector   `json:"configSelector,omitempty"`
+	AWS                    AWSInfo                 `json:"aws,omitempty"`
+	AlertRules             []monitoringv1.Rule     `json:"alertRules,omitempty"`
 
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
@@ -127,11 +127,11 @@ type ServiceLevelIndicator struct {
 }
 
 type ServiceLevelObjective struct {
-	Name                         string                `json:"name"`
-	Description                  string                `json:"description,omitempty"`
-	Enabled                      bool                  `json:"enabled"`
+	Name                  string                `json:"name"`
+	Description           string                `json:"description,omitempty"`
+	Enabled               bool                  `json:"enabled"`
 	ObjectivePercent      float64               `json:"objectivePercent"`
-	ServiceLevelIndicator        ServiceLevelIndicator `json:"serviceLevelIndicator"`
+	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
 }
 
 type RevisionStatus struct {

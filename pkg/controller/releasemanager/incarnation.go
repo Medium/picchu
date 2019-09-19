@@ -229,7 +229,6 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
-		Target:    i.target().Name,
 		AlertType: rmplan.Canary,
 	})
 }
@@ -250,7 +249,6 @@ func (i *Incarnation) deleteSLIRules(ctx context.Context) error {
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
-		Target:    i.target().Name,
 		AlertType: rmplan.SLI,
 	})
 }

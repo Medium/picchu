@@ -129,11 +129,13 @@ func (p *SyncAlerts) rules() (*monitoringv1.PrometheusRule, error) {
 			})
 		}
 	}
-	rule.Spec = monitoringv1.PrometheusRuleSpec{
-		Groups: []monitoringv1.RuleGroup{{
-			Name:  fmt.Sprintf(RuleNameTemplate, p.App, p.Tag, alertType),
-			Rules: rules,
-		}},
+	if len(rules) > 0 {
+		rule.Spec = monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{{
+				Name:  fmt.Sprintf(RuleNameTemplate, p.App, p.Tag, alertType),
+				Rules: rules,
+			}},
+		}
 	}
 
 	return rule, nil

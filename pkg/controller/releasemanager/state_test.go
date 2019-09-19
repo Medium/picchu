@@ -465,7 +465,7 @@ func TestRetiring(t *tt.T) {
 	testcase(failing, m(true, true, false, 100))
 	testcase(failing, m(true, true, true, 100))
 
-	testcase(retired, expectRetire(m(true, false, false, 0)))
+	testcase(retired, expectDeleteSLIRules(expectRetire(m(true, false, false, 0))))
 	testcase(retiring, expectDeleteSLIRules(m(true, false, false, 1)))
 	testcase(retiring, expectDeleteSLIRules(m(true, false, false, 100)))
 
