@@ -191,7 +191,7 @@ func PendingRelease(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.isReleaseEligible() {
 		return retiring, nil
 	}
-	if deployment.schedulePermitsRelease() {
+	if deployment.peakPercent() > 0 || deployment.schedulePermitsRelease() {
 		return releasing, nil
 	}
 	return pendingrelease, nil

@@ -354,6 +354,12 @@ func (i *Incarnation) setReleaseEligible(flag bool) {
 	i.status.ReleaseEligible = flag
 }
 
+func (i *Incarnation) fastRelease() {
+	// incarnations that have Peak == 100, scale to 100% immediately
+	i.status.ReleaseEligible = true
+	i.status.PeakPercent = 100
+}
+
 func (i *Incarnation) update(di *observe.DeploymentInfo) {
 	if di == nil {
 		i.deployed = false
@@ -527,6 +533,19 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 	return r
 }
 
+func (i *IncarnationCollection) willRelease() []Incarnation {
+	r := []Incarnation{}
+	for _, i := range i.sorted() {
+		switch i.status.State.Current {
+		case "deploying", "deployed", "precanary", "canarying", "canaried", "pendingrelease":
+			if i.isReleaseEligible() {
+				r = append(r, i)
+			}
+		}
+	}
+	return r
+}
+
 // releasable returns deployed release eligible and released incarnations in
 // order from releaseEligible to !releaseEligible, then latest to oldest
 func (i *IncarnationCollection) releasable() []Incarnation {
@@ -544,25 +563,11 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 			r = append(r, i)
 		}
 	}
-	if len(r) == 0 {
+	if len(r) == 0 && len(i.willRelease()) == 0 {
 		i.controller.getLog().Info("there are no releases, looking for retired release to unretire")
 		candidates := i.unretirable()
-		unretiredCount := 0
-		// We scale retired back up to `peakPercent`. We want to unretire enough to make 100% as
-		// fast as possible for cases where we are replacing failed revisions.
-		var percRemaining uint32 = 100
-		for _, candidate := range candidates {
-			if percRemaining <= 0 {
-				break
-			}
-			i.controller.getLog().Info("Unretiring", "tag", candidate.tag)
-			candidate.setReleaseEligible(true)
-			unretiredCount++
-			percRemaining -= candidate.getStatus().PeakPercent
-		}
-
-		if unretiredCount <= 0 {
-			i.controller.getLog().Info("No available releases retired")
+		if len(candidates) > 0 {
+			candidates[0].fastRelease()
 		}
 	}
 	// Add incarnations transitioned out of released/releasing
