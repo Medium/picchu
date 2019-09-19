@@ -144,11 +144,10 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	revisions, err := r.getRevisions(ctx, rmLog, request.Namespace, rm.Spec.Fleet, rm.Spec.App)
+	revisions, err := r.getRevisions(ctx, rmLog, request.Namespace, rm.Spec.Fleet, rm.Spec.App, rm.Spec.Target)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	r.scheme.Default(revisions)
 
 	observation, err := observer.Observe(ctx, rm.TargetNamespace())
 	if err != nil {
@@ -206,7 +205,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Logger, namespace, fleet, app string) (*picchuv1alpha1.RevisionList, error) {
+func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Logger, namespace, fleet, app, target string) (*picchuv1alpha1.RevisionList, error) {
 	fleetLabel := fmt.Sprintf("%s%s", picchuv1alpha1.LabelFleetPrefix, fleet)
 	log.Info("Looking for revisions")
 	listOptions := client.
@@ -217,7 +216,18 @@ func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Log
 		})
 	rl := &picchuv1alpha1.RevisionList{}
 	err := r.client.List(ctx, listOptions, rl)
-	return rl, err
+	if err != nil {
+		return nil, err
+	}
+	r.scheme.Default(rl)
+	withTargets := &picchuv1alpha1.RevisionList{}
+	for i := range rl.Items {
+		rev := rl.Items[i]
+		if rev.HasTarget(target) {
+			withTargets.Items = append(withTargets.Items, rev)
+		}
+	}
+	return withTargets, nil
 }
 
 func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namespace string, fleet string) ([]picchuv1alpha1.Cluster, error) {

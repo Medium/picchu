@@ -182,6 +182,15 @@ func (r *Revision) GitTimestamp() time.Time {
 	return t
 }
 
+func (r *Revision) HasTarget(name string) bool {
+	for _, target := range r.Spec.Targets {
+		if target.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *RevisionTarget) IsExternalTestPending() bool {
 	return r.ExternalTest.Enabled && !r.ExternalTest.Completed
 }
