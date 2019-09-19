@@ -213,6 +213,46 @@ func (i *Incarnation) sync(ctx context.Context) error {
 	))
 }
 
+func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncAlerts{
+		App:                    i.appName(),
+		Namespace:              i.targetNamespace(),
+		Tag:                    i.tag,
+		Target:                 i.target().Name,
+		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+		AlertType:              rmplan.Canary,
+	})
+}
+
+func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Canary Rules", &rmplan.DeleteAlerts{
+		App:       i.appName(),
+		Namespace: i.targetNamespace(),
+		Tag:       i.tag,
+		AlertType: rmplan.Canary,
+	})
+}
+
+func (i *Incarnation) syncSLIRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync SLI Rules", &rmplan.SyncAlerts{
+		App:                    i.appName(),
+		Namespace:              i.targetNamespace(),
+		Tag:                    i.tag,
+		Target:                 i.target().Name,
+		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+		AlertType:              rmplan.SLI,
+	})
+}
+
+func (i *Incarnation) deleteSLIRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete SLI Rules", &rmplan.DeleteAlerts{
+		App:       i.appName(),
+		Namespace: i.targetNamespace(),
+		Tag:       i.tag,
+		AlertType: rmplan.SLI,
+	})
+}
+
 func (i *Incarnation) scale(ctx context.Context) error {
 	return i.controller.applyPlan(ctx, "Scale Revision", &rmplan.ScaleRevision{
 		Tag:       i.tag,
@@ -532,7 +572,8 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 func (i *IncarnationCollection) releasable() []Incarnation {
 	r := []Incarnation{}
 	for _, i := range i.sorted() {
-		if i.status.State.Current == "canarying" {
+		switch i.status.State.Current {
+		case "canarying":
 			r = append(r, i)
 		}
 	}
@@ -595,6 +636,26 @@ func (i *IncarnationCollection) unreleasable() []Incarnation {
 		unreleasable = append(unreleasable, incarnation)
 	}
 	return unreleasable
+}
+
+// alertable returns the incarnations which could currently
+// have alerting enabled
+// TODO(micah): deprecate this when RevisionTarget.AlertRules is deprecated.
+func (i *IncarnationCollection) alertable() []Incarnation {
+	r := []Incarnation{}
+	for _, i := range i.revisioned() {
+		switch i.status.State.Current {
+		case "canarying", "canaried", "pendingrelease":
+			r = append(r, i)
+		}
+	}
+	for _, i := range i.revisioned() {
+		switch i.status.State.Current {
+		case "releasing", "released":
+			r = append(r, i)
+		}
+	}
+	return r
 }
 
 func (i *IncarnationCollection) unretirable() []Incarnation {

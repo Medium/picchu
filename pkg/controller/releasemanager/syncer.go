@@ -258,12 +258,11 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	count := len(incarnations)
 
 	// setup alerts from latest release that has revision
-	for _, i := range incarnations {
-		if i.hasRevision() {
-			alertRules = incarnations[0].target().AlertRules
+	alertable := r.incarnations.alertable()
+	for _, i := range alertable {
+			alertRules = i.target().AlertRules
 			break
 		}
-	}
 
 	for i, incarnation := range incarnations {
 		status := incarnation.status

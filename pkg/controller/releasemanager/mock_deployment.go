@@ -77,18 +77,60 @@ func (mr *MockDeploymentMockRecorder) del(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "del", reflect.TypeOf((*MockDeployment)(nil).del), arg0)
 }
 
-// scale mocks base method
-func (m *MockDeployment) scale(arg0 context.Context) error {
+// syncCanaryRules mocks base method
+func (m *MockDeployment) syncCanaryRules(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "scale", arg0)
+	ret := m.ctrl.Call(m, "syncCanaryRules", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// scale indicates an expected call of scale
-func (mr *MockDeploymentMockRecorder) scale(arg0 interface{}) *gomock.Call {
+// syncCanaryRules indicates an expected call of syncCanaryRules
+func (mr *MockDeploymentMockRecorder) syncCanaryRules(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "scale", reflect.TypeOf((*MockDeployment)(nil).scale), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncCanaryRules", reflect.TypeOf((*MockDeployment)(nil).syncCanaryRules), arg0)
+}
+
+// deleteCanaryRules mocks base method
+func (m *MockDeployment) deleteCanaryRules(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deleteCanaryRules", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// deleteCanaryRules indicates an expected call of deleteCanaryRules
+func (mr *MockDeploymentMockRecorder) deleteCanaryRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteCanaryRules", reflect.TypeOf((*MockDeployment)(nil).deleteCanaryRules), arg0)
+}
+
+// syncSLIRules mocks base method
+func (m *MockDeployment) syncSLIRules(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "syncSLIRules", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// syncSLIRules indicates an expected call of syncSLIRules
+func (mr *MockDeploymentMockRecorder) syncSLIRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncSLIRules", reflect.TypeOf((*MockDeployment)(nil).syncSLIRules), arg0)
+}
+
+// deleteSLIRules mocks base method
+func (m *MockDeployment) deleteSLIRules(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deleteSLIRules", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// deleteSLIRules indicates an expected call of deleteSLIRules
+func (mr *MockDeploymentMockRecorder) deleteSLIRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteSLIRules", reflect.TypeOf((*MockDeployment)(nil).deleteSLIRules), arg0)
 }
 
 // hasRevision mocks base method
@@ -215,20 +257,6 @@ func (mr *MockDeploymentMockRecorder) isTestPending() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestPending", reflect.TypeOf((*MockDeployment)(nil).isTestPending))
 }
 
-// isCanaryPending mocks base method
-func (m *MockDeployment) isCanaryPending() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isCanaryPending")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// isCanaryPending indicates an expected call of isTestPending
-func (mr *MockDeploymentMockRecorder) isCanaryPending() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isCanaryPending", reflect.TypeOf((*MockDeployment)(nil).isTestPending))
-}
-
 // isTestStarted mocks base method
 func (m *MockDeployment) isTestStarted() bool {
 	m.ctrl.T.Helper()
@@ -269,4 +297,18 @@ func (m *MockDeployment) peakPercent() uint32 {
 func (mr *MockDeploymentMockRecorder) peakPercent() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "peakPercent", reflect.TypeOf((*MockDeployment)(nil).peakPercent))
+}
+
+// isCanaryPending mocks base method
+func (m *MockDeployment) isCanaryPending() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "isCanaryPending")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// isCanaryPending indicates an expected call of isCanaryPending
+func (mr *MockDeploymentMockRecorder) isCanaryPending() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isCanaryPending", reflect.TypeOf((*MockDeployment)(nil).isCanaryPending))
 }

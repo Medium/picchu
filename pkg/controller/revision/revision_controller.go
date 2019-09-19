@@ -168,14 +168,27 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 	if triggered && !instance.Spec.IgnoreSLOs {
 		accepted := true
+		var acceptanceTargets []string
+		for _, target := range instance.Spec.Targets {
+			if target.AcceptanceTarget {
+				acceptanceTargets = append(acceptanceTargets, target.Name)
+			} else {
+				for _, targetName := range AcceptanceTargets {
+					if target.Name == targetName {
+						acceptanceTargets = append(acceptanceTargets, target.Name)
+					}
+				}
+			}
+		}
+
 		for _, targetStatus := range status.Targets {
-			for _, targetName := range AcceptanceTargets {
+			for _, targetName := range acceptanceTargets {
 				if targetStatus.Name == targetName {
 					if targetStatus.Release.PeakPercent < AcceptancePercentage {
 						accepted = false

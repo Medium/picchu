@@ -37,6 +37,8 @@ spec:
               type: boolean
             ignoreSLOs:
               type: boolean
+            canaryWithSLIRules:
+              type: boolean
             app:
               properties:
                 image:
@@ -73,6 +75,39 @@ spec:
                     type: string
                 required:
                 - expr
+              type: array
+            serviceLevelObjectives:
+              items:
+                description: Service Level Objectives define metrics and thresholds the service is trying to achieve.
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  enabled:
+                    type: boolean
+                  objectivePercent:
+                    type: float64
+                  serviceLevelIndicator:
+                    type: object
+                    properties:
+                      useForCanary:
+                        type: boolean
+                      canaryAllowance:
+                        type: float64
+                      alertAfter:
+                        type: string
+                      totalQuery:
+                        type: string
+                      errorQuery:
+                        type: string
+                    required:
+                      - errorQuery
+                      - totalQuery
+                required:
+                - name
+                - objectivePercent
+                - serviceLevelIndicator
               type: array
             ports:
               items:

@@ -56,6 +56,10 @@ type Deployment interface {
 	sync(context.Context) error
 	retire(context.Context) error
 	del(context.Context) error
+	syncCanaryRules(context.Context) error
+	deleteCanaryRules(context.Context) error
+	syncSLIRules(context.Context) error
+	deleteSLIRules(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	isAlarmTriggered() bool
@@ -210,6 +214,9 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.sync(ctx); err != nil {
 		return releasing, err
 	}
+	if err := deployment.syncSLIRules(ctx); err != nil {
+		return releasing, err
+	}
 	if deployment.peakPercent() >= 100 {
 		return released, nil
 	}
@@ -229,6 +236,9 @@ func Retiring(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if deployment.isReleaseEligible() {
 		return deploying, nil
+	}
+	if err := deployment.deleteSLIRules(ctx); err != nil {
+		return retiring, err
 	}
 	if deployment.currentPercent() <= 0 {
 		return retired, deployment.retire(ctx)
@@ -253,9 +263,19 @@ func Deleting(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.hasRevision() {
 		return deploying, nil
 	}
+
+	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return deleting, err
+	}
+
+	if err := deployment.deleteSLIRules(ctx); err != nil {
+		return deleting, err
+	}
+
 	if deployment.currentPercent() <= 0 {
 		return deleted, deployment.del(ctx)
 	}
+
 	return deleting, nil
 }
 
@@ -272,6 +292,12 @@ func Failing(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if !deployment.isAlarmTriggered() {
 		return deploying, nil
+	}
+	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return failing, err
+	}
+	if err := deployment.deleteSLIRules(ctx); err != nil {
+		return failing, err
 	}
 	if deployment.currentPercent() <= 0 {
 		return failed, deployment.retire(ctx)
@@ -296,6 +322,9 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isAlarmTriggered() {
 		return failing, nil
 	}
+	if err := deployment.syncCanaryRules(ctx); err != nil {
+		return canarying, err
+	}
 	if !deployment.isCanaryPending() {
 		return canaried, nil
 	}
@@ -308,6 +337,9 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if deployment.isAlarmTriggered() {
 		return failing, nil
+	}
+	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return canaried, err
 	}
 	if deployment.isReleaseEligible() {
 		return pendingrelease, nil

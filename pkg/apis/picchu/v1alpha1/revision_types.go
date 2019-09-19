@@ -66,14 +66,15 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App              RevisionApp                  `json:"app"`
-	Ports            []PortInfo                   `json:"ports,omitempty"`
-	Targets          []RevisionTarget             `json:"targets"`
-	TrafficPolicy    *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
-	Failed           bool                         `json:"failed"`
-	IgnoreSLOs       bool                         `json:"ignoreSLOs,omitempty"`
-	Sentry           SentryInfo                   `json:"sentry"`
-	TagRoutingHeader string                       `json:"tagRoutingHeader,omitempty"`
+	App                RevisionApp                  `json:"app"`
+	Ports              []PortInfo                   `json:"ports,omitempty"`
+	Targets            []RevisionTarget             `json:"targets"`
+	TrafficPolicy      *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
+	Failed             bool                         `json:"failed"`
+	IgnoreSLOs         bool                         `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
+	Sentry             SentryInfo                   `json:"sentry"`
+	TagRoutingHeader   string                       `json:"tagRoutingHeader,omitempty"`
 }
 
 type RevisionApp struct {
@@ -84,14 +85,15 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name           string                 `json:"name"`
-	Fleet          string                 `json:"fleet"`
-	Scale          ScaleInfo              `json:"scale"`
-	Release        ReleaseInfo            `json:"release,omitempty"`
-	Metrics        []RevisionTargetMetric `json:"metrics,omitempty"`
-	ConfigSelector *metav1.LabelSelector  `json:"configSelector,omitempty"`
-	AWS            AWSInfo                `json:"aws,omitempty"`
-	AlertRules     []monitoringv1.Rule    `json:"alertRules,omitempty"`
+	Name                   string                  `json:"name"`
+	Fleet                  string                  `json:"fleet"`
+	Scale                  ScaleInfo               `json:"scale"`
+	Release                ReleaseInfo             `json:"release,omitempty"`
+	ServiceLevelObjectives []ServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
+	AcceptanceTarget       bool                    `json:"acceptanceTarget,omitempty"`
+	ConfigSelector         *metav1.LabelSelector   `json:"configSelector,omitempty"`
+	AWS                    AWSInfo                 `json:"aws,omitempty"`
+	AlertRules             []monitoringv1.Rule     `json:"alertRules,omitempty"`
 
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
@@ -115,15 +117,21 @@ type Canary struct {
 	TTL     int64  `json:"ttl"`
 }
 
-type RevisionTargetMetric struct {
-	Name      string                      `json:"name"`
-	Queries   RevisionTargetMetricQueries `json:"queries"`
-	Objective float64                     `json:"objective"`
+type ServiceLevelIndicator struct {
+	UseForCanary    bool    `json:"useForCanary"`
+	CanaryAllowance float64 `json:"canaryAllowance,omitempty"`
+	TagKey          string  `json:"tagKey,omitempty"`
+	AlertAfter      string  `json:"alertAfter,omitempty"`
+	TotalQuery      string  `json:"totalQuery"`
+	ErrorQuery      string  `json:"errorQuery"`
 }
 
-type RevisionTargetMetricQueries struct {
-	Acceptable string `json:"acceptable"`
-	Total      string `json:"total"`
+type ServiceLevelObjective struct {
+	Name                  string                `json:"name"`
+	Description           string                `json:"description,omitempty"`
+	Enabled               bool                  `json:"enabled"`
+	ObjectivePercent      float64               `json:"objectivePercent"`
+	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
 }
 
 type RevisionStatus struct {
