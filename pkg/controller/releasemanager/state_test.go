@@ -318,13 +318,12 @@ func TestPendingRelease(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible, schedulePermitsRelease bool, peakPercent uint32) *MockDeployment {
+	m := func(hasRevision, isAlarmTriggered, isReleaseEligible, schedulePermitsRelease bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:            hasRevision,
 			isAlarmTriggered:       isAlarmTriggered,
 			isReleaseEligible:      isReleaseEligible,
 			schedulePermitsRelease: schedulePermitsRelease,
-			peakPercent:            peakPercent,
 		})
 	}
 
@@ -332,47 +331,26 @@ func TestPendingRelease(t *tt.T) {
 		testHandler(ctx, t, "pendingrelease", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false, false, 0))
-	testcase(deleting, m(false, false, false, true, 0))
-	testcase(deleting, m(false, false, true, false, 0))
-	testcase(deleting, m(false, false, true, true, 0))
-	testcase(deleting, m(false, true, false, false, 0))
-	testcase(deleting, m(false, true, false, true, 0))
-	testcase(deleting, m(false, true, true, false, 0))
-	testcase(deleting, m(false, true, true, true, 0))
+	testcase(deleting, m(false, false, false, false))
+	testcase(deleting, m(false, false, false, true))
+	testcase(deleting, m(false, false, true, false))
+	testcase(deleting, m(false, false, true, true))
+	testcase(deleting, m(false, true, false, false))
+	testcase(deleting, m(false, true, false, true))
+	testcase(deleting, m(false, true, true, false))
+	testcase(deleting, m(false, true, true, true))
 
-	testcase(failing, m(true, true, false, false, 0))
-	testcase(failing, m(true, true, false, true, 0))
-	testcase(failing, m(true, true, true, false, 0))
-	testcase(failing, m(true, true, true, true, 0))
+	testcase(failing, m(true, true, false, false))
+	testcase(failing, m(true, true, false, true))
+	testcase(failing, m(true, true, true, false))
+	testcase(failing, m(true, true, true, true))
 
-	testcase(retiring, m(true, false, false, true, 0))
-	testcase(retiring, m(true, false, false, false, 0))
+	testcase(retiring, m(true, false, false, true))
+	testcase(retiring, m(true, false, false, false))
 
-	testcase(releasing, m(true, false, true, true, 0))
+	testcase(releasing, m(true, false, true, true))
 
-	testcase(pendingrelease, m(true, false, true, false, 0))
-
-	testcase(deleting, m(false, false, false, false, 100))
-	testcase(deleting, m(false, false, false, true, 100))
-	testcase(deleting, m(false, false, true, false, 100))
-	testcase(deleting, m(false, false, true, true, 100))
-	testcase(deleting, m(false, true, false, false, 100))
-	testcase(deleting, m(false, true, false, true, 100))
-	testcase(deleting, m(false, true, true, false, 100))
-	testcase(deleting, m(false, true, true, true, 100))
-
-	testcase(failing, m(true, true, false, false, 100))
-	testcase(failing, m(true, true, false, true, 100))
-	testcase(failing, m(true, true, true, false, 100))
-	testcase(failing, m(true, true, true, true, 100))
-
-	testcase(retiring, m(true, false, false, true, 100))
-	testcase(retiring, m(true, false, false, false, 100))
-
-	testcase(releasing, m(true, false, true, true, 100))
-
-	testcase(releasing, m(true, false, true, false, 100))
+	testcase(pendingrelease, m(true, false, true, false))
 }
 
 func TestReleasing(t *tt.T) {
