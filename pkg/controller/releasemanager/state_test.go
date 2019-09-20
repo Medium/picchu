@@ -353,26 +353,26 @@ func TestPendingRelease(t *tt.T) {
 
 	testcase(pendingrelease, m(true, false, true, false, 0))
 
-	testcase(deleting, m(false, false, false, false, 1))
-	testcase(deleting, m(false, false, false, true, 1))
-	testcase(deleting, m(false, false, true, false, 1))
-	testcase(deleting, m(false, false, true, true, 1))
-	testcase(deleting, m(false, true, false, false, 1))
-	testcase(deleting, m(false, true, false, true, 1))
-	testcase(deleting, m(false, true, true, false, 1))
-	testcase(deleting, m(false, true, true, true, 1))
+	testcase(deleting, m(false, false, false, false, 100))
+	testcase(deleting, m(false, false, false, true, 100))
+	testcase(deleting, m(false, false, true, false, 100))
+	testcase(deleting, m(false, false, true, true, 100))
+	testcase(deleting, m(false, true, false, false, 100))
+	testcase(deleting, m(false, true, false, true, 100))
+	testcase(deleting, m(false, true, true, false, 100))
+	testcase(deleting, m(false, true, true, true, 100))
 
-	testcase(failing, m(true, true, false, false, 1))
-	testcase(failing, m(true, true, false, true, 1))
-	testcase(failing, m(true, true, true, false, 1))
-	testcase(failing, m(true, true, true, true, 1))
+	testcase(failing, m(true, true, false, false, 100))
+	testcase(failing, m(true, true, false, true, 100))
+	testcase(failing, m(true, true, true, false, 100))
+	testcase(failing, m(true, true, true, true, 100))
 
-	testcase(retiring, m(true, false, false, true, 1))
-	testcase(retiring, m(true, false, false, false, 1))
+	testcase(retiring, m(true, false, false, true, 100))
+	testcase(retiring, m(true, false, false, false, 100))
 
-	testcase(releasing, m(true, false, true, true, 1))
+	testcase(releasing, m(true, false, true, true, 100))
 
-	testcase(releasing, m(true, false, true, false, 1))
+	testcase(releasing, m(true, false, true, false, 100))
 }
 
 func TestReleasing(t *tt.T) {
