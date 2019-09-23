@@ -334,8 +334,13 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 				continue
 			}
 			expiration := rl.GitTimestamp.Add(time.Duration(rl.TTL) * time.Second)
-			if rl.Tag == revision.Spec.App.Tag && rl.State.Current == "retired" && time.Now().After(expiration) {
-				retiredCount++
+			if rl.Tag == revision.Spec.App.Tag && time.Now().After(expiration) {
+				switch rl.State.Current {
+				case "pendingrelease", "releasing", "released":
+					// don't delete released revisions
+				default:
+					retiredCount++
+				}
 			}
 		}
 		rstatus.AddTarget(status)
