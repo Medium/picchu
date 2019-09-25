@@ -55,9 +55,25 @@ func Add(mgr manager.Manager, c utils.Config) error {
 	return add(mgr, newReconciler(mgr, c))
 }
 
+type PromAPI interface {
+	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, error)
+}
+
+type NoopPromAPI struct{}
+
+func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, error) {
+	return false, nil
+}
+
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
-	api, err := promapi.NewAPI(c.PrometheusQueryAddress, c.PrometheusQueryTTL)
+	var err error
+	var api PromAPI
+	if c.PrometheusQueryAddress != "" {
+		api, err = promapi.NewAPI(c.PrometheusQueryAddress, c.PrometheusQueryTTL)
+	} else {
+		api = &NoopPromAPI{}
+	}
 	if err != nil {
 		panic(err)
 	}
@@ -105,7 +121,7 @@ type ReconcileRevision struct {
 	client       client.Client
 	scheme       *runtime.Scheme
 	config       utils.Config
-	promAPI      *promapi.API
+	promAPI      PromAPI
 	sentryClient *sentry.Client
 }
 
@@ -328,14 +344,29 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 		}
 		status.AddReleaseManagerStatus(*rm.RevisionStatus(revision.Spec.App.Tag))
 
+		log.Info("Checking for garbage collection")
 		rmCount++
 		for _, rl := range rm.Status.Revisions {
 			if rl.GitTimestamp == nil {
+				log.Info("Not git timestamp found")
 				continue
 			}
 			expiration := rl.GitTimestamp.Add(time.Duration(rl.TTL) * time.Second)
-			if rl.Tag == revision.Spec.App.Tag && rl.State.Current == "retired" && time.Now().After(expiration) {
-				retiredCount++
+			if rl.Tag == revision.Spec.App.Tag {
+				if time.Now().After(expiration) {
+					switch rl.State.Current {
+					case "pendingrelease", "releasing", "released":
+						log.Info("Not removing for state", "State", rl.State.Current)
+						// don't delete released revisions
+					default:
+						log.Info("Marking for deletion for state", "State", rl.State.Current)
+						retiredCount++
+					}
+				} else {
+					log.Info("Expiration not reached", "Expiration", expiration, "GitTimestamp", rl.GitTimestamp, "Ttl", rl.TTL)
+				}
+			} else {
+				log.Info("Tag doesn't match", "StateTag", rl.Tag, "Tag", revision.Spec.App.Tag)
 			}
 		}
 		rstatus.AddTarget(status)
