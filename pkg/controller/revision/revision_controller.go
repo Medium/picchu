@@ -3,7 +3,6 @@ package revision
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -347,7 +346,6 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 
 		log.Info("Checking for garbage collection")
 		rmCount++
-		competingRevisions := []*picchuv1alpha1.ReleaseManagerRevisionStatus{}
 		for _, rl := range rm.Status.Revisions {
 			if rl.GitTimestamp == nil {
 				log.Info("Not git timestamp found")
@@ -366,32 +364,12 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 					}
 				} else {
 					log.Info("Expiration not reached", "Expiration", expiration, "GitTimestamp", rl.GitTimestamp, "Ttl", rl.TTL)
-
-					switch rl.State.Current {
-					case "canaried", "deployed", "tested":
-						competingRevisions = append(competingRevisions, &rl)
-					}
 				}
 			} else {
 				log.Info("Tag doesn't match", "StateTag", rl.Tag, "Tag", revision.Spec.App.Tag)
 			}
 
 		}
-
-		// sort by oldest to newest revision
-		sort.Slice(competingRevisions, func(i, j int) bool {
-			return competingRevisions[i].GitTimestamp.Time.Before(competingRevisions[j].GitTimestamp.Time)
-		})
-		for i, rev := range competingRevisions {
-			if i == len(competingRevisions)-1 {
-				break
-			}
-			if rev.ReleaseEligible {
-				rev.ReleaseEligible = false
-				rm.UpdateRevisionStatus(rev)
-			}
-		}
-
 		rstatus.AddTarget(status)
 	}
 

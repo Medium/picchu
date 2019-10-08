@@ -260,14 +260,24 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	// setup alerts from latest release that has revision
 	alertable := r.incarnations.alertable()
 	for _, i := range alertable {
-			alertRules = i.target().AlertRules
-			break
-		}
+		alertRules = i.target().AlertRules
+		break
+	}
 
 	for i, incarnation := range incarnations {
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
-		current := incarnation.currentPercentTarget(percRemaining)
+		
+		var max uint32
+		if i == 0 {
+			max = percRemaining
+		} else {
+			// what this means in practice is that only the latest "releasing" revision will be incremented,
+			// the remaining will either stay the same or be decremented.
+			max = status.CurrentPercent
+		}
+		current := incarnation.currentPercentTarget(max)
+
 		if current > percRemaining {
 			r.log.Info("Percent target greater than percRemaining", "current", current, "percRemaining", percRemaining)
 			panic("Assertion failed")
