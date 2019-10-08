@@ -368,7 +368,6 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 			} else {
 				log.Info("Tag doesn't match", "StateTag", rl.Tag, "Tag", revision.Spec.App.Tag)
 			}
-
 		}
 		rstatus.AddTarget(status)
 	}

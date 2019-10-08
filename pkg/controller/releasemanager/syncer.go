@@ -268,12 +268,12 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
 		
+		// what this means in practice is that only the latest "releasing" revision will be incremented,
+		// the remaining will either stay the same or be decremented.
 		var max uint32
 		if i == 0 {
 			max = percRemaining
 		} else {
-			// what this means in practice is that only the latest "releasing" revision will be incremented,
-			// the remaining will either stay the same or be decremented.
 			max = status.CurrentPercent
 		}
 		current := incarnation.currentPercentTarget(max)
