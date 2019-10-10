@@ -29,6 +29,45 @@ type Controller interface {
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 }
 
+type IncarnationInterface interface {
+	isDeployed() bool
+	isCanaryPending() bool
+	ports() []picchuv1alpha1.PortInfo
+	currentPercent() uint32
+	peakPercent() uint32
+	isTestPending() bool
+	isTestStarted() bool
+	sync(ctx context.Context) error
+	syncCanaryRules(ctx context.Context) error
+	deleteCanaryRules(ctx context.Context) error
+	syncSLIRules(ctx context.Context) error
+	deleteSLIRules(ctx context.Context) error
+	scale(ctx context.Context) error
+	getLog() logr.Logger
+	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
+	retire(ctx context.Context) error
+	schedulePermitsRelease() bool
+	del(ctx context.Context) error
+	hasRevision() bool
+	isAlarmTriggered() bool
+	setState(state string)
+	target() *picchuv1alpha1.RevisionTarget
+	appName() string
+	targetName() string
+	targetNamespace() string
+	image() string
+	listOptions() (*client.ListOptions, error)
+	defaultLabels() map[string]string
+	setReleaseEligible(flag bool)
+	fastRelease()
+	update(di *observe.DeploymentInfo)
+	taggedRoutes(privateGateway string, serviceHost string) []istiov1alpha3.HTTPRoute
+	divideReplicas(count int32) int32
+	currentPercentTarget(max uint32) uint32
+	updateCurrentPercent(current uint32)
+	secondsSinceRevision() float64
+}
+
 type Incarnation struct {
 	deployed   bool
 	controller Controller
@@ -41,7 +80,7 @@ type Incarnation struct {
 	humaneReleasesEnabled bool
 }
 
-func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, humaneReleasesEnabled bool) Incarnation {
+func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, humaneReleasesEnabled bool) *Incarnation {
 	status := controller.getReleaseManager().RevisionStatus(tag)
 
 	if status.State.Current == "" {
@@ -90,7 +129,7 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		humaneReleasesEnabled: humaneReleasesEnabled,
 	}
 	i.update(di)
-	return i
+	return &i
 }
 
 // = Start Deployment interface
@@ -518,14 +557,14 @@ func (i *Incarnation) secondsSinceRevision() float64 {
 // IncarnationCollection helps us collect and select appropriate incarnations
 type IncarnationCollection struct {
 	// Incarnations key'd on revision.spec.app.tag
-	itemSet    map[string]Incarnation
+	itemSet    map[string]IncarnationInterface
 	controller Controller
 }
 
 func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, humaneReleasesEnabled bool) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
-		itemSet:    make(map[string]Incarnation),
+		itemSet:    make(map[string]IncarnationInterface),
 	}
 	add := func(tag string, revision *picchuv1alpha1.Revision) {
 		if _, ok := ic.itemSet[tag]; revision == nil && ok {
@@ -551,10 +590,10 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 }
 
 // deployed returns deployed incarnation
-func (i *IncarnationCollection) deployed() []Incarnation {
-	r := []Incarnation{}
+func (i *IncarnationCollection) deployed() (r []*Incarnation) {
+	r = []*Incarnation{}
 	for _, i := range i.sorted() {
-		switch i.status.State.Current {
+		switch i.getStatus().State.Current {
 		case "deployed":
 			r = append(r, i)
 		case "tested":
@@ -571,11 +610,11 @@ func (i *IncarnationCollection) deployed() []Incarnation {
 			r = append(r, i)
 		}
 	}
-	return r
+	return
 }
 
-func (i *IncarnationCollection) willRelease() []Incarnation {
-	r := []Incarnation{}
+func (i *IncarnationCollection) willRelease() (r []*Incarnation) {
+	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
 		case "deploying", "deployed", "precanary", "canarying", "canaried", "pendingrelease":
@@ -584,13 +623,13 @@ func (i *IncarnationCollection) willRelease() []Incarnation {
 			}
 		}
 	}
-	return r
+	return
 }
 
 // releasable returns deployed release eligible and released incarnations in
 // order from releaseEligible to !releaseEligible, then latest to oldest
-func (i *IncarnationCollection) releasable() []Incarnation {
-	r := []Incarnation{}
+func (i *IncarnationCollection) releasable() (r []*Incarnation) {
+	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
 		case "canarying":
@@ -625,30 +664,30 @@ func (i *IncarnationCollection) releasable() []Incarnation {
 			}
 		}
 	}
-	return r
+	return
 }
 
-func (i *IncarnationCollection) unreleasable() []Incarnation {
+func (i *IncarnationCollection) unreleasable() (unreleasable []*Incarnation) {
 	releasableTags := map[string]bool{}
 	for _, incarnation := range i.releasable() {
 		releasableTags[incarnation.tag] = true
 	}
 
-	unreleasable := []Incarnation{}
+	unreleasable = []*Incarnation{}
 	for _, incarnation := range i.sorted() {
 		if _, ok := releasableTags[incarnation.tag]; ok {
 			continue
 		}
 		unreleasable = append(unreleasable, incarnation)
 	}
-	return unreleasable
+	return
 }
 
 // alertable returns the incarnations which could currently
 // have alerting enabled
 // TODO(micah): deprecate this when RevisionTarget.AlertRules is deprecated.
-func (i *IncarnationCollection) alertable() []Incarnation {
-	r := []Incarnation{}
+func (i *IncarnationCollection) alertable() (r []*Incarnation) {
+	r = []*Incarnation{}
 	for _, i := range i.revisioned() {
 		switch i.status.State.Current {
 		case "canarying", "canaried", "pendingrelease":
@@ -661,11 +700,11 @@ func (i *IncarnationCollection) alertable() []Incarnation {
 			r = append(r, i)
 		}
 	}
-	return r
+	return
 }
 
-func (i *IncarnationCollection) unretirable() []Incarnation {
-	r := []Incarnation{}
+func (i *IncarnationCollection) unretirable() (r []*Incarnation) {
+	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		cur := i.status.State.Current
 		elig := i.isReleaseEligible()
@@ -674,23 +713,28 @@ func (i *IncarnationCollection) unretirable() []Incarnation {
 			r = append(r, i)
 		}
 	}
-	return r
+	return
 }
 
-func (i *IncarnationCollection) revisioned() []Incarnation {
-	r := []Incarnation{}
+func (i *IncarnationCollection) revisioned() (r []*Incarnation) {
+	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		if i.revision != nil {
 			r = append(r, i)
 		}
 	}
-	return r
+	return
 }
 
-func (i *IncarnationCollection) sorted() []Incarnation {
-	r := []Incarnation{}
-	for _, item := range i.itemSet {
-		r = append(r, item)
+func (i *IncarnationCollection) sorted() (r []*Incarnation) {
+	r = []*Incarnation{}
+	for _, itemIface := range i.itemSet {
+		switch item := itemIface.(type) {
+		case *Incarnation:
+			r = append(r, item)
+		default:
+			// TODO
+		}
 	}
 
 	sort.Slice(r, func(x, y int) bool {
@@ -704,11 +748,16 @@ func (i *IncarnationCollection) sorted() []Incarnation {
 		}
 		return a.After(b)
 	})
-	return r
+	return
 }
 
 func (i *IncarnationCollection) update(observation *observe.Observation) {
-	for _, item := range i.itemSet {
-		item.update(observation.ForTag(item.tag))
+	for _, itemIface := range i.itemSet {
+		switch item := itemIface.(type) {
+		case *Incarnation:
+			item.update(observation.ForTag(item.tag))
+		default:
+			// TODO
+		}
 	}
 }
