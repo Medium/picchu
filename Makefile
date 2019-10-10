@@ -65,3 +65,6 @@ verifiy:
 
 ci: all verify test
 
+mocks:
+	mockgen -destination=pkg/controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controller/releasemanager Deployment
+

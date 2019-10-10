@@ -45,6 +45,7 @@ type Deployment interface {
 	scale(ctx context.Context) error
 	getLog() logr.Logger
 	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
+	Tag() string
 	retire(ctx context.Context) error
 	schedulePermitsRelease() bool
 	del(ctx context.Context) error
@@ -311,6 +312,10 @@ func (i *Incarnation) getLog() logr.Logger {
 
 func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 	return i.status
+}
+
+func (i *Incarnation) Tag() string {
+	return i.tag
 }
 
 func (i *Incarnation) retire(ctx context.Context) error {
@@ -734,7 +739,7 @@ func (i *IncarnationCollection) sorted() (r []*Incarnation) {
 		case *Incarnation:
 			r = append(r, item)
 		default:
-			// TODO
+			// TODO this method should probably return Deployments instead
 		}
 	}
 
@@ -753,12 +758,7 @@ func (i *IncarnationCollection) sorted() (r []*Incarnation) {
 }
 
 func (i *IncarnationCollection) update(observation *observe.Observation) {
-	for _, itemIface := range i.itemSet {
-		switch item := itemIface.(type) {
-		case *Incarnation:
-			item.update(observation.ForTag(item.tag))
-		default:
-			// TODO
-		}
+	for _, item := range i.itemSet {
+		item.update(observation.ForTag(item.Tag()))
 	}
 }
