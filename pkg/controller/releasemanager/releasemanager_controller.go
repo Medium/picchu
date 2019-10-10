@@ -130,8 +130,13 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	if err != nil {
 		rmLog.Error(err, "Failed to get clusters for fleet", "Fleet.Name", rm.Spec.Fleet)
 	}
-	var fleetSize int32 = int32(len(clusters))
-	if fleetSize == 0 {
+	var liveClusterCount int32 = 0
+	for _, cluster := range clusters {
+		if !cluster.Spec.HotStandby {
+			liveClusterCount += 1
+		}
+	}
+	if liveClusterCount == 0 {
 		return reconcile.Result{}, nil
 	}
 	planApplier, err := r.newPlanApplier(ctx, rmLog, clusters)
@@ -164,7 +169,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		planApplier:    planApplier,
 		log:            rmLog,
 		releaseManager: rm,
-		fleetSize:      fleetSize,
+		fleetSize:      liveClusterCount,
 	}
 
 	syncer := ResourceSyncer{

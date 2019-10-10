@@ -69,6 +69,8 @@ spec:
               type: array
             enabled:
               type: boolean
+            hotStandby:
+              type: boolean
             ingresses:
               properties:
                 private:
