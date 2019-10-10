@@ -103,7 +103,7 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
 	for _, incarnation := range r.incarnations.sorted() {
-		sm := NewDeploymentStateManager(&incarnation)
+		sm := NewDeploymentStateManager(incarnation)
 		if err := sm.tick(ctx); err != nil {
 			return err
 		}
@@ -267,7 +267,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	for i, incarnation := range incarnations {
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
-		
+
 		// what this means in practice is that only the latest "releasing" revision will be incremented,
 		// the remaining will either stay the same or be decremented.
 		var max uint32
