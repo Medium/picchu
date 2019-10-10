@@ -2,9 +2,6 @@ package releasemanager
 
 import (
 	"context"
-
-	"github.com/go-logr/logr"
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 )
 
 var (
@@ -51,29 +48,6 @@ const (
 
 type State string
 type StateHandler func(context.Context, Deployment) (State, error)
-
-type Deployment interface {
-	sync(context.Context) error
-	retire(context.Context) error
-	del(context.Context) error
-	syncCanaryRules(context.Context) error
-	deleteCanaryRules(context.Context) error
-	syncSLIRules(context.Context) error
-	deleteSLIRules(context.Context) error
-	hasRevision() bool
-	schedulePermitsRelease() bool
-	isAlarmTriggered() bool
-	isReleaseEligible() bool
-	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
-	setState(target string)
-	getLog() logr.Logger
-	isDeployed() bool
-	isTestPending() bool
-	isTestStarted() bool
-	currentPercent() uint32
-	peakPercent() uint32
-	isCanaryPending() bool
-}
 
 type DeploymentStateManager struct {
 	deployment Deployment

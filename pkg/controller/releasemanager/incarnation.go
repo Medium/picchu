@@ -29,7 +29,7 @@ type Controller interface {
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 }
 
-type IncarnationInterface interface {
+type Deployment interface {
 	isDeployed() bool
 	isCanaryPending() bool
 	ports() []picchuv1alpha1.PortInfo
@@ -51,6 +51,7 @@ type IncarnationInterface interface {
 	hasRevision() bool
 	isAlarmTriggered() bool
 	setState(state string)
+	isReleaseEligible() bool
 	target() *picchuv1alpha1.RevisionTarget
 	appName() string
 	targetName() string
@@ -557,14 +558,14 @@ func (i *Incarnation) secondsSinceRevision() float64 {
 // IncarnationCollection helps us collect and select appropriate incarnations
 type IncarnationCollection struct {
 	// Incarnations key'd on revision.spec.app.tag
-	itemSet    map[string]IncarnationInterface
+	itemSet    map[string]Deployment
 	controller Controller
 }
 
 func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, humaneReleasesEnabled bool) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
-		itemSet:    make(map[string]IncarnationInterface),
+		itemSet:    make(map[string]Deployment),
 	}
 	add := func(tag string, revision *picchuv1alpha1.Revision) {
 		if _, ok := ic.itemSet[tag]; revision == nil && ok {
