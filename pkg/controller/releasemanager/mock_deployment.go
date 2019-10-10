@@ -8,11 +8,8 @@ import (
 	context "context"
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
-	v1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	observe "go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
 	reflect "reflect"
-	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockDeployment is a mock of Deployment interface
@@ -38,34 +35,6 @@ func (m *MockDeployment) EXPECT() *MockDeploymentMockRecorder {
 	return m.recorder
 }
 
-// Tag mocks base method
-func (m *MockDeployment) Tag() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Tag")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Tag indicates an expected call of Tag
-func (mr *MockDeploymentMockRecorder) Tag() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Tag", reflect.TypeOf((*MockDeployment)(nil).Tag))
-}
-
-// appName mocks base method
-func (m *MockDeployment) appName() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "appName")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// appName indicates an expected call of appName
-func (mr *MockDeploymentMockRecorder) appName() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "appName", reflect.TypeOf((*MockDeployment)(nil).appName))
-}
-
 // currentPercent mocks base method
 func (m *MockDeployment) currentPercent() uint32 {
 	m.ctrl.T.Helper()
@@ -78,34 +47,6 @@ func (m *MockDeployment) currentPercent() uint32 {
 func (mr *MockDeploymentMockRecorder) currentPercent() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "currentPercent", reflect.TypeOf((*MockDeployment)(nil).currentPercent))
-}
-
-// currentPercentTarget mocks base method
-func (m *MockDeployment) currentPercentTarget(arg0 uint32) uint32 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "currentPercentTarget", arg0)
-	ret0, _ := ret[0].(uint32)
-	return ret0
-}
-
-// currentPercentTarget indicates an expected call of currentPercentTarget
-func (mr *MockDeploymentMockRecorder) currentPercentTarget(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "currentPercentTarget", reflect.TypeOf((*MockDeployment)(nil).currentPercentTarget), arg0)
-}
-
-// defaultLabels mocks base method
-func (m *MockDeployment) defaultLabels() map[string]string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "defaultLabels")
-	ret0, _ := ret[0].(map[string]string)
-	return ret0
-}
-
-// defaultLabels indicates an expected call of defaultLabels
-func (mr *MockDeploymentMockRecorder) defaultLabels() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "defaultLabels", reflect.TypeOf((*MockDeployment)(nil).defaultLabels))
 }
 
 // del mocks base method
@@ -150,32 +91,6 @@ func (mr *MockDeploymentMockRecorder) deleteSLIRules(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteSLIRules", reflect.TypeOf((*MockDeployment)(nil).deleteSLIRules), arg0)
 }
 
-// divideReplicas mocks base method
-func (m *MockDeployment) divideReplicas(arg0 int32) int32 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "divideReplicas", arg0)
-	ret0, _ := ret[0].(int32)
-	return ret0
-}
-
-// divideReplicas indicates an expected call of divideReplicas
-func (mr *MockDeploymentMockRecorder) divideReplicas(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "divideReplicas", reflect.TypeOf((*MockDeployment)(nil).divideReplicas), arg0)
-}
-
-// fastRelease mocks base method
-func (m *MockDeployment) fastRelease() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "fastRelease")
-}
-
-// fastRelease indicates an expected call of fastRelease
-func (mr *MockDeploymentMockRecorder) fastRelease() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "fastRelease", reflect.TypeOf((*MockDeployment)(nil).fastRelease))
-}
-
 // getLog mocks base method
 func (m *MockDeployment) getLog() logr.Logger {
 	m.ctrl.T.Helper()
@@ -216,20 +131,6 @@ func (m *MockDeployment) hasRevision() bool {
 func (mr *MockDeploymentMockRecorder) hasRevision() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasRevision", reflect.TypeOf((*MockDeployment)(nil).hasRevision))
-}
-
-// image mocks base method
-func (m *MockDeployment) image() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "image")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// image indicates an expected call of image
-func (mr *MockDeploymentMockRecorder) image() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "image", reflect.TypeOf((*MockDeployment)(nil).image))
 }
 
 // isAlarmTriggered mocks base method
@@ -316,21 +217,6 @@ func (mr *MockDeploymentMockRecorder) isTestStarted() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestStarted", reflect.TypeOf((*MockDeployment)(nil).isTestStarted))
 }
 
-// listOptions mocks base method
-func (m *MockDeployment) listOptions() (*client.ListOptions, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "listOptions")
-	ret0, _ := ret[0].(*client.ListOptions)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// listOptions indicates an expected call of listOptions
-func (mr *MockDeploymentMockRecorder) listOptions() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "listOptions", reflect.TypeOf((*MockDeployment)(nil).listOptions))
-}
-
 // peakPercent mocks base method
 func (m *MockDeployment) peakPercent() uint32 {
 	m.ctrl.T.Helper()
@@ -343,20 +229,6 @@ func (m *MockDeployment) peakPercent() uint32 {
 func (mr *MockDeploymentMockRecorder) peakPercent() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "peakPercent", reflect.TypeOf((*MockDeployment)(nil).peakPercent))
-}
-
-// ports mocks base method
-func (m *MockDeployment) ports() []v1alpha1.PortInfo {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ports")
-	ret0, _ := ret[0].([]v1alpha1.PortInfo)
-	return ret0
-}
-
-// ports indicates an expected call of ports
-func (mr *MockDeploymentMockRecorder) ports() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ports", reflect.TypeOf((*MockDeployment)(nil).ports))
 }
 
 // retire mocks base method
@@ -373,20 +245,6 @@ func (mr *MockDeploymentMockRecorder) retire(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "retire", reflect.TypeOf((*MockDeployment)(nil).retire), arg0)
 }
 
-// scale mocks base method
-func (m *MockDeployment) scale(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "scale", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// scale indicates an expected call of scale
-func (mr *MockDeploymentMockRecorder) scale(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "scale", reflect.TypeOf((*MockDeployment)(nil).scale), arg0)
-}
-
 // schedulePermitsRelease mocks base method
 func (m *MockDeployment) schedulePermitsRelease() bool {
 	m.ctrl.T.Helper()
@@ -399,32 +257,6 @@ func (m *MockDeployment) schedulePermitsRelease() bool {
 func (mr *MockDeploymentMockRecorder) schedulePermitsRelease() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "schedulePermitsRelease", reflect.TypeOf((*MockDeployment)(nil).schedulePermitsRelease))
-}
-
-// secondsSinceRevision mocks base method
-func (m *MockDeployment) secondsSinceRevision() float64 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "secondsSinceRevision")
-	ret0, _ := ret[0].(float64)
-	return ret0
-}
-
-// secondsSinceRevision indicates an expected call of secondsSinceRevision
-func (mr *MockDeploymentMockRecorder) secondsSinceRevision() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "secondsSinceRevision", reflect.TypeOf((*MockDeployment)(nil).secondsSinceRevision))
-}
-
-// setReleaseEligible mocks base method
-func (m *MockDeployment) setReleaseEligible(arg0 bool) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setReleaseEligible", arg0)
-}
-
-// setReleaseEligible indicates an expected call of setReleaseEligible
-func (mr *MockDeploymentMockRecorder) setReleaseEligible(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setReleaseEligible", reflect.TypeOf((*MockDeployment)(nil).setReleaseEligible), arg0)
 }
 
 // setState mocks base method
@@ -479,84 +311,4 @@ func (m *MockDeployment) syncSLIRules(arg0 context.Context) error {
 func (mr *MockDeploymentMockRecorder) syncSLIRules(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncSLIRules", reflect.TypeOf((*MockDeployment)(nil).syncSLIRules), arg0)
-}
-
-// taggedRoutes mocks base method
-func (m *MockDeployment) taggedRoutes(arg0, arg1 string) []v1alpha3.HTTPRoute {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "taggedRoutes", arg0, arg1)
-	ret0, _ := ret[0].([]v1alpha3.HTTPRoute)
-	return ret0
-}
-
-// taggedRoutes indicates an expected call of taggedRoutes
-func (mr *MockDeploymentMockRecorder) taggedRoutes(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "taggedRoutes", reflect.TypeOf((*MockDeployment)(nil).taggedRoutes), arg0, arg1)
-}
-
-// target mocks base method
-func (m *MockDeployment) target() *v1alpha1.RevisionTarget {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "target")
-	ret0, _ := ret[0].(*v1alpha1.RevisionTarget)
-	return ret0
-}
-
-// target indicates an expected call of target
-func (mr *MockDeploymentMockRecorder) target() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "target", reflect.TypeOf((*MockDeployment)(nil).target))
-}
-
-// targetName mocks base method
-func (m *MockDeployment) targetName() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "targetName")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// targetName indicates an expected call of targetName
-func (mr *MockDeploymentMockRecorder) targetName() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "targetName", reflect.TypeOf((*MockDeployment)(nil).targetName))
-}
-
-// targetNamespace mocks base method
-func (m *MockDeployment) targetNamespace() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "targetNamespace")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// targetNamespace indicates an expected call of targetNamespace
-func (mr *MockDeploymentMockRecorder) targetNamespace() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "targetNamespace", reflect.TypeOf((*MockDeployment)(nil).targetNamespace))
-}
-
-// update mocks base method
-func (m *MockDeployment) update(arg0 *observe.DeploymentInfo) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "update", arg0)
-}
-
-// update indicates an expected call of update
-func (mr *MockDeploymentMockRecorder) update(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "update", reflect.TypeOf((*MockDeployment)(nil).update), arg0)
-}
-
-// updateCurrentPercent mocks base method
-func (m *MockDeployment) updateCurrentPercent(arg0 uint32) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "updateCurrentPercent", arg0)
-}
-
-// updateCurrentPercent indicates an expected call of updateCurrentPercent
-func (mr *MockDeploymentMockRecorder) updateCurrentPercent(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "updateCurrentPercent", reflect.TypeOf((*MockDeployment)(nil).updateCurrentPercent), arg0)
 }

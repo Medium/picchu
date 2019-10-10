@@ -29,47 +29,6 @@ type Controller interface {
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 }
 
-type Deployment interface {
-	isDeployed() bool
-	isCanaryPending() bool
-	ports() []picchuv1alpha1.PortInfo
-	currentPercent() uint32
-	peakPercent() uint32
-	isTestPending() bool
-	isTestStarted() bool
-	sync(ctx context.Context) error
-	syncCanaryRules(ctx context.Context) error
-	deleteCanaryRules(ctx context.Context) error
-	syncSLIRules(ctx context.Context) error
-	deleteSLIRules(ctx context.Context) error
-	scale(ctx context.Context) error
-	getLog() logr.Logger
-	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
-	Tag() string
-	retire(ctx context.Context) error
-	schedulePermitsRelease() bool
-	del(ctx context.Context) error
-	hasRevision() bool
-	isAlarmTriggered() bool
-	setState(state string)
-	isReleaseEligible() bool
-	target() *picchuv1alpha1.RevisionTarget
-	appName() string
-	targetName() string
-	targetNamespace() string
-	image() string
-	listOptions() (*client.ListOptions, error)
-	defaultLabels() map[string]string
-	setReleaseEligible(flag bool)
-	fastRelease()
-	update(di *observe.DeploymentInfo)
-	taggedRoutes(privateGateway string, serviceHost string) []istiov1alpha3.HTTPRoute
-	divideReplicas(count int32) int32
-	currentPercentTarget(max uint32) uint32
-	updateCurrentPercent(current uint32)
-	secondsSinceRevision() float64
-}
-
 type Incarnation struct {
 	deployed   bool
 	controller Controller
@@ -563,14 +522,14 @@ func (i *Incarnation) secondsSinceRevision() float64 {
 // IncarnationCollection helps us collect and select appropriate incarnations
 type IncarnationCollection struct {
 	// Incarnations key'd on revision.spec.app.tag
-	itemSet    map[string]Deployment
+	itemSet    map[string]*Incarnation
 	controller Controller
 }
 
 func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, humaneReleasesEnabled bool) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
-		itemSet:    make(map[string]Deployment),
+		itemSet:    make(map[string]*Incarnation),
 	}
 	add := func(tag string, revision *picchuv1alpha1.Revision) {
 		if _, ok := ic.itemSet[tag]; revision == nil && ok {
@@ -734,13 +693,8 @@ func (i *IncarnationCollection) revisioned() (r []*Incarnation) {
 
 func (i *IncarnationCollection) sorted() (r []*Incarnation) {
 	r = []*Incarnation{}
-	for _, itemIface := range i.itemSet {
-		switch item := itemIface.(type) {
-		case *Incarnation:
-			r = append(r, item)
-		default:
-			// TODO this method should probably return Deployments instead
-		}
+	for _, item := range i.itemSet {
+		r = append(r, item)
 	}
 
 	sort.Slice(r, func(x, y int) bool {

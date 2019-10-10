@@ -20,12 +20,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type Incarnations interface {
+	deployed() (r []*Incarnation)
+	willRelease() (r []*Incarnation)
+	releasable() (r []*Incarnation)
+	unreleasable() (r []*Incarnation)
+	alertable() (r []*Incarnation)
+	unretirable() (r []*Incarnation)
+	revisioned() (r []*Incarnation)
+	sorted() (r []*Incarnation)
+	update(observation *observe.Observation)
+}
+
 type ResourceSyncer struct {
 	deliveryClient client.Client
 	planApplier    plan.Applier
 	observer       observe.Observer
 	instance       *picchuv1alpha1.ReleaseManager
-	incarnations   *IncarnationCollection
+	incarnations   Incarnations
 	reconciler     *ReconcileReleaseManager
 	log            logr.Logger
 	clusterConfig  ClusterConfig
