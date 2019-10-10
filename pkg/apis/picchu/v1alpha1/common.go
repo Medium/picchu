@@ -77,6 +77,7 @@ type ScaleInfo struct {
 	Default                        int32  `json:"default,omitempty"`
 	Max                            int32  `json:"max,omitempty"`
 	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
+	MinReadySeconds                int32  `json:"minReadySeconds,omitempty"`
 }
 
 type ReleaseInfo struct {

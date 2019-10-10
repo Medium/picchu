@@ -263,6 +263,9 @@ spec:
                       targetCPUUtilizationPercentage:
                         format: int32
                         type: integer
+                      minReadySeconds:
+                        format: int32
+                        type: integer
                     type: object
                 required:
                 - name

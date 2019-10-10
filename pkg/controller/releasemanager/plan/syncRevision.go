@@ -66,6 +66,7 @@ type SyncRevision struct {
 	ServiceAccountName string // k8s ServiceAccount
 	LivenessProbe      *corev1.Probe
 	ReadinessProbe     *corev1.Probe
+	MinReadySeconds    int32
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
@@ -184,9 +185,10 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 			Labels:    p.Labels,
 		},
 		Spec: appsv1.ReplicaSetSpec{
-			Replicas: &copyReplicas,
-			Selector: metav1.SetAsLabelSelector(podLabels),
-			Template: template,
+			Replicas:        &copyReplicas,
+			Selector:        metav1.SetAsLabelSelector(podLabels),
+			Template:        template,
+			MinReadySeconds: p.MinReadySeconds,
 		},
 	}
 
