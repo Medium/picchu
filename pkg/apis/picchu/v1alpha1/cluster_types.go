@@ -37,6 +37,7 @@ type ClusterList struct {
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
 	Enabled        bool              `json:"enabled"`
+	HotStandby     bool              `json:"hotStandby,omitempty"`
 	Config         *ClusterConfig    `json:"config,omitempty"`
 	Weight         float64           `json:"weight"`
 	AWS            *ClusterAWSInfo   `json:"aws,omitempty"`
