@@ -558,20 +558,8 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 func (i *IncarnationCollection) deployed() (r []*Incarnation) {
 	r = []*Incarnation{}
 	for _, i := range i.sorted() {
-		switch i.getStatus().State.Current {
-		case "deployed":
-			r = append(r, i)
-		case "tested":
-			r = append(r, i)
-		case "pendingrelease":
-			r = append(r, i)
-		case "releasing":
-			r = append(r, i)
-		case "released":
-			r = append(r, i)
-		case "canarying":
-			r = append(r, i)
-		case "canaried":
+		switch i.status.State.Current {
+		case "deployed", "tested", "pendingrelease", "releasing", "released", "canarying", "canaried":
 			r = append(r, i)
 		}
 	}
@@ -603,9 +591,7 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 	}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
-		case "releasing":
-			r = append(r, i)
-		case "released":
+		case "releasing", "released":
 			r = append(r, i)
 		}
 	}
@@ -620,11 +606,7 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 	for _, i := range i.sorted() {
 		if i.currentPercent() > 0 {
 			switch i.getStatus().State.Current {
-			case "retiring":
-				r = append(r, i)
-			case "deleting":
-				r = append(r, i)
-			case "failing":
+			case "retiring", "deleting", "failing":
 				r = append(r, i)
 			}
 		}
