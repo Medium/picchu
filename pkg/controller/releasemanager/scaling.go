@@ -13,11 +13,15 @@ type ScalableTargetAdapter struct {
 
 // IsReconciled returns true if the target is considered ready to be scaled to the next increment.
 func (s *ScalableTargetAdapter) IsReconciled() bool {
+	target := s.Incarnation.target()
 	status := s.Incarnation.status
-	if status.Scale.Desired == 0 {
+
+	if target == nil {
 		return false
 	}
-	ratio := float64(status.Scale.Current) / float64(status.Scale.Desired)
+
+	desired := s.Incarnation.divideReplicas(*target.Scale.Min)
+	ratio := float64(status.Scale.Current) / float64(desired)
 	return ratio > reconcileRatio
 }
 

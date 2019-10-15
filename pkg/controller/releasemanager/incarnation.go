@@ -201,6 +201,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 			ServiceAccountName: i.target().ServiceAccountName,
 			ReadinessProbe:     i.target().ReadinessProbe,
 			LivenessProbe:      i.target().LivenessProbe,
+			MinReadySeconds:    i.target().Scale.MinReadySeconds,
 		},
 		&rmplan.ScaleRevision{
 			Tag:       i.tag,
