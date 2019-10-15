@@ -2,6 +2,7 @@ package releasemanager
 
 import (
 	"context"
+	"math"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
@@ -79,7 +80,7 @@ func (i *IncarnationController) applyPlan(ctx context.Context, name string, p pl
 func (i *IncarnationController) divideReplicas(count int32, percent int32) int32 {
 	denominator := utils.Max(i.fleetSize, 1)
 	percent = utils.Min(100, percent)
-	answer := int32((float64(percent) / float64(100)) * (float64(count) / float64(denominator)))
+	answer := int32(math.Ceil((float64(percent) / float64(100)) * (float64(count) / float64(denominator))))
 	i.log.Info("divideReplicas", "count", count, "percent", percent, "fleetSize", i.fleetSize, "answer", answer, "denominator", denominator)
 	return utils.Max(answer, 1)
 }
