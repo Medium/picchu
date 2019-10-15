@@ -12,6 +12,7 @@ import (
 
 func createTestIncarnation(tag string, currentPercent uint32) *Incarnation {
 	delaySeconds := int64(0)
+	scaleMin := int32(1)
 	return &Incarnation{
 		tag: tag,
 		revision: &picchuv1alpha1.Revision{
@@ -26,6 +27,9 @@ func createTestIncarnation(tag string, currentPercent uint32) *Incarnation {
 								DelaySeconds: &delaySeconds,
 							},
 						},
+						Scale: picchuv1alpha1.ScaleInfo{
+							Min: &scaleMin,
+						},
 					},
 				},
 			},
@@ -39,6 +43,7 @@ func createTestIncarnation(tag string, currentPercent uint32) *Incarnation {
 			},
 		},
 		controller: &IncarnationController{
+			log: logf.Log.WithName("controller_releasemanager_syncer_test"),
 			releaseManager: &picchuv1alpha1.ReleaseManager{
 				Spec: picchuv1alpha1.ReleaseManagerSpec{
 					Target: tag,
