@@ -77,10 +77,9 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 	alertableIncarnations := []*Incarnation{}
 	releasableIncarnations := []*Incarnation{
 		// sorted by GitTimestamp, newest first
-		// currentPercents should add up to 100
 		createTestIncarnation("test0", 10, releaseRateIncrement),
 		createTestIncarnation("test1", 30, releaseRateIncrement),
-		createTestIncarnation("test2", 60, releaseRateIncrement),
+		createTestIncarnation("test2", 50, releaseRateIncrement), // does not add up to 100
 	}
 
 	m := NewMockIncarnations(ctrl)
@@ -110,20 +109,23 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
 	}
 
+	// testing when revision percents don't add up to 100
+	// revisions should add up after running prepareRevisionsAndRules() once
 	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{30, 30, 40})
 
+	// testing "normal" test case
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{50, 30, 20})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{70, 30})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{70, 30, 0})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{90, 10})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{90, 10, 0})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{100})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{100, 0, 0})
 }
 
 func assertIncarnationPercent(
