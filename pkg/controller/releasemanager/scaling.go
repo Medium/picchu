@@ -1,8 +1,9 @@
 package releasemanager
 
 import (
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling"
 	"time"
+
+	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling"
 )
 
 const reconcileRatio = 0.9

@@ -241,13 +241,13 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		return []rmplan.Revision{}, alertRules
 	}
 
-	revisionsMap := map[string]rmplan.Revision{}
+	revisionsMap := map[string]*rmplan.Revision{}
 	for _, i := range r.incarnations.deployed() {
 		tagRoutingHeader := ""
 		if i.revision != nil {
 			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
 		}
-		revisionsMap[i.tag] = rmplan.Revision{
+		revisionsMap[i.tag] = &rmplan.Revision{
 			Tag:              i.tag,
 			Weight:           0,
 			TagRoutingHeader: tagRoutingHeader,
@@ -291,10 +291,12 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		current := incarnation.currentPercentTarget(max)
 
 		if current > percRemaining {
-			r.log.Info("Percent target greater than percRemaining", "current", current, "percRemaining", percRemaining)
-			panic("Assertion failed")
-		}
-		if i+1 == count {
+			r.log.Info(
+				"Percent target greater than percRemaining",
+				"current", current,
+				"percRemaining", percRemaining,
+				"increment", incarnation.target().Release.Rate.Increment)
+			// panic("Assertion failed")
 			current = percRemaining
 		}
 		incarnation.updateCurrentPercent(current)
@@ -307,16 +309,20 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		if incarnation.revision != nil {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
 		}
-		revisionsMap[incarnation.tag] = rmplan.Revision{
+		revisionsMap[incarnation.tag] = &rmplan.Revision{
 			Tag:              incarnation.tag,
 			Weight:           current,
 			TagRoutingHeader: tagRoutingHeader,
+		}
+		if i == count-1 && percRemaining > 0 {
+			revisionsMap[incarnations[0].tag].Weight += percRemaining
+			incarnations[0].updateCurrentPercent(incarnations[0].currentPercent() + percRemaining)
 		}
 	}
 
 	revisions := make([]rmplan.Revision, 0, len(revisionsMap))
 	for _, revision := range revisionsMap {
-		revisions = append(revisions, revision)
+		revisions = append(revisions, *revision)
 	}
 	return revisions, alertRules
 }

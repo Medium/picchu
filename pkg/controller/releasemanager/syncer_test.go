@@ -6,15 +6,44 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func createTestIncarnation(tag string, currentPercent uint32) *Incarnation {
+	delaySeconds := int64(0)
 	return &Incarnation{
 		tag: tag,
+		revision: &picchuv1alpha1.Revision{
+			Spec: picchuv1alpha1.RevisionSpec{
+				Targets: []picchuv1alpha1.RevisionTarget{
+					{
+						Name: tag,
+						Release: picchuv1alpha1.ReleaseInfo{
+							Max: 100,
+							Rate: picchuv1alpha1.RateInfo{
+								Increment:    20,
+								DelaySeconds: &delaySeconds,
+							},
+						},
+					},
+				},
+			},
+		},
 		status: &picchuv1alpha1.ReleaseManagerRevisionStatus{
 			// GitTimestamp:   &metav1.Time{gitTimestamp},
 			CurrentPercent: currentPercent,
+			Scale: picchuv1alpha1.ReleaseManagerRevisionScaleStatus{
+				Current: int32(currentPercent),
+				Desired: int32(currentPercent),
+			},
+		},
+		controller: &IncarnationController{
+			releaseManager: &picchuv1alpha1.ReleaseManager{
+				Spec: picchuv1alpha1.ReleaseManagerSpec{
+					Target: tag,
+				},
+			},
 		},
 	}
 }
@@ -37,13 +66,13 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 	// must be sorted by git timestamp, newest first
 	// currentPercent should add up to 100
 	deployedIncarnations := []*Incarnation{
-		createTestIncarnation("deployed", 70),
+		createTestIncarnation("deployed", 40),
 	}
 	unreleasableIncarnations := []*Incarnation{}
 	releasableIncarnations := []*Incarnation{
-		createTestIncarnation("test0", 0),
-		createTestIncarnation("test1", 10),
-		createTestIncarnation("test2", 20),
+		createTestIncarnation("test0", 10),
+		createTestIncarnation("test1", 20),
+		createTestIncarnation("test2", 30),
 	}
 	alertableIncarnations := []*Incarnation{}
 
@@ -74,7 +103,10 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
 	}
 
-	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
+	var revisions []rmplan.Revision
+	for i := 0; i < 4; i++ {
+		revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	}
 	t.Logf("revisions - %v", revisions)
 	logIncarnations(t, "deployed", deployedIncarnations)
 	logIncarnations(t, "releasableIncarnations", releasableIncarnations)
