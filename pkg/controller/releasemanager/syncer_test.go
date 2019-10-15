@@ -10,7 +10,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-func createTestIncarnation(tag string, currentPercent uint32) *Incarnation {
+func createTestIncarnation(tag string, currentPercent uint32, increment int) *Incarnation {
 	delaySeconds := int64(0)
 	scaleMin := int32(1)
 	return &Incarnation{
@@ -23,7 +23,7 @@ func createTestIncarnation(tag string, currentPercent uint32) *Incarnation {
 						Release: picchuv1alpha1.ReleaseInfo{
 							Max: 100,
 							Rate: picchuv1alpha1.RateInfo{
-								Increment:    20,
+								Increment:    uint32(increment),
 								DelaySeconds: &delaySeconds,
 							},
 						},
@@ -68,18 +68,20 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// must be sorted by git timestamp, newest first
-	// currentPercent should add up to 100
+	releaseRateIncrement := 20
+
 	deployedIncarnations := []*Incarnation{
-		createTestIncarnation("deployed", 40),
+		createTestIncarnation("deployed", 100, releaseRateIncrement),
 	}
 	unreleasableIncarnations := []*Incarnation{}
-	releasableIncarnations := []*Incarnation{
-		createTestIncarnation("test0", 10),
-		createTestIncarnation("test1", 20),
-		createTestIncarnation("test2", 30),
-	}
 	alertableIncarnations := []*Incarnation{}
+	releasableIncarnations := []*Incarnation{
+		// sorted by GitTimestamp, newest first
+		// currentPercents should add up to 100
+		createTestIncarnation("test0", 10, releaseRateIncrement),
+		createTestIncarnation("test1", 30, releaseRateIncrement),
+		createTestIncarnation("test2", 60, releaseRateIncrement),
+	}
 
 	m := NewMockIncarnations(ctrl)
 	m.
@@ -108,26 +110,40 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
 	}
 
-	var revisions []rmplan.Revision
-	for i := 0; i < 4; i++ {
-		revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	}
-	t.Logf("revisions - %v", revisions)
-	logIncarnations(t, "deployed", deployedIncarnations)
-	logIncarnations(t, "releasableIncarnations", releasableIncarnations)
+	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{30, 30, 40})
 
-	assert.Equal(t, uint32(100), releasableIncarnations[0].status.CurrentPercent)
-	assert.Equal(t, uint32(0), releasableIncarnations[1].status.CurrentPercent)
-	assert.Equal(t, uint32(0), releasableIncarnations[2].status.CurrentPercent)
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{50, 30, 20})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{70, 30})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{90, 10})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{100})
+}
+
+func assertIncarnationPercent(
+	t *tt.T,
+	incarnations []*Incarnation,
+	revisions []rmplan.Revision,
+	assertPercents []int) {
+
+	t.Logf("revisions - %v", revisions)
+	logIncarnations(t, "incarnations", incarnations)
+
+	incarnationTagMap := map[string]int{}
+
+	for i, assertPercent := range assertPercents {
+		assert.Equal(t, uint32(assertPercent), incarnations[i].status.CurrentPercent)
+		incarnationTagMap[incarnations[i].tag] = assertPercent
+	}
 
 	for _, rev := range revisions {
-		switch rev.Tag {
-		case "test0": // latest releasable
-			assert.Equal(t, uint32(100), rev.Weight)
-		default:
-			assert.Equal(t, uint32(0), rev.Weight)
-		}
+		assertPercent := incarnationTagMap[rev.Tag]
+		assert.Equal(t, uint32(assertPercent), rev.Weight)
 	}
-
-	// assert.Equal(t, []monitoringv1.Rule{}, rules)
 }
