@@ -115,10 +115,14 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 	assert.Equal(t, uint32(0), releasableIncarnations[1].status.CurrentPercent)
 	assert.Equal(t, uint32(0), releasableIncarnations[2].status.CurrentPercent)
 
-	assert.Equal(t, uint32(0), revisions[0].Weight)   // deployed
-	assert.Equal(t, uint32(100), revisions[1].Weight) // latest releasable
-	assert.Equal(t, uint32(0), revisions[2].Weight)   // old releasable
-	assert.Equal(t, uint32(0), revisions[3].Weight)   // old releasable
+	for _, rev := range revisions {
+		switch rev.Tag {
+		case "test0": // latest releasable
+			assert.Equal(t, uint32(100), rev.Weight)
+		default:
+			assert.Equal(t, uint32(0), rev.Weight)
+		}
+	}
 
 	// assert.Equal(t, []monitoringv1.Rule{}, rules)
 }
