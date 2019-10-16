@@ -20,6 +20,9 @@ func createTestIncarnation(tag string, currentState State, currentPercent, incre
 				Targets: []picchuv1alpha1.RevisionTarget{
 					{
 						Name: tag,
+						Canary: picchuv1alpha1.Canary{
+							Percent: 10,
+						},
 						Release: picchuv1alpha1.ReleaseInfo{
 							Max: 100,
 							Rate: picchuv1alpha1.RateInfo{
@@ -145,20 +148,23 @@ func TestPrepareRevisionsAndRulesBadAdditon(t *tt.T) {
 	// testing when revision percents don't add up to 100
 	// revisions should add up after running prepareRevisionsAndRules() once
 	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 50, 10, 40})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 30, 10, 40})
 
 	// testing "normal" test case
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 70, 10, 20})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 50, 10, 20})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 90, 10, 0})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 70, 10, 0})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 100, 0, 0})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 80, 0, 0})
 
+	// canary will end on it's own
+	// will stop getting returned from releasable() when it transitions to canaried
+	// which happens in the state machine after ttl expires
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 100, 0, 0})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 80, 0, 0})
 }
 
 func TestPrepareRevisionsAndRulesNormalCase(t *tt.T) {
@@ -196,14 +202,11 @@ func TestPrepareRevisionsAndRulesNormalCase(t *tt.T) {
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 90, 0, 0})
 
-	// canary will end on it's own
-	// will stop getting returned from releasable() when it transitions to canaried
-	// which happens in the state machine after ttl expires
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 90, 0, 0})
 }
 
-func TestPrepareRevisionsAndRulesCase3(t *tt.T) {
+func TestPrepareRevisionsAndRulesIllegalStates(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -215,8 +218,8 @@ func TestPrepareRevisionsAndRulesCase3(t *tt.T) {
 	}
 
 	releasableIncarnations := []*Incarnation{
-		createTestIncarnation("test3 incarnation0", deploying, 10, releaseRateIncrement),
-		createTestIncarnation("test3 incarnation1", canaried, 10, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation0", deploying, 10, releaseRateIncrement), // illegal state
+		createTestIncarnation("test3 incarnation1", canaried, 10, releaseRateIncrement),  // illegal state
 		createTestIncarnation("test3 incarnation2", canarying, 10, releaseRateIncrement),
 		createTestIncarnation("test3 incarnation3", pendingrelease, 10, releaseRateIncrement),
 		createTestIncarnation("test3 incarnation4", releasing, 20, releaseRateIncrement),
@@ -230,13 +233,13 @@ func TestPrepareRevisionsAndRulesCase3(t *tt.T) {
 		AnyTimes()
 
 	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{30, 10, 0, 10, 20, 30, 0})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{30, 10, 10, 10, 20, 20, 0})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{50, 10, 0, 10, 20, 10, 0})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{50, 10, 10, 10, 20, 0, 0})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{70, 10, 0, 10, 10, 0, 0})
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{70, 10, 10, 10, 0, 0, 0})
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{90, 10, 0, 0, 0, 0, 0})
