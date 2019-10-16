@@ -20,12 +20,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type Incarnations interface {
+	deployed() (r []*Incarnation)
+	willRelease() (r []*Incarnation)
+	releasable() (r []*Incarnation)
+	unreleasable() (r []*Incarnation)
+	alertable() (r []*Incarnation)
+	unretirable() (r []*Incarnation)
+	revisioned() (r []*Incarnation)
+	sorted() (r []*Incarnation)
+	update(observation *observe.Observation)
+}
+
 type ResourceSyncer struct {
 	deliveryClient client.Client
 	planApplier    plan.Applier
 	observer       observe.Observer
 	instance       *picchuv1alpha1.ReleaseManager
-	incarnations   *IncarnationCollection
+	incarnations   Incarnations
 	reconciler     *ReconcileReleaseManager
 	log            logr.Logger
 	clusterConfig  ClusterConfig
@@ -103,7 +115,7 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
 	for _, incarnation := range r.incarnations.sorted() {
-		sm := NewDeploymentStateManager(&incarnation)
+		sm := NewDeploymentStateManager(incarnation)
 		if err := sm.tick(ctx); err != nil {
 			return err
 		}
@@ -229,13 +241,13 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		return []rmplan.Revision{}, alertRules
 	}
 
-	revisionsMap := map[string]rmplan.Revision{}
+	revisionsMap := map[string]*rmplan.Revision{}
 	for _, i := range r.incarnations.deployed() {
 		tagRoutingHeader := ""
 		if i.revision != nil {
 			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
 		}
-		revisionsMap[i.tag] = rmplan.Revision{
+		revisionsMap[i.tag] = &rmplan.Revision{
 			Tag:              i.tag,
 			Weight:           0,
 			TagRoutingHeader: tagRoutingHeader,
@@ -260,19 +272,31 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	// setup alerts from latest release that has revision
 	alertable := r.incarnations.alertable()
 	for _, i := range alertable {
-			alertRules = i.target().AlertRules
-			break
-		}
+		alertRules = i.target().AlertRules
+		break
+	}
 
 	for i, incarnation := range incarnations {
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
-		current := incarnation.currentPercentTarget(percRemaining)
-		if current > percRemaining {
-			r.log.Info("Percent target greater than percRemaining", "current", current, "percRemaining", percRemaining)
-			panic("Assertion failed")
+
+		// what this means in practice is that only the latest "releasing" revision will be incremented,
+		// the remaining will either stay the same or be decremented.
+		var max uint32
+		if i == 0 {
+			max = percRemaining
+		} else {
+			max = status.CurrentPercent
 		}
-		if i+1 == count {
+		current := incarnation.currentPercentTarget(max)
+
+		if current > percRemaining {
+			r.log.Info(
+				"Percent target greater than percRemaining",
+				"current", current,
+				"percRemaining", percRemaining,
+				"increment", incarnation.target().Release.Rate.Increment)
+			// panic("Assertion failed")
 			current = percRemaining
 		}
 		incarnation.updateCurrentPercent(current)
@@ -285,16 +309,20 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		if incarnation.revision != nil {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
 		}
-		revisionsMap[incarnation.tag] = rmplan.Revision{
+		revisionsMap[incarnation.tag] = &rmplan.Revision{
 			Tag:              incarnation.tag,
 			Weight:           current,
 			TagRoutingHeader: tagRoutingHeader,
+		}
+		if i == count-1 && percRemaining > 0 {
+			revisionsMap[incarnations[0].tag].Weight += percRemaining
+			incarnations[0].updateCurrentPercent(incarnations[0].currentPercent() + percRemaining)
 		}
 	}
 
 	revisions := make([]rmplan.Revision, 0, len(revisionsMap))
 	for _, revision := range revisionsMap {
-		revisions = append(revisions, revision)
+		revisions = append(revisions, *revision)
 	}
 	return revisions, alertRules
 }

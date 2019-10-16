@@ -65,3 +65,7 @@ verifiy:
 
 ci: all verify test
 
+mocks:
+	go get github.com/golang/mock/mockgen
+	mockgen -destination=pkg/controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controller/releasemanager Deployment
+	mockgen -destination=pkg/controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controller/releasemanager Incarnations
