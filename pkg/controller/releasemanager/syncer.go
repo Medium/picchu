@@ -276,7 +276,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		break
 	}
 
-	firstPending := -1
+	firstNonCanary := -1
 	for i, incarnation := range incarnations {
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
@@ -284,8 +284,8 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		// what this means in practice is that only the latest "releasing" revision will be incremented,
 		// the remaining will either stay the same or be decremented.
 		var max uint32
-		if firstPending == -1 && incarnation.status.State.Current == string(pendingrelease) {
-			firstPending = i
+		if firstNonCanary == -1 && !incarnation.IsCanary() {
+			firstNonCanary = i
 			max = percRemaining
 		} else {
 			max = status.CurrentPercent
@@ -316,10 +316,9 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 			Weight:           current,
 			TagRoutingHeader: tagRoutingHeader,
 		}
-		if i == count-1 && percRemaining > 0 && firstPending != -1 {
-			firstPendingIncarnation := incarnations[firstPending]
-			revisionsMap[firstPendingIncarnation.tag].Weight += percRemaining
-			firstPendingIncarnation.updateCurrentPercent(firstPendingIncarnation.currentPercent() + percRemaining)
+		if i == count-1 && percRemaining > 0 && firstNonCanary != -1 {
+			revisionsMap[incarnations[firstNonCanary].tag].Weight += percRemaining
+			incarnations[firstNonCanary].updateCurrentPercent(incarnations[firstNonCanary].currentPercent() + percRemaining)
 		}
 	}
 

@@ -67,28 +67,14 @@ func logIncarnations(t *tt.T, name string, incarnations []*Incarnation) {
 	}
 }
 
-func TestPrepareRevisionsAndRules(t *tt.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	releaseRateIncrement := 20
-
+func createTestIncarnations(ctrl *gomock.Controller, releaseRateIncrement int) (m *MockIncarnations) {
 	deployedIncarnations := []*Incarnation{
 		createTestIncarnation("deployed", released, 100, releaseRateIncrement),
 	}
 	unreleasableIncarnations := []*Incarnation{}
 	alertableIncarnations := []*Incarnation{}
-	releasableIncarnations := []*Incarnation{
-		// sorted by GitTimestamp, newest first
-		// note: does not add up to 100
-		createTestIncarnation("test0", canarying, 10, releaseRateIncrement),
-		createTestIncarnation("test1", canarying, 10, releaseRateIncrement),
-		createTestIncarnation("test2", pendingrelease, 10, releaseRateIncrement),
-		createTestIncarnation("test3", pendingrelease, 10, releaseRateIncrement),
-		createTestIncarnation("test4", released, 40, releaseRateIncrement),
-	}
 
-	m := NewMockIncarnations(ctrl)
+	m = NewMockIncarnations(ctrl)
 	m.
 		EXPECT().
 		deployed().
@@ -101,37 +87,11 @@ func TestPrepareRevisionsAndRules(t *tt.T) {
 		AnyTimes()
 	m.
 		EXPECT().
-		releasable().
-		Return(releasableIncarnations).
-		AnyTimes()
-	m.
-		EXPECT().
 		alertable().
 		Return(alertableIncarnations).
 		AnyTimes()
 
-	testResourceSyncer := &ResourceSyncer{
-		incarnations: m,
-		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
-	}
-
-	// testing when revision percents don't add up to 100
-	// revisions should add up after running prepareRevisionsAndRules() once
-	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 50, 10, 40})
-
-	// testing "normal" test case
-	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 70, 10, 20})
-
-	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 90, 10, 0})
-
-	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 100, 0, 0})
-
-	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
-	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 100, 0, 0})
+	return
 }
 
 func assertIncarnationPercent(
@@ -154,4 +114,133 @@ func assertIncarnationPercent(
 		assertPercent := incarnationTagMap[rev.Tag]
 		assert.Equal(t, uint32(assertPercent), rev.Weight)
 	}
+}
+
+func TestPrepareRevisionsAndRulesBadAdditon(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	releaseRateIncrement := 20
+	m := createTestIncarnations(ctrl, releaseRateIncrement)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		// sorted by GitTimestamp, newest first
+		// note: does not add up to 100
+		createTestIncarnation("test1 incarnation0", canarying, 10, releaseRateIncrement),
+		createTestIncarnation("test1 incarnation1", canarying, 10, releaseRateIncrement),
+		createTestIncarnation("test1 incarnation2", pendingrelease, 10, releaseRateIncrement),
+		createTestIncarnation("test1 incarnation3", pendingrelease, 10, releaseRateIncrement),
+		createTestIncarnation("test1 incarnation4", released, 40, releaseRateIncrement),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	// testing when revision percents don't add up to 100
+	// revisions should add up after running prepareRevisionsAndRules() once
+	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 50, 10, 40})
+
+	// testing "normal" test case
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 70, 10, 20})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 90, 10, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 100, 0, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{0, 0, 100, 0, 0})
+}
+
+func TestPrepareRevisionsAndRulesNormalCase(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	releaseRateIncrement := 20
+	m := createTestIncarnations(ctrl, releaseRateIncrement)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		createTestIncarnation("test2 incarnation0", canaried, 10, releaseRateIncrement),
+		createTestIncarnation("test2 incarnation1", releasing, 10, releaseRateIncrement),
+		createTestIncarnation("test2 incarnation2", pendingrelease, 50, releaseRateIncrement),
+		createTestIncarnation("test2 incarnation3", released, 50, releaseRateIncrement),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 30, 50, 10})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 50, 40, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 70, 20, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 90, 0, 0})
+
+	// canary will end on it's own
+	// will stop getting returned from releasable() when it transitions to canaried
+	// which happens in the state machine after ttl expires
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 90, 0, 0})
+}
+
+func TestPrepareRevisionsAndRulesCase3(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	releaseRateIncrement := 20
+	m := createTestIncarnations(ctrl, releaseRateIncrement)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		createTestIncarnation("test3 incarnation0", deploying, 10, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation1", canaried, 10, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation2", canarying, 10, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation3", pendingrelease, 10, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation4", releasing, 20, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation5", released, 30, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation6", retiring, 10, releaseRateIncrement),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{30, 10, 0, 10, 20, 30, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{50, 10, 0, 10, 20, 10, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{70, 10, 0, 10, 10, 0, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{90, 10, 0, 0, 0, 0, 0})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{100, 0, 0, 0, 0, 0, 0})
 }
