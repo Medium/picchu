@@ -15,7 +15,7 @@ type RetireRevision struct {
 	Namespace string
 }
 
-func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	rs := &appsv1.ReplicaSet{}
 	s := types.NamespacedName{p.Namespace, p.Tag}
 	err := cli.Get(ctx, s, rs)

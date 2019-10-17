@@ -29,7 +29,7 @@ func TestDeleteApp(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, deleteapp.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, deleteapp.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }
 
 func TestDeleteAlreadyDeletedApp(t *testing.T) {
@@ -49,5 +49,5 @@ func TestDeleteAlreadyDeletedApp(t *testing.T) {
 		Return(common.NotFoundError).
 		Times(1)
 
-	assert.NoError(t, deleteapp.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, deleteapp.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }

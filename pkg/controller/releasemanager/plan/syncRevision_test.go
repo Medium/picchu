@@ -38,7 +38,7 @@ var (
 			Protocol:      "TCP",
 			ContainerPort: 4242,
 		}},
-		Replicas: 1,
+		Replicas: 2,
 		Image:    "docker.medium.sh/test:testtag",
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
@@ -288,7 +288,7 @@ func TestSyncRevisionNoChange(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithChange(t *testing.T) {
@@ -315,7 +315,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionExistingReplicasZero(t *testing.T) {
@@ -343,7 +343,7 @@ func TestSyncRevisionExistingReplicasZero(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionRetirement(t *testing.T) {
@@ -371,7 +371,7 @@ func TestSyncRevisionRetirement(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, retiredRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, retiredRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithCreate(t *testing.T) {
@@ -398,7 +398,7 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
@@ -470,7 +470,7 @@ func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, plan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
 }
 
 func mustParseQuantity(val string) resource.Quantity {

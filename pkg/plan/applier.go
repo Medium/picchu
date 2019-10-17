@@ -13,16 +13,17 @@ type Applier interface {
 }
 
 type ClusterApplier struct {
-	cli client.Client
-	log logr.Logger
+	cli           client.Client
+	scalingFactor float64
+	log           logr.Logger
 }
 
-func NewClusterApplier(cli client.Client, log logr.Logger) Applier {
-	return &ClusterApplier{cli, log}
+func NewClusterApplier(cli client.Client, scalingFactor float64, log logr.Logger) Applier {
+	return &ClusterApplier{cli, scalingFactor, log}
 }
 
 func (a *ClusterApplier) Apply(ctx context.Context, plan Plan) error {
-	return plan.Apply(ctx, a.cli, a.log)
+	return plan.Apply(ctx, a.cli, a.scalingFactor, a.log)
 }
 
 type ConcurrentApplier struct {

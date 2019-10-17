@@ -8,7 +8,7 @@ import (
 )
 
 type Plan interface {
-	Apply(context.Context, client.Client, logr.Logger) error
+	Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error
 }
 
 type compositePlan struct {
@@ -19,9 +19,9 @@ func All(plans ...Plan) Plan {
 	return &compositePlan{plans}
 }
 
-func (p *compositePlan) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *compositePlan) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	for _, plan := range p.plans {
-		if err := plan.Apply(ctx, cli, log); err != nil {
+		if err := plan.Apply(ctx, cli, scalingFactor, log); err != nil {
 			return err
 		}
 	}
