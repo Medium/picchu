@@ -518,11 +518,6 @@ func (i *Incarnation) secondsSinceRevision() float64 {
 	return latency.Seconds()
 }
 
-func (i *Incarnation) IsCanary() bool {
-	currentStatus := i.status.State.Current
-	return currentStatus == string(canaried) || currentStatus == string(canarying)
-}
-
 // IncarnationCollection helps us collect and select appropriate incarnations
 type IncarnationCollection struct {
 	// Incarnations key'd on revision.spec.app.tag
