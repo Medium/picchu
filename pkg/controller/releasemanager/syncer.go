@@ -281,11 +281,15 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		status := incarnation.status
 		oldCurrent := status.CurrentPercent
 
-		// what this means in practice is that only the latest "releasing" revision will be incremented,
-		// the remaining will either stay the same or be decremented.
-		var max uint32
 		if firstNonCanary == -1 && !incarnation.IsCanary() {
 			firstNonCanary = i
+		}
+
+		// what this means in practice is that only the latest "releasing" revision will be incremented,
+		// the remaining will either stay the same or be decremented.
+		// "canaying" releases also get some traffic
+		var max uint32
+		if incarnation.status.State.Current == string(canarying) || i == firstNonCanary {
 			max = percRemaining
 		} else {
 			max = status.CurrentPercent
