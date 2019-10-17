@@ -103,19 +103,20 @@ func assertIncarnationPercent(
 	revisions []rmplan.Revision,
 	assertPercents []int) {
 
+	t.Logf("expected - %v", assertPercents)
 	t.Logf("revisions - %v", revisions)
 	logIncarnations(t, "incarnations", incarnations)
 
 	incarnationTagMap := map[string]int{}
 
 	for i, assertPercent := range assertPercents {
-		assert.Equal(t, uint32(assertPercent), incarnations[i].status.CurrentPercent)
+		assert.Equal(t, int(assertPercent), int(incarnations[i].status.CurrentPercent))
 		incarnationTagMap[incarnations[i].tag] = assertPercent
 	}
 
 	for _, rev := range revisions {
 		assertPercent := incarnationTagMap[rev.Tag]
-		assert.Equal(t, uint32(assertPercent), rev.Weight)
+		assert.Equal(t, int(assertPercent), int(rev.Weight))
 	}
 }
 
@@ -135,8 +136,8 @@ func TestPrepareRevisionsAndRulesBadAdditon(t *tt.T) {
 		// note: does not add up to 100
 		createTestIncarnation("test1 incarnation0", canarying, 10, releaseRateIncrement),
 		createTestIncarnation("test1 incarnation1", canarying, 10, releaseRateIncrement),
-		createTestIncarnation("test1 incarnation2", pendingrelease, 10, releaseRateIncrement),
-		createTestIncarnation("test1 incarnation3", pendingrelease, 10, releaseRateIncrement),
+		createTestIncarnation("test1 incarnation2", releasing, 10, releaseRateIncrement),
+		createTestIncarnation("test1 incarnation3", releasing, 10, releaseRateIncrement),
 		createTestIncarnation("test1 incarnation4", released, 40, releaseRateIncrement),
 	}
 	m.
@@ -179,10 +180,10 @@ func TestPrepareRevisionsAndRulesNormalCase(t *tt.T) {
 	}
 
 	releasableIncarnations := []*Incarnation{
-		createTestIncarnation("test2 incarnation0", canaried, 10, releaseRateIncrement),
+		createTestIncarnation("test2 incarnation0", canarying, 10, releaseRateIncrement),
 		createTestIncarnation("test2 incarnation1", releasing, 10, releaseRateIncrement),
-		createTestIncarnation("test2 incarnation2", pendingrelease, 50, releaseRateIncrement),
-		createTestIncarnation("test2 incarnation3", released, 50, releaseRateIncrement),
+		createTestIncarnation("test2 incarnation2", releasing, 50, releaseRateIncrement),
+		createTestIncarnation("test2 incarnation3", released, 30, releaseRateIncrement),
 	}
 	m.
 		EXPECT().
@@ -221,7 +222,7 @@ func TestPrepareRevisionsAndRulesIllegalStates(t *tt.T) {
 		createTestIncarnation("test3 incarnation0", deploying, 10, releaseRateIncrement), // illegal state
 		createTestIncarnation("test3 incarnation1", canaried, 10, releaseRateIncrement),  // illegal state
 		createTestIncarnation("test3 incarnation2", canarying, 10, releaseRateIncrement),
-		createTestIncarnation("test3 incarnation3", pendingrelease, 10, releaseRateIncrement),
+		createTestIncarnation("test3 incarnation3", pendingrelease, 10, releaseRateIncrement), // illegal state
 		createTestIncarnation("test3 incarnation4", releasing, 20, releaseRateIncrement),
 		createTestIncarnation("test3 incarnation5", released, 30, releaseRateIncrement),
 		createTestIncarnation("test3 incarnation6", retiring, 10, releaseRateIncrement),
