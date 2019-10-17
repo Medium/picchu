@@ -44,7 +44,7 @@ type SyncApp struct {
 	TrafficPolicy     *istiov1alpha3.TrafficPolicy
 }
 
-func (p *SyncApp) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	if len(p.Ports) == 0 {
 		log.Info("Not syncing app", "Reason", "there are no exposed ports")
 		return nil

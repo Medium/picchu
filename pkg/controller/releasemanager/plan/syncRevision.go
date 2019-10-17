@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"errors"
+	"math"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -69,7 +70,7 @@ type SyncRevision struct {
 	MinReadySeconds    int32
 }
 
-func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	var livenessProbe *corev1.Probe
 	var readinessProbe *corev1.Probe
 	if p.LivenessProbe != nil {
@@ -177,7 +178,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 		template.Annotations[picchuv1alpha1.AnnotationIAMRole] = p.IAMRole
 	}
 
-	copyReplicas := p.Replicas
+	scaledReplicas := int32(math.Ceil(float64(p.Replicas) * scalingFactor))
 	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: p.Namespace,
@@ -185,7 +186,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, log logr.Lo
 			Labels:    p.Labels,
 		},
 		Spec: appsv1.ReplicaSetSpec{
-			Replicas:        &copyReplicas,
+			Replicas:        &scaledReplicas,
 			Selector:        metav1.SetAsLabelSelector(podLabels),
 			Template:        template,
 			MinReadySeconds: p.MinReadySeconds,

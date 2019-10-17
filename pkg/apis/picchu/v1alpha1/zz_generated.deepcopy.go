@@ -371,6 +371,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = new(ClusterConfig)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ScalingFactor != nil {
+		in, out := &in.ScalingFactor, &out.ScalingFactor
+		*out = new(float64)
+		**out = **in
+	}
 	if in.AWS != nil {
 		in, out := &in.AWS, &out.AWS
 		*out = new(ClusterAWSInfo)

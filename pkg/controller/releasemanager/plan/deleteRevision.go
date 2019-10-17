@@ -14,7 +14,7 @@ type DeleteRevision struct {
 	Namespace string
 }
 
-func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	lists := []List{
 		NewSecretList(),
 		NewConfigMapList(),

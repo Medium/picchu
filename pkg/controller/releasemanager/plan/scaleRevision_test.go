@@ -23,8 +23,8 @@ func TestScaleRevision(t *testing.T) {
 	plan := &ScaleRevision{
 		Tag:       "testtag",
 		Namespace: "testnamespace",
-		Min:       2,
-		Max:       5,
+		Min:       4,
+		Max:       10,
 		CPUTarget: &thirty,
 		Labels:    map[string]string{},
 	}
@@ -58,5 +58,5 @@ func TestScaleRevision(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, plan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
 }

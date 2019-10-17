@@ -18,7 +18,7 @@ type DeleteAlerts struct {
 	AlertType AlertType
 }
 
-func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	rules := &monitoringv1.PrometheusRuleList{}
 	alertType := string(p.AlertType)
 

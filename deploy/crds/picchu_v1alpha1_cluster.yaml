@@ -104,6 +104,9 @@ spec:
             weight:
               format: double
               type: number
+            scalingFactor:
+              format: double
+              type: number
           required:
           - enabled
           - weight

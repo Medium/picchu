@@ -245,5 +245,5 @@ func TestSyncNewApp(t *testing.T) {
 			Times(1)
 	}
 
-	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }

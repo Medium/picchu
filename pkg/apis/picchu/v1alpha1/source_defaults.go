@@ -20,6 +20,13 @@ const (
 	defaultPortMode          = PortPrivate
 )
 
+func SetDefaults_ClusterSpec(spec *ClusterSpec) {
+	if spec.ScalingFactor == nil {
+		one := float64(1.0)
+		spec.ScalingFactor = &one
+	}
+}
+
 func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 	for i, _ := range spec.Targets {
 		SetReleaseDefaults(&spec.Targets[i].Release)

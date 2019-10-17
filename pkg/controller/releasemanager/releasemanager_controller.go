@@ -295,7 +295,11 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-			appliers = append(appliers, plan.NewClusterApplier(remoteClient, log.WithValues("Cluster", clusters[i].Name)))
+			scalingFactor := clusters[i].Spec.ScalingFactor
+			if scalingFactor == nil || *scalingFactor < 0.1 {
+				panic("Refusing to scale lower than 0.1 on a cluster")
+			}
+			appliers = append(appliers, plan.NewClusterApplier(remoteClient, *scalingFactor, log.WithValues("Cluster", clusters[i].Name)))
 			return nil
 		})
 	}

@@ -50,7 +50,7 @@ type SyncAlerts struct {
 
 type AlertType string
 
-func (p *SyncAlerts) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *SyncAlerts) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	rules, err := p.rules()
 	if err != nil {
 		return err

@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"math"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -21,7 +22,7 @@ type ScaleRevision struct {
 	CPUTarget *int32
 }
 
-func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	var cpuTarget *int32
 	if p.CPUTarget != nil {
 		t := *p.CPUTarget
@@ -43,7 +44,8 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.L
 		return nil
 	}
 
-	copyMin := p.Min
+	scaledMin := int32(math.Ceil(float64(p.Min) * scalingFactor))
+	scaledMax := int32(math.Ceil(float64(p.Max) * scalingFactor))
 
 	hpa := &autoscalingv1.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
@@ -57,8 +59,8 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, log logr.L
 				Name:       p.Tag,
 				APIVersion: "apps/v1",
 			},
-			MinReplicas:                    &copyMin,
-			MaxReplicas:                    p.Max,
+			MinReplicas:                    &scaledMin,
+			MaxReplicas:                    scaledMax,
 			TargetCPUUtilizationPercentage: cpuTarget,
 		},
 	}

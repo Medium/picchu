@@ -14,7 +14,7 @@ type DeleteApp struct {
 	Namespace string
 }
 
-func (p *DeleteApp) Apply(ctx context.Context, cli client.Client, log logr.Logger) error {
+func (p *DeleteApp) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	item := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: p.Namespace,

@@ -147,7 +147,7 @@ func TestSyncCanaryAlerts(t *testing.T) {
 			Times(1)
 	}
 
-	assert.NoError(t, defaultSyncCanaryAlertsPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultSyncCanaryAlertsPlan.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }
 
 func TestSyncSLIAlerts(t *testing.T) {
@@ -175,5 +175,5 @@ func TestSyncSLIAlerts(t *testing.T) {
 			Times(1)
 	}
 
-	assert.NoError(t, defaultSyncSLIAlertsPlan.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, defaultSyncSLIAlertsPlan.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }

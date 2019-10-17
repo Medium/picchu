@@ -25,18 +25,18 @@ func TestCompositePlanFlat(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, log).
+		Apply(ctx, cli, 1.0, log).
 		Return(nil).
 		Times(1)
 
 	p2.
 		EXPECT().
-		Apply(ctx, cli, log).
+		Apply(ctx, cli, 1.0, log).
 		Return(nil).
 		Times(1)
 
 	composite := All(p1, p2)
-	assert.NoError(t, composite.Apply(ctx, cli, log), "no error")
+	assert.NoError(t, composite.Apply(ctx, cli, 1.0, log), "no error")
 }
 
 func TestCompositePlanLevels(t *testing.T) {
@@ -53,21 +53,21 @@ func TestCompositePlanLevels(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, log).
+		Apply(ctx, cli, 1.0, log).
 		Return(nil).
 		Times(1)
 	p2.
 		EXPECT().
-		Apply(ctx, cli, log).
+		Apply(ctx, cli, 1.0, log).
 		Return(nil).
 		Times(1)
 	p3.
 		EXPECT().
-		Apply(ctx, cli, log).
+		Apply(ctx, cli, 1.0, log).
 		Return(nil).
 		Times(1)
 
 	composite := All(p1, p2)
 	composite = All(composite, p3)
-	assert.NoError(t, composite.Apply(ctx, cli, log), "no error")
+	assert.NoError(t, composite.Apply(ctx, cli, 1.0, log), "no error")
 }

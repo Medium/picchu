@@ -34,7 +34,7 @@ func TestCreatesNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, en.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }
 
 func TestIngoreNamespace(t *testing.T) {
@@ -54,7 +54,7 @@ func TestIngoreNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, en.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }
 
 func TestUpdatesNamespace(t *testing.T) {
@@ -79,5 +79,5 @@ func TestUpdatesNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, en.Apply(ctx, m, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }

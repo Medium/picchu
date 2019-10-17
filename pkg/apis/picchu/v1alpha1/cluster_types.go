@@ -40,6 +40,7 @@ type ClusterSpec struct {
 	HotStandby     bool              `json:"hotStandby,omitempty"`
 	Config         *ClusterConfig    `json:"config,omitempty"`
 	Weight         float64           `json:"weight"`
+	ScalingFactor  *float64          `json:"scalingFactor,omitempty"`
 	AWS            *ClusterAWSInfo   `json:"aws,omitempty"`
 	DNS            []ClusterDNSGroup `json:"dns,omitempty"`
 	Ingresses      ClusterIngresses  `json:"ingresses"`
