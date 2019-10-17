@@ -283,12 +283,13 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 
 		// what this means in practice is that only the latest "releasing" revision will be incremented,
 		// the remaining will either stay the same or be decremented.
-		var max uint32
+		var max uint32 = percRemaining
+		if firstNonCanary != -1 {
+			max = uint32(utils.Min(int32(status.CurrentPercent), int32(percRemaining)))
+		}
 		if firstNonCanary == -1 && !incarnation.IsCanary() {
+			r.log.Info("Found first ramping release", "firstNonCanary", i)
 			firstNonCanary = i
-			max = percRemaining
-		} else {
-			max = status.CurrentPercent
 		}
 		current := incarnation.currentPercentTarget(max)
 
@@ -298,8 +299,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 				"current", current,
 				"percRemaining", percRemaining,
 				"increment", incarnation.target().Release.Rate.Increment)
-			// panic("Assertion failed")
-			current = percRemaining
+			panic("Assertion failed")
 		}
 		incarnation.updateCurrentPercent(current)
 		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
