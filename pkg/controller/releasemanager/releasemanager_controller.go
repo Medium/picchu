@@ -29,30 +29,30 @@ import (
 
 var (
 	clog                         = logf.Log.WithName("controller_releasemanager")
-	incarnationGitReleaseLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+	incarnationGitReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_git_release_latency",
 		Help:    "track time from git revision creation to incarnation release",
 		Buckets: prometheus.ExponentialBuckets(10, 3, 7),
-	})
-	incarnationGitDeployLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"app", "target"})
+	incarnationGitDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_git_deploy_latency",
 		Help:    "track time from git revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
-	})
-	incarnationRevisionDeployLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"app", "target"})
+	incarnationRevisionDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_revision_deploy_latency",
 		Help:    "track time from revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
-	})
+	}, []string{"app", "target"})
 	revisionReleaseWeightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_release_weight",
 		Help: "Percent of traffic a revision is getting as a target release",
-	}, []string{"app", "tag", "target"})
-	incarnationRevisionRollbackLatency = promauto.NewHistogram(prometheus.HistogramOpts{
+	}, []string{"app", "target"})
+	incarnationRevisionRollbackLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_revision_rollback_latency",
 		Help:    "track time from failed revision to rollbacked incarnation",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
-	})
+	}, []string{"app", "target"})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller

@@ -123,22 +123,34 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
 			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.GitDeploySeconds = &gitElapsed
-			incarnationGitDeployLatency.Observe(gitElapsed)
+			incarnationGitDeployLatency.With(prometheus.Labels{
+				"app":    r.instance.Spec.App,
+				"target": r.instance.Spec.Target,
+			}).Observe(gitElapsed)
 			revElapsed := time.Since(incarnation.status.RevisionTimestamp.Time).Seconds()
 			incarnation.status.Metrics.RevisionDeploySeconds = &revElapsed
-			incarnationRevisionDeployLatency.Observe(revElapsed)
+			incarnationRevisionDeployLatency.With(prometheus.Labels{
+				"app":    r.instance.Spec.App,
+				"target": r.instance.Spec.Target,
+			}).Observe(revElapsed)
 		}
 		if current == "released" && incarnation.status.Metrics.GitReleaseSeconds == nil {
 			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.GitReleaseSeconds = &elapsed
-			incarnationGitReleaseLatency.Observe(elapsed)
+			incarnationGitReleaseLatency.With(prometheus.Labels{
+				"app":    r.instance.Spec.App,
+				"target": r.instance.Spec.Target,
+			}).Observe(elapsed)
 		}
 		if current == "failed" && incarnation.status.Metrics.RevisionRollbackSeconds == nil {
 			if incarnation.revision != nil {
 				r.log.Info("observing rollback elapsed time")
 				elapsed := incarnation.revision.SinceFailed().Seconds()
 				incarnation.status.Metrics.RevisionRollbackSeconds = &elapsed
-				incarnationRevisionRollbackLatency.Observe(elapsed)
+				incarnationRevisionRollbackLatency.With(prometheus.Labels{
+					"app":    r.instance.Spec.App,
+					"target": r.instance.Spec.Target,
+				}).Observe(elapsed)
 			} else {
 				r.log.Info("no revision rollback revision found")
 			}
@@ -210,7 +222,6 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		revisionReleaseWeightGauge.
 			With(prometheus.Labels{
 				"app":    r.instance.Spec.App,
-				"tag":    revision.Tag,
 				"target": r.instance.Spec.Target,
 			}).
 			Set(float64(revision.Weight))
