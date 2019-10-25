@@ -81,7 +81,8 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor fl
 		}
 	} else {
 		if err := plan.CreateOrUpdate(ctx, log, cli, prometheusRule); err != nil {
-			return err
+			log.Info("Applying Prom Rules Failed")
+			// return err
 		}
 	}
 

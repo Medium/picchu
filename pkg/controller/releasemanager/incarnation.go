@@ -215,7 +215,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncAlerts{
+	err := i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncAlerts{
 		App:                    i.appName(),
 		Namespace:              i.targetNamespace(),
 		Tag:                    i.tag,
@@ -223,19 +223,27 @@ func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
 		AlertType:              rmplan.Canary,
 	})
+	if err != nil {
+		i.log.Info("Syncing canary rules failed")
+	}
+	return nil
 }
 
 func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete Canary Rules", &rmplan.DeleteAlerts{
+	err := i.controller.applyPlan(ctx, "Delete Canary Rules", &rmplan.DeleteAlerts{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
 		AlertType: rmplan.Canary,
 	})
+	if err != nil {
+		i.log.Info("Deleting canary rules failed")
+	}
+	return nil
 }
 
 func (i *Incarnation) syncSLIRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync SLI Rules", &rmplan.SyncAlerts{
+	err := i.controller.applyPlan(ctx, "Sync SLI Rules", &rmplan.SyncAlerts{
 		App:                    i.appName(),
 		Namespace:              i.targetNamespace(),
 		Tag:                    i.tag,
@@ -243,15 +251,23 @@ func (i *Incarnation) syncSLIRules(ctx context.Context) error {
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
 		AlertType:              rmplan.SLI,
 	})
+	if err != nil {
+		i.log.Info("SLI rule sync failed")
+	}
+	return nil
 }
 
 func (i *Incarnation) deleteSLIRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete SLI Rules", &rmplan.DeleteAlerts{
+	err := i.controller.applyPlan(ctx, "Delete SLI Rules", &rmplan.DeleteAlerts{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
 		AlertType: rmplan.SLI,
 	})
+	if err != nil {
+		i.log.Info("Delete SLI rule failed")
+	}
+	return nil
 }
 
 func (i *Incarnation) scale(ctx context.Context) error {
