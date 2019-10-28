@@ -494,6 +494,14 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		}
 		return i.target().Canary.Percent
 	}
+	if i.target() != nil {
+		desired := i.divideReplicas(*i.target().Scale.Min)
+		current := i.status.Scale.Current
+		ratio := float64(current) / float64(desired)
+		i.log.Info("Calling linear scale", "desired", i.divideReplicas(*i.target().Scale.Min), "current", i.status.Scale.Current, "ratio", ratio)
+	} else {
+		i.log.Info("No target")
+	}
 	return LinearScale(*i, max, time.Now())
 }
 

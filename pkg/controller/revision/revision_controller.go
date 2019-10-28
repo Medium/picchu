@@ -344,7 +344,6 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 		}
 		status.AddReleaseManagerStatus(*rm.RevisionStatus(revision.Spec.App.Tag))
 
-		log.Info("Checking for garbage collection")
 		rmCount++
 		for _, rl := range rm.Status.Revisions {
 			if rl.GitTimestamp == nil {
@@ -365,8 +364,6 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 				} else {
 					log.Info("Expiration not reached", "Expiration", expiration, "GitTimestamp", rl.GitTimestamp, "Ttl", rl.TTL)
 				}
-			} else {
-				log.Info("Tag doesn't match", "StateTag", rl.Tag, "Tag", revision.Spec.App.Tag)
 			}
 		}
 		rstatus.AddTarget(status)
