@@ -479,7 +479,7 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 	if release.Eligible {
 		// since we sync before incrementing, we'll just err on the side of
 		// caution and use the next increment percent.
-		perc = int32(i.status.CurrentPercent + release.Rate.Increment*2)
+		perc = int32(i.status.CurrentPercent + release.Rate.Increment*4)
 	}
 	return i.controller.divideReplicas(count, perc)
 }
