@@ -15,11 +15,26 @@ const (
 	testReleaseIncrement uint32 = 20
 )
 
-func createTestIncarnation(tag string, currentState State, currentPercent int) *Incarnation {
+type testIncarnationOption interface {
+	Apply(i *Incarnation)
+}
+
+type testScale struct {
+	Current int32
+	Desired int32
+}
+
+func (s testScale) Apply(i *Incarnation) {
+	i.status.Scale.Current = s.Current
+	i.status.Scale.Desired = s.Desired
+}
+
+func createTestIncarnation(tag string, currentState State, currentPercent int, options ...testIncarnationOption) *Incarnation {
 	delaySeconds := int64(0)
 	scaleMin := int32(1)
-	return &Incarnation{
+	incarnation := &Incarnation{
 		tag: tag,
+		log: logf.Log.WithName("controller_releasemanager_syncer_test_incarnation"),
 		revision: &picchuv1alpha1.Revision{
 			Spec: picchuv1alpha1.RevisionSpec{
 				Targets: []picchuv1alpha1.RevisionTarget{
@@ -62,6 +77,12 @@ func createTestIncarnation(tag string, currentState State, currentPercent int) *
 			},
 		},
 	}
+
+	for _, opt := range options {
+		opt.Apply(incarnation)
+	}
+
+	return incarnation
 }
 
 func logIncarnations(t *tt.T, name string, incarnations []*Incarnation) {
