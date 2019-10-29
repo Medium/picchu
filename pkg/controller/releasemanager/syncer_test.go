@@ -19,7 +19,6 @@ func createTestIncarnation(tag string, currentState State, currentPercent int) *
 	delaySeconds := int64(0)
 	scaleMin := int32(1)
 	return &Incarnation{
-		log: logf.Log.WithName("incarnation_syncer_test"),
 		tag: tag,
 		revision: &picchuv1alpha1.Revision{
 			Spec: picchuv1alpha1.RevisionSpec{
