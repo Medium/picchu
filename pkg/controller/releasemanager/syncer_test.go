@@ -146,7 +146,7 @@ func assertIncarnationPercent(
 	}
 }
 
-func TestPrepareRevisionsAndRulesBadAdditon(t *tt.T) {
+func TestPrepareRevisionsAndRulesBadAddition(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
