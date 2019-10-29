@@ -15,11 +15,26 @@ const (
 	testReleaseIncrement uint32 = 20
 )
 
-func createTestIncarnation(tag string, currentState State, currentPercent int) *Incarnation {
+type testIncarnationOption interface {
+	Apply(i *Incarnation)
+}
+
+type testScale struct {
+	Current int32
+	Desired int32
+}
+
+func (s testScale) Apply(i *Incarnation) {
+	i.status.Scale.Current = s.Current
+	i.status.Scale.Desired = s.Desired
+}
+
+func createTestIncarnation(tag string, currentState State, currentPercent int, options ...testIncarnationOption) *Incarnation {
 	delaySeconds := int64(0)
 	scaleMin := int32(1)
-	return &Incarnation{
+	incarnation := &Incarnation{
 		tag: tag,
+		log: logf.Log.WithName("controller_releasemanager_syncer_test_incarnation"),
 		revision: &picchuv1alpha1.Revision{
 			Spec: picchuv1alpha1.RevisionSpec{
 				Targets: []picchuv1alpha1.RevisionTarget{
@@ -62,6 +77,12 @@ func createTestIncarnation(tag string, currentState State, currentPercent int) *
 			},
 		},
 	}
+
+	for _, opt := range options {
+		opt.Apply(incarnation)
+	}
+
+	return incarnation
 }
 
 func logIncarnations(t *tt.T, name string, incarnations []*Incarnation) {
@@ -125,7 +146,7 @@ func assertIncarnationPercent(
 	}
 }
 
-func TestPrepareRevisionsAndRulesBadAdditon(t *tt.T) {
+func TestPrepareRevisionsAndRulesBadAddition(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -249,4 +270,35 @@ func TestPrepareRevisionsAndRulesIllegalStates(t *tt.T) {
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{100, 0, 0, 0, 0, 0, 0})
+}
+
+func TestPrepareRevisionsAndRulesIncompleteScaleUp(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := createTestIncarnations(ctrl)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		createTestIncarnation("new", releasing, 20, &testScale{Desired: 12, Current: 4}),
+		createTestIncarnation("existing", released, 80),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{20, 80})
+
+	releasableIncarnations[0].status.Scale.Current = releasableIncarnations[0].status.Scale.Desired
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{40, 60})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{60, 40})
 }

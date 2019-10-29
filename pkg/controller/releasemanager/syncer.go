@@ -315,7 +315,14 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 			panic("Assertion failed")
 		}
 		incarnation.updateCurrentPercent(current)
-		r.log.Info("CurrentPercentage Update", "Tag", incarnation.tag, "Old", oldCurrent, "Current", current)
+		r.log.Info(
+			"CurrentPercentage Update",
+			"Tag", incarnation.tag,
+			"Old", oldCurrent,
+			"Current", current,
+			"desiredReplicas", status.Scale.Desired,
+			"currentReplicas", status.Scale.Current,
+		)
 		if current <= 0 {
 			incarnation.setReleaseEligible(false)
 		}
