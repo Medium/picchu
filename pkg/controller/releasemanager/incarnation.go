@@ -485,16 +485,32 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 }
 
 func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
-	if i.revision == nil {
+	status := i.getStatus()
+
+	if i.revision == nil || status == nil {
 		return 0
 	}
-	if i.getStatus().State.Current == "canarying" {
+
+	if status.State.Current == "canarying" {
 		if max < i.target().Canary.Percent {
 			return max
 		}
 		return i.target().Canary.Percent
 	}
-	return LinearScale(*i, max, time.Now())
+
+	currentScale := status.CurrentPercent
+	desiredScale := LinearScale(*i, max, time.Now())
+	if desiredScale > currentScale && status.Scale.Current < status.Scale.Desired {
+		i.getLog().Info(
+			"Deferring scale-up; not all desired replicas are ready",
+			"desiredScale", desiredScale,
+			"desiredReplicas", status.Scale.Desired,
+			"currentReplicas", status.Scale.Current,
+		)
+		return currentScale
+	}
+
+	return desiredScale
 }
 
 func (i *Incarnation) updateCurrentPercent(current uint32) {

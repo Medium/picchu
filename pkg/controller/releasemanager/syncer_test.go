@@ -271,3 +271,34 @@ func TestPrepareRevisionsAndRulesIllegalStates(t *tt.T) {
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{100, 0, 0, 0, 0, 0, 0})
 }
+
+func TestPrepareRevisionsAndRulesIncompleteScaleUp(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := createTestIncarnations(ctrl)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		createTestIncarnation("new", releasing, 20, &testScale{Desired: 12, Current: 4}),
+		createTestIncarnation("existing", released, 80),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{20, 80})
+
+	releasableIncarnations[0].status.Scale.Current = releasableIncarnations[0].status.Scale.Desired
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{40, 60})
+
+	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{60, 40})
+}
