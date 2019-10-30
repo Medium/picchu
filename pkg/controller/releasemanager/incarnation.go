@@ -491,15 +491,8 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		return 0
 	}
 
-	if status.State.Current == "canarying" {
-		if max < i.target().Canary.Percent {
-			return max
-		}
-		return i.target().Canary.Percent
-	}
-
 	currentScale := status.CurrentPercent
-	desiredScale := LinearScale(*i, max, time.Now())
+	desiredScale := i.currentDesiredScale(max)
 	if desiredScale > currentScale && status.Scale.Current < status.Scale.Desired {
 		i.getLog().Info(
 			"Deferring scale-up; not all desired replicas are ready",
@@ -511,6 +504,23 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	}
 
 	return desiredScale
+}
+
+func (i *Incarnation) currentDesiredScale(max uint32) uint32 {
+	status := i.getStatus()
+
+	if i.revision == nil || status == nil {
+		return 0
+	}
+
+	if status.State.Current == "canarying" {
+		if max < i.target().Canary.Percent {
+			return max
+		}
+		return i.target().Canary.Percent
+	}
+
+	return LinearScale(*i, max, time.Now())
 }
 
 func (i *Incarnation) updateCurrentPercent(current uint32) {
