@@ -186,32 +186,38 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		return err
 	}
 
-	return i.controller.applyPlan(ctx, "Sync and Scale Revision", plan.All(
-		&rmplan.SyncRevision{
-			App:                i.appName(),
-			Tag:                i.tag,
-			Namespace:          i.targetNamespace(),
-			Labels:             i.defaultLabels(),
-			Configs:            append(append(configs, secrets...), configMaps...),
-			Ports:              i.ports(),
-			Replicas:           i.divideReplicas(i.target().Scale.Default),
-			Image:              i.image(),
-			Resources:          i.target().Resources,
-			IAMRole:            i.target().AWS.IAM.RoleARN,
-			ServiceAccountName: i.target().ServiceAccountName,
-			ReadinessProbe:     i.target().ReadinessProbe,
-			LivenessProbe:      i.target().LivenessProbe,
-			MinReadySeconds:    i.target().Scale.MinReadySeconds,
-		},
-		&rmplan.ScaleRevision{
-			Tag:       i.tag,
-			Namespace: i.targetNamespace(),
-			Min:       i.divideReplicas(*i.target().Scale.Min),
-			Max:       i.divideReplicas(i.target().Scale.Max),
-			Labels:    i.defaultLabels(),
-			CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
-		},
-	))
+	syncPlan := &rmplan.SyncRevision{
+		App:                i.appName(),
+		Tag:                i.tag,
+		Namespace:          i.targetNamespace(),
+		Labels:             i.defaultLabels(),
+		Configs:            append(append(configs, secrets...), configMaps...),
+		Ports:              i.ports(),
+		Replicas:           i.divideReplicas(i.target().Scale.Default),
+		Image:              i.image(),
+		Resources:          i.target().Resources,
+		IAMRole:            i.target().AWS.IAM.RoleARN,
+		ServiceAccountName: i.target().ServiceAccountName,
+		ReadinessProbe:     i.target().ReadinessProbe,
+		LivenessProbe:      i.target().LivenessProbe,
+		MinReadySeconds:    i.target().Scale.MinReadySeconds,
+	}
+	scalePlan := &rmplan.ScaleRevision{
+		Tag:       i.tag,
+		Namespace: i.targetNamespace(),
+		Min:       i.divideReplicas(*i.target().Scale.Min),
+		Max:       i.divideReplicas(i.target().Scale.Max),
+		Labels:    i.defaultLabels(),
+		CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
+	}
+
+	currentState := State(i.status.State.Current)
+	if currentState == canaried || currentState == pendingrelease {
+		scalePlan.Min = 0
+		scalePlan.Max = 0
+	}
+
+	return i.controller.applyPlan(ctx, "Sync and Scale Revision", plan.All(syncPlan, scalePlan))
 }
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
