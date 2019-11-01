@@ -307,8 +307,8 @@ func TestCanaried(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectDeleteCanaryRules(m(true, false, false)))
-	testcase(pendingrelease, expectDeleteCanaryRules(m(true, false, true)))
+	testcase(canaried, expectSync(expectDeleteCanaryRules(m(true, false, false))))
+	testcase(pendingrelease, expectSync(expectDeleteCanaryRules(m(true, false, true))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
