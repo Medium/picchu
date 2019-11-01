@@ -114,12 +114,14 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 
 func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
+	incarnationsInState := map[string]int{}
 	for _, incarnation := range r.incarnations.sorted() {
 		sm := NewDeploymentStateManager(incarnation)
 		if err := sm.tick(ctx); err != nil {
 			return err
 		}
 		current := incarnation.status.State.Current
+		incarnationsInState[current]++
 		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
 			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.GitDeploySeconds = &gitElapsed
@@ -155,6 +157,14 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 				r.log.Info("no revision rollback revision found")
 			}
 		}
+	}
+	for state, numIncarnations := range incarnationsInState {
+		incarnationReleaseStateGauge.With(prometheus.Labels{
+			"app":    r.instance.Spec.App,
+			"target": r.instance.Spec.Target,
+			"state":  state,
+		}).
+			Set(int64(numIncarnations))
 	}
 	return nil
 }
