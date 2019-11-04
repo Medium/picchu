@@ -164,7 +164,7 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 			"target": r.instance.Spec.Target,
 			"state":  state,
 		}).
-			Set(int64(numIncarnations))
+			Set(float64(numIncarnations))
 	}
 	return nil
 }
