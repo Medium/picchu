@@ -213,8 +213,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 
 	currentState := State(i.status.State.Current)
 	if currentState == canaried || currentState == pendingrelease {
-		scalePlan.Min = 0
-		scalePlan.Max = 0
+		syncPlan.Replicas = 0
 	}
 
 	return i.controller.applyPlan(ctx, "Sync and Scale Revision", plan.All(syncPlan, scalePlan))
