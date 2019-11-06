@@ -53,6 +53,10 @@ var (
 		Help:    "track time from failed revision to rollbacked incarnation",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	}, []string{"app", "target"})
+	incarnationReleaseStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "picchu_incarnation_state",
+		Help: "Number of incarnations in a state",
+	}, []string{"app", "target", "state"})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
