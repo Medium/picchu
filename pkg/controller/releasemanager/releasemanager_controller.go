@@ -57,6 +57,10 @@ var (
 		Name: "picchu_incarnation_count",
 		Help: "Number of incarnations in a state",
 	}, []string{"app", "target", "state"})
+	incarnationOldestStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "picchu_incarnation_oldest_age_seconds",
+		Help: "The oldest incarnation in seconds for each state",
+	}, []string{"app", "target", "state"})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
