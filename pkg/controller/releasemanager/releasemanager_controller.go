@@ -54,7 +54,7 @@ var (
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	}, []string{"app", "target"})
 	incarnationReleaseStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "picchu_incarnation_state",
+		Name: "picchu_incarnation_count",
 		Help: "Number of incarnations in a state",
 	}, []string{"app", "target", "state"})
 )

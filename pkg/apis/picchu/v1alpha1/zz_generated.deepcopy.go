@@ -852,8 +852,20 @@ func (in *ReleaseManagerRevisionStatus) DeepCopyInto(out *ReleaseManagerRevision
 		in, out := &in.RevisionTimestamp, &out.RevisionTimestamp
 		*out = (*in).DeepCopy()
 	}
+	if in.IncarnationCreated != nil {
+		in, out := &in.IncarnationCreated, &out.IncarnationCreated
+		*out = (*in).DeepCopy()
+	}
 	if in.CanaryStartTimestamp != nil {
 		in, out := &in.CanaryStartTimestamp, &out.CanaryStartTimestamp
+		*out = (*in).DeepCopy()
+	}
+	if in.IncarnationDeployed != nil {
+		in, out := &in.IncarnationDeployed, &out.IncarnationDeployed
+		*out = (*in).DeepCopy()
+	}
+	if in.IncarnationReleased != nil {
+		in, out := &in.IncarnationReleased, &out.IncarnationReleased
 		*out = (*in).DeepCopy()
 	}
 	in.Metrics.DeepCopyInto(&out.Metrics)

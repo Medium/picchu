@@ -46,6 +46,8 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 
 	if status.State.Current == "" {
 		status.State.Current = "created"
+		now := metav1.Now()
+		status.IncarnationCreated = &now
 	}
 
 	if status.State.Current == "created" || status.State.Current == "deploying" {
@@ -422,6 +424,14 @@ func (i *Incarnation) update(di *observe.DeploymentInfo) {
 		i.status.Deleted = false
 		i.status.Scale.Desired = di.Desired
 		i.status.Scale.Current = di.Current
+		if di.Deployed && i.status.IncarnationDeployed == nil {
+			now := metav1.Now()
+			i.status.IncarnationDeployed = &now
+		}
+		if di.Current == 100 && i.status.IncarnationReleased == nil {
+			now := metav1.Now()
+			i.status.IncarnationReleased = &now
+		}
 		if i.status.Scale.Current > i.status.Scale.Peak {
 			i.status.Scale.Peak = i.status.Scale.Current
 		}
