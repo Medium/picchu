@@ -115,7 +115,7 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
 	incarnationsInState := map[string]int{}
-	oldestIncarnationsInState := map[string]int{}
+	oldestIncarnationsInState := map[string]float64{}
 	for _, incarnation := range r.incarnations.sorted() {
 		sm := NewDeploymentStateManager(incarnation)
 		if err := sm.tick(ctx); err != nil {
@@ -124,8 +124,8 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 		current := incarnation.status.State.Current
 		incarnationsInState[current]++
 		if incarnation.status.IncarnationReleased != nil {
-			incarnationAge = time.Since(incarnation.status.IncarnationReleased.Time).Seconds()
-			if age, ok := oldestIncarnationsInState[current]; !ok || oldestIncarnationsInState[current] < incarnationAge {
+			incarnationAge := time.Since(incarnation.status.IncarnationReleased.Time).Seconds()
+			if age, ok := oldestIncarnationsInState[current]; !ok || age < incarnationAge {
 				oldestIncarnationsInState[current] = incarnationAge
 			}
 		}
@@ -185,7 +185,8 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 				"app":    r.instance.Spec.App,
 				"target": r.instance.Spec.Target,
 				"state":  state,
-			})
+			}).
+				Set(age)
 		}
 	}
 	return nil
