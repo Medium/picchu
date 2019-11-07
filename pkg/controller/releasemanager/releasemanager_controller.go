@@ -39,6 +39,11 @@ var (
 		Help:    "track time from git revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	}, []string{"app", "target"})
+	incarnationGitCreateLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_git_create_latency",
+		Help:    "track time from git revision creation to incarnation create",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	}, []string{"app", "target"})
 	incarnationRevisionDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_revision_deploy_latency",
 		Help:    "track time from revision creation to incarnation deploy",

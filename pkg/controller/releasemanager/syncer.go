@@ -129,6 +129,14 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 				oldestIncarnationsInState[current] = incarnationAge
 			}
 		}
+		if current == "created" && incarnation.status.Metrics.GitCreateSeconds == nil {
+			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
+			incarnation.status.Metrics.GitCreateSeconds = &gitElapsed
+			incarnationGitCreateLatency.With(prometheus.Labels{
+				"app":    r.instance.Spec.App,
+				"target": r.instance.Spec.Target,
+			}).Observe(gitElapsed)
+		}
 		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
 			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 			incarnation.status.Metrics.GitDeploySeconds = &gitElapsed
