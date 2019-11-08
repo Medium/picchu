@@ -31,6 +31,8 @@ const (
 	LabelTarget                         = "picchu.medium.engineering/target"
 	LabelOwnerName                      = "picchu.medium.engineering/ownerName"
 	LabelOwnerType                      = "picchu.medium.engineering/ownerType"
+	LabelK8sName                        = "app.kubernetes.io/name"
+	LabelK8sVersion                     = "app.kubernetes.io/version"
 	LabelCommit                         = "picchu.medium.engineering/commit"
 	LabelRuleType                       = "picchu.medium.engineering/ruleType"
 	LabelFleetPrefix                    = "fleet.picchu.medium.engineering/"
