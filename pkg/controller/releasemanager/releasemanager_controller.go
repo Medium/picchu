@@ -39,9 +39,19 @@ var (
 		Help:    "track time from git revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	}, []string{"app", "target"})
+	incarnationGitCreateLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_git_create_latency",
+		Help:    "track time from git revision creation to incarnation create",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	}, []string{"app", "target"})
 	incarnationRevisionDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_revision_deploy_latency",
 		Help:    "track time from revision creation to incarnation deploy",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	}, []string{"app", "target"})
+	incarnationRevisionReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_revision_release_latency",
+		Help:    "track time from revision creation to incarnation release",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	}, []string{"app", "target"})
 	revisionReleaseWeightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
@@ -54,8 +64,12 @@ var (
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	}, []string{"app", "target"})
 	incarnationReleaseStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "picchu_incarnation_state",
+		Name: "picchu_incarnation_count",
 		Help: "Number of incarnations in a state",
+	}, []string{"app", "target", "state"})
+	incarnationRevisionOldestStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "picchu_revision_oldest_age_seconds",
+		Help: "The oldest revision in seconds for each state",
 	}, []string{"app", "target", "state"})
 )
 
@@ -66,6 +80,9 @@ func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(incarnationGitDeployLatency)
 	metrics.Registry.MustRegister(incarnationRevisionDeployLatency)
 	metrics.Registry.MustRegister(incarnationRevisionRollbackLatency)
+	metrics.Registry.MustRegister(incarnationRevisionReleaseLatency)
+	metrics.Registry.MustRegister(incarnationReleaseStateGauge)
+	metrics.Registry.MustRegister(incarnationRevisionOldestStateGauge)
 	metrics.Registry.MustRegister(revisionReleaseWeightGauge)
 	return add(mgr, newReconciler(mgr, c))
 }

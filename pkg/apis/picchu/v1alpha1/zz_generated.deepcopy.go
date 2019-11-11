@@ -776,8 +776,18 @@ func (in *ReleaseManagerRevisionMetricsStatus) DeepCopyInto(out *ReleaseManagerR
 		*out = new(float64)
 		**out = **in
 	}
+	if in.GitCreateSeconds != nil {
+		in, out := &in.GitCreateSeconds, &out.GitCreateSeconds
+		*out = new(float64)
+		**out = **in
+	}
 	if in.RevisionDeploySeconds != nil {
 		in, out := &in.RevisionDeploySeconds, &out.RevisionDeploySeconds
+		*out = new(float64)
+		**out = **in
+	}
+	if in.RevisionReleaseSeconds != nil {
+		in, out := &in.RevisionReleaseSeconds, &out.RevisionReleaseSeconds
 		*out = new(float64)
 		**out = **in
 	}

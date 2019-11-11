@@ -63,6 +63,9 @@ spec:
                       revisionDeploySeconds:
                         format: double
                         type: number
+                      revisionReleaseSeconds:
+                        format: double
+                        type: number
                     type: object
                   currentPercent:
                     format: int32

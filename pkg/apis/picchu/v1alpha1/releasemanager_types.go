@@ -62,7 +62,9 @@ type ReleaseManagerRevisionStatus struct {
 type ReleaseManagerRevisionMetricsStatus struct {
 	GitReleaseSeconds       *float64 `json:"gitReleaseSeconds,omitempty"`
 	GitDeploySeconds        *float64 `json:"gitDeploySeconds,omitempty"`
+	GitCreateSeconds        *float64 `json:"gitCreateSeconds,omitempty"`
 	RevisionDeploySeconds   *float64 `json:"revisionDeploySeconds,omitempty"`
+	RevisionReleaseSeconds  *float64 `json:"revisionReleaseSeconds,omitempty"`
 	RevisionRollbackSeconds *float64 `json:"revisionRollbackSeconds,omitempty"`
 }
 
