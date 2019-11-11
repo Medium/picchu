@@ -52,10 +52,7 @@ type ReleaseManagerRevisionStatus struct {
 	LastUpdated          *metav1.Time                        `json:"lastUpdated"`
 	GitTimestamp         *metav1.Time                        `json:"gitTimestamp,omitempty"`
 	RevisionTimestamp    *metav1.Time                        `json:"revisionTimestamp,omitempty"`
-	IncarnationCreated   *metav1.Time                        `json:"incarnationCreationTimestamp,omitempty"`
 	CanaryStartTimestamp *metav1.Time                        `json:"canaryStartTimestamp,omitempty"`
-	IncarnationDeployed  *metav1.Time                        `json:"incarnationDeployedTimestamp,omitempty"`
-	IncarnationReleased  *metav1.Time                        `json:"incarnationReleasedTimestamp,omitempty"`
 	TTL                  int64                               `json:"ttl,omitempty"`
 	Metrics              ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
 	Scale                ReleaseManagerRevisionScaleStatus   `json:"scale"`
@@ -67,6 +64,7 @@ type ReleaseManagerRevisionMetricsStatus struct {
 	GitDeploySeconds        *float64 `json:"gitDeploySeconds,omitempty"`
 	GitCreateSeconds        *float64 `json:"gitCreateSeconds,omitempty"`
 	RevisionDeploySeconds   *float64 `json:"revisionDeploySeconds,omitempty"`
+	RevisionReleaseSeconds  *float64 `json:"revisionReleaseSeconds,omitempty"`
 	RevisionRollbackSeconds *float64 `json:"revisionRollbackSeconds,omitempty"`
 }
 

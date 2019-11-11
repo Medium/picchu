@@ -49,6 +49,11 @@ var (
 		Help:    "track time from revision creation to incarnation deploy",
 		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
 	}, []string{"app", "target"})
+	incarnationRevisionReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_revision_release_latency",
+		Help:    "track time from revision creation to incarnation release",
+		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	}, []string{"app", "target"})
 	revisionReleaseWeightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_release_weight",
 		Help: "Percent of traffic a revision is getting as a target release",
@@ -62,9 +67,9 @@ var (
 		Name: "picchu_incarnation_count",
 		Help: "Number of incarnations in a state",
 	}, []string{"app", "target", "state"})
-	incarnationOldestStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "picchu_incarnation_oldest_age_seconds",
-		Help: "The oldest incarnation in seconds for each state",
+	incarnationRevisionOldestStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "picchu_revision_oldest_age_seconds",
+		Help: "The oldest revision in seconds for each state",
 	}, []string{"app", "target", "state"})
 )
 
@@ -75,6 +80,9 @@ func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(incarnationGitDeployLatency)
 	metrics.Registry.MustRegister(incarnationRevisionDeployLatency)
 	metrics.Registry.MustRegister(incarnationRevisionRollbackLatency)
+	metrics.Registry.MustRegister(incarnationRevisionReleaseLatency)
+	metrics.Registry.MustRegister(incarnationReleaseStateGauge)
+	metrics.Registry.MustRegister(incarnationRevisionOldestStateGauge)
 	metrics.Registry.MustRegister(revisionReleaseWeightGauge)
 	return add(mgr, newReconciler(mgr, c))
 }

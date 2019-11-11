@@ -123,11 +123,9 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 		}
 		current := incarnation.status.State.Current
 		incarnationsInState[current]++
-		if incarnation.status.IncarnationReleased != nil {
-			incarnationAge := time.Since(incarnation.status.IncarnationReleased.Time).Seconds()
-			if age, ok := oldestIncarnationsInState[current]; !ok || age < incarnationAge {
-				oldestIncarnationsInState[current] = incarnationAge
-			}
+		gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
+		if age, ok := oldestIncarnationsInState[current]; !ok || age < gitElapsed {
+			oldestIncarnationsInState[current] = gitElapsed
 		}
 		if current == "created" && incarnation.status.Metrics.GitCreateSeconds == nil {
 			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
@@ -158,6 +156,12 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 				"app":    r.instance.Spec.App,
 				"target": r.instance.Spec.Target,
 			}).Observe(elapsed)
+			revElapsed := time.Since(incarnation.status.RevisionTimestamp.Time).Seconds()
+			incarnation.status.Metrics.RevisionReleaseSeconds = &revElapsed
+			incarnationRevisionReleaseLatency.With(prometheus.Labels{
+				"app":    r.instance.Spec.App,
+				"target": r.instance.Spec.Target,
+			}).Observe(revElapsed)
 		}
 		if current == "failed" && incarnation.status.Metrics.RevisionRollbackSeconds == nil {
 			if incarnation.revision != nil {
@@ -181,7 +185,7 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 		}).
 			Set(float64(numIncarnations))
 		if age, ok := oldestIncarnationsInState[state]; ok {
-			incarnationOldestStateGauge.With(prometheus.Labels{
+			incarnationRevisionOldestStateGauge.With(prometheus.Labels{
 				"app":    r.instance.Spec.App,
 				"target": r.instance.Spec.Target,
 				"state":  state,
