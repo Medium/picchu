@@ -389,9 +389,11 @@ func (i *Incarnation) listOptions() (*client.ListOptions, error) {
 
 func (i *Incarnation) defaultLabels() map[string]string {
 	return map[string]string{
-		picchuv1alpha1.LabelApp:    i.appName(),
-		picchuv1alpha1.LabelTag:    i.tag,
-		picchuv1alpha1.LabelTarget: i.targetName(),
+		picchuv1alpha1.LabelApp:        i.appName(),
+		picchuv1alpha1.LabelTag:        i.tag,
+		picchuv1alpha1.LabelTarget:     i.targetName(),
+		picchuv1alpha1.LabelK8sName:    i.appName(),
+		picchuv1alpha1.LabelK8sVersion: i.tag,
 	}
 }
 
