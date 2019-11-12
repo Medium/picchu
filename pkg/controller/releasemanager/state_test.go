@@ -197,12 +197,13 @@ func TestTesting(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isTestPending bool) *MockDeployment {
+	m := func(hasRevision, isAlarmTriggered, isTestPending, didTestSucceed bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:      hasRevision,
 			isAlarmTriggered: isAlarmTriggered,
 			isTestStarted:    true,
 			isTestPending:    isTestPending,
+			didTestSucceed:   didTestSucceed,
 		})
 	}
 
@@ -210,14 +211,17 @@ func TestTesting(t *tt.T) {
 		testHandler(ctx, t, "testing", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false))
-	testcase(deleting, m(false, false, true))
-	testcase(deleting, m(false, true, false))
-	testcase(deleting, m(false, true, true))
-	testcase(tested, m(true, false, false))
-	testcase(testing, m(true, false, true))
-	testcase(failing, m(true, true, false))
-	testcase(failing, m(true, true, true))
+	testcase(deleting, m(false, false, false, false))
+	testcase(deleting, m(false, false, true, false))
+	testcase(deleting, m(false, true, false, false))
+	testcase(deleting, m(false, true, true, false))
+	testcase(testing, m(true, false, true, false))
+	testcase(tested, m(true, false, false, true))
+	testcase(failing, m(true, false, false, false))
+	testcase(failing, m(true, true, false, false))
+	testcase(failing, m(true, true, true, false))
+	testcase(failing, m(true, true, false, true))
+	testcase(failing, m(true, true, true, true))
 }
 
 func TestTested(t *tt.T) {
@@ -610,6 +614,7 @@ type responses struct {
 	isReleaseEligible      bool
 	isTestStarted          bool
 	isTestPending          bool
+	didTestSucceed         bool
 	isCanaryPending        bool
 	isDeployed             bool
 	schedulePermitsRelease bool
@@ -653,6 +658,11 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		EXPECT().
 		isTestStarted().
 		Return(r.isTestStarted).
+		AnyTimes()
+	m.
+		EXPECT().
+		didTestSucceed().
+		Return(r.didTestSucceed).
 		AnyTimes()
 	m.
 		EXPECT().

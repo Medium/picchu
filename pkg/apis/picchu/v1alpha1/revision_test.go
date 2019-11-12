@@ -31,6 +31,17 @@ func TestExternalTestPending(t *testing.T) {
 	assert.False(t, target.IsExternalTestPending())
 }
 
+func TestExternalTestFailed(t *testing.T) {
+	target := &RevisionTarget{}
+	target.ExternalTest.Enabled = true
+
+	target.ExternalTest.Completed = true
+	assert.False(t, target.IsExternalTestSuccessful())
+
+	target.ExternalTest.Succeeded = true
+	assert.True(t, target.IsExternalTestSuccessful())
+}
+
 func TestCanaryTestPending(t *testing.T) {
 	target := &RevisionTarget{}
 	dt := metav1.Time{}

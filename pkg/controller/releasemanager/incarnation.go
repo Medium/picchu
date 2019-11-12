@@ -159,6 +159,16 @@ func (i *Incarnation) isTestStarted() bool {
 	return i.target().ExternalTest.Started
 }
 
+func (i *Incarnation) didTestSucceed() bool {
+	if !i.hasRevision() {
+		return false
+	}
+	if i.revision.Spec.Failed {
+		return false
+	}
+	return i.target().IsExternalTestSuccessful()
+}
+
 // Remotely sync the incarnation for it's current state
 func (i *Incarnation) sync(ctx context.Context) error {
 	// Revision deleted

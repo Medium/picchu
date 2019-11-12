@@ -6,10 +6,11 @@ package releasemanager
 
 import (
 	context "context"
+	reflect "reflect"
+
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
 	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	reflect "reflect"
 )
 
 // MockDeployment is a mock of Deployment interface
@@ -215,6 +216,20 @@ func (m *MockDeployment) isTestStarted() bool {
 func (mr *MockDeploymentMockRecorder) isTestStarted() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestStarted", reflect.TypeOf((*MockDeployment)(nil).isTestStarted))
+}
+
+// didTestSucceed mocks base method
+func (m *MockDeployment) didTestSucceed() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "didTestSucceed")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// didTestSucceed indicates an expected call of didTestSucceed
+func (mr *MockDeploymentMockRecorder) didTestSucceed() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "didTestSucceed", reflect.TypeOf((*MockDeployment)(nil).didTestSucceed))
 }
 
 // peakPercent mocks base method

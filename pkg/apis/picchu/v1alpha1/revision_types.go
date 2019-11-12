@@ -110,6 +110,7 @@ type ExternalTest struct {
 	Enabled   bool `json:"enabled"`
 	Started   bool `json:"started"`
 	Completed bool `json:"completed"`
+	Succeeded bool `json:"succeeded,omitempty"`
 }
 
 type Canary struct {
@@ -201,6 +202,11 @@ func (r *Revision) HasTarget(name string) bool {
 
 func (r *RevisionTarget) IsExternalTestPending() bool {
 	return r.ExternalTest.Enabled && !r.ExternalTest.Completed
+}
+
+func (r *RevisionTarget) IsExternalTestSuccessful() bool {
+	t := &r.ExternalTest
+	return t.Enabled && t.Completed && t.Succeeded
 }
 
 func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
