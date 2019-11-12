@@ -70,6 +70,7 @@ type Deployment interface {
 	isDeployed() bool
 	isTestPending() bool
 	isTestStarted() bool
+	didTestSucceed() bool
 	currentPercent() uint32
 	peakPercent() uint32
 	isCanaryPending() bool
@@ -164,7 +165,10 @@ func Testing(ctx context.Context, deployment Deployment) (State, error) {
 		return failing, nil
 	}
 	if !deployment.isTestPending() {
-		return tested, nil
+		if deployment.didTestSucceed() {
+			return tested, nil
+		}
+		return failing, nil
 	}
 	return testing, nil
 }
