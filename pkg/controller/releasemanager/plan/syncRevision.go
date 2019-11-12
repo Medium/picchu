@@ -155,16 +155,11 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 		}
 	}
 
-	podLabels := map[string]string{
-		"tag.picchu.medium.engineering": p.Tag,
-		picchuv1alpha1.LabelApp:         p.App,
-	}
-
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        p.Tag,
 			Namespace:   p.Namespace,
-			Labels:      podLabels,
+			Labels:      p.Labels,
 			Annotations: map[string]string{},
 		},
 		Spec: corev1.PodSpec{
@@ -187,7 +182,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas:        &scaledReplicas,
-			Selector:        metav1.SetAsLabelSelector(podLabels),
+			Selector:        metav1.SetAsLabelSelector(p.Labels),
 			Template:        template,
 			MinReadySeconds: p.MinReadySeconds,
 		},

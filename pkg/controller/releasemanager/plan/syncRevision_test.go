@@ -100,8 +100,7 @@ var (
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas: &one,
 			Selector: metav1.SetAsLabelSelector(map[string]string{
-				"tag.picchu.medium.engineering": "testtag",
-				picchuv1alpha1.LabelApp:         "testapp",
+				"test": "label",
 			}),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -111,8 +110,7 @@ var (
 						picchuv1alpha1.AnnotationIAMRole: "testrole",
 					},
 					Labels: map[string]string{
-						"tag.picchu.medium.engineering": "testtag",
-						picchuv1alpha1.LabelApp:         "testapp",
+						"test": "label",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -188,8 +186,7 @@ var (
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas: &zero,
 			Selector: metav1.SetAsLabelSelector(map[string]string{
-				"tag.picchu.medium.engineering": "testtag",
-				picchuv1alpha1.LabelApp:         "testapp",
+				"test": "label",
 			}),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
@@ -199,8 +196,7 @@ var (
 						picchuv1alpha1.AnnotationIAMRole: "testrole",
 					},
 					Labels: map[string]string{
-						"tag.picchu.medium.engineering": "testtag",
-						picchuv1alpha1.LabelApp:         "testapp",
+						"test": "label",
 					},
 				},
 				Spec: corev1.PodSpec{
