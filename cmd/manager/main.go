@@ -57,6 +57,8 @@ func main() {
 	sentryAuthToken := pflag.String("sentry-auth-token", "", "Sentry API auth token")
 	sentryOrg := pflag.String("sentry-org", "", "Sentry API Organization")
 	humaneReleasesEnabled := pflag.Bool("humane-releases-enabled", true, "Release apps on the humane schedule")
+	prometheusEnabled := pflag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
+	sentryEnabled := pflag.Bool("sentry-enabled", true, "Sentry integration is enabled")
 
 	pflag.Parse()
 
@@ -74,6 +76,15 @@ func main() {
 
 	if !*humaneReleasesEnabled {
 		log.Info("New revisions with the default (humane) schedule will not be released (--humane-releases-enabled=false)")
+	}
+	if !*prometheusEnabled {
+		log.Info("SLO alerts will not be respected (--prometheus-enabled=false)")
+		*prometheusQueryAddress = ""
+	}
+	if !*sentryEnabled {
+		log.Info("Sentry integration is disabled (--sentry-enabled=false)")
+		*sentryAuthToken = ""
+		*sentryOrg = ""
 	}
 
 	namespace, err := k8sutil.GetWatchNamespace()
