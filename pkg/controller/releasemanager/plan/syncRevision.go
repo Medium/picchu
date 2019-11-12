@@ -71,20 +71,10 @@ type SyncRevision struct {
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
-	var livenessProbe *corev1.Probe
-	var readinessProbe *corev1.Probe
-	if p.LivenessProbe != nil {
-		probe := *p.LivenessProbe
-		livenessProbe = &probe
-	}
-	if p.ReadinessProbe != nil {
-		probe := *p.ReadinessProbe
-		readinessProbe = &probe
-	}
-	envs := []corev1.EnvFromSource{}
 
 	// Clone passed in objects to prevent concurrency issues
 	configs := []runtime.Object{}
+	envs := []corev1.EnvFromSource{}
 	for i := range p.Configs {
 		configs = append(configs, p.Configs[i].DeepCopyObject())
 	}
@@ -119,6 +109,47 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 			log.Error(e, "Unsupported config", "Config", config)
 			return e
 		}
+	}
+
+	for i := range configs {
+		config := configs[i]
+		if err := plan.CreateOrUpdate(ctx, log, cli, config); err != nil {
+			return err
+		}
+	}
+
+	// TODO(bob): remove this after transition
+	// Try to use full labels set for podTemplate and replicaSet.labelSelector.
+	// Fallback to old style if it fails. This is because these attributes are
+	// immutable, so any existing replicasets that existed prior to this change
+	// will fail to sync.
+	if err := p.syncReplicaSet(ctx, cli, scalingFactor, p.Labels, envs, log); err != nil {
+		oldLabels := map[string]string{
+			"tag.picchu.medium.engineering": p.Tag,
+			picchuv1alpha1.LabelApp:         p.App,
+		}
+		return p.syncReplicaSet(ctx, cli, scalingFactor, oldLabels, envs, log)
+	}
+	return nil
+}
+
+func (p *SyncRevision) syncReplicaSet(
+	ctx context.Context,
+	cli client.Client,
+	scalingFactor float64,
+	podLabels map[string]string,
+	envs []corev1.EnvFromSource,
+	log logr.Logger,
+) error {
+	var livenessProbe *corev1.Probe
+	var readinessProbe *corev1.Probe
+	if p.LivenessProbe != nil {
+		probe := *p.LivenessProbe
+		livenessProbe = &probe
+	}
+	if p.ReadinessProbe != nil {
+		probe := *p.ReadinessProbe
+		readinessProbe = &probe
 	}
 
 	ports := []corev1.ContainerPort{}
@@ -159,7 +190,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        p.Tag,
 			Namespace:   p.Namespace,
-			Labels:      p.Labels,
+			Labels:      podLabels,
 			Annotations: map[string]string{},
 		},
 		Spec: corev1.PodSpec{
@@ -182,18 +213,13 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas:        &scaledReplicas,
-			Selector:        metav1.SetAsLabelSelector(p.Labels),
+			Selector:        metav1.SetAsLabelSelector(podLabels),
 			Template:        template,
 			MinReadySeconds: p.MinReadySeconds,
 		},
 	}
 
-	for _, i := range append(configs, replicaSet) {
-		if err := plan.CreateOrUpdate(ctx, log, cli, i); err != nil {
-			return err
-		}
-	}
-	return nil
+	return plan.CreateOrUpdate(ctx, log, cli, replicaSet)
 }
 
 func DefaultDNSConfig() *corev1.PodDNSConfig {
