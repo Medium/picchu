@@ -134,18 +134,18 @@ func (mr *MockDeploymentMockRecorder) hasRevision() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasRevision", reflect.TypeOf((*MockDeployment)(nil).hasRevision))
 }
 
-// isAlarmTriggered mocks base method
-func (m *MockDeployment) isAlarmTriggered() bool {
+// markedAsFailed mocks base method
+func (m *MockDeployment) markedAsFailed() bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isAlarmTriggered")
+	ret := m.ctrl.Call(m, "markedAsFailed")
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// isAlarmTriggered indicates an expected call of isAlarmTriggered
-func (mr *MockDeploymentMockRecorder) isAlarmTriggered() *gomock.Call {
+// markedAsFailed indicates an expected call of markedAsFailed
+func (mr *MockDeploymentMockRecorder) markedAsFailed() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isAlarmTriggered", reflect.TypeOf((*MockDeployment)(nil).isAlarmTriggered))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "markedAsFailed", reflect.TypeOf((*MockDeployment)(nil).markedAsFailed))
 }
 
 // isCanaryPending mocks base method
@@ -190,46 +190,18 @@ func (mr *MockDeploymentMockRecorder) isReleaseEligible() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isReleaseEligible", reflect.TypeOf((*MockDeployment)(nil).isReleaseEligible))
 }
 
-// isTestPending mocks base method
-func (m *MockDeployment) isTestPending() bool {
+// getExternalTestStatus mocks base method
+func (m *MockDeployment) getExternalTestStatus() ExternalTestStatus {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isTestPending")
-	ret0, _ := ret[0].(bool)
+	ret := m.ctrl.Call(m, "getExternalTestStatus")
+	ret0, _ := ret[0].(ExternalTestStatus)
 	return ret0
 }
 
-// isTestPending indicates an expected call of isTestPending
-func (mr *MockDeploymentMockRecorder) isTestPending() *gomock.Call {
+// getExternalTestStatus indicates an expected call of getExternalTestStatus
+func (mr *MockDeploymentMockRecorder) getExternalTestStatus() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestPending", reflect.TypeOf((*MockDeployment)(nil).isTestPending))
-}
-
-// isTestStarted mocks base method
-func (m *MockDeployment) isTestStarted() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isTestStarted")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// isTestStarted indicates an expected call of isTestStarted
-func (mr *MockDeploymentMockRecorder) isTestStarted() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTestStarted", reflect.TypeOf((*MockDeployment)(nil).isTestStarted))
-}
-
-// didTestSucceed mocks base method
-func (m *MockDeployment) didTestSucceed() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "didTestSucceed")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// didTestSucceed indicates an expected call of didTestSucceed
-func (mr *MockDeploymentMockRecorder) didTestSucceed() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "didTestSucceed", reflect.TypeOf((*MockDeployment)(nil).didTestSucceed))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getExternalTestStatus", reflect.TypeOf((*MockDeployment)(nil).getExternalTestStatus))
 }
 
 // peakPercent mocks base method

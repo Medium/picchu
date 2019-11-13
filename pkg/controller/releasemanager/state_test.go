@@ -34,11 +34,11 @@ func TestDeploying(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isDeployed bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isDeployed bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:      hasRevision,
-			isAlarmTriggered: isAlarmTriggered,
-			isDeployed:       isDeployed,
+			hasRevision:    hasRevision,
+			markedAsFailed: markedAsFailed,
+			isDeployed:     isDeployed,
 		})
 	}
 
@@ -63,14 +63,14 @@ func TestDeployed(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isDeployed, isTestPending, isReleaseEligible, isCanaryPending bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isDeployed, isReleaseEligible, isCanaryPending bool, externalTestStatus ExternalTestStatus) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:       hasRevision,
-			isAlarmTriggered:  isAlarmTriggered,
-			isDeployed:        isDeployed,
-			isTestPending:     isTestPending,
-			isReleaseEligible: isReleaseEligible,
-			isCanaryPending:   isCanaryPending,
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			isDeployed:         isDeployed,
+			isReleaseEligible:  isReleaseEligible,
+			isCanaryPending:    isCanaryPending,
+			externalTestStatus: externalTestStatus,
 		})
 	}
 
@@ -78,90 +78,97 @@ func TestDeployed(t *tt.T) {
 		testHandler(ctx, t, "deployed", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false, false, false, false))
-	testcase(deleting, m(false, false, false, false, true, false))
-	testcase(deleting, m(false, false, false, true, false, false))
-	testcase(deleting, m(false, false, false, true, true, false))
-	testcase(deleting, m(false, false, true, false, false, false))
-	testcase(deleting, m(false, false, true, false, true, false))
-	testcase(deleting, m(false, false, true, true, false, false))
-	testcase(deleting, m(false, false, true, true, true, false))
-	testcase(deleting, m(false, false, true, false, false, false))
-	testcase(deleting, m(false, false, true, false, true, false))
-	testcase(deleting, m(false, false, true, true, false, false))
-	testcase(deleting, m(false, false, true, true, true, false))
-	testcase(deleting, m(false, true, false, false, false, false))
-	testcase(deleting, m(false, true, false, false, true, false))
-	testcase(deleting, m(false, true, false, true, false, false))
-	testcase(deleting, m(false, true, false, true, true, false))
-	testcase(deleting, m(false, true, true, false, false, false))
-	testcase(deleting, m(false, true, true, false, true, false))
-	testcase(deleting, m(false, true, true, true, false, false))
-	testcase(deleting, m(false, true, true, true, true, false))
+	// TODO(lyra): clean up; when !hasRevision, only ExternalTestUnknown is possible
+	testcase(deleting, m(false, false, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, false, ExternalTestPending))
 
-	testcase(failing, m(true, true, false, false, false, false))
-	testcase(failing, m(true, true, false, false, true, false))
-	testcase(failing, m(true, true, false, true, false, false))
-	testcase(failing, m(true, true, false, true, true, false))
-	testcase(failing, m(true, true, true, false, false, false))
-	testcase(failing, m(true, true, true, false, true, false))
-	testcase(failing, m(true, true, true, true, false, false))
-	testcase(failing, m(true, true, true, true, true, false))
+	testcase(failing, m(true, true, false, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, false, ExternalTestPending))
 
-	testcase(deploying, expectSync(m(true, false, false, false, false, false)))
-	testcase(deploying, expectSync(m(true, false, false, false, true, false)))
-	testcase(deploying, expectSync(m(true, false, false, true, false, false)))
-	testcase(deploying, expectSync(m(true, false, false, true, true, false)))
+	testcase(deploying, expectSync(m(true, false, false, false, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, false, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, ExternalTestPending)))
 
-	testcase(deployed, expectSync(m(true, false, true, false, false, false)))
+	testcase(deployed, expectSync(m(true, false, true, false, false, ExternalTestDisabled)))
 
-	testcase(pendingtest, expectSync(m(true, false, true, true, true, false)))
-	testcase(pendingtest, expectSync(m(true, false, true, true, false, false)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, false, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, false, ExternalTestPending)))
+	testcase(testing, expectSync(m(true, false, true, true, false, ExternalTestStarted)))
+	testcase(testing, expectSync(m(true, false, true, false, false, ExternalTestStarted)))
+	testcase(tested, expectSync(m(true, false, true, true, false, ExternalTestSucceeded)))
+	testcase(tested, expectSync(m(true, false, true, false, false, ExternalTestSucceeded)))
 
-	testcase(pendingrelease, expectSync(m(true, false, true, false, true, false)))
+	testcase(pendingrelease, expectSync(m(true, false, true, true, false, ExternalTestDisabled)))
 
 	// now with canaries
-	testcase(deleting, m(false, false, false, false, false, true))
-	testcase(deleting, m(false, false, false, false, true, true))
-	testcase(deleting, m(false, false, false, true, false, true))
-	testcase(deleting, m(false, false, false, true, true, true))
-	testcase(deleting, m(false, false, true, false, false, true))
-	testcase(deleting, m(false, false, true, false, true, true))
-	testcase(deleting, m(false, false, true, true, false, true))
-	testcase(deleting, m(false, false, true, true, true, true))
-	testcase(deleting, m(false, false, true, false, false, true))
-	testcase(deleting, m(false, false, true, false, true, true))
-	testcase(deleting, m(false, false, true, true, false, true))
-	testcase(deleting, m(false, false, true, true, true, true))
-	testcase(deleting, m(false, true, false, false, false, true))
-	testcase(deleting, m(false, true, false, false, true, true))
-	testcase(deleting, m(false, true, false, true, false, true))
-	testcase(deleting, m(false, true, false, true, true, true))
-	testcase(deleting, m(false, true, true, false, false, true))
-	testcase(deleting, m(false, true, true, false, true, true))
-	testcase(deleting, m(false, true, true, true, false, true))
-	testcase(deleting, m(false, true, true, true, true, true))
+	testcase(deleting, m(false, false, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, true, ExternalTestPending))
 
-	testcase(failing, m(true, true, false, false, false, true))
-	testcase(failing, m(true, true, false, false, true, true))
-	testcase(failing, m(true, true, false, true, false, true))
-	testcase(failing, m(true, true, false, true, true, true))
-	testcase(failing, m(true, true, true, false, false, true))
-	testcase(failing, m(true, true, true, false, true, true))
-	testcase(failing, m(true, true, true, true, false, true))
-	testcase(failing, m(true, true, true, true, true, true))
+	testcase(failing, m(true, true, false, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, true, ExternalTestPending))
+	testcase(failing, m(true, false, true, true, true, ExternalTestFailed))
+	testcase(failing, m(true, false, true, true, false, ExternalTestFailed))
 
-	testcase(deploying, expectSync(m(true, false, false, false, false, true)))
-	testcase(deploying, expectSync(m(true, false, false, false, true, true)))
-	testcase(deploying, expectSync(m(true, false, false, true, false, true)))
-	testcase(deploying, expectSync(m(true, false, false, true, true, true)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, ExternalTestPending)))
 
-	testcase(canarying, expectSync(m(true, false, true, false, false, true)))
+	testcase(canarying, expectSync(m(true, false, true, false, true, ExternalTestDisabled)))
 
-	testcase(pendingtest, expectSync(m(true, false, true, true, true, true)))
-	testcase(pendingtest, expectSync(m(true, false, true, true, false, true)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, true, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, true, ExternalTestPending)))
 
-	testcase(canarying, expectSync(m(true, false, true, false, true, true)))
+	testcase(canarying, expectSync(m(true, false, true, true, true, ExternalTestDisabled)))
 }
 
 func TestPendingTest(t *tt.T) {
@@ -169,12 +176,11 @@ func TestPendingTest(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isTestStarted bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed bool, externalTestStatus ExternalTestStatus) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:      hasRevision,
-			isAlarmTriggered: isAlarmTriggered,
-			isTestStarted:    isTestStarted,
-			isTestPending:    true,
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			externalTestStatus: externalTestStatus,
 		})
 	}
 
@@ -182,14 +188,15 @@ func TestPendingTest(t *tt.T) {
 		testHandler(ctx, t, "pendingtest", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false))
-	testcase(deleting, m(false, false, true))
-	testcase(deleting, m(false, true, false))
-	testcase(deleting, m(false, true, true))
-	testcase(pendingtest, m(true, false, false))
-	testcase(testing, m(true, false, true))
-	testcase(failing, m(true, true, false))
-	testcase(failing, m(true, true, true))
+	testcase(deleting, m(false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, ExternalTestStarted))
+	testcase(deleting, m(false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, ExternalTestStarted))
+	testcase(pendingtest, m(true, false, ExternalTestPending))
+	testcase(testing, m(true, false, ExternalTestStarted))
+	testcase(failing, m(true, false, ExternalTestFailed))
+	testcase(failing, m(true, true, ExternalTestPending))
+	testcase(failing, m(true, true, ExternalTestStarted))
 }
 
 func TestTesting(t *tt.T) {
@@ -197,13 +204,11 @@ func TestTesting(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isTestPending, didTestSucceed bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed bool, externalTestStatus ExternalTestStatus) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:      hasRevision,
-			isAlarmTriggered: isAlarmTriggered,
-			isTestStarted:    true,
-			isTestPending:    isTestPending,
-			didTestSucceed:   didTestSucceed,
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			externalTestStatus: externalTestStatus,
 		})
 	}
 
@@ -211,17 +216,22 @@ func TestTesting(t *tt.T) {
 		testHandler(ctx, t, "testing", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false, false))
-	testcase(deleting, m(false, false, true, false))
-	testcase(deleting, m(false, true, false, false))
-	testcase(deleting, m(false, true, true, false))
-	testcase(testing, m(true, false, true, false))
-	testcase(tested, m(true, false, false, true))
-	testcase(failing, m(true, false, false, false))
-	testcase(failing, m(true, true, false, false))
-	testcase(failing, m(true, true, true, false))
-	testcase(failing, m(true, true, false, true))
-	testcase(failing, m(true, true, true, true))
+	testcase(deleting, m(false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, ExternalTestStarted))
+	testcase(deleting, m(false, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, ExternalTestStarted))
+	testcase(deleting, m(false, true, ExternalTestSucceeded))
+
+	testcase(pendingtest, m(true, false, ExternalTestPending))
+	testcase(testing, m(true, false, ExternalTestStarted))
+	testcase(tested, m(true, false, ExternalTestSucceeded))
+	testcase(failing, m(true, false, ExternalTestFailed))
+
+	testcase(failing, m(true, true, ExternalTestPending))
+	testcase(failing, m(true, true, ExternalTestStarted))
+	testcase(failing, m(true, true, ExternalTestSucceeded))
+	testcase(failing, m(true, true, ExternalTestFailed))
 }
 
 func TestTested(t *tt.T) {
@@ -229,13 +239,13 @@ func TestTested(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible, isCanaryPending bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible, isCanaryPending bool, externalTestStatus ExternalTestStatus) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:       hasRevision,
-			isAlarmTriggered:  isAlarmTriggered,
-			isReleaseEligible: isReleaseEligible,
-			isTestStarted:     true,
-			isCanaryPending:   isCanaryPending,
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			isReleaseEligible:  isReleaseEligible,
+			isCanaryPending:    isCanaryPending,
+			externalTestStatus: externalTestStatus,
 		})
 	}
 
@@ -243,24 +253,28 @@ func TestTested(t *tt.T) {
 		testHandler(ctx, t, "tested", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false, false))
-	testcase(deleting, m(false, false, true, false))
-	testcase(deleting, m(false, true, false, false))
-	testcase(deleting, m(false, true, true, false))
-	testcase(tested, m(true, false, false, false))
-	testcase(pendingrelease, m(true, false, true, false))
-	testcase(failing, m(true, true, false, false))
-	testcase(failing, m(true, true, true, false))
+	testcase(deleting, m(false, false, false, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, false, true, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, false, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, true, false, ExternalTestSucceeded))
+	testcase(tested, m(true, false, false, false, ExternalTestSucceeded))
+	testcase(pendingtest, m(true, false, false, false, ExternalTestPending))
+	testcase(testing, m(true, false, false, false, ExternalTestStarted))
+	testcase(pendingrelease, m(true, false, true, false, ExternalTestSucceeded))
+	testcase(failing, m(true, true, false, false, ExternalTestSucceeded))
+	testcase(failing, m(true, true, true, false, ExternalTestSucceeded))
+	testcase(failing, m(true, false, false, false, ExternalTestFailed))
+	testcase(failing, m(true, false, true, false, ExternalTestFailed))
 
 	// now with canary
-	testcase(deleting, m(false, false, false, true))
-	testcase(deleting, m(false, false, true, true))
-	testcase(deleting, m(false, true, false, true))
-	testcase(deleting, m(false, true, true, true))
-	testcase(canarying, m(true, false, false, true))
-	testcase(canarying, m(true, false, true, true))
-	testcase(failing, m(true, true, false, true))
-	testcase(failing, m(true, true, true, true))
+	testcase(deleting, m(false, false, false, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, false, true, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, false, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, true, true, ExternalTestSucceeded))
+	testcase(canarying, m(true, false, false, true, ExternalTestSucceeded))
+	testcase(canarying, m(true, false, true, true, ExternalTestSucceeded))
+	testcase(failing, m(true, true, false, true, ExternalTestSucceeded))
+	testcase(failing, m(true, true, true, true, ExternalTestSucceeded))
 }
 
 func TestCanarying(t *tt.T) {
@@ -268,11 +282,11 @@ func TestCanarying(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isCanaryPending bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isCanaryPending bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:      hasRevision,
-			isAlarmTriggered: isAlarmTriggered,
-			isCanaryPending:  isCanaryPending,
+			hasRevision:     hasRevision,
+			markedAsFailed:  markedAsFailed,
+			isCanaryPending: isCanaryPending,
 		})
 	}
 
@@ -295,10 +309,10 @@ func TestCanaried(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
-			isAlarmTriggered:  isAlarmTriggered,
+			markedAsFailed:    markedAsFailed,
 			isReleaseEligible: isReleaseEligible,
 		})
 	}
@@ -322,10 +336,10 @@ func TestPendingRelease(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible, schedulePermitsRelease bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible, schedulePermitsRelease bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:            hasRevision,
-			isAlarmTriggered:       isAlarmTriggered,
+			markedAsFailed:         markedAsFailed,
 			isReleaseEligible:      isReleaseEligible,
 			schedulePermitsRelease: schedulePermitsRelease,
 		})
@@ -362,10 +376,10 @@ func TestReleasing(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
-			isAlarmTriggered:  isAlarmTriggered,
+			markedAsFailed:    markedAsFailed,
 			isReleaseEligible: isReleaseEligible,
 			peakPercent:       peakPercent,
 		})
@@ -402,10 +416,10 @@ func TestReleased(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
-			isAlarmTriggered:  isAlarmTriggered,
+			markedAsFailed:    markedAsFailed,
 			isReleaseEligible: isReleaseEligible,
 			peakPercent:       peakPercent,
 		})
@@ -442,10 +456,10 @@ func TestRetiring(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool, currentPercent uint32) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool, currentPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
-			isAlarmTriggered:  isAlarmTriggered,
+			markedAsFailed:    markedAsFailed,
 			isReleaseEligible: isReleaseEligible,
 			currentPercent:    currentPercent,
 		})
@@ -482,10 +496,10 @@ func TestRetired(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered, isReleaseEligible bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
-			isAlarmTriggered:  isAlarmTriggered,
+			markedAsFailed:    markedAsFailed,
 			isReleaseEligible: isReleaseEligible,
 		})
 	}
@@ -553,11 +567,12 @@ func TestFailing(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered bool, currentPercent uint32) *MockDeployment {
+	m := func(hasRevision, markedAsFailed bool, externalTestStatus ExternalTestStatus, currentPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:      hasRevision,
-			isAlarmTriggered: isAlarmTriggered,
-			currentPercent:   currentPercent,
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			externalTestStatus: externalTestStatus,
+			currentPercent:     currentPercent,
 		})
 	}
 
@@ -565,17 +580,25 @@ func TestFailing(t *tt.T) {
 		testHandler(ctx, t, "failing", expected, mock)
 	}
 
-	testcase(deleting, m(false, true, 0))
-	testcase(deleting, m(false, true, 100))
-	testcase(deleting, m(false, false, 0))
-	testcase(deleting, m(false, false, 100))
+	testcase(deleting, m(false, true, ExternalTestUnknown, 0))
+	testcase(deleting, m(false, true, ExternalTestUnknown, 100))
+	testcase(deleting, m(false, false, ExternalTestUnknown, 0))
+	testcase(deleting, m(false, false, ExternalTestUnknown, 100))
 
-	testcase(deploying, m(true, false, 0))
-	testcase(deploying, m(true, false, 100))
+	testcase(deploying, m(true, false, ExternalTestDisabled, 0))
+	testcase(deploying, m(true, false, ExternalTestDisabled, 100))
+	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
+	testcase(deploying, m(true, false, ExternalTestSucceeded, 100))
 
-	testcase(failed, expectDeleteCanaryRules(expectDeleteSLIRules(expectRetire(m(true, true, 0)))))
-	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, true, 1))))
-	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, true, 100))))
+	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
+	testcase(deploying, m(true, false, ExternalTestSucceeded, 100))
+
+	testcase(failed, expectDeleteCanaryRules(expectDeleteSLIRules(expectRetire(m(true, true, ExternalTestDisabled, 0)))))
+	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, true, ExternalTestDisabled, 1))))
+	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, true, ExternalTestDisabled, 100))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteSLIRules(expectRetire(m(true, false, ExternalTestFailed, 0)))))
+	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, false, ExternalTestFailed, 1))))
+	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, false, ExternalTestFailed, 100))))
 }
 
 func TestFailed(t *tt.T) {
@@ -583,10 +606,11 @@ func TestFailed(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, isAlarmTriggered bool) *MockDeployment {
+	m := func(hasRevision, markedAsFailed bool, externalTestStatus ExternalTestStatus) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
-			hasRevision:      hasRevision,
-			isAlarmTriggered: isAlarmTriggered,
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			externalTestStatus: externalTestStatus,
 		})
 	}
 
@@ -594,12 +618,16 @@ func TestFailed(t *tt.T) {
 		testHandler(ctx, t, "failed", expected, mock)
 	}
 
-	testcase(deleting, m(false, true))
-	testcase(deleting, m(false, false))
+	testcase(deleting, m(false, true, ExternalTestUnknown))
+	testcase(deleting, m(false, false, ExternalTestUnknown))
 
-	testcase(deploying, m(true, false))
+	testcase(deploying, m(true, false, ExternalTestDisabled))
+	testcase(deploying, m(true, false, ExternalTestPending))
+	testcase(deploying, m(true, false, ExternalTestStarted))
+	testcase(deploying, m(true, false, ExternalTestSucceeded))
 
-	testcase(failed, expectRetire(m(true, true)))
+	testcase(failed, expectRetire(m(true, true, ExternalTestSucceeded)))
+	testcase(failed, expectRetire(m(true, false, ExternalTestFailed)))
 }
 
 func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m *MockDeployment) {
@@ -610,11 +638,9 @@ func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m
 
 type responses struct {
 	hasRevision            bool
-	isAlarmTriggered       bool
+	markedAsFailed         bool
 	isReleaseEligible      bool
-	isTestStarted          bool
-	isTestPending          bool
-	didTestSucceed         bool
+	externalTestStatus     ExternalTestStatus
 	isCanaryPending        bool
 	isDeployed             bool
 	schedulePermitsRelease bool
@@ -641,28 +667,18 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		AnyTimes()
 	m.
 		EXPECT().
-		isAlarmTriggered().
-		Return(r.isAlarmTriggered).
+		markedAsFailed().
+		Return(r.markedAsFailed).
 		AnyTimes()
 	m.
 		EXPECT().
-		isTestPending().
-		Return(r.isTestPending).
+		getExternalTestStatus().
+		Return(r.externalTestStatus).
 		AnyTimes()
 	m.
 		EXPECT().
 		isCanaryPending().
 		Return(r.isCanaryPending).
-		AnyTimes()
-	m.
-		EXPECT().
-		isTestStarted().
-		Return(r.isTestStarted).
-		AnyTimes()
-	m.
-		EXPECT().
-		didTestSucceed().
-		Return(r.didTestSucceed).
 		AnyTimes()
 	m.
 		EXPECT().

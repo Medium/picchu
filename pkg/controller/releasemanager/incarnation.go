@@ -140,33 +140,12 @@ func (i *Incarnation) peakPercent() uint32 {
 	return i.getStatus().PeakPercent
 }
 
-// Returns true if testing is disabled or testing has passed
-func (i *Incarnation) isTestPending() bool {
-	if !i.hasRevision() {
-		return false
+func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
+	if target := i.target(); target != nil {
+		return TargetExternalTestStatus(target)
 	}
-	if i.revision.Spec.Failed {
-		return false
-	}
-	return i.target().IsExternalTestPending()
-}
 
-// Returns true if testing is started
-func (i *Incarnation) isTestStarted() bool {
-	if !i.hasRevision() {
-		return false
-	}
-	return i.target().ExternalTest.Started
-}
-
-func (i *Incarnation) didTestSucceed() bool {
-	if !i.hasRevision() {
-		return false
-	}
-	if i.revision.Spec.Failed {
-		return false
-	}
-	return i.target().IsExternalTestSuccessful()
+	return ExternalTestUnknown
 }
 
 // Remotely sync the incarnation for it's current state
@@ -339,7 +318,7 @@ func (i *Incarnation) hasRevision() bool {
 	return i.revision != nil
 }
 
-func (i *Incarnation) isAlarmTriggered() bool {
+func (i *Incarnation) markedAsFailed() bool {
 	if i.revision != nil {
 		return i.revision.Spec.Failed
 	}
@@ -698,7 +677,7 @@ func (i *IncarnationCollection) unretirable() (r []*Incarnation) {
 	for _, i := range i.sorted() {
 		cur := i.status.State.Current
 		elig := i.isReleaseEligible()
-		triggered := i.isAlarmTriggered()
+		triggered := i.markedAsFailed()
 		if cur == "retired" || ((cur == "released" || cur == "releasing") && !elig && !triggered) {
 			r = append(r, i)
 		}
