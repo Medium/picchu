@@ -328,7 +328,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	firstNonCanary := -1
 	for i, incarnation := range incarnations {
 		status := incarnation.status
-		oldCurrent := status.CurrentPercent
+		oldCurrentPercent := status.CurrentPercent
 		currentState := State(status.State.Current)
 
 		if firstNonCanary == -1 && currentState != canaried && currentState != canarying {
@@ -342,36 +342,37 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		if firstNonCanary != -1 && i > firstNonCanary {
 			max = uint32(utils.Min(int32(status.CurrentPercent), int32(percRemaining)))
 		}
-		current := incarnation.currentPercentTarget(max)
+		currentPercent := incarnation.currentPercentTarget(max)
 
-		if current > percRemaining {
+		if currentPercent > percRemaining {
 			r.log.Info(
 				"Percent target greater than percRemaining",
-				"current", current,
+				"current", currentPercent,
 				"percRemaining", percRemaining,
 				"increment", incarnation.target().Release.Rate.Increment)
 			panic("Assertion failed")
 		}
-		incarnation.updateCurrentPercent(current)
+		incarnation.updateCurrentPercent(currentPercent)
 		r.log.Info(
-			"CurrentPercentage Update",
-			"Tag", incarnation.tag,
-			"Old", oldCurrent,
-			"Current", current,
+			"Updated incarnation CurrentPercent",
+			"tag", incarnation.tag,
+			"oldCurrentPercent", oldCurrentPercent,
+			"currentPercent", currentPercent,
 			"desiredReplicas", status.Scale.Desired,
 			"currentReplicas", status.Scale.Current,
+			"currentState", status.State.Current,
 		)
-		if current <= 0 {
+		if currentPercent <= 0 && currentState != releasing {
 			incarnation.setReleaseEligible(false)
 		}
-		percRemaining -= current
+		percRemaining -= currentPercent
 		tagRoutingHeader := ""
 		if incarnation.revision != nil {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
 		}
 		revisionsMap[incarnation.tag] = &rmplan.Revision{
 			Tag:              incarnation.tag,
-			Weight:           current,
+			Weight:           currentPercent,
 			TagRoutingHeader: tagRoutingHeader,
 		}
 		if i == count-1 && percRemaining > 0 && firstNonCanary != -1 {
