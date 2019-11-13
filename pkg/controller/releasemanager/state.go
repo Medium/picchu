@@ -62,18 +62,67 @@ type Deployment interface {
 	deleteSLIRules(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
-	isAlarmTriggered() bool
+	markedAsFailed() bool
 	isReleaseEligible() bool
 	getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus
 	setState(target string)
 	getLog() logr.Logger
 	isDeployed() bool
-	isTestPending() bool
-	isTestStarted() bool
-	didTestSucceed() bool
+	getExternalTestStatus() ExternalTestStatus
 	currentPercent() uint32
 	peakPercent() uint32
 	isCanaryPending() bool
+}
+
+// ExternalTestStatus summarizes a RevisionTarget's ExternalTest spec field.
+type ExternalTestStatus int
+
+const (
+	ExternalTestUnknown ExternalTestStatus = iota
+	ExternalTestDisabled
+	ExternalTestPending
+	ExternalTestStarted
+	ExternalTestFailed
+	ExternalTestSucceeded
+)
+
+func TargetExternalTestStatus(target *picchuv1alpha1.RevisionTarget) ExternalTestStatus {
+	t := &target.ExternalTest
+
+	switch {
+	case t.Completed && t.Succeeded:
+		return ExternalTestSucceeded
+	case t.Completed:
+		return ExternalTestFailed
+	case t.Started:
+		return ExternalTestStarted
+	case t.Enabled:
+		return ExternalTestPending
+	default:
+		return ExternalTestDisabled
+	}
+}
+
+func (s ExternalTestStatus) Enabled() bool {
+	switch s {
+	case ExternalTestUnknown, ExternalTestDisabled:
+		return false
+	default:
+		return true
+	}
+}
+
+func (s ExternalTestStatus) Finished() bool {
+	switch s {
+	case ExternalTestSucceeded, ExternalTestFailed:
+		return true
+	default:
+		return false
+	}
+}
+
+func HasFailed(d Deployment) bool {
+	return d.markedAsFailed() || d.getExternalTestStatus() == ExternalTestFailed
 }
 
 type DeploymentStateManager struct {
@@ -107,7 +156,7 @@ func Deploying(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if err := deployment.sync(ctx); err != nil {
@@ -123,7 +172,7 @@ func Deployed(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if err := deployment.sync(ctx); err != nil {
@@ -132,7 +181,7 @@ func Deployed(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.isDeployed() {
 		return deploying, nil
 	}
-	if deployment.isTestPending() {
+	if deployment.getExternalTestStatus().Enabled() {
 		return pendingtest, nil
 	}
 	if deployment.isCanaryPending() {
@@ -148,10 +197,10 @@ func PendingTest(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
-	if deployment.isTestStarted() {
+	if deployment.getExternalTestStatus() == ExternalTestStarted {
 		return testing, nil
 	}
 	return pendingtest, nil
@@ -161,14 +210,17 @@ func Testing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
-	if !deployment.isTestPending() {
-		if deployment.didTestSucceed() {
-			return tested, nil
-		}
-		return failing, nil
+	if deployment.getExternalTestStatus() == ExternalTestSucceeded {
+		return tested, nil
+	}
+	if deployment.getExternalTestStatus() == ExternalTestPending {
+		return pendingtest, nil
+	}
+	if !deployment.getExternalTestStatus().Enabled() {
+		return deploying, nil
 	}
 	return testing, nil
 }
@@ -177,8 +229,14 @@ func Tested(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
+	}
+	if deployment.getExternalTestStatus() == ExternalTestPending {
+		return pendingtest, nil
+	}
+	if !deployment.getExternalTestStatus().Finished() {
+		return testing, nil
 	}
 	if deployment.isCanaryPending() {
 		return canarying, nil
@@ -193,7 +251,7 @@ func PendingRelease(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if !deployment.isReleaseEligible() {
@@ -209,7 +267,7 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if !deployment.isReleaseEligible() {
@@ -235,7 +293,7 @@ func Retiring(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if deployment.isReleaseEligible() {
@@ -254,7 +312,7 @@ func Retired(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if deployment.isReleaseEligible() {
@@ -294,7 +352,7 @@ func Failing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if !deployment.isAlarmTriggered() {
+	if !HasFailed(deployment) {
 		return deploying, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
@@ -313,7 +371,7 @@ func Failed(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if !deployment.isAlarmTriggered() {
+	if !HasFailed(deployment) {
 		return deploying, nil
 	}
 	return failed, deployment.retire(ctx)
@@ -323,7 +381,7 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if err := deployment.syncCanaryRules(ctx); err != nil {
@@ -339,7 +397,7 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if deployment.isAlarmTriggered() {
+	if HasFailed(deployment) {
 		return failing, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
