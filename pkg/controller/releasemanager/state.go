@@ -345,6 +345,9 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
 		return canaried, err
 	}
+	if err := deployment.sync(ctx); err != nil {
+		return canarying, err
+	}
 	if deployment.isReleaseEligible() {
 		return pendingrelease, nil
 	}
