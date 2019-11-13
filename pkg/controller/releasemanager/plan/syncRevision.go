@@ -118,12 +118,20 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 		}
 	}
 
-	// TODO(bob): remove this after transition
-	// Try to use full labels set for podTemplate and replicaSet.labelSelector.
-	// Fallback to old style if it fails. This is because these attributes are
-	// immutable, so any existing replicasets that existed prior to this change
-	// will fail to sync.
-	if err := p.syncReplicaSet(ctx, cli, scalingFactor, p.Labels, envs, log); err != nil {
+	// This is required for DestinationRule mapping, which doesn't allow slashes in label names.
+	labels := map[string]string{
+		"tag.picchu.medium.engineering": p.Tag,
+	}
+	for k, v := range p.Labels {
+		labels[k] = v
+	}
+
+	if err := p.syncReplicaSet(ctx, cli, scalingFactor, labels, envs, log); err != nil {
+		// TODO(bob): remove this "fallback" after transition
+		// Try to use full labels set for podTemplate and replicaSet.labelSelector.
+		// Fallback to old style if it fails. This is because these attributes are
+		// immutable, so any existing replicasets that existed prior to this change
+		// will fail to sync.
 		oldLabels := map[string]string{
 			"tag.picchu.medium.engineering": p.Tag,
 			picchuv1alpha1.LabelApp:         p.App,
