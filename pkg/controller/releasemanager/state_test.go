@@ -118,10 +118,10 @@ func TestDeployed(t *tt.T) {
 
 	testcase(pendingtest, expectSync(m(true, false, true, true, false, ExternalTestPending)))
 	testcase(pendingtest, expectSync(m(true, false, true, false, false, ExternalTestPending)))
-	testcase(pendingtest, expectSync(m(true, false, true, true, false, ExternalTestStarted)))
-	testcase(pendingtest, expectSync(m(true, false, true, false, false, ExternalTestStarted)))
-	testcase(pendingtest, expectSync(m(true, false, true, true, false, ExternalTestSucceeded)))
-	testcase(pendingtest, expectSync(m(true, false, true, false, false, ExternalTestSucceeded)))
+	testcase(testing, expectSync(m(true, false, true, true, false, ExternalTestStarted)))
+	testcase(testing, expectSync(m(true, false, true, false, false, ExternalTestStarted)))
+	testcase(tested, expectSync(m(true, false, true, true, false, ExternalTestSucceeded)))
+	testcase(tested, expectSync(m(true, false, true, false, false, ExternalTestSucceeded)))
 
 	testcase(pendingrelease, expectSync(m(true, false, true, true, false, ExternalTestDisabled)))
 
