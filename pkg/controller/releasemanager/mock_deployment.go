@@ -6,11 +6,10 @@ package releasemanager
 
 import (
 	context "context"
-	reflect "reflect"
-
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
 	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	reflect "reflect"
 )
 
 // MockDeployment is a mock of Deployment interface
@@ -92,6 +91,20 @@ func (mr *MockDeploymentMockRecorder) deleteSLIRules(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteSLIRules", reflect.TypeOf((*MockDeployment)(nil).deleteSLIRules), arg0)
 }
 
+// getExternalTestStatus mocks base method
+func (m *MockDeployment) getExternalTestStatus() ExternalTestStatus {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "getExternalTestStatus")
+	ret0, _ := ret[0].(ExternalTestStatus)
+	return ret0
+}
+
+// getExternalTestStatus indicates an expected call of getExternalTestStatus
+func (mr *MockDeploymentMockRecorder) getExternalTestStatus() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getExternalTestStatus", reflect.TypeOf((*MockDeployment)(nil).getExternalTestStatus))
+}
+
 // getLog mocks base method
 func (m *MockDeployment) getLog() logr.Logger {
 	m.ctrl.T.Helper()
@@ -132,20 +145,6 @@ func (m *MockDeployment) hasRevision() bool {
 func (mr *MockDeploymentMockRecorder) hasRevision() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasRevision", reflect.TypeOf((*MockDeployment)(nil).hasRevision))
-}
-
-// markedAsFailed mocks base method
-func (m *MockDeployment) markedAsFailed() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "markedAsFailed")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// markedAsFailed indicates an expected call of markedAsFailed
-func (mr *MockDeploymentMockRecorder) markedAsFailed() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "markedAsFailed", reflect.TypeOf((*MockDeployment)(nil).markedAsFailed))
 }
 
 // isCanaryPending mocks base method
@@ -190,18 +189,18 @@ func (mr *MockDeploymentMockRecorder) isReleaseEligible() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isReleaseEligible", reflect.TypeOf((*MockDeployment)(nil).isReleaseEligible))
 }
 
-// getExternalTestStatus mocks base method
-func (m *MockDeployment) getExternalTestStatus() ExternalTestStatus {
+// markedAsFailed mocks base method
+func (m *MockDeployment) markedAsFailed() bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getExternalTestStatus")
-	ret0, _ := ret[0].(ExternalTestStatus)
+	ret := m.ctrl.Call(m, "markedAsFailed")
+	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// getExternalTestStatus indicates an expected call of getExternalTestStatus
-func (mr *MockDeploymentMockRecorder) getExternalTestStatus() *gomock.Call {
+// markedAsFailed indicates an expected call of markedAsFailed
+func (mr *MockDeploymentMockRecorder) markedAsFailed() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getExternalTestStatus", reflect.TypeOf((*MockDeployment)(nil).getExternalTestStatus))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "markedAsFailed", reflect.TypeOf((*MockDeployment)(nil).markedAsFailed))
 }
 
 // peakPercent mocks base method

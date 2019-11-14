@@ -1,13 +1,14 @@
 package releasemanager
 
 import (
+	"math"
 	tt "testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"go.medium.engineering/picchu/pkg/test"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 )
 
 type testIncarnationOption interface {
-	Apply(i *Incarnation)
+	Apply(i *Incarnation, percent int)
 }
 
 type testScale struct {
@@ -24,9 +25,10 @@ type testScale struct {
 	Desired int32
 }
 
-func (s testScale) Apply(i *Incarnation) {
+func (s testScale) Apply(i *Incarnation, currentPercent int) {
 	i.status.Scale.Current = s.Current
 	i.status.Scale.Desired = s.Desired
+	*i.target().Scale.Min = int32(math.Ceil(float64(s.Desired) / (float64(currentPercent) / 100.0)))
 }
 
 func createTestIncarnation(tag string, currentState State, currentPercent int, options ...testIncarnationOption) *Incarnation {
@@ -34,7 +36,7 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 	scaleMin := int32(1)
 	incarnation := &Incarnation{
 		tag: tag,
-		log: logf.Log.WithName("controller_releasemanager_syncer_test_incarnation"),
+		log: test.MustNewLogger(),
 		revision: &picchuv1alpha1.Revision{
 			Spec: picchuv1alpha1.RevisionSpec{
 				Targets: []picchuv1alpha1.RevisionTarget{
@@ -69,7 +71,7 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 			},
 		},
 		controller: &IncarnationController{
-			log: logf.Log.WithName("controller_releasemanager_syncer_test"),
+			log: test.MustNewLogger(),
 			releaseManager: &picchuv1alpha1.ReleaseManager{
 				Spec: picchuv1alpha1.ReleaseManagerSpec{
 					Target: tag,
@@ -79,7 +81,7 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 	}
 
 	for _, opt := range options {
-		opt.Apply(incarnation)
+		opt.Apply(incarnation, currentPercent)
 	}
 
 	return incarnation
@@ -127,8 +129,8 @@ func assertIncarnationPercent(
 	t *tt.T,
 	incarnations []*Incarnation,
 	revisions []rmplan.Revision,
-	assertPercents []int) {
-
+	assertPercents []int,
+) {
 	t.Logf("expected - %v", assertPercents)
 	t.Logf("revisions - %v", revisions)
 	logIncarnations(t, "incarnations", incarnations)
@@ -153,7 +155,7 @@ func TestPrepareRevisionsAndRulesBadAddition(t *tt.T) {
 	m := createTestIncarnations(ctrl)
 	testResourceSyncer := &ResourceSyncer{
 		incarnations: m,
-		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+		log:          test.MustNewLogger(),
 	}
 
 	releasableIncarnations := []*Incarnation{
@@ -200,7 +202,7 @@ func TestPrepareRevisionsAndRulesNormalCase(t *tt.T) {
 	m := createTestIncarnations(ctrl)
 	testResourceSyncer := &ResourceSyncer{
 		incarnations: m,
-		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+		log:          test.MustNewLogger(),
 	}
 
 	releasableIncarnations := []*Incarnation{
@@ -238,7 +240,7 @@ func TestPrepareRevisionsAndRulesIllegalStates(t *tt.T) {
 	m := createTestIncarnations(ctrl)
 	testResourceSyncer := &ResourceSyncer{
 		incarnations: m,
-		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+		log:          test.MustNewLogger(),
 	}
 
 	releasableIncarnations := []*Incarnation{
@@ -279,12 +281,14 @@ func TestPrepareRevisionsAndRulesIncompleteScaleUp(t *tt.T) {
 	m := createTestIncarnations(ctrl)
 	testResourceSyncer := &ResourceSyncer{
 		incarnations: m,
-		log:          logf.Log.WithName("controller_releasemanager_syncer_test"),
+		log:          test.MustNewLogger(),
 	}
 
+	scale := &testScale{Desired: 12, Current: 4}
+
 	releasableIncarnations := []*Incarnation{
-		createTestIncarnation("new", releasing, 20, &testScale{Desired: 12, Current: 4}),
-		createTestIncarnation("existing", released, 80),
+		createTestIncarnation("new", releasing, 20, scale),
+		createTestIncarnation("existing", released, 80, scale),
 	}
 	m.
 		EXPECT().
@@ -295,9 +299,14 @@ func TestPrepareRevisionsAndRulesIncompleteScaleUp(t *tt.T) {
 	revisions, _ := testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{20, 80})
 
-	releasableIncarnations[0].status.Scale.Current = releasableIncarnations[0].status.Scale.Desired
+	releasableIncarnations[0].status.Scale.Current = 24
+	releasableIncarnations[0].status.Scale.Desired = 24
+
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{40, 60})
+
+	releasableIncarnations[0].status.Scale.Current = 36
+	releasableIncarnations[0].status.Scale.Desired = 36
 
 	revisions, _ = testResourceSyncer.prepareRevisionsAndRules()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{60, 40})

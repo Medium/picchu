@@ -19,7 +19,7 @@ func prepareMock(ctrl *gomock.Controller, isReconciled bool, currentPercent, pea
 		AnyTimes()
 	m.
 		EXPECT().
-		IsReconciled().
+		IsReconciled(gomock.Any()).
 		Return(isReconciled).
 		AnyTimes()
 	m.
@@ -79,14 +79,6 @@ func TestLinearScaling(t *testing.T) {
 	m = prepareMock(ctrl, false, 50, 50, 5, 100, 5, time.Time{})
 
 	assert.Equal(t, 50, int(LinearScale(m, 100, time.Now())), "Scale shouldn't be incremented")
-
-	m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 100, int(LinearScale(m, 100, time.Now())), "Scale should skip to peak")
-
-	m = prepareMock(ctrl, true, 0, 100, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 80, int(LinearScale(m, 80, time.Now())), "Scale should skip to max remaining")
 
 	m = prepareMock(ctrl, true, 0, 99, 5, 100, 5, time.Time{})
 
