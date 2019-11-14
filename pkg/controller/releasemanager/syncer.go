@@ -355,7 +355,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		incarnation.updateCurrentPercent(currentPercent)
 		r.log.Info(
 			"Updated incarnation CurrentPercent",
-			"tag", incarnation.tag,
+			"Tag", incarnation.tag,
 			"oldCurrentPercent", oldCurrentPercent,
 			"currentPercent", currentPercent,
 			"weightChanged", currentPercent != oldCurrentPercent,
@@ -369,7 +369,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		if currentPercent <= 0 && percRemaining <= 0 {
 			r.log.Info(
 				"Setting incarnation release-eligibility to false; will trigger retirement",
-				"tag", incarnation.tag,
+				"Tag", incarnation.tag,
 				"oldCurrentPercent", oldCurrentPercent,
 				"currentPercent", currentPercent,
 				"currentState", status.State.Current,

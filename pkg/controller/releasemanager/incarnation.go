@@ -119,7 +119,7 @@ func (i *Incarnation) ports() []picchuv1alpha1.PortInfo {
 		if len(target.Ports) > 0 {
 			ports = target.Ports
 		} else {
-			i.log.Info("revision.spec.ports is deprecated", "tag", i.tag)
+			i.log.Info("revision.spec.ports is deprecated")
 		}
 	}
 
