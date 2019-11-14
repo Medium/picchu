@@ -81,7 +81,6 @@ func (i *IncarnationController) divideReplicas(count int32, percent int32) int32
 	denominator := utils.Max(i.fleetSize, 1)
 	percent = utils.Min(100, percent)
 	answer := int32(math.Ceil((float64(percent) / float64(100)) * (float64(count) / float64(denominator))))
-	i.log.Info("divideReplicas", "count", count, "percent", percent, "fleetSize", i.fleetSize, "answer", answer, "denominator", denominator)
 	return utils.Max(answer, 1)
 }
 
