@@ -599,7 +599,7 @@ func (i *IncarnationCollection) deployed() (r []*Incarnation) {
 	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
-		case "deployed", "tested", "pendingrelease", "releasing", "released", "canarying", "canaried":
+		case "deployed", "pendingtest", "testing", "tested", "pendingrelease", "releasing", "released", "canarying", "canaried":
 			r = append(r, i)
 		}
 	}
