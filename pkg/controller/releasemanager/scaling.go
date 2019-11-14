@@ -6,24 +6,34 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling"
 )
 
-const reconcileRatio = 0.9
-
 type ScalableTargetAdapter struct {
 	Incarnation
 }
 
 // IsReconciled returns true if the target is considered ready to be scaled to the next increment.
-func (s *ScalableTargetAdapter) IsReconciled() bool {
+func (s *ScalableTargetAdapter) IsReconciled(desiredScale uint32) bool {
 	target := s.Incarnation.target()
 	status := s.Incarnation.status
+	controller := s.Incarnation.controller
+	log := s.Incarnation.getLog()
 
-	if target == nil {
+	if target == nil || target.Scale.Min == nil {
 		return false
 	}
 
-	desired := s.Incarnation.divideReplicas(*target.Scale.Min)
-	ratio := float64(status.Scale.Current) / float64(desired)
-	return ratio > reconcileRatio
+	expectedReplicas := controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale))
+
+	if status.Scale.Current < expectedReplicas {
+		log.Info(
+			"Deferring ramp-up; not all desired replicas are ready",
+			"desiredScale", desiredScale,
+			"expectedReplicas", expectedReplicas,
+			"currentReplicas", status.Scale.Current,
+		)
+		return false
+	}
+
+	return true
 }
 
 func (s *ScalableTargetAdapter) CurrentPercent() uint32 {
