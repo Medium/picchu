@@ -135,10 +135,6 @@ func NewDeploymentStateManager(deployment Deployment) *DeploymentStateManager {
 
 func (s *DeploymentStateManager) tick(ctx context.Context) error {
 	current := s.deployment.getStatus().State.Current
-	s.deployment.getLog().Info(
-		"Advancing state",
-		"current", current,
-	)
 	state, err := handlers[current](ctx, s.deployment)
 	if err != nil {
 		return err
