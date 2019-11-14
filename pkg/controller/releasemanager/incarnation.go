@@ -482,6 +482,7 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 
 func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	status := i.getStatus()
+	target := i.target()
 
 	if i.revision == nil || status == nil {
 		return 0
@@ -489,6 +490,22 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 
 	currentScale := status.CurrentPercent
 	desiredScale := i.currentDesiredScale(max)
+
+	expectedReplicas := status.Scale.Desired
+	targetExists := false
+	if target != nil {
+		targetExists = true
+		expectedReplicas = int32(math.Ceil((float64(desiredScale) / 100.0) * float64(*target.Scale.Min)))
+	}
+	i.getLog().Info(
+		"TODO(bob): remove me :: debug scaling",
+		"currentScale", currentScale,
+		"desiredScale", desiredScale,
+		"desiredReplicas", status.Scale.Desired,
+		"expectedReplicas", expectedReplicas,
+		"currentReplicas", status.Scale.Current,
+		"targetExists", targetExists,
+	)
 	if desiredScale > currentScale && status.Scale.Current < status.Scale.Desired {
 		i.getLog().Info(
 			"Deferring ramp-up; not all desired replicas are ready",
