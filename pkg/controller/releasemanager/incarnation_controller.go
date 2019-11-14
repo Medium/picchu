@@ -85,5 +85,5 @@ func (i *IncarnationController) divideReplicas(count int32, percent int32) int32
 }
 
 func (i *IncarnationController) expectedTotalReplicas(count int32, percent int32) int32 {
-	return i.divideReplicas(count, precent) * utils.Max(i.fleetSize, 1)
+	return i.divideReplicas(count, percent) * utils.Max(i.fleetSize, 1)
 }

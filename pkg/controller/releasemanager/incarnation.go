@@ -21,9 +21,9 @@ import (
 )
 
 type Controller interface {
-	expectedTotalReplicas(int32) int32
+	expectedTotalReplicas(count int32, percent int32) int32
 	applyPlan(context.Context, string, plan.Plan) error
-	divideReplicas(int32, int32) int32
+	divideReplicas(count int32, percent int32) int32
 	getReleaseManager() *picchuv1alpha1.ReleaseManager
 	getLog() logr.Logger
 	getConfigMaps(context.Context, *client.ListOptions) ([]runtime.Object, error)
@@ -496,7 +496,7 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	targetExists := false
 	if target != nil && target.Scale.Min != nil {
 		targetExists = true
-		expectedReplicas := i.controller.expectedTotalReplicas(*target.Scale.Min, desiredScale)
+		expectedReplicas = i.controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale))
 	}
 	i.getLog().Info(
 		"TODO(bob): remove me :: debug scaling",
