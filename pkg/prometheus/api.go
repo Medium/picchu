@@ -80,11 +80,9 @@ func InjectAPI(a PromAPI, ttl time.Duration) *API {
 func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (model.Value, error) {
 	if v, ok := a.cache[query]; ok {
 		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
-			log.Info("Cache hit")
 			return v.value, nil
 		}
 	}
-	log.Info("Cache miss")
 	val, err := a.api.Query(ctx, query, t)
 	if err != nil {
 		return nil, err
@@ -110,7 +108,6 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Query result", "Query", q, "Result", val)
 	tagset := map[string]bool{}
 	switch v := val.(type) {
 	case model.Vector:
