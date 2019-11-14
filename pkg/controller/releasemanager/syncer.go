@@ -358,13 +358,23 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 			"tag", incarnation.tag,
 			"oldCurrentPercent", oldCurrentPercent,
 			"currentPercent", currentPercent,
+			"weightChanged", currentPercent != oldCurrentPercent,
 			"desiredReplicas", status.Scale.Desired,
 			"currentReplicas", status.Scale.Current,
 			"currentState", status.State.Current,
 		)
+
 		if currentPercent <= 0 && currentState != releasing {
+			r.log.Info(
+				"Setting incarnation release-eligibility to false; will trigger retirement",
+				"tag", incarnation.tag,
+				"oldCurrentPercent", oldCurrentPercent,
+				"currentPercent", currentPercent,
+				"currentState", status.State.Current,
+			)
 			incarnation.setReleaseEligible(false)
 		}
+
 		percRemaining -= currentPercent
 		tagRoutingHeader := ""
 		if incarnation.revision != nil {
