@@ -507,7 +507,7 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		"currentReplicas", status.Scale.Current,
 		"targetExists", targetExists,
 	)
-	if desiredScale > currentScale && status.Scale.Current < status.Scale.Desired {
+	if desiredScale > currentScale && status.Scale.Current < expectedReplicas {
 		i.getLog().Info(
 			"Deferring ramp-up; not all desired replicas are ready",
 			"currentScale", currentScale,
