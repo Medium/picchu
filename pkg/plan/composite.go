@@ -20,7 +20,9 @@ func All(plans ...Plan) Plan {
 }
 
 func (p *compositePlan) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
-	for _, plan := range p.plans {
+	for i := range p.plans {
+		plan := p.plans[i]
+		log.Info("Applying Plan", "Plan", plan)
 		if err := plan.Apply(ctx, cli, scalingFactor, log); err != nil {
 			return err
 		}
