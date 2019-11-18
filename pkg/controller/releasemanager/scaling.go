@@ -10,6 +10,8 @@ type ScalableTargetAdapter struct {
 	Incarnation
 }
 
+const ScalingFactor = 0.9
+
 // IsReconciled returns true if the target is considered ready to be scaled to the next increment.
 func (s *ScalableTargetAdapter) IsReconciled(desiredScale uint32) bool {
 	target := s.Incarnation.target()
@@ -21,7 +23,7 @@ func (s *ScalableTargetAdapter) IsReconciled(desiredScale uint32) bool {
 		return false
 	}
 
-	expectedReplicas := controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale))
+	expectedReplicas := int32(float64(controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale))) * ScalingFactor)
 
 	if status.Scale.Current < expectedReplicas {
 		log.Info(
