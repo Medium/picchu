@@ -78,6 +78,7 @@ var (
 func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(incarnationGitReleaseLatency)
 	metrics.Registry.MustRegister(incarnationGitDeployLatency)
+	metrics.Registry.MustRegister(incarnationGitCreateLatency)
 	metrics.Registry.MustRegister(incarnationRevisionDeployLatency)
 	metrics.Registry.MustRegister(incarnationRevisionRollbackLatency)
 	metrics.Registry.MustRegister(incarnationRevisionReleaseLatency)
