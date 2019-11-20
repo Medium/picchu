@@ -18,12 +18,12 @@ type Observer interface {
 
 // ClusterObserver observers a single target cluster
 type ClusterObserver struct {
-	cluster string
+	cluster Cluster
 	cli     client.Client
 	log     logr.Logger
 }
 
-func NewClusterObserver(cluster string, cli client.Client, log logr.Logger) Observer {
+func NewClusterObserver(cluster Cluster, cli client.Client, log logr.Logger) Observer {
 	return &ClusterObserver{cluster, cli, log}
 }
 
@@ -51,7 +51,7 @@ func (o *ClusterObserver) Observe(ctx context.Context, namespace string) (*Obser
 	}
 
 	obs := &Observation{
-		Clusters:    []string{o.cluster},
+		Clusters:    []Cluster{o.cluster},
 		ReplicaSets: replicaSets,
 	}
 	o.log.Info("Cluster state", "Observation", obs)
