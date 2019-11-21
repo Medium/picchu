@@ -1,17 +1,6 @@
 package observe
 
-// DeploymentInfo is all release-relevent info about deployment status
-type DeploymentInfo struct {
-	Stats        DeploymentStats
-	StandbyStats DeploymentStats
-}
-
-type DeploymentStats struct {
-	Deployed bool
-	Desired  IntStat
-	Current  IntStat
-}
-
+// IntStat records int32 stats
 type IntStat struct {
 	Min   int32
 	Max   int32
@@ -19,6 +8,7 @@ type IntStat struct {
 	Count int32
 }
 
+// Record updates IntStat with new information
 func (s *IntStat) Record(n int32) {
 	if s.Count == 0 || s.Min > n {
 		s.Min = n
@@ -27,9 +17,45 @@ func (s *IntStat) Record(n int32) {
 		s.Max = n
 	}
 	s.Sum += n
-	s.Count += 1
+	s.Count++
 }
 
+// DeploymentInfo is release-relevent info about deployment status
+type DeploymentInfo struct {
+	Deployed bool
+	Desired  IntStat
+	Current  IntStat
+}
+
+// DeploymentInfoSet returns deployment info for Live and Standby clusters
+type DeploymentInfoSet struct {
+	Live    *DeploymentInfo
+	Standby *DeploymentInfo
+}
+
+// NewDeploymentInfoSet returns a new DeploymentInfoSet
+func NewDeploymentInfoSet() *DeploymentInfoSet {
+	return &DeploymentInfoSet{
+		Live:    &DeploymentInfo{},
+		Standby: &DeploymentInfo{},
+	}
+}
+
+// GetInfo returns Info based on liveness flag
+func (dis *DeploymentInfoSet) GetInfo(liveness bool) *DeploymentInfo {
+	if liveness {
+		return dis.Live
+	}
+	return dis.Standby
+}
+
+// Cluster represents a target cluster
+type Cluster struct {
+	Name string
+	Live bool
+}
+
+// replicaSet represents a replicaset in a target cluster namespace
 type replicaSet struct {
 	Desired int32
 	Current int32
@@ -39,94 +65,58 @@ type replicaSet struct {
 
 // Observation encapsulates observed deployment state for an app target
 type Observation struct {
-	Clusters    []Cluster
 	ReplicaSets []replicaSet
 }
 
-type Cluster struct {
-	Name string
-	Live bool
-}
+// Count returns the number of unique live or standby clusters included in an Observation
+func (o *Observation) Count(liveness bool) int {
+	nameSet := map[string]bool{}
 
-func (o *Observation) AddCluster(cluster Cluster) {
-	for i := range o.Clusters {
-		visit := o.Clusters[i]
-		if visit.Name == cluster.Name && visit.Live == cluster.Live {
-			return
+	for i := range o.ReplicaSets {
+		cluster := o.ReplicaSets[i].Cluster
+		if cluster.Live == liveness {
+			nameSet[cluster.Name] = true
 		}
 	}
-	o.Clusters = append(o.Clusters, cluster)
+	return len(nameSet)
 }
 
-func (o *Observation) LiveCount() int {
-	cnt := 0
-	for i := range o.Clusters {
-		if o.Clusters[i].Live {
-			cnt += 1
-		}
-	}
-	return cnt
-}
-
-func (o *Observation) StandbyCount() int {
-	cnt := 0
-	for i := range o.Clusters {
-		if !o.Clusters[i].Live {
-			cnt += 1
-		}
-	}
-	return cnt
-}
-
-func (o *Observation) combine(other *Observation) *Observation {
-	observation := &Observation{
+// Combine merges two Observations into a new Observation
+func (o *Observation) Combine(other *Observation) *Observation {
+	return &Observation{
 		ReplicaSets: append(o.ReplicaSets, other.ReplicaSets...),
 	}
-	for i := range o.Clusters {
-		cluster := o.Clusters[i]
-		observation.AddCluster(Cluster{Name: cluster.Name, Live: cluster.Live})
-	}
-	for i := range other.Clusters {
-		cluster := other.Clusters[i]
-		observation.AddCluster(Cluster{Name: cluster.Name, Live: cluster.Live})
-	}
-	return observation
 }
 
-// ForTag returns deployment info for a particular tag
-func (o *Observation) ForTag(tag string) *DeploymentInfo {
-	deployedClusters := map[string]bool{}
-	deployedStandbyClusters := map[string]bool{}
-	var di *DeploymentInfo
+// InfoForTag returns a deployment info set for a particular tag
+func (o *Observation) InfoForTag(tag string) *DeploymentInfoSet {
+	deployedClusters := map[bool]map[string]bool{
+		false: map[string]bool{},
+		true:  map[string]bool{},
+	}
+
+	var dis *DeploymentInfoSet
 
 	for _, rs := range o.ReplicaSets {
+
 		if rs.Tag != tag {
 			continue
 		}
-		if di == nil {
-			di = &DeploymentInfo{}
+		if dis == nil {
+			dis = NewDeploymentInfoSet()
 		}
-		switch rs.Cluster.Live {
-		case true:
-			di.Stats.Desired.Record(rs.Desired)
-			di.Stats.Current.Record(rs.Current)
-			if rs.Current > 0 {
-				deployedClusters[rs.Cluster.Name] = true
-			}
-		default:
-			di.StandbyStats.Desired.Record(rs.Desired)
-			di.StandbyStats.Current.Record(rs.Current)
-			if rs.Current > 0 {
-				deployedStandbyClusters[rs.Cluster.Name] = true
-			}
+		di := dis.GetInfo(rs.Cluster.Live)
+		di.Desired.Record(rs.Desired)
+		di.Current.Record(rs.Current)
+		if rs.Current > 0 {
+			deployedClusters[rs.Cluster.Live][rs.Cluster.Name] = true
 		}
 	}
 
-	if di != nil && len(deployedClusters) == o.LiveCount() {
-		di.Stats.Deployed = true
+	for _, liveness := range []bool{true, false} {
+		if dis != nil && len(deployedClusters) == o.Count(liveness) {
+			dis.GetInfo(liveness).Deployed = true
+		}
 	}
-	if di != nil && len(deployedStandbyClusters) == o.StandbyCount() {
-		di.StandbyStats.Deployed = true
-	}
-	return di
+	return dis
 }

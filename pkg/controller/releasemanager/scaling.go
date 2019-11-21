@@ -25,6 +25,12 @@ func (s *ScalableTargetAdapter) IsReconciled(desiredScale uint32) bool {
 
 	expectedReplicas := int32(float64(controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale))) * ScalingFactor)
 
+	log.Info(
+		"Computed expectedReplicas",
+		"desiredScale", desiredScale,
+		"expectedReplicas", expectedReplicas,
+		"currentReplicas", status.Scale.Current,
+	)
 	if status.Scale.Current < expectedReplicas {
 		log.Info(
 			"Deferring ramp-up; not all desired replicas are ready",

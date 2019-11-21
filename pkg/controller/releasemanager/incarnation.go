@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Controller is incarnations interface into the outside scope
 type Controller interface {
 	expectedTotalReplicas(count int32, percent int32) int32
 	applyPlan(context.Context, string, plan.Plan) error
@@ -30,6 +31,7 @@ type Controller interface {
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 }
 
+// Incarnation respresents an applied revision
 type Incarnation struct {
 	deployed   bool
 	controller Controller
@@ -42,6 +44,7 @@ type Incarnation struct {
 	humaneReleasesEnabled bool
 }
 
+// NewIncarnation creates a new Incarnation
 func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, humaneReleasesEnabled bool) *Incarnation {
 	status := controller.getReleaseManager().RevisionStatus(tag)
 
@@ -268,6 +271,7 @@ func (i *Incarnation) getStatus() *picchuv1alpha1.ReleaseManagerRevisionStatus {
 	return i.status
 }
 
+// Tag is the revision tag
 func (i *Incarnation) Tag() string {
 	return i.tag
 }
@@ -417,8 +421,8 @@ func (i *Incarnation) update(di *observe.DeploymentInfo) {
 	} else {
 		i.deployed = di.Deployed
 		i.status.Deleted = false
-		i.status.Scale.Desired = di.Desired
-		i.status.Scale.Current = di.Current
+		i.status.Scale.Desired = di.Desired.Sum
+		i.status.Scale.Current = di.Current.Sum
 		if i.status.Scale.Current > i.status.Scale.Peak {
 			i.status.Scale.Peak = i.status.Scale.Current
 		}
@@ -537,8 +541,8 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 		}
 
 		l := controller.getLog().WithValues("Tag", tag)
-		di := observation.ForTag(tag)
-		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, di, humaneReleasesEnabled)
+		di := observation.InfoForTag(tag)
+		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, di.Live, humaneReleasesEnabled)
 	}
 
 	for _, r := range revisionList.Items {
@@ -695,6 +699,6 @@ func (i *IncarnationCollection) sorted() (r []*Incarnation) {
 
 func (i *IncarnationCollection) update(observation *observe.Observation) {
 	for _, item := range i.itemSet {
-		item.update(observation.ForTag(item.Tag()))
+		item.update(observation.InfoForTag(item.Tag()).Live)
 	}
 }

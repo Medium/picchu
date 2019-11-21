@@ -23,6 +23,7 @@ type ClusterObserver struct {
 	log     logr.Logger
 }
 
+// NewClusterObserver creates a ClusterObserver
 func NewClusterObserver(cluster Cluster, cli client.Client, log logr.Logger) Observer {
 	return &ClusterObserver{cluster, cli, log}
 }
@@ -51,7 +52,6 @@ func (o *ClusterObserver) Observe(ctx context.Context, namespace string) (*Obser
 	}
 
 	obs := &Observation{
-		Clusters:    []Cluster{o.cluster},
 		ReplicaSets: replicaSets,
 	}
 	o.log.Info("Cluster state", "Observation", obs)
@@ -64,6 +64,7 @@ type ConcurrentObserver struct {
 	log       logr.Logger
 }
 
+// NewConcurrentObserver creates a ConcurrentObserver
 func NewConcurrentObserver(observers []Observer, log logr.Logger) Observer {
 	return &ConcurrentObserver{observers, log}
 }
@@ -74,9 +75,9 @@ func (o *ConcurrentObserver) Observe(ctx context.Context, namespace string) (*Ob
 	observations := []Observation{}
 
 	for i := range o.observers {
-		observer := o.observers[i]
+		i := i
 		g.Go(func() error {
-			obs, err := observer.Observe(ctx, namespace)
+			obs, err := o.observers[i].Observe(ctx, namespace)
 			if err != nil {
 				return err
 			}
@@ -92,7 +93,7 @@ func (o *ConcurrentObserver) Observe(ctx context.Context, namespace string) (*Ob
 	obs := &Observation{}
 	for i := range observations {
 		o := observations[i]
-		obs = obs.combine(&o)
+		obs = obs.Combine(&o)
 	}
 	o.log.Info("Concurrent observations collected", "Observation", obs)
 	return obs, nil
