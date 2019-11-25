@@ -368,7 +368,7 @@ func TestPendingRelease(t *tt.T) {
 
 	testcase(releasing, m(true, false, true, true))
 
-	testcase(pendingrelease, m(true, false, true, false))
+	testcase(pendingrelease, expectSync(m(true, false, true, false)))
 }
 
 func TestReleasing(t *tt.T) {

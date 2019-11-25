@@ -272,6 +272,9 @@ func PendingRelease(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.schedulePermitsRelease() {
 		return releasing, nil
 	}
+	if err := deployment.sync(ctx); err != nil {
+		return pendingrelease, err
+	}
 	return pendingrelease, nil
 }
 
