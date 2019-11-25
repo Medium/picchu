@@ -95,6 +95,7 @@ func (o *ConcurrentObserver) Observe(ctx context.Context, namespace string) (*Ob
 		o := observations[i]
 		obs = obs.Combine(&o)
 	}
-	o.log.Info("Concurrent observations collected", "Observation", obs)
+	// TODO(bob): this is too big to log, maybe only display replicasets with >0 values.
+	// o.log.Info("Concurrent observations collected", "Observation", obs)
 	return obs, nil
 }
