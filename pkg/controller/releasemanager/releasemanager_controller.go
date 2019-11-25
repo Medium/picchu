@@ -123,8 +123,8 @@ type ReconcileReleaseManager struct {
 // and what is in the ReleaseManager.Spec
 func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	start := time.Now()
-	traceId := uuid.New().String()
-	reqLog := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceId)
+	traceID := uuid.New().String()
+	reqLog := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceID)
 	defer func() {
 		reqLog.Info("Finished releasemanager reconcile", "Elapsed", time.Since(start))
 	}()
@@ -152,13 +152,19 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	if err != nil {
 		rmLog.Error(err, "Failed to get clusters for fleet", "Fleet.Name", rm.Spec.Fleet)
 	}
-	var liveClusterCount int32 = 0
+	clusterInfo := ClusterInfoList{}
 	for _, cluster := range clusters {
-		if !cluster.Spec.HotStandby {
-			liveClusterCount += 1
+		var scalingFactor float64 = 0.0
+		if cluster.Spec.ScalingFactor != nil {
+			scalingFactor = *cluster.Spec.ScalingFactor
 		}
+		clusterInfo = append(clusterInfo, ClusterInfo{
+			Name:          cluster.Name,
+			Live:          !cluster.Spec.HotStandby,
+			ScalingFactor: scalingFactor,
+		})
 	}
-	if liveClusterCount == 0 {
+	if clusterInfo.ClusterCount(true) == 0 {
 		return reconcile.Result{}, nil
 	}
 	planApplier, err := r.newPlanApplier(ctx, rmLog, clusters)
@@ -191,7 +197,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		planApplier:    planApplier,
 		log:            rmLog,
 		releaseManager: rm,
-		fleetSize:      liveClusterCount,
+		clusterInfo:    clusterInfo,
 	}
 
 	syncer := ResourceSyncer{
@@ -266,7 +272,7 @@ func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namesp
 	r.scheme.Default(clusterList)
 
 	clusters := []picchuv1alpha1.Cluster{}
-	for i, _ := range clusterList.Items {
+	for i := range clusterList.Items {
 		cluster := clusterList.Items[i]
 		if !cluster.Spec.Enabled {
 			continue
@@ -277,6 +283,7 @@ func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namesp
 	return clusters, err
 }
 
+// ClusterConfig is the cluster information needed to create cluster specific resources
 type ClusterConfig struct {
 	DefaultDomain         string
 	PublicIngressGateway  string
@@ -342,7 +349,9 @@ func (r *ReconcileReleaseManager) newObserver(ctx context.Context, log logr.Logg
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-			observers = append(observers, observe.NewClusterObserver(clusters[i].Name, remoteClient, log.WithValues("Cluster", clusters[i].Name)))
+			observerCluster := observe.Cluster{Name: clusters[i].Name, Live: !clusters[i].Spec.HotStandby}
+			observer := observe.NewClusterObserver(observerCluster, remoteClient, log.WithValues("Cluster", clusters[i].Name))
+			observers = append(observers, observer)
 			return nil
 		})
 	}

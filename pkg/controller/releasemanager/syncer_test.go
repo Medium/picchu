@@ -71,6 +71,11 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 			},
 		},
 		controller: &IncarnationController{
+			clusterInfo: ClusterInfoList{{
+				Name:          "cluster-0",
+				Live:          true,
+				ScalingFactor: 1.0,
+			}},
 			log: test.MustNewLogger(),
 			releaseManager: &picchuv1alpha1.ReleaseManager{
 				Spec: picchuv1alpha1.ReleaseManagerSpec{

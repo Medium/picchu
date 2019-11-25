@@ -11,55 +11,104 @@ import (
 func TestCombinedDeployedObservations(t *testing.T) {
 	log := test.MustNewLogger()
 	master := &Observation{}
-	master = master.combine(&Observation{
-		Clusters: []string{"production-lime-a"},
+	master = master.Combine(&Observation{
 		ReplicaSets: []replicaSet{{
 			Desired: 2,
 			Current: 1,
 			Tag:     "tag-a",
-			Cluster: "production-lime-a",
+			Cluster: Cluster{
+				Name: "production-lime-a",
+				Live: true,
+			},
 		}},
 	})
-	master = master.combine(&Observation{
-		Clusters: []string{"production-lime-b"},
+	master = master.Combine(&Observation{
 		ReplicaSets: []replicaSet{{
 			Desired: 3,
 			Current: 2,
 			Tag:     "tag-a",
-			Cluster: "production-lime-b",
+			Cluster: Cluster{
+				Name: "production-lime-b",
+				Live: true,
+			},
+		}},
+	})
+	master = master.Combine(&Observation{
+		ReplicaSets: []replicaSet{{
+			Desired: 3,
+			Current: 2,
+			Tag:     "tag-a",
+			Cluster: Cluster{
+				Name: "production-moss-b",
+				Live: false,
+			},
 		}},
 	})
 	log.Info("Created OUT", "Observation", master)
-	assert.NotNil(t, master.ForTag("tag-a"), "Should find info for tag")
-	assert.Equal(t, 5, int(master.ForTag("tag-a").Desired), "Combined desired count should be accumlated")
-	assert.Equal(t, 3, int(master.ForTag("tag-a").Current), "Combined current count should be accumlated")
-	assert.True(t, master.ForTag("tag-a").Deployed, "Combined should be state deployed")
+	info := master.InfoForTag("tag-a")
+	assert.NotNil(t, info, "Should find info for tag")
+	assert.Equal(t, 5, int(info.Live.Desired.Sum), "Combined desired count should be accumlated")
+	assert.Equal(t, 3, int(info.Live.Current.Sum), "Combined current count should be accumlated")
+	assert.Equal(t, 3, int(info.Standby.Desired.Sum), "Combined desired count should be accumlated")
+	assert.Equal(t, 2, int(info.Standby.Current.Sum), "Combined current count should be accumlated")
+	assert.Equal(t, 2, int(info.Live.Current.Count), "Correct number of records found")
+	assert.Equal(t, 1, int(info.Standby.Current.Count), "Correct number of records found")
 }
 
 func TestCombinedNotDeployedObservations(t *testing.T) {
 	log := test.MustNewLogger()
 	master := &Observation{}
-	master = master.combine(&Observation{
-		Clusters: []string{"production-lime-a"},
+	master = master.Combine(&Observation{
 		ReplicaSets: []replicaSet{{
 			Desired: 2,
 			Current: 1,
 			Tag:     "tag-a",
-			Cluster: "production-lime-a",
+			Cluster: Cluster{
+				Name: "production-lime-a",
+				Live: true,
+			},
 		}},
 	})
-	master = master.combine(&Observation{
-		Clusters: []string{"production-lime-b"},
+	master = master.Combine(&Observation{
 		ReplicaSets: []replicaSet{{
 			Desired: 1,
 			Current: 0,
 			Tag:     "tag-a",
-			Cluster: "production-lime-b",
+			Cluster: Cluster{
+				Name: "production-lime-b",
+				Live: true,
+			},
+		}},
+	})
+	master = master.Combine(&Observation{
+		ReplicaSets: []replicaSet{{
+			Desired: 1,
+			Current: 0,
+			Tag:     "tag-a",
+			Cluster: Cluster{
+				Name: "production-moss-b",
+				Live: false,
+			},
 		}},
 	})
 	log.Info("Created OUT", "Observation", master)
-	assert.NotNil(t, master.ForTag("tag-a"), "Should find info for tag")
-	assert.Equal(t, 3, int(master.ForTag("tag-a").Desired), "Combined desired count should be accumlated")
-	assert.Equal(t, 1, int(master.ForTag("tag-a").Current), "Combined current count should be accumlated")
-	assert.False(t, master.ForTag("tag-a").Deployed, "Combined should be state deployed")
+	info := master.InfoForTag("tag-a")
+	assert.NotNil(t, info, "Should find info for tag")
+	assert.Equal(t, 3, int(info.Live.Desired.Sum), "Combined desired count should be accumlated")
+	assert.Equal(t, 1, int(info.Live.Current.Sum), "Combined current count should be accumlated")
+	assert.Equal(t, 1, int(info.Standby.Desired.Sum), "Combined desired count should be accumlated")
+	assert.Equal(t, 0, int(info.Standby.Current.Sum), "Combined current count should be accumlated")
+	assert.Equal(t, 2, int(info.Live.Current.Count), "Correct number of records found")
+	assert.Equal(t, 1, int(info.Standby.Current.Count), "Correct number of records found")
+}
+
+func TestIntStat(t *testing.T) {
+	stat := IntStat{}
+	for _, n := range []int32{3, 5, 2, 4, 10, 5} {
+		stat.Record(n)
+	}
+	assert.Equal(t, 6, int(stat.Count))
+	assert.Equal(t, 29, int(stat.Sum))
+	assert.Equal(t, 2, int(stat.Min))
+	assert.Equal(t, 10, int(stat.Max))
 }
