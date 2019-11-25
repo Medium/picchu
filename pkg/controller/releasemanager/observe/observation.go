@@ -22,9 +22,8 @@ func (s *IntStat) Record(n int32) {
 
 // DeploymentInfo is release-relevent info about deployment status
 type DeploymentInfo struct {
-	Deployed bool
-	Desired  IntStat
-	Current  IntStat
+	Desired IntStat
+	Current IntStat
 }
 
 // DeploymentInfoSet returns deployment info for Live and Standby clusters
@@ -90,15 +89,9 @@ func (o *Observation) Combine(other *Observation) *Observation {
 
 // InfoForTag returns a deployment info set for a particular tag
 func (o *Observation) InfoForTag(tag string) *DeploymentInfoSet {
-	deployedClusters := map[bool]map[string]bool{
-		false: map[string]bool{},
-		true:  map[string]bool{},
-	}
-
 	var dis *DeploymentInfoSet
 
 	for _, rs := range o.ReplicaSets {
-
 		if rs.Tag != tag {
 			continue
 		}
@@ -108,15 +101,6 @@ func (o *Observation) InfoForTag(tag string) *DeploymentInfoSet {
 		di := dis.GetInfo(rs.Cluster.Live)
 		di.Desired.Record(rs.Desired)
 		di.Current.Record(rs.Current)
-		if rs.Current > 0 {
-			deployedClusters[rs.Cluster.Live][rs.Cluster.Name] = true
-		}
-	}
-
-	for _, liveness := range []bool{true, false} {
-		if dis != nil && len(deployedClusters) == o.Count(liveness) {
-			dis.GetInfo(liveness).Deployed = true
-		}
 	}
 	return dis
 }

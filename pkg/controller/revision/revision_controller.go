@@ -351,7 +351,6 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 				continue
 			}
 			expiration := rl.GitTimestamp.Add(time.Duration(rl.TTL) * time.Second)
-			log.Info("expiration check", "expiration", expiration, "now", time.Now())
 			if rl.Tag == revision.Spec.App.Tag {
 				if time.Now().After(expiration) {
 					switch rl.State.Current {

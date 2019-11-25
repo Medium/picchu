@@ -1,6 +1,7 @@
 package releasemanager
 
 import (
+	"math"
 	"time"
 
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling"
@@ -10,7 +11,7 @@ type ScalableTargetAdapter struct {
 	Incarnation
 }
 
-const ScalingFactor = 0.9
+const Threshold = 0.95
 
 // IsReconciled returns true if the target is considered ready to be scaled to the next increment.
 func (s *ScalableTargetAdapter) IsReconciled(desiredScale uint32) bool {
@@ -23,7 +24,8 @@ func (s *ScalableTargetAdapter) IsReconciled(desiredScale uint32) bool {
 		return false
 	}
 
-	expectedReplicas := int32(float64(controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale))) * ScalingFactor)
+	totalReplicas := float64(controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale)))
+	expectedReplicas := int32(math.Ceil(totalReplicas * Threshold))
 
 	log.Info(
 		"Computed expectedReplicas",

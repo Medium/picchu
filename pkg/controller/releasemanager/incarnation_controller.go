@@ -124,3 +124,7 @@ func (i *IncarnationController) expectedTotalReplicas(count int32, percent int32
 	answer := int(math.Ceil(factor * float64(count)))
 	return int32(i.clusterInfo.ExpectedReplicaCount(true, answer))
 }
+
+func (i *IncarnationController) liveCount() int {
+	return i.clusterInfo.ClusterCount(true)
+}

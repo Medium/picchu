@@ -29,6 +29,7 @@ type Controller interface {
 	getLog() logr.Logger
 	getConfigMaps(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
+	liveCount() int
 }
 
 // Incarnation respresents an applied revision
@@ -419,7 +420,7 @@ func (i *Incarnation) update(di *observe.DeploymentInfo) {
 		i.status.Scale.Desired = 0
 		i.status.Deleted = true
 	} else {
-		i.deployed = di.Deployed
+		i.deployed = int(di.Current.Count) >= i.controller.liveCount() && di.Current.Min > 0
 		i.status.Deleted = false
 		i.status.Scale.Desired = di.Desired.Sum
 		i.status.Scale.Current = di.Current.Sum
@@ -542,7 +543,11 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 
 		l := controller.getLog().WithValues("Tag", tag)
 		di := observation.InfoForTag(tag)
-		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, di.Live, humaneReleasesEnabled)
+		var live *observe.DeploymentInfo
+		if di != nil {
+			live = di.Live
+		}
+		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, live, humaneReleasesEnabled)
 	}
 
 	for _, r := range revisionList.Items {
@@ -699,6 +704,11 @@ func (i *IncarnationCollection) sorted() (r []*Incarnation) {
 
 func (i *IncarnationCollection) update(observation *observe.Observation) {
 	for _, item := range i.itemSet {
-		item.update(observation.InfoForTag(item.Tag()).Live)
+		info := observation.InfoForTag(item.Tag())
+		var live *observe.DeploymentInfo
+		if info != nil {
+			live = info.Live
+		}
+		item.update(live)
 	}
 }
