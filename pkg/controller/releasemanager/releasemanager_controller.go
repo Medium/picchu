@@ -317,7 +317,7 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 	g, ctx := errgroup.WithContext(ctx)
 	appliers := []plan.Applier{}
 	for i := range clusters {
-		cluster := cluster[i]
+		cluster := clusters[i]
 		g.Go(func() error {
 			remoteClient, err := utils.RemoteClient(ctx, log, r.client, &cluster)
 			if err != nil {
