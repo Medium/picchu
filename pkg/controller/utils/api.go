@@ -35,15 +35,17 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 	if err != nil {
 		return nil, err
 	}
-	if config != nil {
-		cli, err := client.New(config, client.Options{})
-		if err != nil {
-			return cli, err
-		}
-		cache[key] = cli
-		return cli, nil
+	if config == nil {
+		err := fmt.Errorf("Failed to create k8s client config")
+		log.Error(err, "cluster config nil", "Cluster", cluster.Name)
+		return nil, err
 	}
-	return nil, nil
+	cli, err := client.New(config, client.Options{})
+	if err != nil {
+		return cli, err
+	}
+	cache[key] = cli
+	return cli, nil
 }
 
 // UpdateStatus first tries new method of status update, and falls back to old.

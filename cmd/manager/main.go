@@ -167,6 +167,15 @@ func main() {
 
 	log.Info("Starting the Cmd.")
 
+	// Recover panics to serialize output to json for our logger
+	defer func() {
+		if r := recover(); err != nil {
+			err := fmt.Errorf("panic")
+			log.Error(err, "recover", r)
+			os.Exit(2)
+		}
+	}()
+
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		log.Error(err, "Manager exited non-zero")
