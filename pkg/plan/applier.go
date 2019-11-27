@@ -23,6 +23,16 @@ func NewClusterApplier(cli client.Client, scalingFactor float64, log logr.Logger
 }
 
 func (a *ClusterApplier) Apply(ctx context.Context, plan Plan) error {
+	// TODO(bob): debugging, remove later
+	if a == nil {
+		panic("ClusterApplier is nil")
+	}
+	if a.log == nil {
+		panic("ClusterApplier log is nil")
+	}
+	if a.cli == nil {
+		a.log.Info("ClusterApplier cli is nil")
+	}
 	return plan.Apply(ctx, a.cli, a.scalingFactor, a.log)
 }
 
