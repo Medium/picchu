@@ -317,18 +317,18 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 	g, ctx := errgroup.WithContext(ctx)
 	appliers := []plan.Applier{}
 	for i := range clusters {
-		i := i
+		cluster := cluster[i]
 		g.Go(func() error {
-			remoteClient, err := utils.RemoteClient(ctx, log, r.client, &clusters[i])
+			remoteClient, err := utils.RemoteClient(ctx, log, r.client, &cluster)
 			if err != nil {
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-			scalingFactor := clusters[i].Spec.ScalingFactor
+			scalingFactor := cluster.Spec.ScalingFactor
 			if scalingFactor == nil || *scalingFactor < 0.1 {
 				panic("Refusing to scale lower than 0.1 on a cluster")
 			}
-			appliers = append(appliers, plan.NewClusterApplier(remoteClient, *scalingFactor, log.WithValues("Cluster", clusters[i].Name)))
+			appliers = append(appliers, plan.NewClusterApplier(remoteClient, *scalingFactor, log.WithValues("Cluster", cluster.Name)))
 			return nil
 		})
 	}
@@ -342,15 +342,15 @@ func (r *ReconcileReleaseManager) newObserver(ctx context.Context, log logr.Logg
 	g, ctx := errgroup.WithContext(ctx)
 	observers := []observe.Observer{}
 	for i := range clusters {
-		i := i
+		cluster := clusters[i]
 		g.Go(func() error {
-			remoteClient, err := utils.RemoteClient(ctx, log, r.client, &clusters[i])
+			remoteClient, err := utils.RemoteClient(ctx, log, r.client, &cluster)
 			if err != nil {
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-			observerCluster := observe.Cluster{Name: clusters[i].Name, Live: !clusters[i].Spec.HotStandby}
-			observer := observe.NewClusterObserver(observerCluster, remoteClient, log.WithValues("Cluster", clusters[i].Name))
+			observerCluster := observe.Cluster{Name: cluster.Name, Live: !cluster.Spec.HotStandby}
+			observer := observe.NewClusterObserver(observerCluster, remoteClient, log.WithValues("Cluster", cluster.Name))
 			observers = append(observers, observer)
 			return nil
 		})

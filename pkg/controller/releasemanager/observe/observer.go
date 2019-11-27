@@ -75,9 +75,9 @@ func (o *ConcurrentObserver) Observe(ctx context.Context, namespace string) (*Ob
 	observations := []Observation{}
 
 	for i := range o.observers {
-		i := i
+		observer := o.observers[i]
 		g.Go(func() error {
-			obs, err := o.observers[i].Observe(ctx, namespace)
+			obs, err := o.observer.Observe(ctx, namespace)
 			if err != nil {
 				return err
 			}
