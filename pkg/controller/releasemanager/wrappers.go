@@ -59,15 +59,15 @@ func (s *ConfigMapList) GetItems() (r []runtime.Object) {
 }
 
 func (s *ReplicaSetList) GetItems() (r []runtime.Object) {
-	for _, i := range s.Item.Items {
-		r = append(r, &i)
+	for i := range s.Item.Items {
+		r = append(r, &s.Item.Items[i])
 	}
 	return
 }
 
 func (s *HorizontalPodAutoscalerList) GetItems() (r []runtime.Object) {
-	for _, i := range s.Item.Items {
-		r = append(r, &i)
+	for i := range s.Item.Items {
+		r = append(r, &s.Item.Items[i])
 	}
 	return
 }

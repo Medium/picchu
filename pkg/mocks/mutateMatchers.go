@@ -13,9 +13,7 @@ func InjectSecrets(secrets []corev1.Secret) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
 		case *corev1.SecretList:
-			for _, secret := range secrets {
-				o.Items = append(o.Items, secret)
-			}
+			o.Items = append(o.Items, secrets...)
 			return true
 		default:
 			return false
@@ -29,9 +27,7 @@ func InjectConfigMaps(configMaps []corev1.ConfigMap) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
 		case *corev1.ConfigMapList:
-			for _, configMap := range configMaps {
-				o.Items = append(o.Items, configMap)
-			}
+			o.Items = append(o.Items, configMaps...)
 			return true
 		default:
 			return false
@@ -45,9 +41,7 @@ func InjectReplicaSets(replicaSets []appsv1.ReplicaSet) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
 		case *appsv1.ReplicaSetList:
-			for _, replicaSet := range replicaSets {
-				o.Items = append(o.Items, replicaSet)
-			}
+			o.Items = append(o.Items, replicaSets...)
 			return true
 		default:
 			return false
@@ -61,9 +55,7 @@ func InjectHorizontalPodAutoscalers(hpas []autoscalingv1.HorizontalPodAutoscaler
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
 		case *autoscalingv1.HorizontalPodAutoscalerList:
-			for _, hpa := range hpas {
-				o.Items = append(o.Items, hpa)
-			}
+			o.Items = append(o.Items, hpas...)
 			return true
 		default:
 			return false
@@ -77,8 +69,8 @@ func InjectPrometheusRules(rules []monitoringv1.PrometheusRule) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
 		case *monitoringv1.PrometheusRuleList:
-			for _, rule := range rules {
-				o.Items = append(o.Items, &rule)
+			for i := range rules {
+				o.Items = append(o.Items, &rules[i])
 			}
 			return true
 		default:

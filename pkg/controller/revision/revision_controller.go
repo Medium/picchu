@@ -258,7 +258,7 @@ func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *pic
 			updated = true
 		}
 	}
-	for name, _ := range revision.Labels {
+	for name := range revision.Labels {
 		if strings.HasPrefix(name, picchuv1alpha1.LabelFleetPrefix) {
 			found := false
 			for _, expected := range fleetLabels {
