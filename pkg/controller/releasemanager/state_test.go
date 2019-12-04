@@ -416,12 +416,13 @@ func TestReleased(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, markedAsFailed, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool, peakPercent, currentPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
 			markedAsFailed:    markedAsFailed,
 			isReleaseEligible: isReleaseEligible,
 			peakPercent:       peakPercent,
+			currentPercent:    currentPercent,
 		})
 	}
 
@@ -429,26 +430,26 @@ func TestReleased(t *tt.T) {
 		testHandler(ctx, t, "released", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false, 0))
-	testcase(deleting, m(false, false, true, 0))
-	testcase(deleting, m(false, true, false, 0))
-	testcase(deleting, m(false, true, true, 0))
-	testcase(deleting, m(false, false, false, 100))
-	testcase(deleting, m(false, false, true, 100))
-	testcase(deleting, m(false, true, false, 100))
-	testcase(deleting, m(false, true, true, 100))
+	testcase(deleting, m(false, false, false, 0, 0))
+	testcase(deleting, m(false, false, true, 0, 0))
+	testcase(deleting, m(false, true, false, 0, 0))
+	testcase(deleting, m(false, true, true, 0, 0))
+	testcase(deleting, m(false, false, false, 100, 0))
+	testcase(deleting, m(false, false, true, 100, 0))
+	testcase(deleting, m(false, true, false, 100, 0))
+	testcase(deleting, m(false, true, true, 100, 0))
 
-	testcase(failing, m(true, true, false, 0))
-	testcase(failing, m(true, true, true, 0))
-	testcase(failing, m(true, true, false, 100))
-	testcase(failing, m(true, true, true, 100))
+	testcase(failing, m(true, true, false, 0, 0))
+	testcase(failing, m(true, true, true, 0, 0))
+	testcase(failing, m(true, true, false, 100, 0))
+	testcase(failing, m(true, true, true, 100, 0))
 
-	testcase(retiring, m(true, false, false, 0))
-	testcase(retiring, m(true, false, false, 100))
+	testcase(retiring, m(true, false, false, 0, 0))
+	testcase(retiring, m(true, false, false, 100, 0))
 
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 0))))
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 99))))
-	testcase(released, expectSyncSLIRules(expectSync(m(true, false, true, 100))))
+	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 0, 0))))
+	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 99, 0))))
+	testcase(released, expectSyncSLIRules(expectSync(m(true, false, true, 100, 0))))
 }
 
 func TestRetiring(t *tt.T) {
@@ -473,22 +474,27 @@ func TestRetiring(t *tt.T) {
 	testcase(deleting, m(false, false, true, 0))
 	testcase(deleting, m(false, true, false, 0))
 	testcase(deleting, m(false, true, true, 0))
-	testcase(deleting, m(false, false, false, 100))
-	testcase(deleting, m(false, false, true, 100))
-	testcase(deleting, m(false, true, false, 100))
-	testcase(deleting, m(false, true, true, 100))
+	testcase(retiring, m(false, false, false, 100))
+	testcase(retiring, m(false, false, true, 100))
+	testcase(retiring, m(false, true, false, 100))
+	testcase(retiring, m(false, true, true, 100))
+	testcase(retiring, m(false, false, false, 1))
+	testcase(retiring, m(false, false, true, 1))
+	testcase(retiring, m(false, true, false, 1))
+	testcase(retiring, m(false, true, true, 1))
 
 	testcase(failing, m(true, true, false, 0))
 	testcase(failing, m(true, true, true, 0))
-	testcase(failing, m(true, true, false, 100))
-	testcase(failing, m(true, true, true, 100))
+	testcase(retiring, m(true, true, false, 100))
+	testcase(retiring, m(true, true, true, 100))
+	testcase(retiring, m(true, true, false, 1))
+	testcase(retiring, m(true, true, true, 1))
 
 	testcase(retired, expectDeleteSLIRules(expectRetire(m(true, false, false, 0))))
-	testcase(retiring, expectDeleteSLIRules(m(true, false, false, 1)))
-	testcase(retiring, expectDeleteSLIRules(m(true, false, false, 100)))
 
 	testcase(deploying, m(true, false, true, 0))
-	testcase(deploying, m(true, false, true, 100))
+	testcase(retiring, m(true, false, true, 100))
+	testcase(retiring, m(true, false, true, 1))
 }
 
 func TestRetired(t *tt.T) {
@@ -581,24 +587,21 @@ func TestFailing(t *tt.T) {
 	}
 
 	testcase(deleting, m(false, true, ExternalTestUnknown, 0))
-	testcase(deleting, m(false, true, ExternalTestUnknown, 100))
+	testcase(failing, m(false, true, ExternalTestUnknown, 100))
 	testcase(deleting, m(false, false, ExternalTestUnknown, 0))
-	testcase(deleting, m(false, false, ExternalTestUnknown, 100))
+	testcase(failing, m(false, false, ExternalTestUnknown, 100))
 
 	testcase(deploying, m(true, false, ExternalTestDisabled, 0))
-	testcase(deploying, m(true, false, ExternalTestDisabled, 100))
+	testcase(failing, m(true, false, ExternalTestDisabled, 100))
+	testcase(failing, m(true, false, ExternalTestDisabled, 1))
 	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
-	testcase(deploying, m(true, false, ExternalTestSucceeded, 100))
+	testcase(failing, m(true, false, ExternalTestSucceeded, 100))
 
 	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
-	testcase(deploying, m(true, false, ExternalTestSucceeded, 100))
+	testcase(failing, m(true, false, ExternalTestSucceeded, 100))
 
 	testcase(failed, expectDeleteCanaryRules(expectDeleteSLIRules(expectRetire(m(true, true, ExternalTestDisabled, 0)))))
-	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, true, ExternalTestDisabled, 1))))
-	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, true, ExternalTestDisabled, 100))))
 	testcase(failed, expectDeleteCanaryRules(expectDeleteSLIRules(expectRetire(m(true, false, ExternalTestFailed, 0)))))
-	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, false, ExternalTestFailed, 1))))
-	testcase(failing, expectDeleteCanaryRules(expectDeleteSLIRules(m(true, false, ExternalTestFailed, 100))))
 }
 
 func TestFailed(t *tt.T) {
