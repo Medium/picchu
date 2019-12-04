@@ -305,6 +305,9 @@ func Released(ctx context.Context, deployment Deployment) (State, error) {
 }
 
 func Retiring(ctx context.Context, deployment Deployment) (State, error) {
+	if deployment.currentPercent() > 0 {
+		return retiring, nil
+	}
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -364,6 +367,9 @@ func Deleted(ctx context.Context, deployment Deployment) (State, error) {
 }
 
 func Failing(ctx context.Context, deployment Deployment) (State, error) {
+	if deployment.currentPercent() > 0 {
+		return failing, nil
+	}
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
