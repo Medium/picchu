@@ -315,8 +315,9 @@ func (r *ReconcileReleaseManager) getClusterConfig(clusters []picchuv1alpha1.Clu
 
 func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.Logger, clusters []picchuv1alpha1.Cluster) (plan.Applier, error) {
 	g, ctx := errgroup.WithContext(ctx)
-	appliers := []plan.Applier{}
+	appliers := make([]plan.Applier, len(clusters))
 	for i := range clusters {
+		i := i
 		cluster := clusters[i]
 		g.Go(func() error {
 			remoteClient, err := utils.RemoteClient(ctx, log, r.client, &cluster)
@@ -328,7 +329,7 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 			if scalingFactor == nil || *scalingFactor < 0.1 {
 				panic("Refusing to scale lower than 0.1 on a cluster")
 			}
-			appliers = append(appliers, plan.NewClusterApplier(remoteClient, *scalingFactor, log.WithValues("Cluster", cluster.Name)))
+			appliers[i] = plan.NewClusterApplier(remoteClient, *scalingFactor, log.WithValues("Cluster", cluster.Name))
 			return nil
 		})
 	}
@@ -340,8 +341,9 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 
 func (r *ReconcileReleaseManager) newObserver(ctx context.Context, log logr.Logger, clusters []picchuv1alpha1.Cluster) (observe.Observer, error) {
 	g, ctx := errgroup.WithContext(ctx)
-	observers := []observe.Observer{}
+	observers := make([]observe.Observer, len(clusters))
 	for i := range clusters {
+		i := i
 		cluster := clusters[i]
 		g.Go(func() error {
 			remoteClient, err := utils.RemoteClient(ctx, log, r.client, &cluster)
@@ -350,8 +352,7 @@ func (r *ReconcileReleaseManager) newObserver(ctx context.Context, log logr.Logg
 				return err
 			}
 			observerCluster := observe.Cluster{Name: cluster.Name, Live: !cluster.Spec.HotStandby}
-			observer := observe.NewClusterObserver(observerCluster, remoteClient, log.WithValues("Cluster", cluster.Name))
-			observers = append(observers, observer)
+			observers[i] = observe.NewClusterObserver(observerCluster, remoteClient, log.WithValues("Cluster", cluster.Name))
 			return nil
 		})
 	}
