@@ -263,7 +263,7 @@ func PendingRelease(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if HasFailed(deployment) {
+	if deployment.markedAsFailed() {
 		return failing, nil
 	}
 	if !deployment.isReleaseEligible() {
@@ -282,7 +282,7 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if HasFailed(deployment) {
+	if deployment.markedAsFailed() {
 		return failing, nil
 	}
 	if !deployment.isReleaseEligible() {
@@ -308,7 +308,7 @@ func Retiring(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if HasFailed(deployment) {
+	if deployment.markedAsFailed() {
 		return failing, nil
 	}
 	if deployment.isReleaseEligible() {
@@ -327,7 +327,7 @@ func Retired(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if HasFailed(deployment) {
+	if deployment.markedAsFailed() {
 		return failing, nil
 	}
 	if deployment.isReleaseEligible() {
@@ -396,7 +396,7 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if HasFailed(deployment) {
+	if deployment.markedAsFailed() {
 		return failing, nil
 	}
 	if err := deployment.syncCanaryRules(ctx); err != nil {
@@ -412,7 +412,7 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if HasFailed(deployment) {
+	if deployment.markedAsFailed() {
 		return failing, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
