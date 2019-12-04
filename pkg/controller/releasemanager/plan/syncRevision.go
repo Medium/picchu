@@ -126,19 +126,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 		labels[k] = v
 	}
 
-	if err := p.syncReplicaSet(ctx, cli, scalingFactor, labels, envs, log); err != nil {
-		// TODO(bob): remove this "fallback" after transition
-		// Try to use full labels set for podTemplate and replicaSet.labelSelector.
-		// Fallback to old style if it fails. This is because these attributes are
-		// immutable, so any existing replicasets that existed prior to this change
-		// will fail to sync.
-		oldLabels := map[string]string{
-			"tag.picchu.medium.engineering": p.Tag,
-			picchuv1alpha1.LabelApp:         p.App,
-		}
-		return p.syncReplicaSet(ctx, cli, scalingFactor, oldLabels, envs, log)
-	}
-	return nil
+	return p.syncReplicaSet(ctx, cli, scalingFactor, labels, envs, log)
 }
 
 func (p *SyncRevision) syncReplicaSet(
