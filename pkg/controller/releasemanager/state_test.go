@@ -416,13 +416,12 @@ func TestReleased(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, markedAsFailed, isReleaseEligible bool, peakPercent, currentPercent uint32) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool, peakPercent uint32) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:       hasRevision,
 			markedAsFailed:    markedAsFailed,
 			isReleaseEligible: isReleaseEligible,
 			peakPercent:       peakPercent,
-			currentPercent:    currentPercent,
 		})
 	}
 
@@ -430,26 +429,26 @@ func TestReleased(t *tt.T) {
 		testHandler(ctx, t, "released", expected, mock)
 	}
 
-	testcase(deleting, m(false, false, false, 0, 0))
-	testcase(deleting, m(false, false, true, 0, 0))
-	testcase(deleting, m(false, true, false, 0, 0))
-	testcase(deleting, m(false, true, true, 0, 0))
-	testcase(deleting, m(false, false, false, 100, 0))
-	testcase(deleting, m(false, false, true, 100, 0))
-	testcase(deleting, m(false, true, false, 100, 0))
-	testcase(deleting, m(false, true, true, 100, 0))
+	testcase(deleting, m(false, false, false, 0))
+	testcase(deleting, m(false, false, true, 0))
+	testcase(deleting, m(false, true, false, 0))
+	testcase(deleting, m(false, true, true, 0))
+	testcase(deleting, m(false, false, false, 100))
+	testcase(deleting, m(false, false, true, 100))
+	testcase(deleting, m(false, true, false, 100))
+	testcase(deleting, m(false, true, true, 100))
 
-	testcase(failing, m(true, true, false, 0, 0))
-	testcase(failing, m(true, true, true, 0, 0))
-	testcase(failing, m(true, true, false, 100, 0))
-	testcase(failing, m(true, true, true, 100, 0))
+	testcase(failing, m(true, true, false, 0))
+	testcase(failing, m(true, true, true, 0))
+	testcase(failing, m(true, true, false, 100))
+	testcase(failing, m(true, true, true, 100))
 
-	testcase(retiring, m(true, false, false, 0, 0))
-	testcase(retiring, m(true, false, false, 100, 0))
+	testcase(retiring, m(true, false, false, 0))
+	testcase(retiring, m(true, false, false, 100))
 
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 0, 0))))
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 99, 0))))
-	testcase(released, expectSyncSLIRules(expectSync(m(true, false, true, 100, 0))))
+	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 0))))
+	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 99))))
+	testcase(released, expectSyncSLIRules(expectSync(m(true, false, true, 100))))
 }
 
 func TestRetiring(t *tt.T) {
