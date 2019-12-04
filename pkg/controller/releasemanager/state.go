@@ -340,6 +340,9 @@ func Retired(ctx context.Context, deployment Deployment) (State, error) {
 }
 
 func Deleting(ctx context.Context, deployment Deployment) (State, error) {
+	if deployment.currentPercent() > 0 {
+		return deleting, nil
+	}
 	if deployment.hasRevision() {
 		return deploying, nil
 	}
