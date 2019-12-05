@@ -185,7 +185,7 @@ func (in *ClusterKubernetesStatus) DeepCopy() *ClusterKubernetesStatus {
 func (in *ClusterList) DeepCopyInto(out *ClusterList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Cluster, len(*in))
@@ -292,7 +292,7 @@ func (in *ClusterSecrets) DeepCopyObject() runtime.Object {
 func (in *ClusterSecretsList) DeepCopyInto(out *ClusterSecretsList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ClusterSecrets, len(*in))
@@ -578,7 +578,7 @@ func (in *Mirror) DeepCopyObject() runtime.Object {
 func (in *MirrorList) DeepCopyInto(out *MirrorList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Mirror, len(*in))
@@ -731,7 +731,7 @@ func (in *ReleaseManager) DeepCopyObject() runtime.Object {
 func (in *ReleaseManagerList) DeepCopyInto(out *ReleaseManagerList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ReleaseManager, len(*in))
@@ -965,7 +965,7 @@ func (in *RevisionApp) DeepCopy() *RevisionApp {
 func (in *RevisionList) DeepCopyInto(out *RevisionList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Revision, len(*in))

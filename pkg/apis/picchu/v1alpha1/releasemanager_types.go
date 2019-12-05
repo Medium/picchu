@@ -39,6 +39,7 @@ type ReleaseManagerSpec struct {
 // ReleaseManagerStatus defines the observed state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
+	// +listType=set
 	Revisions []ReleaseManagerRevisionStatus `json:"revisions,omitempty"`
 }
 

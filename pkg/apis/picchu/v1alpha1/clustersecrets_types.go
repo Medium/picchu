@@ -38,6 +38,7 @@ type ClusterSecretTarget struct {
 // +k8s:openapi-gen=true
 type ClusterSecretsStatus struct {
 	// Names of secrets copied to targets
+	// +listType=set
 	Secrets []string `json:"secrets,omitempty"`
 }
 
