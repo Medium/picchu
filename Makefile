@@ -21,38 +21,11 @@ build:
 	go build -o build/_output/bin/picchu ./cmd/manager
 
 deps:
-	go mod tidy
-	go mod vendor
+	go mod tidy -v
 
-generate: deepcopy defaulter openapi clientset
-
-deepcopy: generators/deepcopy
-	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).deepcopy -h $(BOILERPLATE)
-
-defaulter: generators/defaulter
-	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).defaults -h $(BOILERPLATE)
-
-openapi: generators/openapi
-	$< -i $(API_PACKAGE)/$(GROUPS) -O openapi -p $(PACKAGE)/openapi -h $(BOILERPLATE)
-
-clientset: generators/client
-	$< -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
-
-crds: generators/crd
-	@mkdir -p generated_crds
-	$< generate --output-dir generated_crds --domain $(DOMAIN)
-
-generators/%:
-	@mkdir -p generators
-	go build -o $@ ./vendor/k8s.io/code-generator/cmd/$*-gen
-
-generators/openapi:
-	@mkdir -p generators
-	go build -o generators/openapi ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
-
-generators/crd:
-	go get sigs.k8s.io/controller-tools/cmd/crd
-	cp $(shell which crd) generators/crd
+generate:
+	operator-sdk generate k8s
+	operator-sdk generate openapi
 
 build-dirs:
 	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)
