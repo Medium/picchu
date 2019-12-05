@@ -72,28 +72,27 @@ func NewConcurrentObserver(observers []Observer, log logr.Logger) Observer {
 // Observe calls all child observers concurrently. It bails out when an error is encountered.
 func (o *ConcurrentObserver) Observe(ctx context.Context, namespace string) (*Observation, error) {
 	g, ctx := errgroup.WithContext(ctx)
-	observations := []Observation{}
+	observations := make([]*Observation, len(o.observers))
 
 	for i := range o.observers {
+		i := i
 		observer := o.observers[i]
 		g.Go(func() error {
 			obs, err := observer.Observe(ctx, namespace)
 			if err != nil {
 				return err
 			}
-			observations = append(observations, *obs)
+			observations[i] = obs
 			return nil
 		})
 	}
-
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
 	obs := &Observation{}
-	for i := range observations {
-		o := observations[i]
-		obs = obs.Combine(&o)
+	for _, observation := range observations {
+		obs = obs.Combine(observation)
 	}
 	// TODO(bob): this is too big to log, maybe only display replicasets with >0 values.
 	// o.log.Info("Concurrent observations collected", "Observation", obs)
