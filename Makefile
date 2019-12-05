@@ -21,7 +21,8 @@ build:
 	go build -o build/_output/bin/picchu ./cmd/manager
 
 deps:
-	go mod tidy -v
+	go mod tidy
+	go mod vendor
 
 generate: deepcopy defaulter openapi clientset
 
