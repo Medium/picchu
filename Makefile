@@ -14,11 +14,14 @@ GOARCH = $(word 2, $(platform_temp))
 
 .PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
-all: generate build
+all: deps generate build
 
 build:
 	@mkdir -p build/_output/bin
 	go build -o build/_output/bin/picchu ./cmd/manager
+
+deps:
+	go mod tidy -v
 
 generate: deepcopy defaulter openapi clientset
 
