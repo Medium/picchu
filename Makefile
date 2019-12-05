@@ -14,14 +14,11 @@ GOARCH = $(word 2, $(platform_temp))
 
 .PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
-all: deps generate build
+all: generate build
 
 build:
 	@mkdir -p build/_output/bin
 	go build -o build/_output/bin/picchu ./cmd/manager
-
-deps:
-	dep ensure -v
 
 generate: deepcopy defaulter openapi clientset
 
@@ -41,15 +38,15 @@ crds: generators/crd
 	@mkdir -p generated_crds
 	$< generate --output-dir generated_crds --domain $(DOMAIN)
 
-generators/%: Gopkg.lock
+generators/%:
 	@mkdir -p generators
 	go build -o $@ ./vendor/k8s.io/code-generator/cmd/$*-gen
 
-generators/openapi: Gopkg.lock
+generators/openapi:
 	@mkdir -p generators
 	go build -o generators/openapi ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
 
-generators/crd: Gopkg.lock
+generators/crd:
 	go get sigs.k8s.io/controller-tools/cmd/crd
 	cp $(shell which crd) generators/crd
 
