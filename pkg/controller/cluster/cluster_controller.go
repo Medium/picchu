@@ -16,9 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -40,11 +40,9 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	_, err := builder.SimpleController().
-		WithManager(mgr).
+	_, err := builder.ControllerManagedBy(mgr).
 		ForType(&picchuv1alpha1.Cluster{}).
 		Build(r)
-
 	if err != nil {
 		return err
 	}

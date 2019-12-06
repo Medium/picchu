@@ -10,7 +10,7 @@ import (
 	cli "github.com/prometheus/client_golang/api"
 	api "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 )
 
 type PromAPI interface {
-	Query(context.Context, string, time.Time) (model.Value, error)
+	Query(ctx context.Context, query string, ts time.Time) (model.Value, cli.Warnings, error)
 }
 
 type AlertQuery struct {
@@ -56,8 +56,8 @@ type API struct {
 
 type noopAPI struct{}
 
-func (a *noopAPI) Query(_ context.Context, _ string, _ time.Time) (model.Value, error) {
-	return model.Vector{}, nil
+func (a *noopAPI) Query(_ context.Context, _ string, _ time.Time) (model.Value, cli.Warnings, error) {
+	return model.Vector{}, nil, nil
 }
 
 func NewAPI(address string, ttl time.Duration) (*API, error) {
@@ -83,7 +83,7 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 			return v.value, nil
 		}
 	}
-	val, err := a.api.Query(ctx, query, t)
+	val, _, err := a.api.Query(ctx, query, t)
 	if err != nil {
 		return nil, err
 	}

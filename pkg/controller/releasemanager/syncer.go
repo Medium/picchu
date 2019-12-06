@@ -45,7 +45,7 @@ type ResourceSyncer struct {
 
 func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	secrets := &corev1.SecretList{}
-	err := r.deliveryClient.List(ctx, opts, secrets)
+	err := r.deliveryClient.List(ctx, secrets, opts)
 	if errors.IsNotFound(err) {
 		return []runtime.Object{}, nil
 	}
@@ -54,7 +54,7 @@ func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOption
 
 func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	configMaps := &corev1.ConfigMapList{}
-	err := r.deliveryClient.List(ctx, opts, configMaps)
+	err := r.deliveryClient.List(ctx, configMaps, opts)
 	if errors.IsNotFound(err) {
 		return []runtime.Object{}, nil
 	}

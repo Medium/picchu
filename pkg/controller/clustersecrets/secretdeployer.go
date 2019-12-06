@@ -9,7 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -50,7 +49,7 @@ func (s *secretDeployer) deploy(ctx context.Context) error {
 			},
 		}
 
-		_, err := controllerutil.CreateOrUpdate(ctx, s.client, dst, func(runtime.Object) error {
+		_, err := controllerutil.CreateOrUpdate(ctx, s.client, dst, func() error {
 			dst.Labels = s.instance.Spec.Target.Labels
 			dst.Annotations = s.instance.Spec.Target.Annotations
 			dst.Data = src.Data
@@ -75,7 +74,7 @@ func (s *secretDeployer) syncNamespace(ctx context.Context) error {
 		},
 	}
 
-	op, err := controllerutil.CreateOrUpdate(ctx, s.client, namespace, func(runtime.Object) error {
+	op, err := controllerutil.CreateOrUpdate(ctx, s.client, namespace, func() error {
 		return nil
 	})
 	s.log.Info("Namespace sync'd", "Op", op)

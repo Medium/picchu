@@ -41,6 +41,8 @@ ci: all verify test
 
 mocks:
 	go get github.com/golang/mock/mockgen
+	mockgen -destination=pkg/mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client
+	mockgen -destination=pkg/prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
 	mockgen -destination=pkg/controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controller/releasemanager Deployment
 	mockgen -destination=pkg/controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controller/releasemanager Incarnations
 	mockgen -destination=pkg/controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controller/releasemanager/scaling ScalableTarget

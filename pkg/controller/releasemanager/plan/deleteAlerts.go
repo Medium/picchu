@@ -22,15 +22,16 @@ func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, scalingFact
 	rules := &monitoringv1.PrometheusRuleList{}
 	alertType := string(p.AlertType)
 
-	opts := client.
-		MatchingLabels(map[string]string{
+	opts := []client.ListOption{
+		&client.ListOptions{Namespace: p.Namespace},
+		client.MatchingLabels{
 			picchuv1alpha1.LabelApp:      p.App,
 			picchuv1alpha1.LabelTag:      p.Tag,
 			picchuv1alpha1.LabelRuleType: alertType,
-		}).
-		InNamespace(p.Namespace)
+		},
+	}
 
-	if err := cli.List(ctx, opts, rules); err != nil {
+	if err := cli.List(ctx, rules, opts...); err != nil {
 		log.Error(err, "Failed to fetch rules")
 		return err
 	}

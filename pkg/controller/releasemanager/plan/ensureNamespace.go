@@ -9,7 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -35,7 +34,7 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, scalingF
 	}
 
 	ns := &corev1.Namespace{ObjectMeta: om}
-	op, err := controllerutil.CreateOrUpdate(ctx, cli, ns, func(runtime.Object) error {
+	op, err := controllerutil.CreateOrUpdate(ctx, cli, ns, func() error {
 		ns.ObjectMeta.Labels = om.Labels
 		return nil
 	})

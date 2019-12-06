@@ -76,7 +76,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func() error {
 			service.Spec.Ports = typed.Spec.Ports
 			service.Spec.Selector = typed.Spec.Selector
 			service.Labels = CopyStringMap(typed.Labels)
@@ -94,7 +94,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, dr, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, dr, func() error {
 			dr.Spec = typed.Spec
 			dr.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -111,7 +111,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, vs, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, vs, func() error {
 			vs.Spec = typed.Spec
 			vs.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -128,7 +128,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, pm, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, pm, func() error {
 			pm.Spec = typed.Spec
 			pm.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -145,7 +145,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, secret, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, secret, func() error {
 			secret.Data = typed.Data
 			secret.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -162,7 +162,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, configMap, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, configMap, func() error {
 			configMap.Data = typed.Data
 			configMap.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -179,7 +179,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, rs, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, rs, func() error {
 			var zero int32 = 0
 			if rs.Spec.Replicas == nil {
 				rs.Spec.Replicas = &zero
@@ -204,7 +204,7 @@ func CreateOrUpdate(
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, hpa, func(runtime.Object) error {
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, hpa, func() error {
 			hpa.Spec = typed.Spec
 			return nil
 		})

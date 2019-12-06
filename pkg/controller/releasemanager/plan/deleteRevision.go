@@ -10,7 +10,7 @@ import (
 )
 
 type DeleteRevision struct {
-	Labels    map[string]string
+	Labels    client.MatchingLabels
 	Namespace string
 }
 
@@ -21,12 +21,14 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, scalingFa
 		NewReplicaSetList(),
 		NewHorizontalPodAutoscalerList(),
 	}
-	opts := client.
-		MatchingLabels(p.Labels).
-		InNamespace(p.Namespace)
+
+	opts := []client.ListOption{
+		&client.ListOptions{Namespace: p.Namespace},
+		p.Labels,
+	}
 
 	for _, list := range lists {
-		if err := cli.List(ctx, opts, list.GetList()); err != nil {
+		if err := cli.List(ctx, list.GetList(), opts...); err != nil {
 			log.Error(err, "Failed to list resource")
 			return err
 		}
