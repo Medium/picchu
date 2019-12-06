@@ -85,7 +85,7 @@ func (b *ClientBuilder) Build() client.Client {
 	m := mocks.NewMockClient(b.Controller)
 	m.
 		EXPECT().
-		List(gomock.Any(), gomock.Any(), mocks.InjectReplicaSets(b.ReplicaSets)).
+		List(gomock.Any(), mocks.InjectReplicaSets(b.ReplicaSets), gomock.Any()).
 		Return(nil).
 		AnyTimes()
 	return m

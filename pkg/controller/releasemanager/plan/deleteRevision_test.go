@@ -74,22 +74,22 @@ func TestDeleteRevision(t *testing.T) {
 
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectSecrets(secrets)).
+		List(ctx, mocks.InjectSecrets(secrets), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectConfigMaps(configMaps)).
+		List(ctx, mocks.InjectConfigMaps(configMaps), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectReplicaSets(replicaSets)).
+		List(ctx, mocks.InjectReplicaSets(replicaSets), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectHorizontalPodAutoscalers(hpas)).
+		List(ctx, mocks.InjectHorizontalPodAutoscalers(hpas), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
