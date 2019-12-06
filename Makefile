@@ -12,7 +12,7 @@ platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))
 GOARCH = $(word 2, $(platform_temp))
 
-.PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
+.PHONY: all build generate ci test verify
 
 all: deps generate build
 
@@ -21,7 +21,8 @@ build:
 	go build -o build/_output/bin/picchu ./cmd/manager
 
 deps:
-	go mod tidy -v
+	go mod tidy
+	go mod vendor
 
 generate:
 	operator-sdk generate k8s
