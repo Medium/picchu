@@ -291,17 +291,16 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 	revision *picchuv1alpha1.Revision,
 ) (*picchuv1alpha1.ReleaseManager, error) {
 	rms := &picchuv1alpha1.ReleaseManagerList{}
-	lbls := client.MatchingLabels{
+	lbls := map[string]string{
 		picchuv1alpha1.LabelTarget: target.Name,
 		picchuv1alpha1.LabelFleet:  target.Fleet,
 		picchuv1alpha1.LabelApp:    revision.Spec.App.Name,
 	}
-	opts := []client.ListOption{
-		&client.ListOptions{Namespace: revision.Namespace},
-		lbls,
+	opts := &client.ListOptions{
+		Namespace:     revision.Namespace,
+		LabelSelector: labels.SelectorFromSet(lbls),
 	}
-	// MatchingLabels(lbls).
-	r.client.List(context.TODO(), rms, opts...)
+	r.client.List(context.TODO(), rms, opts)
 	if len(rms.Items) > 1 {
 		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", lbls))
 	}

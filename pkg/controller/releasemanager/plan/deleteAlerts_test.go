@@ -12,6 +12,7 @@ import (
 	"go.medium.engineering/picchu/pkg/mocks"
 	"go.medium.engineering/picchu/pkg/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,13 +30,14 @@ func TestDeleteAlerts(t *testing.T) {
 	}
 	ctx := context.TODO()
 
-	opts := client.
-		MatchingLabels(map[string]string{
+	opts := &client.ListOptions{
+		Namespace: deleteAlerts.Namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
 			picchuv1alpha1.LabelApp:      deleteAlerts.App,
 			picchuv1alpha1.LabelTag:      deleteAlerts.Tag,
 			picchuv1alpha1.LabelRuleType: string(deleteAlerts.AlertType),
-		}).
-		InNamespace(deleteAlerts.Namespace)
+		}),
+	}
 
 	rules := []monitoringv1.PrometheusRule{
 		monitoringv1.PrometheusRule{
@@ -48,7 +50,7 @@ func TestDeleteAlerts(t *testing.T) {
 
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectPrometheusRules(rules)).
+		List(ctx, mocks.InjectPrometheusRules(rules), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 

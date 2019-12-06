@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -264,11 +265,11 @@ func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Log
 
 func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namespace string, fleet string) ([]picchuv1alpha1.Cluster, error) {
 	clusterList := &picchuv1alpha1.ClusterList{}
-	opts := []client.ListOption{
-		&client.ListOptions{Namespace: namespace},
-		client.MatchingLabels{picchuv1alpha1.LabelFleet: fleet},
+	opts := &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{picchuv1alpha1.LabelFleet: fleet}),
 	}
-	err := r.client.List(ctx, clusterList, opts...)
+	err := r.client.List(ctx, clusterList, opts)
 	r.scheme.Default(clusterList)
 
 	clusters := []picchuv1alpha1.Cluster{}

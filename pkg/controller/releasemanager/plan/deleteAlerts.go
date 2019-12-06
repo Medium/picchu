@@ -8,6 +8,7 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -22,16 +23,16 @@ func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, scalingFact
 	rules := &monitoringv1.PrometheusRuleList{}
 	alertType := string(p.AlertType)
 
-	opts := []client.ListOption{
-		&client.ListOptions{Namespace: p.Namespace},
-		client.MatchingLabels{
+	opts := &client.ListOptions{
+		Namespace: p.Namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
 			picchuv1alpha1.LabelApp:      p.App,
 			picchuv1alpha1.LabelTag:      p.Tag,
 			picchuv1alpha1.LabelRuleType: alertType,
-		},
+		}),
 	}
 
-	if err := cli.List(ctx, rules, opts...); err != nil {
+	if err := cli.List(ctx, rules, opts); err != nil {
 		log.Error(err, "Failed to fetch rules")
 		return err
 	}

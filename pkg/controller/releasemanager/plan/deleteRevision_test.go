@@ -13,6 +13,7 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -30,7 +31,10 @@ func TestDeleteRevision(t *testing.T) {
 	}
 	ctx := context.TODO()
 
-	opts := client.MatchingLabels(plan.Labels).InNamespace(plan.Namespace)
+	opts := &client.ListOptions{
+		Namespace:     plan.Namespace,
+		LabelSelector: labels.SelectorFromSet(plan.Labels),
+	}
 
 	secrets := []corev1.Secret{
 		corev1.Secret{
