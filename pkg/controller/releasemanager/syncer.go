@@ -82,6 +82,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseMana
 	if err := r.syncApp(ctx); err != nil {
 		return rs, err
 	}
+	if err := r.garbageCollection(ctx); err != nil {
+		return rs, err
+	}
 
 	sorted := r.incarnations.sorted()
 	for i := len(sorted) - 1; i >= 0; i-- {
@@ -281,6 +284,10 @@ func (r *ResourceSyncer) currentTrafficPolicy() *istiov1alpha3.TrafficPolicy {
 		}
 	}
 	return nil
+}
+
+func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {
+	return markGarbage(ctx, r.log, r.deliveryClient, r.incarnations.sorted())
 }
 
 func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monitoringv1.Rule) {
