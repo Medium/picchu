@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"time"
 
 	"go.medium.engineering/picchu/pkg/apis"
@@ -169,15 +170,18 @@ func main() {
 
 	// Recover panics to serialize output to json for our logger
 	defer func() {
-		if r := recover(); err != nil {
-			err := fmt.Errorf("panic")
-			log.Error(err, "recover", r)
+		if r := recover(); r != nil {
+			log.Error(
+				err, "panic",
+				"recovered", r,
+				"stacktrace", string(debug.Stack()),
+			)
 			os.Exit(2)
 		}
 	}()
 
 	// Start the Cmd
-	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+	if err = mgr.Start(signals.SetupSignalHandler()); err != nil {
 		log.Error(err, "Manager exited non-zero")
 		os.Exit(1)
 	}
