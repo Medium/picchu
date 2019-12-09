@@ -173,7 +173,7 @@ func main() {
 		if r := recover(); r != nil {
 			log.Error(
 				err, "panic",
-				"r", r,
+				"recovered", r,
 				"stacktrace", string(debug.Stack()),
 			)
 			os.Exit(2)
