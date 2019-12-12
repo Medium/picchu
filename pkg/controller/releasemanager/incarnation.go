@@ -258,42 +258,51 @@ func (i *Incarnation) sync(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncAlerts{
+	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncCanaryRules{
 		App:                    i.appName(),
 		Namespace:              i.targetNamespace(),
 		Tag:                    i.tag,
-		Target:                 i.target().Name,
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
-		AlertType:              rmplan.Canary,
 	})
 }
 
 func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete Canary Rules", &rmplan.DeleteAlerts{
+	return i.controller.applyPlan(ctx, "Delete Canary Rules", &rmplan.DeleteCanaryRules{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
-		AlertType: rmplan.Canary,
 	})
 }
 
-func (i *Incarnation) syncSLIRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync SLI Rules", &rmplan.SyncAlerts{
+func (i *Incarnation) syncServiceLevels(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync ServiceLevels", &rmplan.SyncServiceLevels{
+		App:                    i.appName(),
+		Namespace:              i.targetNamespace(),
+		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+	})
+}
+
+func (i *Incarnation) deleteServiceLevels(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete ServiceLevels", &rmplan.DeleteServiceLevels{
+		App:       i.appName(),
+		Namespace: i.targetNamespace(),
+	})
+}
+
+func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync ServiceLevels", &rmplan.SyncTaggedServiceLevels{
 		App:                    i.appName(),
 		Namespace:              i.targetNamespace(),
 		Tag:                    i.tag,
-		Target:                 i.target().Name,
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
-		AlertType:              rmplan.SLI,
 	})
 }
 
-func (i *Incarnation) deleteSLIRules(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete SLI Rules", &rmplan.DeleteAlerts{
+func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete ServiceLevels", &rmplan.DeleteTaggedServiceLevels{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
-		AlertType: rmplan.SLI,
 	})
 }
 

@@ -311,8 +311,8 @@ func TestCanarying(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectSyncCanaryRules(m(true, false, false)))
-	testcase(canarying, expectSyncCanaryRules(m(true, false, true)))
+	testcase(canaried, expectSyncServiceLevels(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, false)))))
+	testcase(canarying, expectSyncServiceLevels(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, true)))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -418,10 +418,6 @@ func TestReleasing(t *tt.T) {
 
 	testcase(retiring, m(true, false, false, 0))
 	testcase(retiring, m(true, false, false, 100))
-
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 0))))
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 99))))
-	testcase(released, expectSyncSLIRules(expectSync(m(true, false, true, 100))))
 }
 
 func TestReleased(t *tt.T) {
@@ -458,10 +454,6 @@ func TestReleased(t *tt.T) {
 
 	testcase(retiring, m(true, false, false, 0))
 	testcase(retiring, m(true, false, false, 100))
-
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 0))))
-	testcase(releasing, expectSyncSLIRules(expectSync(m(true, false, true, 99))))
-	testcase(released, expectSyncSLIRules(expectSync(m(true, false, true, 100))))
 }
 
 func TestRetiring(t *tt.T) {
@@ -502,7 +494,7 @@ func TestRetiring(t *tt.T) {
 	testcase(retiring, m(true, true, false, 1))
 	testcase(retiring, m(true, true, true, 1))
 
-	testcase(retired, expectDeleteSLIRules(expectRetire(m(true, false, false, 0))))
+	testcase(retired, expectRetire(expectDeleteTaggedServiceLevels(m(true, false, false, 0))))
 	testcase(retiring, m(true, false, false, 1))
 	testcase(retiring, m(true, false, false, 100))
 
@@ -558,7 +550,7 @@ func TestDeleting(t *tt.T) {
 
 	testcase(deleting, m(false, 100))
 	testcase(deleting, m(false, 1))
-	testcase(deleted, expectDeleteCanaryRules(expectDeleteSLIRules(expectDelete(m(false, 0)))))
+	testcase(deleted, expectDeleteCanaryRules(expectDeleteServiceLevels(expectDeleteTaggedServiceLevels(expectDelete(m(false, 0))))))
 	testcase(deploying, m(true, 0))
 	testcase(deleting, m(true, 100))
 	testcase(deleting, m(true, 1))
@@ -615,10 +607,10 @@ func TestFailing(t *tt.T) {
 	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
 	testcase(failing, m(true, false, ExternalTestSucceeded, 100))
 
-	testcase(failed, expectDeleteCanaryRules(expectDeleteSLIRules(expectRetire(m(true, true, ExternalTestDisabled, 0)))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteServiceLevels(expectDeleteTaggedServiceLevels(expectRetire(m(true, true, ExternalTestDisabled, 0))))))
 	testcase(failing, m(true, true, ExternalTestDisabled, 1))
 	testcase(failing, m(true, true, ExternalTestDisabled, 100))
-	testcase(failed, expectDeleteCanaryRules(expectDeleteSLIRules(expectRetire(m(true, false, ExternalTestFailed, 0)))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteServiceLevels(expectDeleteTaggedServiceLevels(expectRetire(m(true, false, ExternalTestFailed, 0))))))
 	testcase(failing, m(true, false, ExternalTestFailed, 1))
 	testcase(failing, m(true, false, ExternalTestFailed, 100))
 }
@@ -670,8 +662,10 @@ type responses struct {
 	peakPercent            uint32
 	syncCanaryRules        error
 	deleteCanaryRules      error
-	syncSLIRules           error
-	deleteSLIRules         error
+	syncServiceLevels         error
+	deleteServiceLevels       error
+	syncTaggedServiceLevels   error
+	deleteTaggedServiceLevels error
 	isTimingOut            bool
 }
 
@@ -776,19 +770,37 @@ func expectDeleteCanaryRules(mock *MockDeployment) *MockDeployment {
 	return mock
 }
 
-func expectSyncSLIRules(mock *MockDeployment) *MockDeployment {
+func expectSyncServiceLevels(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
-		syncSLIRules(gomock.Any()).
+		syncServiceLevels(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock
 }
 
-func expectDeleteSLIRules(mock *MockDeployment) *MockDeployment {
+func expectDeleteServiceLevels(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
-		deleteSLIRules(gomock.Any()).
+		deleteServiceLevels(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
+}
+
+func expectSyncTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		syncTaggedServiceLevels(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
+}
+
+func expectDeleteTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		deleteTaggedServiceLevels(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock

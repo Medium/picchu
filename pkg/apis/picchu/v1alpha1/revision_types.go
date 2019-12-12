@@ -93,6 +93,7 @@ type RevisionTarget struct {
 	Fleet                  string                  `json:"fleet"`
 	Scale                  ScaleInfo               `json:"scale"`
 	Release                ReleaseInfo             `json:"release,omitempty"`
+	ServiceMonitors        []ServiceMonitor        `json:"serviceMonitors,omitempty"`
 	ServiceLevelObjectives []ServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
 	AcceptanceTarget       bool                    `json:"acceptanceTarget,omitempty"`
 	ConfigSelector         *metav1.LabelSelector   `json:"configSelector,omitempty"`
@@ -135,10 +136,21 @@ type ServiceLevelIndicator struct {
 
 type ServiceLevelObjective struct {
 	Name                  string                `json:"name"`
+	Annotations           map[string]string     `json:"annotations,omitempty"`
+	Labels                map[string]string     `json:"labels,omitempty"`
 	Description           string                `json:"description,omitempty"`
 	Enabled               bool                  `json:"enabled"`
 	ObjectivePercent      float64               `json:"objectivePercent"`
 	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
+}
+
+type ServiceMonitor struct {
+	Name string `json:"name"`
+	// if true, and the Spec.Endpoints.MetricRelabelConfigs does not specify a regex, will replace the regex with a list of SLO metric names
+	SLORegex    bool                            `json:"sloRegex"`
+	Annotations map[string]string               `json:"annotations,omitempty"`
+	Labels      map[string]string               `json:"labels,omitempty"`
+	Spec        monitoringv1.ServiceMonitorSpec `json:"spec,omitempty"`
 }
 
 type RevisionStatus struct {

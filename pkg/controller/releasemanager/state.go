@@ -62,8 +62,10 @@ type Deployment interface {
 	del(context.Context) error
 	syncCanaryRules(context.Context) error
 	deleteCanaryRules(context.Context) error
-	syncSLIRules(context.Context) error
-	deleteSLIRules(context.Context) error
+	syncServiceLevels(context.Context) error
+	deleteServiceLevels(context.Context) error
+	syncTaggedServiceLevels(context.Context) error
+	deleteTaggedServiceLevels(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	markedAsFailed() bool
@@ -311,7 +313,10 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.sync(ctx); err != nil {
 		return releasing, err
 	}
-	if err := deployment.syncSLIRules(ctx); err != nil {
+	if err := deployment.syncServiceLevels(ctx); err != nil {
+		return releasing, err
+	}
+	if err := deployment.syncTaggedServiceLevels(ctx); err != nil {
 		return releasing, err
 	}
 	if deployment.peakPercent() >= 100 {
@@ -337,7 +342,7 @@ func Retiring(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isReleaseEligible() {
 		return deploying, nil
 	}
-	if err := deployment.deleteSLIRules(ctx); err != nil {
+	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return retiring, err
 	}
 	if deployment.currentPercent() <= 0 {
@@ -371,7 +376,11 @@ func Deleting(ctx context.Context, deployment Deployment) (State, error) {
 		return deleting, err
 	}
 
-	if err := deployment.deleteSLIRules(ctx); err != nil {
+	if err := deployment.deleteServiceLevels(ctx); err != nil {
+		return deleting, err
+	}
+
+	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return deleting, err
 	}
 
@@ -402,7 +411,10 @@ func Failing(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
 		return failing, err
 	}
-	if err := deployment.deleteSLIRules(ctx); err != nil {
+	if err := deployment.deleteServiceLevels(ctx); err != nil {
+		return failing, err
+	}
+	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return failing, err
 	}
 	if deployment.currentPercent() <= 0 {
@@ -430,6 +442,12 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if err := deployment.syncCanaryRules(ctx); err != nil {
 		return canarying, err
+	}
+	if err := deployment.syncServiceLevels(ctx); err != nil {
+		return releasing, err
+	}
+	if err := deployment.syncTaggedServiceLevels(ctx); err != nil {
+		return releasing, err
 	}
 	if !deployment.isCanaryPending() {
 		return canaried, nil
@@ -465,9 +483,6 @@ func Timingout(ctx context.Context, deployment Deployment) (State, error) {
 		return deleting, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
-		return timingout, err
-	}
-	if err := deployment.deleteSLIRules(ctx); err != nil {
 		return timingout, err
 	}
 	if deployment.currentPercent() <= 0 {

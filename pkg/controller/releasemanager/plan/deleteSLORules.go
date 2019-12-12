@@ -12,40 +12,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type DeleteAlerts struct {
+type DeleteSLORules struct {
 	App       string
 	Namespace string
-	Tag       string
-	AlertType AlertType
 }
 
-func (p *DeleteAlerts) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
-	rules := &monitoringv1.PrometheusRuleList{}
-	alertType := string(p.AlertType)
+func (p *DeleteSLORules) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+	prlist := &monitoringv1.PrometheusRuleList{}
 
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp:      p.App,
-			picchuv1alpha1.LabelTag:      p.Tag,
-			picchuv1alpha1.LabelRuleType: alertType,
+			picchuv1alpha1.LabelApp: p.App,
 		}),
 	}
 
-	if err := cli.List(ctx, rules, opts); err != nil {
-		log.Error(err, "Failed to fetch rules")
+	if err := cli.List(ctx, prlist, opts); err != nil {
+		log.Error(err, "Failed to delete SLO Rules")
 		return err
 	}
 
-	if rules.Items != nil {
-		for _, rule := range rules.Items {
-			err := cli.Delete(ctx, rule)
+	if prlist.Items != nil {
+		for _, sm := range prlist.Items {
+			err := cli.Delete(ctx, sm)
 			if err != nil && !errors.IsNotFound(err) {
-				plan.LogSync(log, "deleted", err, rule)
+				plan.LogSync(log, "deleted", err, sm)
 				return err
 			}
 			if err == nil {
-				plan.LogSync(log, "deleted", err, rule)
+				plan.LogSync(log, "deleted", err, sm)
 			}
 		}
 	}

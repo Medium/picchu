@@ -16,7 +16,7 @@ import (
 var (
 	CanaryFiringTemplate = template.Must(template.
 				New("canaryFiringAlerts").
-				Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.TagLabel}}="{{.Tag}}",alertType="canary",alertstate="{{.AlertState}}"})`))
+				Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.TagLabel}}="{{.Tag}}",canary="true",alertstate="{{.AlertState}}"})`))
 	SLOFiringTemplate = template.Must(template.
 				New("sloFiringAlerts").
 				Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))

@@ -14,6 +14,8 @@ import (
 	"github.com/go-logr/logr"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
+
+	//slov1alpha1 "github.com/spotahome/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -241,7 +243,10 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
 
-	revisions, alertRules := r.prepareRevisionsAndRules()
+	revisions := r.prepareRevisions()
+	alertRules := r.prepareAlertRules()
+	slos := r.prepareServiceLevelObjectives()
+	serviceMonitors := r.prepareServiceMonitors()
 
 	// TODO(bob): figure out defaultDomain and gateway names
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
@@ -253,6 +258,8 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		PrivateGateway:    r.clusterConfig.PrivateIngressGateway,
 		DeployedRevisions: revisions,
 		AlertRules:        alertRules,
+		ServiceMonitors:        serviceMonitors,
+		ServiceLevelObjectives: slos,
 		Ports:             ports,
 		TrafficPolicy:     r.currentTrafficPolicy(),
 	})
@@ -291,11 +298,58 @@ func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {
 	return markGarbage(ctx, r.log, r.deliveryClient, r.incarnations.sorted())
 }
 
-func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monitoringv1.Rule) {
+// returns the AlertRules from the latest deployed revision
+func (r *ResourceSyncer) prepareAlertRules() []monitoringv1.Rule {
 	alertRules := []monitoringv1.Rule{}
 
 	if len(r.incarnations.deployed()) == 0 {
-		return []rmplan.Revision{}, alertRules
+		return alertRules
+	}
+
+	alertable := r.incarnations.alertable()
+	for _, i := range alertable {
+		alertRules = i.target().AlertRules
+		break
+	}
+
+	return alertRules
+}
+
+// returns the ServiceMonitors from the latest deployed revision
+func (r *ResourceSyncer) prepareServiceMonitors() []picchuv1alpha1.ServiceMonitor {
+	sm := []picchuv1alpha1.ServiceMonitor{}
+
+	if len(r.incarnations.deployed()) > 0 {
+		alertable := r.incarnations.alertable()
+		for _, i := range alertable {
+			if i.target() != nil {
+			return i.target().ServiceMonitors
+		}
+	}
+	}
+
+	return sm
+}
+
+// returns the PrometheusRules to support SLOs from the latest deployed revision
+func (r *ResourceSyncer) prepareServiceLevelObjectives() []picchuv1alpha1.ServiceLevelObjective {
+	slos := []picchuv1alpha1.ServiceLevelObjective{}
+
+	if len(r.incarnations.deployed()) > 0 {
+		releasable := r.incarnations.releasable()
+		for _, i := range releasable {
+			if i.target() != nil {
+			return i.target().ServiceLevelObjectives
+		}
+	}
+	}
+
+	return slos
+}
+
+func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
+	if len(r.incarnations.deployed()) == 0 {
+		return []rmplan.Revision{}
 	}
 
 	revisionsMap := map[string]*rmplan.Revision{}
@@ -325,13 +379,6 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	// Tracking one route per port number
 	incarnations := r.incarnations.releasable()
 	count := len(incarnations)
-
-	// setup alerts from latest release that has revision
-	alertable := r.incarnations.alertable()
-	for _, i := range alertable {
-		alertRules = i.target().AlertRules
-		break
-	}
 
 	firstNonCanary := -1
 	for i, incarnation := range incarnations {
@@ -414,5 +461,5 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	for _, revision := range revisionsMap {
 		revisions = append(revisions, *revision)
 	}
-	return revisions, alertRules
+	return revisions
 }

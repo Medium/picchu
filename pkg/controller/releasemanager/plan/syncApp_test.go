@@ -10,6 +10,7 @@ import (
 	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
+	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
@@ -221,6 +222,33 @@ func TestSyncNewApp(t *testing.T) {
 	ok := client.ObjectKey{Name: "testapp", Namespace: "testnamespace"}
 	ctx := context.TODO()
 
+	pr := []monitoringv1.PrometheusRule{
+		monitoringv1.PrometheusRule{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
+	sm := []monitoringv1.ServiceMonitor{
+		monitoringv1.ServiceMonitor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
+	sl := []slov1alpha1.ServiceLevel{
+		slov1alpha1.ServiceLevel{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), gomock.Any()).
@@ -229,7 +257,43 @@ func TestSyncNewApp(t *testing.T) {
 
 	m.
 		EXPECT().
+		List(ctx, mocks.InjectPrometheusRules(pr), gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Delete(ctx, mocks.And(mocks.NamespacedName("testnamespace", "test"), mocks.Kind("PrometheusRule"))).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
 		Create(ctx, mocks.Kind("PrometheusRule")).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		List(ctx, mocks.InjectServiceMonitors(sm), gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Delete(ctx, mocks.And(mocks.NamespacedName("testnamespace", "test"), mocks.Kind("ServiceMonitor"))).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		List(ctx, mocks.InjectServiceLevels(sl), gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Delete(ctx, mocks.And(mocks.NamespacedName("testnamespace", "test"), mocks.Kind("ServiceLevel"))).
 		Return(nil).
 		Times(1)
 
