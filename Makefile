@@ -12,7 +12,7 @@ platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))
 GOARCH = $(word 2, $(platform_temp))
 
-.PHONY: all build generate ci test verify
+.PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
 all: deps generate build
 
@@ -24,11 +24,39 @@ deps:
 	go mod tidy
 	go mod vendor
 
-generate:
+generate: deepcopy defaulter openapi clientset crds
+
+deepcopy: #generators/deepcopy
+	# $< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).deepcopy -h $(BOILERPLATE)
 	operator-sdk generate k8s
-	operator-sdk generate crd
+
+defaulter: generators/defaulter
+	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).defaults -h $(BOILERPLATE)
+
+openapi: generators/openapi-gen
+	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).openapi -p $(PACKAGE)/openapi -h $(BOILERPLATE)
+
+clientset: generators/client
+	$< -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
+
+crds: #generators/crd
+	# @mkdir -p generated_crds
+	# $< generate --output-dir generated_crds --domain $(DOMAIN)
+	operator-sdk generate crds
+
+generators/%:
+	@mkdir -p generators
+	# go build -o $@ ./vendor/k8s.io/code-generator/cmd/$*-gen
+	go build -o $@ k8s.io/code-generator/cmd/$*-gen
+
+generators/openapi-gen:
+	@mkdir -p generators
+	# go build -o generators/openapi ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
 	go build -o ./generators/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
-	./generators/openapi-gen --logtostderr=true -o "" -i ./pkg/apis/picchu/v1alpha1 -O zz_generated.openapi -p ./pkg/apis/picchu/v1alpha1 -h ./hack/header.go.txt -r "-"
+
+# generators/crd:
+# 	go get sigs.k8s.io/controller-tools/cmd/crd
+# 	cp $(shell which crd) generators/crd
 
 build-dirs:
 	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)
@@ -43,10 +71,11 @@ verifiy:
 ci: all verify test
 
 mocks:
-	go get github.com/golang/mock/mockgen
-	mockgen -destination=pkg/mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
-	mockgen -destination=pkg/prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
-	mockgen -destination=pkg/controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controller/releasemanager Deployment
-	mockgen -destination=pkg/controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controller/releasemanager Incarnations
-	mockgen -destination=pkg/controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controller/releasemanager/scaling ScalableTarget
-	mockgen -destination=pkg/plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
+	@mkdir -p generators
+	go build -o ./generators/mockgen github.com/golang/mock/mockgen
+	./generators/mockgen -destination=pkg/mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
+	./generators/mockgen -destination=pkg/prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
+	./generators/mockgen -destination=pkg/controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controller/releasemanager Deployment
+	./generators/mockgen -destination=pkg/controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controller/releasemanager Incarnations
+	./generators/mockgen -destination=pkg/controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controller/releasemanager/scaling ScalableTarget
+	./generators/mockgen -destination=pkg/plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
