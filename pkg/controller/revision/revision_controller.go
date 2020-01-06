@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -163,6 +162,15 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	promLabels := prometheus.Labels{
 		"app": instance.Spec.App.Name,
 		"tag": instance.Spec.App.Tag,
+	}
+
+	deleted, err := r.deleteIfMarked(log, instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if deleted {
+		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 
 	status, err := r.syncReleaseManager(log, instance)
@@ -335,7 +343,6 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 	// Sync releasemanagers
 	rstatus := picchuv1alpha1.RevisionStatus{}
 	rstatus.Sentry = revision.Status.Sentry
-	rmCount, retiredCount := 0, 0
 	for _, target := range revision.Spec.Targets {
 		status := picchuv1alpha1.RevisionTargetStatus{Name: target.Name}
 		rm, err := r.getOrCreateReleaseManager(log, &target, target.Fleet, revision)
@@ -343,47 +350,26 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 			return rstatus, err
 		}
 		status.AddReleaseManagerStatus(*rm.RevisionStatus(revision.Spec.App.Tag))
-
-		rmCount++
-		for _, rl := range rm.Status.Revisions {
-			if rl.GitTimestamp == nil {
-				log.Info("Not git timestamp found")
-				continue
-			}
-			expiration := rl.GitTimestamp.Add(time.Duration(rl.TTL) * time.Second)
-			if rl.Tag == revision.Spec.App.Tag {
-				if time.Now().After(expiration) {
-					switch rl.State.Current {
-					case "pendingrelease", "releasing", "released":
-						log.Info("Not removing for state", "State", rl.State.Current)
-						// don't delete released revisions
-					default:
-						log.Info("Marking for deletion for state", "State", rl.State.Current)
-						retiredCount++
-					}
-				}
-			}
-		}
 		rstatus.AddTarget(status)
 	}
 
-	// if Revision is expired in all ReleaseManagers, without deleting
-	// clusterless revisions
-	if retiredCount == rmCount && retiredCount > 0 {
-		if err := r.deleteRevision(log, revision); err != nil {
-			log.Error(err, "Failed to delete Revision")
-			return rstatus, err
-		}
-	}
 	return rstatus, nil
 }
 
-func (r *ReconcileRevision) deleteRevision(log logr.Logger, revision *picchuv1alpha1.Revision) error {
-	log.Info("Deleting revision", "Name", revision.Name, "Namespace", revision.Namespace)
-	if err := r.client.Delete(context.TODO(), revision); err != nil && !errors.IsNotFound(err) {
-		return err
+func (r *ReconcileRevision) deleteIfMarked(log logr.Logger, revision *picchuv1alpha1.Revision) (bool, error) {
+	for _, target := range revision.Spec.Targets {
+		label := fmt.Sprintf("%s%s", picchuv1alpha1.LabelTargetDeletablePrefix, target.Name)
+		if val, ok := revision.Labels[label]; !ok && val != "true" {
+			return false, nil
+		}
 	}
-	return nil
+
+	log.Info("Deleting revision marked for deletion in all targets")
+	err := r.client.Delete(context.TODO(), revision)
+	if err != nil && !errors.IsNotFound(err) {
+		return true, err
+	}
+	return true, nil
 }
 
 // createSentryReleaseForRevision performs the Sentry API calls to register a Revision with Sentry.
