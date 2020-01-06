@@ -26,7 +26,9 @@ deps:
 
 generate:
 	operator-sdk generate k8s
-	operator-sdk generate openapi
+	operator-sdk generate crd
+	go build -o ./generators/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
+	./generators/openapi-gen --logtostderr=true -o "" -i ./pkg/apis/picchu/v1alpha1 -O zz_generated.openapi -p ./pkg/apis/picchu/v1alpha1 -h ./hack/header.go.txt -r "-"
 
 build-dirs:
 	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)

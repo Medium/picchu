@@ -17,12 +17,12 @@ spec:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -534,7 +534,8 @@ spec:
                       successThreshold:
                         description: Minimum consecutive successes for the probe to
                           be considered successful after having failed. Defaults to
-                          1. Must be 1 for liveness. Minimum value is 1.
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
                         format: int32
                         type: integer
                       tcpSocket:
@@ -944,7 +945,8 @@ spec:
                       successThreshold:
                         description: Minimum consecutive successes for the probe to
                           be considered successful after having failed. Defaults to
-                          1. Must be 1 for liveness. Minimum value is 1.
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
                         format: int32
                         type: integer
                       tcpSocket:
