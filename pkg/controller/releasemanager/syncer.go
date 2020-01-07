@@ -300,7 +300,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	revisionsMap := map[string]*rmplan.Revision{}
 	for _, i := range r.incarnations.deployed() {
 		tagRoutingHeader := ""
-		if i.revision != nil {
+		if i.revision != nil && i.isRoutable() {
 			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
 		}
 		revisionsMap[i.tag] = &rmplan.Revision{
@@ -385,7 +385,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		}
 
 		tagRoutingHeader := ""
-		if incarnation.revision != nil {
+		if incarnation.revision != nil && incarnation.isRoutable() {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
 		}
 		revisionsMap[incarnation.tag] = &rmplan.Revision{
