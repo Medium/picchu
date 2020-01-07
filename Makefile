@@ -24,10 +24,9 @@ deps:
 	go mod tidy
 	go mod vendor
 
-generate: deepcopy defaulter openapi clientset crds
+generate: deepcopy defaulter openapi clientset
 
-deepcopy: #generators/deepcopy
-	# $< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).deepcopy -h $(BOILERPLATE)
+deepcopy:
 	operator-sdk generate k8s
 
 defaulter: generators/defaulter
@@ -39,24 +38,16 @@ openapi: generators/openapi-gen
 clientset: generators/client
 	$< -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
 
-crds: #generators/crd
-	# @mkdir -p generated_crds
-	# $< generate --output-dir generated_crds --domain $(DOMAIN)
+crds:
 	operator-sdk generate crds
 
 generators/%:
 	@mkdir -p generators
-	# go build -o $@ ./vendor/k8s.io/code-generator/cmd/$*-gen
 	go build -o $@ k8s.io/code-generator/cmd/$*-gen
 
 generators/openapi-gen:
 	@mkdir -p generators
-	# go build -o generators/openapi ./vendor/k8s.io/kube-openapi/cmd/openapi-gen
 	go build -o ./generators/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
-
-# generators/crd:
-# 	go get sigs.k8s.io/controller-tools/cmd/crd
-# 	cp $(shell which crd) generators/crd
 
 build-dirs:
 	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)
