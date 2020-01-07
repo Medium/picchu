@@ -6,6 +6,9 @@ import (
 
 // ClusterSecretsSpec defines the desired state of ClusterSecrets
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:categories=picchu
 type ClusterSecretsSpec struct {
 	Source ClusterSecretSource `json:"source"`
 	Target ClusterSecretTarget `json:"target"`

@@ -9,7 +9,9 @@ spec:
     listKind: MirrorList
     plural: mirrors
     singular: mirror
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: Mirror is the Schema for the mirrors API

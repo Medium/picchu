@@ -5,11 +5,16 @@ metadata:
 spec:
   group: picchu.medium.engineering
   names:
+    categories:
+    - all
+    - picchu
     kind: Revision
     listKind: RevisionList
     plural: revisions
     singular: revision
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: Revision is the Schema for the revisions API

@@ -5,11 +5,16 @@ metadata:
 spec:
   group: picchu.medium.engineering
   names:
+    categories:
+    - all
+    - picchu
     kind: ReleaseManager
     listKind: ReleaseManagerList
     plural: releasemanagers
     singular: releasemanager
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: ReleaseManager is the Schema for the releasemanagers API
@@ -61,6 +66,8 @@ spec:
                     format: date-time
                     type: string
                   metrics:
+                    description: ReleaseManagerRevisionMetricsStatus defines the observed
+                      state of ReleaseManagerRevisionMetrics
                     properties:
                       gitCreateSeconds: {}
                       gitDeploySeconds: {}
@@ -78,6 +85,19 @@ spec:
                     format: date-time
                     type: string
                   scale:
+                    properties:
+                      current:
+                        format: int32
+                        type: integer
+                      desired:
+                        format: int32
+                        type: integer
+                      peak:
+                        format: int32
+                        type: integer
+                    required:
+                    - current
+                    - desired
                     type: object
                   state:
                     properties:

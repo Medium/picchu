@@ -5,11 +5,16 @@ metadata:
 spec:
   group: picchu.medium.engineering
   names:
+    categories:
+    - all
+    - picchu
     kind: Cluster
     listKind: ClusterList
     plural: clusters
     singular: cluster
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: Cluster is the Schema for the clusters API
