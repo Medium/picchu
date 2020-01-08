@@ -32,7 +32,7 @@ func NewClusterObserver(cluster Cluster, cli client.Client, log logr.Logger) Obs
 func (o *ClusterObserver) Observe(ctx context.Context, namespace string) (*Observation, error) {
 	replicaSetList := &appsv1.ReplicaSetList{}
 	listOpts := &client.ListOptions{Namespace: namespace}
-	err := o.cli.List(ctx, listOpts, replicaSetList)
+	err := o.cli.List(ctx, replicaSetList, listOpts)
 	if err != nil {
 		return nil, err
 	}

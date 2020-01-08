@@ -22,11 +22,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 // TODO(bob): Add these to Revision type
@@ -96,8 +96,7 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	_, err := builder.SimpleController().
-		WithManager(mgr).
+	_, err := builder.ControllerManagedBy(mgr).
 		ForType(&picchuv1alpha1.Revision{}).
 		WithEventFilter(predicate.Funcs{
 			UpdateFunc: func(_ event.UpdateEvent) bool { return false },
@@ -151,7 +150,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	log := reqLogger.WithValues("App", instance.Spec.App.Name, "Tag", instance.Spec.App.Tag)
 
 	mirrors := &picchuv1alpha1.MirrorList{}
-	err = r.client.List(ctx, nil, mirrors)
+	err = r.client.List(ctx, mirrors)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -221,7 +220,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 			}
 		}
 		if !accepted {
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func(runtime.Object) error {
+			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
 				instance.Fail()
 				return nil
 			})
@@ -299,16 +298,17 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 	fleet string,
 	revision *picchuv1alpha1.Revision,
 ) (*picchuv1alpha1.ReleaseManager, error) {
+	rms := &picchuv1alpha1.ReleaseManagerList{}
 	lbls := map[string]string{
 		picchuv1alpha1.LabelTarget: target.Name,
 		picchuv1alpha1.LabelFleet:  target.Fleet,
 		picchuv1alpha1.LabelApp:    revision.Spec.App.Name,
 	}
-	rms := &picchuv1alpha1.ReleaseManagerList{}
-	opts := client.
-		MatchingLabels(lbls).
-		InNamespace(revision.Namespace)
-	r.client.List(context.TODO(), opts, rms)
+	opts := &client.ListOptions{
+		Namespace:     revision.Namespace,
+		LabelSelector: labels.SelectorFromSet(lbls),
+	}
+	r.client.List(context.TODO(), rms, opts)
 	if len(rms.Items) > 1 {
 		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", lbls))
 	}
@@ -453,14 +453,14 @@ func (r *ReconcileRevision) mirrorRevision(
 			Namespace:     revision.Namespace,
 		}
 		configMapList := &corev1.ConfigMapList{}
-		if err := r.client.List(ctx, opts, configMapList); err != nil {
+		if err := r.client.List(ctx, configMapList, opts); err != nil {
 			return err
 		}
 		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
 			return err
 		}
 		secretList := &corev1.SecretList{}
-		if err := r.client.List(ctx, opts, secretList); err != nil {
+		if err := r.client.List(ctx, secretList, opts); err != nil {
 			return err
 		}
 		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
@@ -478,7 +478,7 @@ func (r *ReconcileRevision) mirrorRevision(
 		Namespace: "build",
 	}
 	configMapList := &corev1.ConfigMapList{}
-	if err := r.client.List(ctx, opts, configMapList); err != nil {
+	if err := r.client.List(ctx, configMapList, opts); err != nil {
 		return err
 	}
 	if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
@@ -495,7 +495,7 @@ func (r *ReconcileRevision) mirrorRevision(
 		},
 		Spec: revision.DeepCopy().Spec,
 	}
-	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func(runtime.Object) error {
+	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func() error {
 		revCopy.Spec = revision.Spec
 		return nil
 	})
@@ -519,7 +519,7 @@ func (r *ReconcileRevision) copyConfigMapList(
 			},
 			Data: orig.Data,
 		}
-		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, configMap, func(runtime.Object) error {
+		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, configMap, func() error {
 			configMap.Data = configMapList.Items[i].Data
 			return nil
 		})
@@ -548,7 +548,7 @@ func (r *ReconcileRevision) copySecretList(
 			Type: orig.Type,
 			Data: orig.Data,
 		}
-		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, secret, func(runtime.Object) error {
+		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, secret, func() error {
 			secret.Data = orig.Data
 			return nil
 		})

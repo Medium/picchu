@@ -45,7 +45,7 @@ func testAlertCache(t *testing.T, template template.Template, canariesOnly bool)
 	m.
 		EXPECT().
 		Query(gomock.Any(), gomock.Eq(q.String()), gomock.Any()).
-		Return(model.Vector{}, nil).
+		Return(model.Vector{}, nil, nil).
 		Times(2)
 
 	for i := 0; i < 5; i++ {
@@ -102,7 +102,7 @@ func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 	m.
 		EXPECT().
 		Query(gomock.Any(), gomock.Eq(q.String()), gomock.Any()).
-		Return(response, nil).
+		Return(response, nil, nil).
 		Times(1)
 
 	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)

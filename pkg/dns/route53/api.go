@@ -1,6 +1,7 @@
 package route53
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	awsutil "go.medium.engineering/picchu/pkg/aws"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var log = logf.Log.WithName("route53_provider")
@@ -21,7 +22,7 @@ type Route53ProviderSyncInput struct {
 }
 
 type Route53Provider struct {
-	Client  *route53.Route53
+	Client  *route53.Client
 	Cluster *v1alpha1.Cluster
 }
 
@@ -61,8 +62,8 @@ func (r *Route53Provider) findHostedZone(hostname string) (*route53.HostedZone, 
 	var bestMatch route53.HostedZone
 	input := route53.ListHostedZonesInput{}
 	req := r.Client.ListHostedZonesRequest(&input)
-	p := req.Paginate()
-	for p.Next() {
+	p := route53.NewListHostedZonesPaginator(req)
+	for p.Next(context.TODO()) {
 		page := p.CurrentPage()
 		for _, zone := range page.HostedZones {
 			if bestMatch.Name != nil && len(*zone.Name) < len(*bestMatch.Name) {
@@ -122,7 +123,7 @@ func (r *Route53Provider) syncRecord(hostname string, ingress *v1alpha1.IngressI
 		},
 	}
 	req := r.Client.ChangeResourceRecordSetsRequest(&input)
-	_, err = req.Send()
+	_, err = req.Send(context.TODO())
 	return err
 }
 

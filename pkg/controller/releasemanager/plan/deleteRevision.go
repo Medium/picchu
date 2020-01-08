@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,12 +22,14 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, scalingFa
 		NewReplicaSetList(),
 		NewHorizontalPodAutoscalerList(),
 	}
-	opts := client.
-		MatchingLabels(p.Labels).
-		InNamespace(p.Namespace)
+
+	opts := &client.ListOptions{
+		Namespace:     p.Namespace,
+		LabelSelector: labels.SelectorFromSet(p.Labels),
+	}
 
 	for _, list := range lists {
-		if err := cli.List(ctx, opts, list.GetList()); err != nil {
+		if err := cli.List(ctx, list.GetList(), opts); err != nil {
 			log.Error(err, "Failed to list resource")
 			return err
 		}

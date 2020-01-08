@@ -11,6 +11,9 @@ import (
 
 // ReleaseManager is the Schema for the releasemanagers API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:categories=all;picchu
 type ReleaseManager struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -39,6 +42,7 @@ type ReleaseManagerSpec struct {
 // ReleaseManagerStatus defines the observed state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
+	// +listType=set
 	Revisions []ReleaseManagerRevisionStatus `json:"revisions,omitempty"`
 }
 
@@ -59,6 +63,7 @@ type ReleaseManagerRevisionStatus struct {
 	Deleted              bool                                `json:"deleted,omitempty"`
 }
 
+// ReleaseManagerRevisionMetricsStatus defines the observed state of ReleaseManagerRevisionMetrics
 type ReleaseManagerRevisionMetricsStatus struct {
 	GitReleaseSeconds       *float64 `json:"gitReleaseSeconds,omitempty"`
 	GitDeploySeconds        *float64 `json:"gitDeploySeconds,omitempty"`
@@ -78,9 +83,9 @@ func (r *ReleaseManagerRevisionStateStatus) EqualTo(other *ReleaseManagerRevisio
 }
 
 type ReleaseManagerRevisionScaleStatus struct {
-	Current int32
-	Desired int32
-	Peak    int32
+	Current int32 `json:"current"`
+	Desired int32 `json:"desired"`
+	Peak    int32 `json:"peak,omitempty"`
 }
 
 func (r *ReleaseManager) RevisionStatus(tag string) *ReleaseManagerRevisionStatus {
