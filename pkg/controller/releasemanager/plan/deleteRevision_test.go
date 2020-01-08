@@ -13,6 +13,7 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -30,7 +31,10 @@ func TestDeleteRevision(t *testing.T) {
 	}
 	ctx := context.TODO()
 
-	opts := client.MatchingLabels(plan.Labels).InNamespace(plan.Namespace)
+	opts := &client.ListOptions{
+		Namespace:     plan.Namespace,
+		LabelSelector: labels.SelectorFromSet(plan.Labels),
+	}
 
 	secrets := []corev1.Secret{
 		corev1.Secret{
@@ -70,22 +74,22 @@ func TestDeleteRevision(t *testing.T) {
 
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectSecrets(secrets)).
+		List(ctx, mocks.InjectSecrets(secrets), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectConfigMaps(configMaps)).
+		List(ctx, mocks.InjectConfigMaps(configMaps), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectReplicaSets(replicaSets)).
+		List(ctx, mocks.InjectReplicaSets(replicaSets), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
 		EXPECT().
-		List(ctx, mocks.ListOptions(opts), mocks.InjectHorizontalPodAutoscalers(hpas)).
+		List(ctx, mocks.InjectHorizontalPodAutoscalers(hpas), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.

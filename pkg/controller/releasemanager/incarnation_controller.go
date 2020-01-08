@@ -67,7 +67,7 @@ func (i *IncarnationController) getReleaseManager() *picchuv1alpha1.ReleaseManag
 
 func (i *IncarnationController) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	secretList := &corev1.SecretList{}
-	err := i.deliveryClient.List(ctx, opts, secretList)
+	err := i.deliveryClient.List(ctx, secretList, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (i *IncarnationController) getSecrets(ctx context.Context, opts *client.Lis
 
 func (i *IncarnationController) getConfigMaps(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
 	configMapList := &corev1.ConfigMapList{}
-	err := i.deliveryClient.List(ctx, opts, configMapList)
+	err := i.deliveryClient.List(ctx, configMapList, opts)
 	if err != nil {
 		return nil, err
 	}

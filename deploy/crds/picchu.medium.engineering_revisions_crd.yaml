@@ -1,0 +1,1518 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: revisions.picchu.medium.engineering
+spec:
+  group: picchu.medium.engineering
+  names:
+    categories:
+    - all
+    - picchu
+    kind: Revision
+    listKind: RevisionList
+    plural: revisions
+    singular: revision
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: Revision is the Schema for the revisions API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: RevisionSpec defines the desired state of Revision
+          properties:
+            app:
+              properties:
+                image:
+                  type: string
+                name:
+                  type: string
+                ref:
+                  type: string
+                tag:
+                  type: string
+              required:
+              - image
+              - name
+              - ref
+              - tag
+              type: object
+            canaryWithSLIRules:
+              type: boolean
+            failed:
+              type: boolean
+            ignoreSLOs:
+              type: boolean
+            ports:
+              items:
+                properties:
+                  containerPort:
+                    format: int32
+                    type: integer
+                  hosts:
+                    items:
+                      type: string
+                    type: array
+                  ingressPort:
+                    format: int32
+                    type: integer
+                  istio:
+                    properties:
+                      http:
+                        properties:
+                          appendHeaders:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          fault:
+                            description: "HTTPFaultInjection can be used to specify
+                              one or more faults to inject while forwarding http requests
+                              to the destination specified in a route. Fault specification
+                              is part of a VirtualService rule. Faults include aborting
+                              the Http request from downstream service, and/or delaying
+                              proxying of requests. A fault rule MUST HAVE delay or
+                              abort or both. \n *Note:* Delay and abort faults are
+                              independent of one another, even if both are specified
+                              simultaneously."
+                            properties:
+                              abort:
+                                description: Abort Http request attempts and return
+                                  error codes back to downstream service, giving the
+                                  impression that the upstream service is faulty.
+                                properties:
+                                  httpStatus:
+                                    description: REQUIRED. HTTP status code to use
+                                      to abort the Http request.
+                                    type: integer
+                                  percent:
+                                    description: Percentage of requests to be aborted
+                                      with the error code provided (0-100).
+                                    type: integer
+                                required:
+                                - httpStatus
+                                type: object
+                              delay:
+                                description: Delay requests before forwarding, emulating
+                                  various failures such as network issues, overloaded
+                                  upstream service, etc.
+                                properties:
+                                  exponentialDelay:
+                                    description: (-- Add a delay (based on an exponential
+                                      function) before forwarding the request. mean
+                                      delay needed to derive the exponential delay
+                                      values --)
+                                    type: string
+                                  fixedDelay:
+                                    description: 'REQUIRED. Add a fixed delay before
+                                      forwarding the request. Format: 1h/1m/1s/1ms.
+                                      MUST be >=1ms.'
+                                    type: string
+                                  percent:
+                                    description: Percentage of requests on which the
+                                      delay will be injected (0-100).
+                                    type: integer
+                                required:
+                                - fixedDelay
+                                type: object
+                            type: object
+                          mirror:
+                            description: "Destination indicates the network addressable
+                              service to which the request/connection will be sent
+                              after processing a routing rule. The destination.name
+                              should unambiguously refer to a service in the service
+                              registry. It can be a short name or a fully qualified
+                              domain name from the service registry, a resolvable
+                              DNS name, an IP address or a service name from the service
+                              registry and a subset name. The order of inference is
+                              as follows: \n 1. Service registry lookup. The entire
+                              name is looked up in the service registry. If the lookup
+                              succeeds, the search terminates. The requests will be
+                              routed to any instance of the service in the mesh. When
+                              the service name consists of a single word, the FQDN
+                              will be constructed in a platform specific manner. For
+                              example, in Kubernetes, the namespace associated with
+                              the routing rule will be used to identify the service
+                              as <servicename>.<rulenamespace>. However, if the service
+                              name contains multiple words separated by a dot (e.g.,
+                              reviews.prod), the name in its entirety would be looked
+                              up in the service registry. \n 2. Runtime DNS lookup
+                              by the proxy. If step 1 fails, and the name is not an
+                              IP address, it will be considered as a DNS name that
+                              is not in the service registry (e.g., wikipedia.org).
+                              The sidecar/gateway will resolve the DNS and load balance
+                              requests appropriately. See Envoy's strict_dns for details.
+                              \n The following example routes all traffic by default
+                              to pods of the reviews service with label \"version:
+                              v1\" (i.e., subset v1), and some to subset v2, in a
+                              kubernetes environment. \n     apiVersion: networking.istio.io/v1alpha3
+                              \    kind: VirtualService     metadata:       name:
+                              reviews-route     spec:       hosts:       - reviews
+                              # namespace is same as the client/caller's namespace
+                              \      http:       - match:         - uri:             prefix:
+                              \"/wpcatalog\"         - uri:             prefix: \"/consumercatalog\"
+                              \        rewrite:           uri: \"/newcatalog\"         route:
+                              \        - destination:             host: reviews             subset:
+                              v2       - route:         - destination:             host:
+                              reviews             subset: v1 \n And the associated
+                              DestinationRule \n     apiVersion: networking.istio.io/v1alpha3
+                              \    kind: DestinationRule     metadata:       name:
+                              reviews-destination     spec:       host: reviews       subsets:
+                              \      - name: v1         labels:           version:
+                              v1       - name: v2         labels:           version:
+                              v2 \n The following VirtualService sets a timeout of
+                              5s for all calls to productpage.prod service. Notice
+                              that there are no subsets defined in this rule. Istio
+                              will fetch all instances of productpage.prod service
+                              from the service registry and populate the sidecar's
+                              load balancing pool. \n     apiVersion: networking.istio.io/v1alpha3
+                              \    kind: VirtualService     metadata:       name:
+                              my-productpage-rule     spec:       hosts:       - productpage.prod
+                              # in kubernetes, this applies only to prod namespace
+                              \      http:       - timeout: 5s         route:         -
+                              destination:             host: productpage.prod \n The
+                              following sets a timeout of 5s for all calls to the
+                              external service wikipedia.org, as there is no internal
+                              service of that name. \n     apiVersion: networking.istio.io/v1alpha3
+                              \    kind: VirtualService     metadata:       name:
+                              my-wiki-rule     spec:       hosts:       - wikipedia.org
+                              \      http:       - timeout: 5s         route:         -
+                              destination:             host: wikipedia.org"
+                            properties:
+                              host:
+                                description: "REQUIRED. The name of a service from
+                                  the service registry. Service names are looked up
+                                  from the platform's service registry (e.g., Kubernetes
+                                  services, Consul services, etc.) and from the hosts
+                                  declared by [ServiceEntry](#ServiceEntry). Traffic
+                                  forwarded to destinations that are not found in
+                                  either of the two, will be dropped. \n *Note for
+                                  Kubernetes users*: When short names are used (e.g.
+                                  \"reviews\" instead of \"reviews.default.svc.cluster.local\"),
+                                  Istio will interpret the short name based on the
+                                  namespace of the rule, not the service. A rule in
+                                  the \"default\" namespace containing a host \"reviews
+                                  will be interpreted as \"reviews.default.svc.cluster.local\",
+                                  irrespective of the actual namespace associated
+                                  with the reviews service. _To avoid potential misconfigurations,
+                                  it is recommended to always use fully qualified
+                                  domain names over short names._"
+                                type: string
+                              port:
+                                description: Specifies the port on the host that is
+                                  being addressed. If a service exposes only a single
+                                  port it is not required to explicitly select the
+                                  port.
+                                properties:
+                                  name:
+                                    description: Valid port name
+                                    type: string
+                                  number:
+                                    description: Valid port number
+                                    format: int32
+                                    type: integer
+                                type: object
+                              subset:
+                                description: The name of a subset within the service.
+                                  Applicable only to services within the mesh. The
+                                  subset must be defined in a corresponding DestinationRule.
+                                type: string
+                            required:
+                            - host
+                            type: object
+                          redirect:
+                            description: "HTTPRedirect can be used to send a 302 redirect
+                              response to the caller, where the Authority/Host and
+                              the URI in the response can be swapped with the specified
+                              values. For example, the following rule redirects requests
+                              for /v1/getProductRatings API on the ratings service
+                              to /v1/bookRatings provided by the bookratings service.
+                              \n     apiVersion: networking.istio.io/v1alpha3     kind:
+                              VirtualService     metadata:       name: ratings-route
+                              \    spec:       hosts:       - ratings       http:
+                              \      - match:         - uri:             exact: /v1/getProductRatings
+                              \      redirect:         uri: /v1/bookRatings         authority:
+                              bookratings.default.svc.cluster.local       ..."
+                            properties:
+                              authority:
+                                description: On a redirect, overwrite the Authority/Host
+                                  portion of the URL with this value.
+                                type: string
+                              uri:
+                                description: On a redirect, overwrite the Path portion
+                                  of the URL with this value. Note that the entire
+                                  path will be replaced, irrespective of the request
+                                  URI being matched as an exact path or prefix.
+                                type: string
+                            type: object
+                          removeResponseHeaders:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          retries:
+                            description: "Describes the retry policy to use when a
+                              HTTP request fails. For example, the following rule
+                              sets the maximum number of retries to 3 when calling
+                              ratings:v1 service, with a 2s timeout per retry attempt.
+                              \n     apiVersion: networking.istio.io/v1alpha3     kind:
+                              VirtualService     metadata:       name: ratings-route
+                              \    spec:       hosts:       - ratings       http:
+                              \      - route:         - destination:             host:
+                              ratings             subset: v1         retries:           attempts:
+                              3           perTryTimeout: 2s"
+                            properties:
+                              attempts:
+                                description: REQUIRED. Number of retries for a given
+                                  request. The interval between retries will be determined
+                                  automatically (25ms+). Actual number of retries
+                                  attempted depends on the httpReqTimeout.
+                                type: integer
+                              perTryTimeout:
+                                description: 'Timeout per retry attempt for a given
+                                  request. format: 1h/1m/1s/1ms. MUST BE >=1ms.'
+                                type: string
+                            required:
+                            - attempts
+                            - perTryTimeout
+                            type: object
+                          rewrite:
+                            description: "HTTPRewrite can be used to rewrite specific
+                              parts of a HTTP request before forwarding the request
+                              to the destination. Rewrite primitive can be used only
+                              with the DestinationWeights. The following example demonstrates
+                              how to rewrite the URL prefix for api call (/ratings)
+                              to ratings service before making the actual API call.
+                              \n     apiVersion: networking.istio.io/v1alpha3     kind:
+                              VirtualService     metadata:       name: ratings-route
+                              \    spec:       hosts:       - ratings       http:
+                              \      - match:         - uri:             prefix: /ratings
+                              \        rewrite:           uri: /v1/bookRatings         route:
+                              \        - destination:             host: ratings             subset:
+                              v1"
+                            properties:
+                              authority:
+                                description: rewrite the Authority/Host header with
+                                  this value.
+                                type: string
+                              uri:
+                                description: rewrite the path (or the prefix) portion
+                                  of the URI with this value. If the original URI
+                                  was matched based on prefix, the value provided
+                                  in this field will replace the corresponding matched
+                                  prefix.
+                                type: string
+                            type: object
+                        type: object
+                    type: object
+                  mode:
+                    type: string
+                  name:
+                    type: string
+                  port:
+                    format: int32
+                    type: integer
+                  protocol:
+                    description: Protocol defines network protocols supported for
+                      things like container ports.
+                    type: string
+                required:
+                - mode
+                - name
+                type: object
+              type: array
+            sentry:
+              properties:
+                release:
+                  type: boolean
+              type: object
+            tagRoutingHeader:
+              type: string
+            targets:
+              items:
+                properties:
+                  acceptanceTarget:
+                    type: boolean
+                  alertRules:
+                    items:
+                      description: Rule describes an alerting or recording rule.
+                      properties:
+                        alert:
+                          type: string
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        expr:
+                          anyOf:
+                          - type: string
+                          - type: integer
+                        for:
+                          type: string
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        record:
+                          type: string
+                      required:
+                      - expr
+                      type: object
+                    type: array
+                  aws:
+                    description: 'TODO(lyra): PodTemplate'
+                    properties:
+                      iam:
+                        properties:
+                          role_arn:
+                            type: string
+                        type: object
+                    type: object
+                  canary:
+                    properties:
+                      percent:
+                        format: int32
+                        type: integer
+                      ttl:
+                        format: int64
+                        type: integer
+                    required:
+                    - percent
+                    - ttl
+                    type: object
+                  configSelector:
+                    description: A label selector is a label query over a set of resources.
+                      The result of matchLabels and matchExpressions are ANDed. An
+                      empty label selector matches all objects. A null label selector
+                      matches no objects.
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: A label selector requirement is a selector
+                            that contains values, a key, and an operator that relates
+                            the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: operator represents a key's relationship
+                                to a set of values. Valid operators are In, NotIn,
+                                Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: values is an array of string values. If
+                                the operator is In or NotIn, the values array must
+                                be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced
+                                during a strategic merge patch.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: matchLabels is a map of {key,value} pairs. A
+                          single {key,value} in the matchLabels map is equivalent
+                          to an element of matchExpressions, whose key field is "key",
+                          the operator is "In", and the values array contains only
+                          "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                  externalTest:
+                    properties:
+                      completed:
+                        type: boolean
+                      enabled:
+                        type: boolean
+                      started:
+                        type: boolean
+                      succeeded:
+                        type: boolean
+                    required:
+                    - completed
+                    - enabled
+                    - started
+                    type: object
+                  fleet:
+                    type: string
+                  livenessProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: One and only one of the following should be specified.
+                          Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: string
+                            - type: integer
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: 'TCPSocket specifies an action involving a TCP
+                          port. TCP hooks not yet supported TODO: implement a realistic
+                          TCP lifecycle hook'
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: string
+                            - type: integer
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                        required:
+                        - port
+                        type: object
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
+                  name:
+                    type: string
+                  ports:
+                    items:
+                      properties:
+                        containerPort:
+                          format: int32
+                          type: integer
+                        hosts:
+                          items:
+                            type: string
+                          type: array
+                        ingressPort:
+                          format: int32
+                          type: integer
+                        istio:
+                          properties:
+                            http:
+                              properties:
+                                appendHeaders:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                fault:
+                                  description: "HTTPFaultInjection can be used to
+                                    specify one or more faults to inject while forwarding
+                                    http requests to the destination specified in
+                                    a route. Fault specification is part of a VirtualService
+                                    rule. Faults include aborting the Http request
+                                    from downstream service, and/or delaying proxying
+                                    of requests. A fault rule MUST HAVE delay or abort
+                                    or both. \n *Note:* Delay and abort faults are
+                                    independent of one another, even if both are specified
+                                    simultaneously."
+                                  properties:
+                                    abort:
+                                      description: Abort Http request attempts and
+                                        return error codes back to downstream service,
+                                        giving the impression that the upstream service
+                                        is faulty.
+                                      properties:
+                                        httpStatus:
+                                          description: REQUIRED. HTTP status code
+                                            to use to abort the Http request.
+                                          type: integer
+                                        percent:
+                                          description: Percentage of requests to be
+                                            aborted with the error code provided (0-100).
+                                          type: integer
+                                      required:
+                                      - httpStatus
+                                      type: object
+                                    delay:
+                                      description: Delay requests before forwarding,
+                                        emulating various failures such as network
+                                        issues, overloaded upstream service, etc.
+                                      properties:
+                                        exponentialDelay:
+                                          description: (-- Add a delay (based on an
+                                            exponential function) before forwarding
+                                            the request. mean delay needed to derive
+                                            the exponential delay values --)
+                                          type: string
+                                        fixedDelay:
+                                          description: 'REQUIRED. Add a fixed delay
+                                            before forwarding the request. Format:
+                                            1h/1m/1s/1ms. MUST be >=1ms.'
+                                          type: string
+                                        percent:
+                                          description: Percentage of requests on which
+                                            the delay will be injected (0-100).
+                                          type: integer
+                                      required:
+                                      - fixedDelay
+                                      type: object
+                                  type: object
+                                mirror:
+                                  description: "Destination indicates the network
+                                    addressable service to which the request/connection
+                                    will be sent after processing a routing rule.
+                                    The destination.name should unambiguously refer
+                                    to a service in the service registry. It can be
+                                    a short name or a fully qualified domain name
+                                    from the service registry, a resolvable DNS name,
+                                    an IP address or a service name from the service
+                                    registry and a subset name. The order of inference
+                                    is as follows: \n 1. Service registry lookup.
+                                    The entire name is looked up in the service registry.
+                                    If the lookup succeeds, the search terminates.
+                                    The requests will be routed to any instance of
+                                    the service in the mesh. When the service name
+                                    consists of a single word, the FQDN will be constructed
+                                    in a platform specific manner. For example, in
+                                    Kubernetes, the namespace associated with the
+                                    routing rule will be used to identify the service
+                                    as <servicename>.<rulenamespace>. However, if
+                                    the service name contains multiple words separated
+                                    by a dot (e.g., reviews.prod), the name in its
+                                    entirety would be looked up in the service registry.
+                                    \n 2. Runtime DNS lookup by the proxy. If step
+                                    1 fails, and the name is not an IP address, it
+                                    will be considered as a DNS name that is not in
+                                    the service registry (e.g., wikipedia.org). The
+                                    sidecar/gateway will resolve the DNS and load
+                                    balance requests appropriately. See Envoy's strict_dns
+                                    for details. \n The following example routes all
+                                    traffic by default to pods of the reviews service
+                                    with label \"version: v1\" (i.e., subset v1),
+                                    and some to subset v2, in a kubernetes environment.
+                                    \n     apiVersion: networking.istio.io/v1alpha3
+                                    \    kind: VirtualService     metadata:       name:
+                                    reviews-route     spec:       hosts:       - reviews
+                                    # namespace is same as the client/caller's namespace
+                                    \      http:       - match:         - uri:             prefix:
+                                    \"/wpcatalog\"         - uri:             prefix:
+                                    \"/consumercatalog\"         rewrite:           uri:
+                                    \"/newcatalog\"         route:         - destination:
+                                    \            host: reviews             subset:
+                                    v2       - route:         - destination:             host:
+                                    reviews             subset: v1 \n And the associated
+                                    DestinationRule \n     apiVersion: networking.istio.io/v1alpha3
+                                    \    kind: DestinationRule     metadata:       name:
+                                    reviews-destination     spec:       host: reviews
+                                    \      subsets:       - name: v1         labels:
+                                    \          version: v1       - name: v2         labels:
+                                    \          version: v2 \n The following VirtualService
+                                    sets a timeout of 5s for all calls to productpage.prod
+                                    service. Notice that there are no subsets defined
+                                    in this rule. Istio will fetch all instances of
+                                    productpage.prod service from the service registry
+                                    and populate the sidecar's load balancing pool.
+                                    \n     apiVersion: networking.istio.io/v1alpha3
+                                    \    kind: VirtualService     metadata:       name:
+                                    my-productpage-rule     spec:       hosts:       -
+                                    productpage.prod # in kubernetes, this applies
+                                    only to prod namespace       http:       - timeout:
+                                    5s         route:         - destination:             host:
+                                    productpage.prod \n The following sets a timeout
+                                    of 5s for all calls to the external service wikipedia.org,
+                                    as there is no internal service of that name.
+                                    \n     apiVersion: networking.istio.io/v1alpha3
+                                    \    kind: VirtualService     metadata:       name:
+                                    my-wiki-rule     spec:       hosts:       - wikipedia.org
+                                    \      http:       - timeout: 5s         route:
+                                    \        - destination:             host: wikipedia.org"
+                                  properties:
+                                    host:
+                                      description: "REQUIRED. The name of a service
+                                        from the service registry. Service names are
+                                        looked up from the platform's service registry
+                                        (e.g., Kubernetes services, Consul services,
+                                        etc.) and from the hosts declared by [ServiceEntry](#ServiceEntry).
+                                        Traffic forwarded to destinations that are
+                                        not found in either of the two, will be dropped.
+                                        \n *Note for Kubernetes users*: When short
+                                        names are used (e.g. \"reviews\" instead of
+                                        \"reviews.default.svc.cluster.local\"), Istio
+                                        will interpret the short name based on the
+                                        namespace of the rule, not the service. A
+                                        rule in the \"default\" namespace containing
+                                        a host \"reviews will be interpreted as \"reviews.default.svc.cluster.local\",
+                                        irrespective of the actual namespace associated
+                                        with the reviews service. _To avoid potential
+                                        misconfigurations, it is recommended to always
+                                        use fully qualified domain names over short
+                                        names._"
+                                      type: string
+                                    port:
+                                      description: Specifies the port on the host
+                                        that is being addressed. If a service exposes
+                                        only a single port it is not required to explicitly
+                                        select the port.
+                                      properties:
+                                        name:
+                                          description: Valid port name
+                                          type: string
+                                        number:
+                                          description: Valid port number
+                                          format: int32
+                                          type: integer
+                                      type: object
+                                    subset:
+                                      description: The name of a subset within the
+                                        service. Applicable only to services within
+                                        the mesh. The subset must be defined in a
+                                        corresponding DestinationRule.
+                                      type: string
+                                  required:
+                                  - host
+                                  type: object
+                                redirect:
+                                  description: "HTTPRedirect can be used to send a
+                                    302 redirect response to the caller, where the
+                                    Authority/Host and the URI in the response can
+                                    be swapped with the specified values. For example,
+                                    the following rule redirects requests for /v1/getProductRatings
+                                    API on the ratings service to /v1/bookRatings
+                                    provided by the bookratings service. \n     apiVersion:
+                                    networking.istio.io/v1alpha3     kind: VirtualService
+                                    \    metadata:       name: ratings-route     spec:
+                                    \      hosts:       - ratings       http:       -
+                                    match:         - uri:             exact: /v1/getProductRatings
+                                    \      redirect:         uri: /v1/bookRatings
+                                    \        authority: bookratings.default.svc.cluster.local
+                                    \      ..."
+                                  properties:
+                                    authority:
+                                      description: On a redirect, overwrite the Authority/Host
+                                        portion of the URL with this value.
+                                      type: string
+                                    uri:
+                                      description: On a redirect, overwrite the Path
+                                        portion of the URL with this value. Note that
+                                        the entire path will be replaced, irrespective
+                                        of the request URI being matched as an exact
+                                        path or prefix.
+                                      type: string
+                                  type: object
+                                removeResponseHeaders:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                retries:
+                                  description: "Describes the retry policy to use
+                                    when a HTTP request fails. For example, the following
+                                    rule sets the maximum number of retries to 3 when
+                                    calling ratings:v1 service, with a 2s timeout
+                                    per retry attempt. \n     apiVersion: networking.istio.io/v1alpha3
+                                    \    kind: VirtualService     metadata:       name:
+                                    ratings-route     spec:       hosts:       - ratings
+                                    \      http:       - route:         - destination:
+                                    \            host: ratings             subset:
+                                    v1         retries:           attempts: 3           perTryTimeout:
+                                    2s"
+                                  properties:
+                                    attempts:
+                                      description: REQUIRED. Number of retries for
+                                        a given request. The interval between retries
+                                        will be determined automatically (25ms+).
+                                        Actual number of retries attempted depends
+                                        on the httpReqTimeout.
+                                      type: integer
+                                    perTryTimeout:
+                                      description: 'Timeout per retry attempt for
+                                        a given request. format: 1h/1m/1s/1ms. MUST
+                                        BE >=1ms.'
+                                      type: string
+                                  required:
+                                  - attempts
+                                  - perTryTimeout
+                                  type: object
+                                rewrite:
+                                  description: "HTTPRewrite can be used to rewrite
+                                    specific parts of a HTTP request before forwarding
+                                    the request to the destination. Rewrite primitive
+                                    can be used only with the DestinationWeights.
+                                    The following example demonstrates how to rewrite
+                                    the URL prefix for api call (/ratings) to ratings
+                                    service before making the actual API call. \n
+                                    \    apiVersion: networking.istio.io/v1alpha3
+                                    \    kind: VirtualService     metadata:       name:
+                                    ratings-route     spec:       hosts:       - ratings
+                                    \      http:       - match:         - uri:             prefix:
+                                    /ratings         rewrite:           uri: /v1/bookRatings
+                                    \        route:         - destination:             host:
+                                    ratings             subset: v1"
+                                  properties:
+                                    authority:
+                                      description: rewrite the Authority/Host header
+                                        with this value.
+                                      type: string
+                                    uri:
+                                      description: rewrite the path (or the prefix)
+                                        portion of the URI with this value. If the
+                                        original URI was matched based on prefix,
+                                        the value provided in this field will replace
+                                        the corresponding matched prefix.
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        mode:
+                          type: string
+                        name:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        protocol:
+                          description: Protocol defines network protocols supported
+                            for things like container ports.
+                          type: string
+                      required:
+                      - mode
+                      - name
+                      type: object
+                    type: array
+                  readinessProbe:
+                    description: Probe describes a health check to be performed against
+                      a container to determine whether it is alive or ready to receive
+                      traffic.
+                    properties:
+                      exec:
+                        description: One and only one of the following should be specified.
+                          Exec specifies the action to take.
+                        properties:
+                          command:
+                            description: Command is the command line to execute inside
+                              the container, the working directory for the command  is
+                              root ('/') in the container's filesystem. The command
+                              is simply exec'd, it is not run inside a shell, so traditional
+                              shell instructions ('|', etc) won't work. To use a shell,
+                              you need to explicitly call out to that shell. Exit
+                              status of 0 is treated as live/healthy and non-zero
+                              is unhealthy.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      failureThreshold:
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      httpGet:
+                        description: HTTPGet specifies the http request to perform.
+                        properties:
+                          host:
+                            description: Host name to connect to, defaults to the
+                              pod IP. You probably want to set "Host" in httpHeaders
+                              instead.
+                            type: string
+                          httpHeaders:
+                            description: Custom headers to set in the request. HTTP
+                              allows repeated headers.
+                            items:
+                              description: HTTPHeader describes a custom header to
+                                be used in HTTP probes
+                              properties:
+                                name:
+                                  description: The header field name
+                                  type: string
+                                value:
+                                  description: The header field value
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: Path to access on the HTTP server.
+                            type: string
+                          port:
+                            anyOf:
+                            - type: string
+                            - type: integer
+                            description: Name or number of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                          scheme:
+                            description: Scheme to use for connecting to the host.
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        description: 'Number of seconds after the container has started
+                          before liveness probes are initiated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        description: How often (in seconds) to perform the probe.
+                          Default to 10 seconds. Minimum value is 1.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup. Minimum value is
+                          1.
+                        format: int32
+                        type: integer
+                      tcpSocket:
+                        description: 'TCPSocket specifies an action involving a TCP
+                          port. TCP hooks not yet supported TODO: implement a realistic
+                          TCP lifecycle hook'
+                        properties:
+                          host:
+                            description: 'Optional: Host name to connect to, defaults
+                              to the pod IP.'
+                            type: string
+                          port:
+                            anyOf:
+                            - type: string
+                            - type: integer
+                            description: Number or name of the port to access on the
+                              container. Number must be in the range 1 to 65535. Name
+                              must be an IANA_SVC_NAME.
+                        required:
+                        - port
+                        type: object
+                      timeoutSeconds:
+                        description: 'Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1. More info:
+                          https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
+                        format: int32
+                        type: integer
+                    type: object
+                  release:
+                    properties:
+                      eligible:
+                        type: boolean
+                      max:
+                        format: int32
+                        type: integer
+                      rate:
+                        properties:
+                          delay:
+                            format: int64
+                            type: integer
+                          increment:
+                            format: int32
+                            type: integer
+                        type: object
+                      schedule:
+                        type: string
+                      ttl:
+                        format: int64
+                        type: integer
+                    type: object
+                  resources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements.
+                    properties:
+                      limits:
+                        additionalProperties:
+                          type: string
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          type: string
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                        type: object
+                    type: object
+                  scale:
+                    properties:
+                      default:
+                        format: int32
+                        type: integer
+                      max:
+                        format: int32
+                        type: integer
+                      min:
+                        format: int32
+                        type: integer
+                      minReadySeconds:
+                        format: int32
+                        type: integer
+                      targetCPUUtilizationPercentage:
+                        format: int32
+                        type: integer
+                    type: object
+                  serviceAccountName:
+                    type: string
+                  serviceLevelObjectives:
+                    items:
+                      properties:
+                        description:
+                          type: string
+                        enabled:
+                          type: boolean
+                        name:
+                          type: string
+                        objectivePercent: {}
+                        serviceLevelIndicator:
+                          properties:
+                            alertAfter:
+                              type: string
+                            canaryAllowance: {}
+                            errorQuery:
+                              type: string
+                            tagKey:
+                              type: string
+                            totalQuery:
+                              type: string
+                            useForCanary:
+                              type: boolean
+                          required:
+                          - errorQuery
+                          - totalQuery
+                          - useForCanary
+                          type: object
+                      required:
+                      - enabled
+                      - name
+                      - objectivePercent
+                      - serviceLevelIndicator
+                      type: object
+                    type: array
+                required:
+                - canary
+                - externalTest
+                - fleet
+                - name
+                - scale
+                type: object
+              type: array
+            trafficPolicy:
+              description: Traffic policies to apply for a specific destination, across
+                all destination ports. See DestinationRule for examples.
+              properties:
+                connectionPool:
+                  description: Settings controlling the volume of connections to an
+                    upstream service
+                  properties:
+                    http:
+                      description: HTTP connection pool settings.
+                      properties:
+                        http1MaxPendingRequests:
+                          description: Maximum number of pending HTTP requests to
+                            a destination. Default 1024.
+                          format: int32
+                          type: integer
+                        http2MaxRequests:
+                          description: Maximum number of requests to a backend. Default
+                            1024.
+                          format: int32
+                          type: integer
+                        maxRequestsPerConnection:
+                          description: Maximum number of requests per connection to
+                            a backend. Setting this parameter to 1 disables keep alive.
+                          format: int32
+                          type: integer
+                        maxRetries:
+                          description: Maximum number of retries that can be outstanding
+                            to all hosts in a cluster at a given time. Defaults to
+                            3.
+                          format: int32
+                          type: integer
+                      type: object
+                    tcp:
+                      description: Settings common to both HTTP and TCP upstream connections.
+                      properties:
+                        connectTimeout:
+                          description: TCP connection timeout.
+                          type: string
+                        maxConnections:
+                          description: Maximum number of HTTP1 /TCP connections to
+                            a destination host.
+                          format: int32
+                          type: integer
+                      type: object
+                  type: object
+                loadBalancer:
+                  description: Settings controlling the load balancer algorithms.
+                  properties:
+                    consistentHash:
+                      description: Consistent Hash-based load balancing can be used
+                        to provide soft session affinity based on HTTP headers, cookies
+                        or other properties. This load balancing policy is applicable
+                        only for HTTP connections. The affinity to a particular destination
+                        host will be lost when one or more hosts are added/removed
+                        from the destination service.
+                      properties:
+                        httpCookie:
+                          description: Hash based on HTTP cookie.
+                          properties:
+                            name:
+                              description: REQUIRED. Name of the cookie.
+                              type: string
+                            path:
+                              description: Path to set for the cookie.
+                              type: string
+                            ttl:
+                              description: REQUIRED. Lifetime of the cookie.
+                              type: string
+                          required:
+                          - name
+                          - ttl
+                          type: object
+                        httpHeaderName:
+                          description: 'It is required to specify exactly one of the
+                            fields as hash key: HttpHeaderName, HttpCookie, or UseSourceIP.
+                            Hash based on a specific HTTP header.'
+                          type: string
+                        minimumRingSize:
+                          description: The minimum number of virtual nodes to use
+                            for the hash ring. Defaults to 1024. Larger ring sizes
+                            result in more granular load distributions. If the number
+                            of hosts in the load balancing pool is larger than the
+                            ring size, each host will be assigned a single virtual
+                            node.
+                          format: int64
+                          type: integer
+                        useSourceIp:
+                          description: Hash based on the source IP address.
+                          type: boolean
+                      type: object
+                    simple:
+                      description: 'It is required to specify exactly one of the fields:
+                        Simple or ConsistentHash'
+                      type: string
+                  type: object
+                outlierDetection:
+                  description: Settings controlling eviction of unhealthy hosts from
+                    the load balancing pool
+                  properties:
+                    baseEjectionTime:
+                      description: 'Minimum ejection duration. A host will remain
+                        ejected for a period equal to the product of minimum ejection
+                        duration and the number of times the host has been ejected.
+                        This technique allows the system to automatically increase
+                        the ejection period for unhealthy upstream servers. format:
+                        1h/1m/1s/1ms. MUST BE >=1ms. Default is 30s.'
+                      type: string
+                    consecutiveErrors:
+                      description: Number of errors before a host is ejected from
+                        the connection pool. Defaults to 5. When the upstream host
+                        is accessed over HTTP, a 5xx return code qualifies as an error.
+                        When the upstream host is accessed over an opaque TCP connection,
+                        connect timeouts and connection error/failure events qualify
+                        as an error.
+                      format: int32
+                      type: integer
+                    interval:
+                      description: 'Time interval between ejection sweep analysis.
+                        format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
+                      type: string
+                    maxEjectionPercent:
+                      description: Maximum % of hosts in the load balancing pool for
+                        the upstream service that can be ejected. Defaults to 10%.
+                      format: int32
+                      type: integer
+                  type: object
+                portLevelSettings:
+                  description: Traffic policies specific to individual ports. Note
+                    that port level settings will override the destination-level settings.
+                    Traffic settings specified at the destination-level will not be
+                    inherited when overridden by port-level settings, i.e. default
+                    values will be applied to fields omitted in port-level traffic
+                    policies.
+                  items:
+                    description: Traffic policies that apply to specific ports of
+                      the service
+                    properties:
+                      connectionPool:
+                        description: Settings controlling the volume of connections
+                          to an upstream service
+                        properties:
+                          http:
+                            description: HTTP connection pool settings.
+                            properties:
+                              http1MaxPendingRequests:
+                                description: Maximum number of pending HTTP requests
+                                  to a destination. Default 1024.
+                                format: int32
+                                type: integer
+                              http2MaxRequests:
+                                description: Maximum number of requests to a backend.
+                                  Default 1024.
+                                format: int32
+                                type: integer
+                              maxRequestsPerConnection:
+                                description: Maximum number of requests per connection
+                                  to a backend. Setting this parameter to 1 disables
+                                  keep alive.
+                                format: int32
+                                type: integer
+                              maxRetries:
+                                description: Maximum number of retries that can be
+                                  outstanding to all hosts in a cluster at a given
+                                  time. Defaults to 3.
+                                format: int32
+                                type: integer
+                            type: object
+                          tcp:
+                            description: Settings common to both HTTP and TCP upstream
+                              connections.
+                            properties:
+                              connectTimeout:
+                                description: TCP connection timeout.
+                                type: string
+                              maxConnections:
+                                description: Maximum number of HTTP1 /TCP connections
+                                  to a destination host.
+                                format: int32
+                                type: integer
+                            type: object
+                        type: object
+                      loadBalancer:
+                        description: Settings controlling the load balancer algorithms.
+                        properties:
+                          consistentHash:
+                            description: Consistent Hash-based load balancing can
+                              be used to provide soft session affinity based on HTTP
+                              headers, cookies or other properties. This load balancing
+                              policy is applicable only for HTTP connections. The
+                              affinity to a particular destination host will be lost
+                              when one or more hosts are added/removed from the destination
+                              service.
+                            properties:
+                              httpCookie:
+                                description: Hash based on HTTP cookie.
+                                properties:
+                                  name:
+                                    description: REQUIRED. Name of the cookie.
+                                    type: string
+                                  path:
+                                    description: Path to set for the cookie.
+                                    type: string
+                                  ttl:
+                                    description: REQUIRED. Lifetime of the cookie.
+                                    type: string
+                                required:
+                                - name
+                                - ttl
+                                type: object
+                              httpHeaderName:
+                                description: 'It is required to specify exactly one
+                                  of the fields as hash key: HttpHeaderName, HttpCookie,
+                                  or UseSourceIP. Hash based on a specific HTTP header.'
+                                type: string
+                              minimumRingSize:
+                                description: The minimum number of virtual nodes to
+                                  use for the hash ring. Defaults to 1024. Larger
+                                  ring sizes result in more granular load distributions.
+                                  If the number of hosts in the load balancing pool
+                                  is larger than the ring size, each host will be
+                                  assigned a single virtual node.
+                                format: int64
+                                type: integer
+                              useSourceIp:
+                                description: Hash based on the source IP address.
+                                type: boolean
+                            type: object
+                          simple:
+                            description: 'It is required to specify exactly one of
+                              the fields: Simple or ConsistentHash'
+                            type: string
+                        type: object
+                      outlierDetection:
+                        description: Settings controlling eviction of unhealthy hosts
+                          from the load balancing pool
+                        properties:
+                          baseEjectionTime:
+                            description: 'Minimum ejection duration. A host will remain
+                              ejected for a period equal to the product of minimum
+                              ejection duration and the number of times the host has
+                              been ejected. This technique allows the system to automatically
+                              increase the ejection period for unhealthy upstream
+                              servers. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default
+                              is 30s.'
+                            type: string
+                          consecutiveErrors:
+                            description: Number of errors before a host is ejected
+                              from the connection pool. Defaults to 5. When the upstream
+                              host is accessed over HTTP, a 5xx return code qualifies
+                              as an error. When the upstream host is accessed over
+                              an opaque TCP connection, connect timeouts and connection
+                              error/failure events qualify as an error.
+                            format: int32
+                            type: integer
+                          interval:
+                            description: 'Time interval between ejection sweep analysis.
+                              format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.'
+                            type: string
+                          maxEjectionPercent:
+                            description: Maximum % of hosts in the load balancing
+                              pool for the upstream service that can be ejected. Defaults
+                              to 10%.
+                            format: int32
+                            type: integer
+                        type: object
+                      port:
+                        description: "Specifies the port name or number of a port
+                          on the destination service on which this policy is being
+                          applied. \n Names must comply with DNS label syntax (rfc1035)
+                          and therefore cannot collide with numbers. If there are
+                          multiple ports on a service with the same protocol the names
+                          should be of the form <protocol-name>-<DNS label>."
+                        properties:
+                          name:
+                            description: Valid port name
+                            type: string
+                          number:
+                            description: Valid port number
+                            format: int32
+                            type: integer
+                        type: object
+                      tls:
+                        description: TLS related settings for connections to the upstream
+                          service.
+                        properties:
+                          caCertificates:
+                            description: 'OPTIONAL: The path to the file containing
+                              certificate authority certificates to use in verifying
+                              a presented server certificate. If omitted, the proxy
+                              will not verify the server''s certificate. Should be
+                              empty if mode is `ISTIO_MUTUAL`.'
+                            type: string
+                          clientCertificate:
+                            description: REQUIRED if mode is `MUTUAL`. The path to
+                              the file holding the client-side TLS certificate to
+                              use. Should be empty if mode is `ISTIO_MUTUAL`.
+                            type: string
+                          mode:
+                            description: 'REQUIRED: Indicates whether connections
+                              to this port should be secured using TLS. The value
+                              of this field determines how TLS is enforced.'
+                            type: string
+                          privateKey:
+                            description: REQUIRED if mode is `MUTUAL`. The path to
+                              the file holding the client's private key. Should be
+                              empty if mode is `ISTIO_MUTUAL`.
+                            type: string
+                          sni:
+                            description: SNI string to present to the server during
+                              TLS handshake. Should be empty if mode is `ISTIO_MUTUAL`.
+                            type: string
+                          subjectAltNames:
+                            description: A list of alternate names to verify the subject
+                              identity in the certificate. If specified, the proxy
+                              will verify that the server certificate's subject alt
+                              name matches one of the specified values. Should be
+                              empty if mode is `ISTIO_MUTUAL`.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - mode
+                        type: object
+                    required:
+                    - port
+                    type: object
+                  type: array
+                tls:
+                  description: TLS related settings for connections to the upstream
+                    service.
+                  properties:
+                    caCertificates:
+                      description: 'OPTIONAL: The path to the file containing certificate
+                        authority certificates to use in verifying a presented server
+                        certificate. If omitted, the proxy will not verify the server''s
+                        certificate. Should be empty if mode is `ISTIO_MUTUAL`.'
+                      type: string
+                    clientCertificate:
+                      description: REQUIRED if mode is `MUTUAL`. The path to the file
+                        holding the client-side TLS certificate to use. Should be
+                        empty if mode is `ISTIO_MUTUAL`.
+                      type: string
+                    mode:
+                      description: 'REQUIRED: Indicates whether connections to this
+                        port should be secured using TLS. The value of this field
+                        determines how TLS is enforced.'
+                      type: string
+                    privateKey:
+                      description: REQUIRED if mode is `MUTUAL`. The path to the file
+                        holding the client's private key. Should be empty if mode
+                        is `ISTIO_MUTUAL`.
+                      type: string
+                    sni:
+                      description: SNI string to present to the server during TLS
+                        handshake. Should be empty if mode is `ISTIO_MUTUAL`.
+                      type: string
+                    subjectAltNames:
+                      description: A list of alternate names to verify the subject
+                        identity in the certificate. If specified, the proxy will
+                        verify that the server certificate's subject alt name matches
+                        one of the specified values. Should be empty if mode is `ISTIO_MUTUAL`.
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - mode
+                  type: object
+              type: object
+          required:
+          - app
+          - failed
+          - sentry
+          - targets
+          type: object
+        status:
+          properties:
+            sentry:
+              properties:
+                release:
+                  type: boolean
+              type: object
+            targets:
+              items:
+                description: RevisionStatus defines the observed state of Revision
+                properties:
+                  name:
+                    type: string
+                  release:
+                    properties:
+                      currentPercent:
+                        format: int32
+                        type: integer
+                      peakPercent:
+                        format: int32
+                        type: integer
+                    required:
+                    - currentPercent
+                    - peakPercent
+                    type: object
+                  scale:
+                    properties:
+                      current:
+                        format: int32
+                        type: integer
+                      desired:
+                        format: int32
+                        type: integer
+                      peak:
+                        format: int32
+                        type: integer
+                    required:
+                    - current
+                    - desired
+                    - peak
+                    type: object
+                required:
+                - name
+                - release
+                - scale
+                type: object
+              type: array
+          required:
+          - sentry
+          - targets
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true

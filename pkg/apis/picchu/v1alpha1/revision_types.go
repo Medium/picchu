@@ -21,6 +21,9 @@ var (
 
 // Revision is the Schema for the revisions API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:resource:categories=all;picchu
 type Revision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

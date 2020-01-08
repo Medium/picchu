@@ -11,10 +11,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var log = logf.Log.WithName("controller_clustersecrets")
@@ -40,8 +40,7 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	_, err := builder.SimpleController().
-		WithManager(mgr).
+	_, err := builder.ControllerManagedBy(mgr).
 		ForType(&picchuv1alpha1.ClusterSecrets{}).
 		WithEventFilter(predicate.ResourceVersionChangedPredicate{}).
 		Build(r)

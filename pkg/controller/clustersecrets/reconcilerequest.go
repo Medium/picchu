@@ -80,15 +80,15 @@ func (r *reconcileRequest) secretList(ctx context.Context) (*corev1.SecretList, 
 	labelSelector := r.instance.Spec.Source.LabelSelector
 	fieldSelector := r.instance.Spec.Source.FieldSelector
 
-	opts := client.InNamespace(r.instance.Spec.Source.Namespace)
+	opts := &client.ListOptions{Namespace: r.instance.Spec.Source.Namespace}
 	if labelSelector != "" {
-		opts.SetLabelSelector(labelSelector)
+		opts.Raw.LabelSelector = labelSelector
 	}
 	if fieldSelector != "" {
-		opts.SetFieldSelector(fieldSelector)
+		opts.Raw.FieldSelector = fieldSelector
 	}
 
-	err := r.client.List(ctx, opts, secretList)
+	err := r.client.List(ctx, secretList, opts)
 	return secretList, err
 }
 
@@ -97,17 +97,17 @@ func (r *reconcileRequest) clusterList(ctx context.Context) (*picchuv1alpha1.Clu
 	labelSelector := r.instance.Spec.Target.LabelSelector
 	fieldSelector := r.instance.Spec.Target.FieldSelector
 
-	opts := client.InNamespace(r.instance.Namespace)
+	opts := &client.ListOptions{Namespace: r.instance.Namespace}
 	if labelSelector != "" {
-		opts.SetLabelSelector(labelSelector)
+		opts.Raw.LabelSelector = labelSelector
 		r.log.Info("LabelSelector set", "Selector", opts.LabelSelector)
 	}
 	if fieldSelector != "" {
-		opts.SetFieldSelector(fieldSelector)
+		opts.Raw.FieldSelector = fieldSelector
 		r.log.Info("FieldSelector set", "Selector", opts.FieldSelector)
 	}
 
-	err := r.client.List(ctx, opts, clusterList)
+	err := r.client.List(ctx, clusterList, opts)
 	r.scheme.Default(clusterList)
 	return clusterList, err
 }
