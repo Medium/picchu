@@ -153,6 +153,11 @@ func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
 	return ExternalTestUnknown
 }
 
+func (i *Incarnation) isRoutable() bool {
+	currentState := State(i.status.State.Current)
+	return currentState != canaried && currentState != pendingrelease
+}
+
 // Remotely sync the incarnation for it's current state
 func (i *Incarnation) sync(ctx context.Context) error {
 	// Revision deleted
@@ -205,8 +210,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
 	}
 
-	currentState := State(i.status.State.Current)
-	if currentState == canaried || currentState == pendingrelease {
+	if !i.isRoutable() {
 		syncPlan.Replicas = 0
 	}
 
