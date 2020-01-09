@@ -86,18 +86,15 @@ spec:
                     type: string
                   scale:
                     properties:
-                      current:
+                      Current:
                         format: int32
                         type: integer
-                      desired:
+                      Desired:
                         format: int32
                         type: integer
-                      peak:
+                      Peak:
                         format: int32
                         type: integer
-                    required:
-                    - current
-                    - desired
                     type: object
                   state:
                     properties:

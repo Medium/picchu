@@ -83,9 +83,9 @@ func (r *ReleaseManagerRevisionStateStatus) EqualTo(other *ReleaseManagerRevisio
 }
 
 type ReleaseManagerRevisionScaleStatus struct {
-	Current int32 `json:"current"`
-	Desired int32 `json:"desired"`
-	Peak    int32 `json:"peak,omitempty"`
+	Current int32 `json:"Current,omitempty"`
+	Desired int32 `json:"Desired,omitempty"`
+	Peak    int32 `json:"Peak,omitempty"`
 }
 
 func (r *ReleaseManager) RevisionStatus(tag string) *ReleaseManagerRevisionStatus {
