@@ -2,7 +2,7 @@ package releasemanager
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -25,7 +25,7 @@ type ReplicaSetList struct {
 }
 
 type HorizontalPodAutoscalerList struct {
-	Item *autoscalingv1.HorizontalPodAutoscalerList
+	Item *autoscaling.HorizontalPodAutoscalerList
 }
 
 func NewSecretList() *SecretList {
@@ -41,7 +41,7 @@ func NewReplicaSetList() *ReplicaSetList {
 }
 
 func NewHorizontalPodAutoscalerList() *HorizontalPodAutoscalerList {
-	return &HorizontalPodAutoscalerList{&autoscalingv1.HorizontalPodAutoscalerList{}}
+	return &HorizontalPodAutoscalerList{&autoscaling.HorizontalPodAutoscalerList{}}
 }
 
 func (s *SecretList) GetItems() (r []runtime.Object) {

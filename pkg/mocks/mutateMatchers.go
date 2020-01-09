@@ -4,7 +4,7 @@ import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -51,10 +51,10 @@ func InjectReplicaSets(replicaSets []appsv1.ReplicaSet) gomock.Matcher {
 }
 
 // InjectHorizontalPodAutoscalers puts hpas into a *HorizontalPodAutoscalerList
-func InjectHorizontalPodAutoscalers(hpas []autoscalingv1.HorizontalPodAutoscaler) gomock.Matcher {
+func InjectHorizontalPodAutoscalers(hpas []autoscaling.HorizontalPodAutoscaler) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
-		case *autoscalingv1.HorizontalPodAutoscalerList:
+		case *autoscaling.HorizontalPodAutoscalerList:
 			o.Items = append(o.Items, hpas...)
 			return true
 		default:
@@ -109,10 +109,10 @@ func UpdateReplicaSetSpec(replicaSet *appsv1.ReplicaSet) gomock.Matcher {
 }
 
 // UpdateHPASpec sets the spec on a *HorizontalPodAutoscaler
-func UpdateHPASpec(hpa *autoscalingv1.HorizontalPodAutoscaler) gomock.Matcher {
+func UpdateHPASpec(hpa *autoscaling.HorizontalPodAutoscaler) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
-		case *autoscalingv1.HorizontalPodAutoscaler:
+		case *autoscaling.HorizontalPodAutoscaler:
 			o.Spec = hpa.Spec
 			return true
 		default:
