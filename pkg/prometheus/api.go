@@ -131,7 +131,7 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 	}
 
 	tags := []string{}
-	for tag, _ := range tagset {
+	for tag := range tagset {
 		tags = append(tags, tag)
 	}
 	return tags, nil
