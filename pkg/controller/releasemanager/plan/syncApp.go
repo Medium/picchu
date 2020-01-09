@@ -278,7 +278,6 @@ func (p *SyncApp) gateways() []string {
 }
 
 func (p *SyncApp) service() *corev1.Service {
-	hasStatus := false
 	ports := []corev1.ServicePort{}
 	for _, port := range p.Ports {
 		ports = append(ports, corev1.ServicePort{
@@ -287,17 +286,13 @@ func (p *SyncApp) service() *corev1.Service {
 			Port:       port.Port,
 			TargetPort: intstr.FromString(port.Name),
 		})
-		if port.Name == "status" {
-			hasStatus = true
-		}
 	}
 
-	labels := map[string]string{}
+	labels := map[string]string{
+		PrometheusScrapeLabel: PrometheusScrapeLabelValue,
+	}
 	for k, v := range p.Labels {
 		labels[k] = v
-	}
-	if hasStatus {
-		labels[PrometheusScrapeLabel] = PrometheusScrapeLabelValue
 	}
 
 	return &corev1.Service{
