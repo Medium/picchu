@@ -110,10 +110,11 @@ type RevisionTarget struct {
 }
 
 type ExternalTest struct {
-	Enabled   bool `json:"enabled"`
-	Started   bool `json:"started"`
-	Completed bool `json:"completed"`
-	Succeeded bool `json:"succeeded,omitempty"`
+	Enabled     bool         `json:"enabled"`
+	Started     bool         `json:"started"`
+	Completed   bool         `json:"completed"`
+	Succeeded   bool         `json:"succeeded,omitempty"`
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 }
 
 type Canary struct {

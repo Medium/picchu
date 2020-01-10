@@ -20,6 +20,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	externalTestTimeoutTime = 10 * time.Minute
+)
+
 // Controller is incarnations interface into the outside scope
 type Controller interface {
 	expectedTotalReplicas(count int32, percent int32) int32
@@ -145,12 +149,23 @@ func (i *Incarnation) peakPercent() uint32 {
 	return i.getStatus().PeakPercent
 }
 
-func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
-	if target := i.target(); target != nil {
-		return TargetExternalTestStatus(target)
+func (i *Incarnation) getExternalTestStatus() (status ExternalTestStatus) {
+	target := i.target()
+	if target == nil {
+		return ExternalTestUnknown
 	}
 
-	return ExternalTestUnknown
+	status = TargetExternalTestStatus(target)
+	if status == ExternalTestSucceeded || status == ExternalTestDisabled {
+		return
+	}
+
+	lastUpdated := target.ExternalTest.LastUpdated
+	if lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(externalTestTimeoutTime).Before(time.Now()) {
+		return ExternalTestFailed // timeout
+	}
+
+	return
 }
 
 func (i *Incarnation) isRoutable() bool {
