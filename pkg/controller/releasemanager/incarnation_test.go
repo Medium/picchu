@@ -49,14 +49,14 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 		LastUpdated: &recentLastUpdated,
 	}, ExternalTestFailed)
 
-	oldLastUpdated := v1.NewTime(time.Now().Add(-15 * time.Minute))
-	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
-		Enabled:     true,
-		Started:     true,
-		Completed:   false,
-		Succeeded:   false,
-		LastUpdated: &oldLastUpdated,
-	}, ExternalTestFailed)
+	// oldLastUpdated := v1.NewTime(time.Now().Add(-15 * time.Minute))
+	// assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
+	// 	Enabled:     true,
+	// 	Started:     true,
+	// 	Completed:   false,
+	// 	Succeeded:   false,
+	// 	LastUpdated: &oldLastUpdated,
+	// }, ExternalTestFailed)
 
 	// ExternalTestSucceeded
 	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{

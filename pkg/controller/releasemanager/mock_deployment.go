@@ -189,6 +189,20 @@ func (mr *MockDeploymentMockRecorder) isReleaseEligible() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isReleaseEligible", reflect.TypeOf((*MockDeployment)(nil).isReleaseEligible))
 }
 
+// isTimedOut mocks base method
+func (m *MockDeployment) isTimedOut() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "isTimedOut")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// isTimedOut indicates an expected call of isTimedOut
+func (mr *MockDeploymentMockRecorder) isTimedOut() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isTimedOut", reflect.TypeOf((*MockDeployment)(nil).isTimedOut))
+}
+
 // markedAsFailed mocks base method
 func (m *MockDeployment) markedAsFailed() bool {
 	m.ctrl.T.Helper()

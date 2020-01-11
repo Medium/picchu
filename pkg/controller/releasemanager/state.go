@@ -26,6 +26,7 @@ var (
 		string(tested):         Tested,
 		string(canarying):      Canarying,
 		string(canaried):       Canaried,
+		string(timedout):       Timedout,
 	}
 )
 
@@ -47,6 +48,7 @@ const (
 	tested         State = "tested"
 	canarying      State = "canarying"
 	canaried       State = "canaried"
+	timedout       State = "timedout"
 )
 
 type State string
@@ -72,6 +74,7 @@ type Deployment interface {
 	currentPercent() uint32
 	peakPercent() uint32
 	isCanaryPending() bool
+	isTimedOut() bool
 }
 
 // ExternalTestStatus summarizes a RevisionTarget's ExternalTest spec field.
@@ -134,17 +137,17 @@ func NewDeploymentStateManager(deployment Deployment) *DeploymentStateManager {
 }
 
 func (s *DeploymentStateManager) tick(ctx context.Context) error {
-	current := s.deployment.getStatus().State.Current
-	state, err := handlers[current](ctx, s.deployment)
+	currentState := s.deployment.getStatus().State.Current
+	nextState, err := handlers[currentState](ctx, s.deployment)
 	if err != nil {
 		return err
 	}
-	s.deployment.setState(string(state))
+	s.deployment.setState(string(nextState))
 	s.deployment.getLog().Info(
 		"Advanced state",
-		"current", string(state),
-		"previous", current,
-		"stateChanged", string(state) != current,
+		"current", string(nextState),
+		"previous", currentState,
+		"stateChanged", string(nextState) != currentState,
 	)
 	return nil
 }
@@ -215,6 +218,9 @@ func PendingTest(ctx context.Context, deployment Deployment) (State, error) {
 	case ExternalTestStarted:
 		return testing, nil
 	}
+	if deployment.isTimedOut() {
+		return timedout, nil // TODO
+	}
 	return pendingtest, nil
 }
 
@@ -227,6 +233,9 @@ func Testing(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if deployment.getExternalTestStatus() == ExternalTestSucceeded {
 		return tested, nil
+	}
+	if deployment.isTimedOut() {
+		return timedout, nil // TODO
 	}
 	if deployment.getExternalTestStatus() == ExternalTestPending {
 		return pendingtest, nil
@@ -434,4 +443,10 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 		return pendingrelease, nil
 	}
 	return canaried, nil
+}
+
+// Timedout state
+// TODO(mk) figure out state flow to/from here
+func Timedout(ctx context.Context, deployment Deployment) (State, error) {
+	return timedout, deployment.retire(ctx)
 }

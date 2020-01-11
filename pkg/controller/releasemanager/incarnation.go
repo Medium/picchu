@@ -20,10 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	externalTestTimeoutTime = 10 * time.Minute
-)
-
 // Controller is incarnations interface into the outside scope
 type Controller interface {
 	expectedTotalReplicas(count int32, percent int32) int32
@@ -149,28 +145,35 @@ func (i *Incarnation) peakPercent() uint32 {
 	return i.getStatus().PeakPercent
 }
 
-func (i *Incarnation) getExternalTestStatus() (status ExternalTestStatus) {
+func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
 	target := i.target()
 	if target == nil {
 		return ExternalTestUnknown
 	}
-
-	status = TargetExternalTestStatus(target)
-	if status == ExternalTestSucceeded || status == ExternalTestDisabled {
-		return
-	}
-
-	lastUpdated := target.ExternalTest.LastUpdated
-	if lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(externalTestTimeoutTime).Before(time.Now()) {
-		return ExternalTestFailed // timeout
-	}
-
-	return
+	return TargetExternalTestStatus(target)
 }
 
 func (i *Incarnation) isRoutable() bool {
 	currentState := State(i.status.State.Current)
 	return currentState != canaried && currentState != pendingrelease
+}
+
+func (i *Incarnation) isTimedOut() bool {
+	lastUpdated := i.status.State.LastUpdated
+
+	// take external testing into account
+	if target := i.target(); target != nil {
+		status := TargetExternalTestStatus(target)
+		if status == ExternalTestStarted || status == ExternalTestPending {
+			testLastUpdated := target.ExternalTest.LastUpdated
+			if lastUpdated == nil || (testLastUpdated != nil && testLastUpdated.After(lastUpdated.Time)) {
+				lastUpdated = testLastUpdated
+			}
+		}
+	}
+
+	externalTestTimeoutTime := 10 * time.Minute // TODO(mk) get this from config
+	return lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(externalTestTimeoutTime).Before(time.Now())
 }
 
 // Remotely sync the incarnation for it's current state
@@ -356,6 +359,10 @@ func (i *Incarnation) setState(state string) {
 			t := metav1.Now()
 			i.status.CanaryStartTimestamp = &t
 		}
+	}
+	if i.status.State.Current != state {
+		timeNow := metav1.NewTime(time.Now())
+		i.status.State.LastUpdated = &timeNow
 	}
 	i.status.State.Current = state
 	i.status.State.Target = state

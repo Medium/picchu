@@ -709,6 +709,11 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		peakPercent().
 		Return(r.peakPercent).
 		AnyTimes()
+	m.
+		EXPECT().
+		isTimedOut().
+		Return(false).
+		AnyTimes()
 	return m
 }
 
