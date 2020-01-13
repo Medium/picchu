@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
+	resource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type PortMode string
@@ -77,11 +78,23 @@ type IstioHTTPPortConfig struct {
 }
 
 type ScaleInfo struct {
-	Min                            *int32 `json:"min,omitempty"`
-	Default                        int32  `json:"default,omitempty"`
-	Max                            int32  `json:"max,omitempty"`
-	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
-	MinReadySeconds                int32  `json:"minReadySeconds,omitempty"`
+	Min                            *int32  `json:"min,omitempty"`
+	Default                        int32   `json:"default,omitempty"`
+	Max                            int32   `json:"max,omitempty"`
+	TargetCPUUtilizationPercentage *int32  `json:"targetCPUUtilizationPercentage,omitempty"`
+	TargetRequestsRate             *string `json:"targetRequestsRate,omitempty"`
+	MinReadySeconds                int32   `json:"minReadySeconds,omitempty"`
+}
+
+func (s *ScaleInfo) TargetReqeustsRateQuantity() (*resource.Quantity, error) {
+	if s.TargetRequestsRate == nil {
+		return nil, nil
+	}
+	r, e := resource.ParseQuantity(*s.TargetRequestsRate)
+	if e != nil {
+		return nil, e
+	}
+	return &r, nil
 }
 
 type ReleaseInfo struct {

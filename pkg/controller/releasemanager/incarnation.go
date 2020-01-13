@@ -201,13 +201,19 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		LivenessProbe:      i.target().LivenessProbe,
 		MinReadySeconds:    i.target().Scale.MinReadySeconds,
 	}
+	requestsRate, err := i.target().Scale.TargetReqeustsRateQuantity()
+	if err != nil {
+		i.log.Error(err, "Failed to parse targetRequestsRate", "TargetRequestsRate", i.target().Scale.TargetRequestsRate)
+	}
+
 	scalePlan := &rmplan.ScaleRevision{
-		Tag:       i.tag,
-		Namespace: i.targetNamespace(),
-		Min:       i.divideReplicas(*i.target().Scale.Min),
-		Max:       i.divideReplicas(i.target().Scale.Max),
-		Labels:    i.defaultLabels(),
-		CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
+		Tag:                i.tag,
+		Namespace:          i.targetNamespace(),
+		Min:                i.divideReplicas(*i.target().Scale.Min),
+		Max:                i.divideReplicas(i.target().Scale.Max),
+		Labels:             i.defaultLabels(),
+		CPUTarget:          i.target().Scale.TargetCPUUtilizationPercentage,
+		RequestsRateTarget: requestsRate,
 	}
 
 	if !i.isRoutable() {
@@ -258,13 +264,18 @@ func (i *Incarnation) deleteSLIRules(ctx context.Context) error {
 }
 
 func (i *Incarnation) scale(ctx context.Context) error {
+	requestsRate, err := i.target().Scale.TargetReqeustsRateQuantity()
+	if err != nil {
+		i.log.Error(err, "Failed to parse targetRequestsRate", "TargetRequestsRate", i.target().Scale.TargetRequestsRate)
+	}
 	return i.controller.applyPlan(ctx, "Scale Revision", &rmplan.ScaleRevision{
-		Tag:       i.tag,
-		Namespace: i.targetNamespace(),
-		Min:       i.divideReplicas(*i.target().Scale.Min),
-		Max:       i.divideReplicas(i.target().Scale.Max),
-		Labels:    i.defaultLabels(),
-		CPUTarget: i.target().Scale.TargetCPUUtilizationPercentage,
+		Tag:                i.tag,
+		Namespace:          i.targetNamespace(),
+		Min:                i.divideReplicas(*i.target().Scale.Min),
+		Max:                i.divideReplicas(i.target().Scale.Max),
+		Labels:             i.defaultLabels(),
+		CPUTarget:          i.target().Scale.TargetCPUUtilizationPercentage,
+		RequestsRateTarget: requestsRate,
 	})
 }
 

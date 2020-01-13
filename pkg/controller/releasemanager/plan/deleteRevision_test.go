@@ -10,7 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -63,8 +63,8 @@ func TestDeleteRevision(t *testing.T) {
 		},
 	}
 
-	hpas := []autoscalingv1.HorizontalPodAutoscaler{
-		autoscalingv1.HorizontalPodAutoscaler{
+	hpas := []autoscaling.HorizontalPodAutoscaler{
+		autoscaling.HorizontalPodAutoscaler{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "testhpa",
 				Namespace: "testnamespace",
