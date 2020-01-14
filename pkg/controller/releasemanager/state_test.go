@@ -232,6 +232,19 @@ func TestTesting(t *tt.T) {
 	testcase(failing, m(true, true, ExternalTestStarted))
 	testcase(failing, m(true, true, ExternalTestSucceeded))
 	testcase(failing, m(true, true, ExternalTestFailed))
+
+	m = func(hasRevision, markedAsFailed bool, externalTestStatus ExternalTestStatus) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			externalTestStatus: externalTestStatus,
+			isTimingOut:        true,
+		})
+	}
+	testcase(timingout, m(true, false, ExternalTestPending))
+	testcase(timingout, m(true, false, ExternalTestStarted))
+	testcase(tested, m(true, false, ExternalTestSucceeded))
+	testcase(failing, m(true, false, ExternalTestFailed))
 }
 
 func TestTested(t *tt.T) {
@@ -659,7 +672,7 @@ type responses struct {
 	deleteCanaryRules      error
 	syncSLIRules           error
 	deleteSLIRules         error
-	isTimingOut             bool
+	isTimingOut            bool
 }
 
 func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment {

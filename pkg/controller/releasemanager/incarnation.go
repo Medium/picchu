@@ -159,21 +159,26 @@ func (i *Incarnation) isRoutable() bool {
 }
 
 func (i *Incarnation) isTimingOut() bool {
+	target := i.target()
+	if target == nil {
+		return false
+	}
+	if target.ExternalTest.Timeout == nil || target.ExternalTest.Timeout.Duration.Nanoseconds() == 0 {
+		return false
+	}
+
 	lastUpdated := i.status.State.LastUpdated
 
 	// take external testing into account
-	if target := i.target(); target != nil {
-		status := TargetExternalTestStatus(target)
-		if status == ExternalTestStarted || status == ExternalTestPending {
-			testLastUpdated := target.ExternalTest.LastUpdated
-			if lastUpdated == nil || (testLastUpdated != nil && testLastUpdated.After(lastUpdated.Time)) {
-				lastUpdated = testLastUpdated
-			}
+	status := TargetExternalTestStatus(target)
+	if status == ExternalTestStarted || status == ExternalTestPending {
+		testLastUpdated := target.ExternalTest.LastUpdated
+		if lastUpdated == nil || (testLastUpdated != nil && testLastUpdated.After(lastUpdated.Time)) {
+			lastUpdated = testLastUpdated
 		}
 	}
 
-	externalTestTimeoutTime := 10 * time.Minute // TODO(mk) get this from config. also, do we want different time outs for testing vs other states?
-	return lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(externalTestTimeoutTime).Before(time.Now())
+	return lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(target.ExternalTest.Timeout.Duration).Before(time.Now())
 }
 
 // Remotely sync the incarnation for it's current state
