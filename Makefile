@@ -21,6 +21,10 @@ build:
 	@mkdir -p build/_output/bin
 	go build -o build/_output/bin/picchu ./cmd/manager
 
+docker:
+	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
+	GOROOT=$(GOROOT) operator-sdk build $(IMAGE)
+
 deps:
 	go mod tidy
 	go mod vendor

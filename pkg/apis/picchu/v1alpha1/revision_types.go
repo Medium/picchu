@@ -76,7 +76,7 @@ type RevisionSpec struct {
 	Failed             bool                         `json:"failed"`
 	IgnoreSLOs         bool                         `json:"ignoreSLOs,omitempty"`
 	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo                   `json:"sentry"`
+	Sentry             SentryInfo                   `json:"sentry,omitempty"`
 	TagRoutingHeader   string                       `json:"tagRoutingHeader,omitempty"`
 }
 
@@ -104,8 +104,8 @@ type RevisionTarget struct {
 	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 
-	ExternalTest ExternalTest `json:"externalTest"`
-	Canary       Canary       `json:"canary"`
+	ExternalTest ExternalTest `json:"externalTest,omitempty"`
+	Canary       Canary       `json:"canary,omitempty"`
 	Ports        []PortInfo   `json:"ports,omitempty"`
 }
 
