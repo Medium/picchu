@@ -1038,6 +1038,8 @@ spec:
                       targetCPUUtilizationPercentage:
                         format: int32
                         type: integer
+                      targetRequestsRate:
+                        type: string
                     type: object
                   serviceAccountName:
                     type: string
@@ -1077,8 +1079,6 @@ spec:
                       type: object
                     type: array
                 required:
-                - canary
-                - externalTest
                 - fleet
                 - name
                 - scale
@@ -1456,7 +1456,6 @@ spec:
           required:
           - app
           - failed
-          - sentry
           - targets
           type: object
         status:
