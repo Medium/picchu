@@ -659,6 +659,7 @@ type responses struct {
 	deleteCanaryRules      error
 	syncSLIRules           error
 	deleteSLIRules         error
+	isTimingOut             bool
 }
 
 func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment {
@@ -711,8 +712,8 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		AnyTimes()
 	m.
 		EXPECT().
-		isTimedOut().
-		Return(false).
+		isTimingOut().
+		Return(r.isTimingOut).
 		AnyTimes()
 	return m
 }

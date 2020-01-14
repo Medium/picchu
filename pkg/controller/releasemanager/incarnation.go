@@ -158,7 +158,7 @@ func (i *Incarnation) isRoutable() bool {
 	return currentState != canaried && currentState != pendingrelease
 }
 
-func (i *Incarnation) isTimedOut() bool {
+func (i *Incarnation) isTimingOut() bool {
 	lastUpdated := i.status.State.LastUpdated
 
 	// take external testing into account
@@ -172,7 +172,7 @@ func (i *Incarnation) isTimedOut() bool {
 		}
 	}
 
-	externalTestTimeoutTime := 10 * time.Minute // TODO(mk) get this from config
+	externalTestTimeoutTime := 10 * time.Minute // TODO(mk) get this from config. also, do we want different time outs for testing vs other states?
 	return lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(externalTestTimeoutTime).Before(time.Now())
 }
 
