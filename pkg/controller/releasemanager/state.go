@@ -26,6 +26,8 @@ var (
 		string(tested):         Tested,
 		string(canarying):      Canarying,
 		string(canaried):       Canaried,
+		string(timingout):      Timingout,
+		string(timedout):       Timedout,
 	}
 )
 
@@ -47,6 +49,8 @@ const (
 	tested         State = "tested"
 	canarying      State = "canarying"
 	canaried       State = "canaried"
+	timingout      State = "timingout"
+	timedout       State = "timedout"
 )
 
 type State string
@@ -72,6 +76,7 @@ type Deployment interface {
 	currentPercent() uint32
 	peakPercent() uint32
 	isCanaryPending() bool
+	isTimingOut() bool
 }
 
 // ExternalTestStatus summarizes a RevisionTarget's ExternalTest spec field.
@@ -134,17 +139,17 @@ func NewDeploymentStateManager(deployment Deployment) *DeploymentStateManager {
 }
 
 func (s *DeploymentStateManager) tick(ctx context.Context) error {
-	current := s.deployment.getStatus().State.Current
-	state, err := handlers[current](ctx, s.deployment)
+	currentState := s.deployment.getStatus().State.Current
+	nextState, err := handlers[currentState](ctx, s.deployment)
 	if err != nil {
 		return err
 	}
-	s.deployment.setState(string(state))
+	s.deployment.setState(string(nextState))
 	s.deployment.getLog().Info(
 		"Advanced state",
-		"current", string(state),
-		"previous", current,
-		"stateChanged", string(state) != current,
+		"current", string(nextState),
+		"previous", currentState,
+		"stateChanged", string(nextState) != currentState,
 	)
 	return nil
 }
@@ -209,10 +214,14 @@ func PendingTest(ctx context.Context, deployment Deployment) (State, error) {
 	if HasFailed(deployment) {
 		return failing, nil
 	}
-	switch deployment.getExternalTestStatus() {
-	case ExternalTestSucceeded:
+	externalTestStatus := deployment.getExternalTestStatus()
+	if externalTestStatus == ExternalTestSucceeded {
 		return tested, nil
-	case ExternalTestStarted:
+	}
+	if deployment.isTimingOut() {
+		return timingout, nil
+	}
+	if externalTestStatus == ExternalTestStarted {
 		return testing, nil
 	}
 	return pendingtest, nil
@@ -225,13 +234,17 @@ func Testing(ctx context.Context, deployment Deployment) (State, error) {
 	if HasFailed(deployment) {
 		return failing, nil
 	}
-	if deployment.getExternalTestStatus() == ExternalTestSucceeded {
+	externalTestStatus := deployment.getExternalTestStatus()
+	if externalTestStatus == ExternalTestSucceeded {
 		return tested, nil
 	}
-	if deployment.getExternalTestStatus() == ExternalTestPending {
+	if deployment.isTimingOut() {
+		return timingout, nil
+	}
+	if externalTestStatus == ExternalTestPending {
 		return pendingtest, nil
 	}
-	if !deployment.getExternalTestStatus().Enabled() {
+	if !externalTestStatus.Enabled() {
 		return deploying, nil
 	}
 	return testing, nil
@@ -244,10 +257,11 @@ func Tested(ctx context.Context, deployment Deployment) (State, error) {
 	if HasFailed(deployment) {
 		return failing, nil
 	}
-	if deployment.getExternalTestStatus() == ExternalTestPending {
+	externalTestStatus := deployment.getExternalTestStatus()
+	if externalTestStatus == ExternalTestPending {
 		return pendingtest, nil
 	}
-	if !deployment.getExternalTestStatus().Finished() {
+	if !externalTestStatus.Finished() {
 		return testing, nil
 	}
 	if deployment.isCanaryPending() {
@@ -434,4 +448,32 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 		return pendingrelease, nil
 	}
 	return canaried, nil
+}
+
+// Timingout state is responsible for cleaning up a timing out release
+func Timingout(ctx context.Context, deployment Deployment) (State, error) {
+	if deployment.currentPercent() > 0 {
+		return timingout, nil
+	}
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return timingout, err
+	}
+	if err := deployment.deleteSLIRules(ctx); err != nil {
+		return timingout, err
+	}
+	if deployment.currentPercent() <= 0 {
+		return timedout, deployment.retire(ctx)
+	}
+	return timingout, nil
+}
+
+// Timedout state
+func Timedout(ctx context.Context, deployment Deployment) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	return timedout, deployment.retire(ctx)
 }

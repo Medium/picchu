@@ -146,16 +146,39 @@ func (i *Incarnation) peakPercent() uint32 {
 }
 
 func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
-	if target := i.target(); target != nil {
-		return TargetExternalTestStatus(target)
+	target := i.target()
+	if target == nil {
+		return ExternalTestUnknown
 	}
-
-	return ExternalTestUnknown
+	return TargetExternalTestStatus(target)
 }
 
 func (i *Incarnation) isRoutable() bool {
 	currentState := State(i.status.State.Current)
 	return currentState != canaried && currentState != pendingrelease
+}
+
+func (i *Incarnation) isTimingOut() bool {
+	target := i.target()
+	if target == nil {
+		return false
+	}
+	if target.ExternalTest.Timeout == nil || target.ExternalTest.Timeout.Duration.Nanoseconds() == 0 {
+		return false
+	}
+
+	lastUpdated := i.status.State.LastUpdated
+
+	// take external testing into account
+	status := TargetExternalTestStatus(target)
+	if status == ExternalTestStarted || status == ExternalTestPending {
+		testLastUpdated := target.ExternalTest.LastUpdated
+		if lastUpdated == nil || (testLastUpdated != nil && testLastUpdated.After(lastUpdated.Time)) {
+			lastUpdated = testLastUpdated
+		}
+	}
+
+	return lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(target.ExternalTest.Timeout.Duration).Before(time.Now())
 }
 
 // Remotely sync the incarnation for it's current state
@@ -352,6 +375,10 @@ func (i *Incarnation) setState(state string) {
 			t := metav1.Now()
 			i.status.CanaryStartTimestamp = &t
 		}
+	}
+	if i.status.State.Current != state {
+		timeNow := metav1.NewTime(time.Now())
+		i.status.State.LastUpdated = &timeNow
 	}
 	i.status.State.Current = state
 	i.status.State.Target = state
