@@ -78,6 +78,7 @@ type RevisionSpec struct {
 	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
 	Sentry             SentryInfo                   `json:"sentry,omitempty"`
 	TagRoutingHeader   string                       `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring   bool                         `json:"disableMirroring,omitempty"`
 }
 
 type RevisionApp struct {
