@@ -163,22 +163,32 @@ func (i *Incarnation) isTimingOut() bool {
 	if target == nil {
 		return false
 	}
-	if target.ExternalTest.Timeout == nil || target.ExternalTest.Timeout.Duration.Nanoseconds() == 0 {
+
+	var lastUpdated time.Time
+	var timeout time.Duration
+	status := TargetExternalTestStatus(target)
+	if status == ExternalTestStarted || status == ExternalTestPending {
+		if target.ExternalTest.LastUpdated != nil {
+			lastUpdated = target.ExternalTest.LastUpdated.Time
+		}
+		if target.ExternalTest.Timeout != nil {
+			timeout = target.ExternalTest.Timeout.Duration
+		}
+	} else {
+		if i.status.State.LastUpdated != nil {
+			lastUpdated = i.status.State.LastUpdated.Time
+		}
+		// TODO(mk) possiblity of generic timeout
+	}
+	if lastUpdated.IsZero() || timeout.Nanoseconds() == 0 {
 		return false
 	}
 
-	lastUpdated := i.status.State.LastUpdated
-
-	// take external testing into account
-	status := TargetExternalTestStatus(target)
-	if status == ExternalTestStarted || status == ExternalTestPending {
-		testLastUpdated := target.ExternalTest.LastUpdated
-		if lastUpdated == nil || (testLastUpdated != nil && testLastUpdated.After(lastUpdated.Time)) {
-			lastUpdated = testLastUpdated
-		}
-	}
-
-	return lastUpdated != nil && !lastUpdated.IsZero() && lastUpdated.Add(target.ExternalTest.Timeout.Duration).Before(time.Now())
+	i.log.Info("checking timeout",
+		"lastUpdated", lastUpdated.String(),
+		"timeout", timeout.String(),
+	)
+	return lastUpdated.Add(timeout).Before(time.Now())
 }
 
 // Remotely sync the incarnation for it's current state
