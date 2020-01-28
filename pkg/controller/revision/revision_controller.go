@@ -29,8 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TODO(bob): Add these to Revision type
-const AcceptancePercentage uint32 = 50
+const (
+	// TODO(bob): Add these to Revision type
+	AcceptancePercentage uint32 = 50
+)
 
 var (
 	clog              = logf.Log.WithName("controller_revision")
@@ -180,6 +182,10 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	for i := range mirrors.Items {
 		mirror := mirrors.Items[i]
+		if instance.Spec.DisableMirroring {
+			log.Info("Mirroring disabled")
+			continue
+		}
 		err = r.mirrorRevision(ctx, log, &mirror, instance)
 		if err != nil {
 			log.Error(err, "Failed to mirror revision", "Mirror", mirror.Spec.ClusterName)

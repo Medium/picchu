@@ -76,7 +76,7 @@ type ReleaseManagerRevisionMetricsStatus struct {
 type ReleaseManagerRevisionStateStatus struct {
 	Current     string       `json:"current"`
 	Target      string       `json:"target"`
-	LastUpdated *metav1.Time `json:"lastUpdated"`
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 }
 
 func (r *ReleaseManagerRevisionStateStatus) EqualTo(other *ReleaseManagerRevisionStateStatus) bool {
