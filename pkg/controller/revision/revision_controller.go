@@ -29,8 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TODO(bob): Add these to Revision type
-const AcceptancePercentage uint32 = 50
+const (
+	// TODO(bob): Add these to Revision type
+	AcceptancePercentage uint32 = 50
+)
 
 var (
 	clog              = logf.Log.WithName("controller_revision")
