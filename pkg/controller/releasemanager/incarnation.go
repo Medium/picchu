@@ -529,7 +529,7 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
 	release := i.target().Release
-	perc := int32(100)
+	perc := int32(1)
 	if release.Eligible || i.status.CurrentPercent > 0 {
 		// since we sync before incrementing, we'll just err on the side of
 		// caution and use the next increment percent.
