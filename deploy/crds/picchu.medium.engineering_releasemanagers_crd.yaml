@@ -100,10 +100,14 @@ spec:
                     properties:
                       current:
                         type: string
+                      lastUpdated:
+                        format: date-time
+                        type: string
                       target:
                         type: string
                     required:
                     - current
+                    - lastUpdated
                     - target
                     type: object
                   tag:

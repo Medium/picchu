@@ -52,6 +52,8 @@ spec:
               type: object
             canaryWithSLIRules:
               type: boolean
+            disableMirroring:
+              type: boolean
             failed:
               type: boolean
             ignoreSLOs:
@@ -444,10 +446,15 @@ spec:
                         type: boolean
                       enabled:
                         type: boolean
+                      lastUpdated:
+                        format: date-time
+                        type: string
                       started:
                         type: boolean
                       succeeded:
                         type: boolean
+                      timeout:
+                        type: string
                     required:
                     - completed
                     - enabled
