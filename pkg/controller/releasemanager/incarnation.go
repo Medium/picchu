@@ -528,13 +528,20 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
+	status := i.getStatus()
+	if status.State.Current == "deploying" || status.State.Current == "deployed" || status.State.Current == "pendingrelease" {
+		return 1
+	}
+
+	var perc int32 = 100
+
 	release := i.target().Release
-	perc := int32(100)
 	if release.Eligible || i.status.CurrentPercent > 0 {
 		// since we sync before incrementing, we'll just err on the side of
 		// caution and use the next increment percent.
 		perc = int32(i.status.CurrentPercent + release.Rate.Increment)
 	}
+
 	return i.controller.divideReplicas(count, perc)
 }
 
@@ -652,7 +659,7 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 	}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
-		case "releasing", "released":
+		case "pendingrelease", "releasing", "released":
 			r = append(r, i)
 		}
 	}
