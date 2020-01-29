@@ -659,7 +659,7 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 	}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
-		case "releasing", "released":
+		case "pendingrelease", "releasing", "released":
 			r = append(r, i)
 		}
 	}

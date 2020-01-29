@@ -373,7 +373,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 
 		percRemaining -= currentPercent
 
-		if currentPercent <= 0 && i > firstNonCanary {
+		if currentPercent <= 0 && i > firstNonCanary && currentState != pendingrelease {
 			r.log.Info(
 				"Setting incarnation release-eligibility to false; will trigger retirement",
 				"Tag", incarnation.tag,
@@ -396,7 +396,17 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		if i == count-1 && percRemaining > 0 && firstNonCanary != -1 {
 			revisionsMap[incarnations[firstNonCanary].tag].Weight += percRemaining
 			incarnations[firstNonCanary].updateCurrentPercent(incarnations[firstNonCanary].currentPercent() + percRemaining)
+			percRemaining = 0
 		}
+	}
+
+	if percRemaining > 0 {
+		incarnation := incarnations[0]
+		perc := incarnation.currentPercent() + percRemaining
+		// make sure percRemaining is expended
+		revisionsMap[incarnation.tag].Weight = perc
+		incarnation.updateCurrentPercent(perc)
+		r.log.Info("Assigning leftover percentage", "incarnation", incarnation.tag)
 	}
 
 	revisions := make([]rmplan.Revision, 0, len(revisionsMap))
