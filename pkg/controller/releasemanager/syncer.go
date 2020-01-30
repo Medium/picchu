@@ -349,10 +349,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		if firstNonCanary != -1 && i > firstNonCanary {
 			max = uint32(utils.Min(int32(status.CurrentPercent), int32(percRemaining)))
 		}
-		var currentPercent uint32 = 0
-		if currentState != pendingrelease {
-			currentPercent = incarnation.currentPercentTarget(max)
-		}
+		currentPercent := incarnation.currentPercentTarget(max)
 
 		if currentPercent > percRemaining {
 			r.log.Info(
@@ -376,7 +373,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 
 		percRemaining -= currentPercent
 
-		if currentPercent <= 0 && i > firstNonCanary && currentState != pendingrelease {
+		if currentPercent <= 0 && i > firstNonCanary {
 			r.log.Info(
 				"Setting incarnation release-eligibility to false; will trigger retirement",
 				"Tag", incarnation.tag,
