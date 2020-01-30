@@ -349,7 +349,10 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		if firstNonCanary != -1 && i > firstNonCanary {
 			max = uint32(utils.Min(int32(status.CurrentPercent), int32(percRemaining)))
 		}
-		currentPercent := incarnation.currentPercentTarget(max)
+		var currentPercent uint32 = 0
+		if currentState != pendingrelease {
+			currentPercent = incarnation.currentPercentTarget(max)
+		}
 
 		if currentPercent > percRemaining {
 			r.log.Info(
