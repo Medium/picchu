@@ -400,7 +400,7 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 		}
 	}
 
-	if percRemaining > 0 {
+	if percRemaining > 0 && len(incarnations) > 0 {
 		incarnation := incarnations[0]
 		perc := incarnation.currentPercent() + percRemaining
 		// make sure percRemaining is expended
