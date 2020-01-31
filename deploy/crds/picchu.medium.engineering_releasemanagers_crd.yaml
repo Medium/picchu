@@ -107,6 +107,7 @@ spec:
                         type: string
                     required:
                     - current
+                    - lastUpdated
                     - target
                     type: object
                   tag:
