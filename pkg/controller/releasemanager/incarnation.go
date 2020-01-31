@@ -168,9 +168,11 @@ func (i *Incarnation) isTimingOut() bool {
 	var timeout time.Duration
 	status := TargetExternalTestStatus(target)
 	if status == ExternalTestStarted || status == ExternalTestPending {
-		if target.ExternalTest.LastUpdated != nil {
-			lastUpdated = target.ExternalTest.LastUpdated.Time
+		if target.ExternalTest.LastUpdated == nil {
+			now := metav1.Now()
+			target.ExternalTest.LastUpdated = &now
 		}
+		lastUpdated = target.ExternalTest.LastUpdated.Time
 		if target.ExternalTest.Timeout != nil {
 			timeout = target.ExternalTest.Timeout.Duration
 		}

@@ -224,6 +224,9 @@ func PendingTest(ctx context.Context, deployment Deployment) (State, error) {
 	if externalTestStatus == ExternalTestStarted {
 		return testing, nil
 	}
+	if err := deployment.sync(ctx); err != nil {
+		return pendingtest, err
+	}
 	return pendingtest, nil
 }
 
@@ -246,6 +249,9 @@ func Testing(ctx context.Context, deployment Deployment) (State, error) {
 	}
 	if !externalTestStatus.Enabled() {
 		return deploying, nil
+	}
+	if err := deployment.sync(ctx); err != nil {
+		return testing, err
 	}
 	return testing, nil
 }

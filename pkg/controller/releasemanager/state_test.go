@@ -192,7 +192,7 @@ func TestPendingTest(t *tt.T) {
 	testcase(deleting, m(false, false, ExternalTestStarted))
 	testcase(deleting, m(false, true, ExternalTestPending))
 	testcase(deleting, m(false, true, ExternalTestStarted))
-	testcase(pendingtest, m(true, false, ExternalTestPending))
+	testcase(pendingtest, expectSync(m(true, false, ExternalTestPending)))
 	testcase(testing, m(true, false, ExternalTestStarted))
 	testcase(failing, m(true, false, ExternalTestFailed))
 	testcase(failing, m(true, true, ExternalTestPending))
@@ -224,7 +224,7 @@ func TestTesting(t *tt.T) {
 	testcase(deleting, m(false, true, ExternalTestSucceeded))
 
 	testcase(pendingtest, m(true, false, ExternalTestPending))
-	testcase(testing, m(true, false, ExternalTestStarted))
+	testcase(testing, expectSync(m(true, false, ExternalTestStarted)))
 	testcase(tested, m(true, false, ExternalTestSucceeded))
 	testcase(failing, m(true, false, ExternalTestFailed))
 
