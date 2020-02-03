@@ -13,6 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	DefaultCanaryFailAfter = "1m"
+)
+
 type SyncCanaryRules struct {
 	App                    string
 	Namespace              string
@@ -44,7 +48,7 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 	rule := p.prometheusRule()
 
 	for _, slo := range p.ServiceLevelObjectives {
-		if slo.ServiceLevelIndicator.UseForCanary {
+		if slo.ServiceLevelIndicator.Canary.Enabled {
 			canaryRules := p.canaryRules(&slo)
 			for _, rg := range canaryRules {
 				rule.Spec.Groups = append(rule.Spec.Groups, *rg)
@@ -92,12 +96,17 @@ func (p *SyncCanaryRules) canaryRules(slo *picchuv1alpha1.ServiceLevelObjective)
 		annotations[k] = v
 	}
 
+	canaryFailAfter := DefaultCanaryFailAfter
+	if slo.ServiceLevelIndicator.Canary.FailAfter != "" {
+		canaryFailAfter = slo.ServiceLevelIndicator.Canary.FailAfter
+	}
+
 	ruleGroup := &monitoringv1.RuleGroup{
 		Name: canaryAlertName(name),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       canaryAlertName(name),
-				For:         slo.ServiceLevelIndicator.AlertAfter,
+				For:         canaryFailAfter,
 				Expr:        intstr.FromString(canaryQuery(slo, p.App, p.Tag)),
 				Labels:      labels,
 				Annotations: annotations,
@@ -125,5 +134,5 @@ func canaryQuery(slo *picchuv1alpha1.ServiceLevelObjective, app string, tag stri
 	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} + %v < ignoring(%s) sum(%s) / sum(%s)",
 		errorQueryName, slo.ServiceLevelIndicator.TagKey, tag,
 		totalQueryName, slo.ServiceLevelIndicator.TagKey, tag,
-		slo.ServiceLevelIndicator.CanaryAllowance, slo.ServiceLevelIndicator.TagKey, errorQueryName, totalQueryName)
+		slo.ServiceLevelIndicator.Canary.AllowancePercent, slo.ServiceLevelIndicator.TagKey, errorQueryName, totalQueryName)
 }

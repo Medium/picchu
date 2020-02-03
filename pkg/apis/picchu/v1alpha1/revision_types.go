@@ -126,12 +126,17 @@ type Canary struct {
 }
 
 type ServiceLevelIndicator struct {
-	UseForCanary    bool    `json:"useForCanary"`
-	CanaryAllowance float64 `json:"canaryAllowance,omitempty"`
-	TagKey          string  `json:"tagKey,omitempty"`
-	AlertAfter      string  `json:"alertAfter,omitempty"`
-	TotalQuery      string  `json:"totalQuery"`
-	ErrorQuery      string  `json:"errorQuery"`
+	Canary     SLICanaryConfig `json:"canary,omitempty"`
+	TagKey     string          `json:"tagKey,omitempty"`
+	AlertAfter string          `json:"alertAfter,omitempty"`
+	TotalQuery string          `json:"totalQuery"`
+	ErrorQuery string          `json:"errorQuery"`
+}
+
+type SLICanaryConfig struct {
+	Enabled          bool    `json:"enabled,omitempty"`
+	AllowancePercent float64 `json:"allowancePercent,omitempty"`
+	FailAfter        string  `json:"failAfter,omitempty"`
 }
 
 type ServiceLevelObjective struct {

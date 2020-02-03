@@ -28,12 +28,15 @@ var (
 			Description:      "test desc",
 			ObjectivePercent: 99.999,
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
-				UseForCanary:    true,
-				CanaryAllowance: 0.5,
-				TagKey:          "destination_workload",
-				AlertAfter:      "1m",
-				ErrorQuery:      "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
-				TotalQuery:      "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				Canary: picchuv1alpha1.SLICanaryConfig{
+					Enabled:          true,
+					AllowancePercent: 0.5,
+					FailAfter:        "1m",
+				},
+				TagKey:     "destination_workload",
+				AlertAfter: "1m",
+				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
 			},
 			Labels: map[string]string{
 				"severity": "test",

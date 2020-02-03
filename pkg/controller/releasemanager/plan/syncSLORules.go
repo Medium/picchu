@@ -20,6 +20,10 @@ var (
 	rgNameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
+const (
+	DefaultAlertAfter = "5m"
+)
+
 type SyncSLORules struct {
 	App                    string
 	Namespace              string
@@ -120,12 +124,17 @@ func (p *SyncSLORules) alertRules(slo *picchuv1alpha1.ServiceLevelObjective) []*
 		annotations[k] = v
 	}
 
+	alertAfter := DefaultAlertAfter
+	if slo.ServiceLevelIndicator.AlertAfter != "" {
+		alertAfter = slo.ServiceLevelIndicator.AlertAfter
+	}
+
 	ruleGroup := &monitoringv1.RuleGroup{
 		Name: alertRuleName(name),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       alertQueryName(name),
-				For:         slo.ServiceLevelIndicator.AlertAfter,
+				For:         alertAfter,
 				Expr:        intstr.FromString(alertQuery(slo, p.App, name)),
 				Labels:      labels,
 				Annotations: annotations,
