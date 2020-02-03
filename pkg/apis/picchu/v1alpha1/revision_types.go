@@ -147,7 +147,7 @@ func (s *ServiceLevelObjective) Validate() error {
 		}
 
 		if s.ServiceLevelIndicator.TagKey == "" {
-			return fmt.Errorf("tagKey must be defined, it should correspond to the Prometheus label name which contains the tag identifier for each release")
+			s.ServiceLevelIndicator.TagKey = "version"
 		}
 
 		if s.ServiceLevelIndicator.TotalQuery == "" {

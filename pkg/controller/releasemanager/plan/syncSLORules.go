@@ -110,9 +110,7 @@ func (p *SyncSLORules) alertRules(slo *picchuv1alpha1.ServiceLevelObjective) []*
 	name := sanitizeName(slo.Name)
 
 	labels := map[string]string{
-		"app":    p.App,
-		"canary": "false",
-		"slo":    "true",
+		"app": p.App,
 	}
 
 	for k, v := range slo.Labels {
@@ -133,9 +131,16 @@ func (p *SyncSLORules) alertRules(slo *picchuv1alpha1.ServiceLevelObjective) []*
 		Name: alertRuleName(name),
 		Rules: []monitoringv1.Rule{
 			{
-				Alert:       alertQueryName(name),
+				Alert:       "SLOErrorRateTooFast1h",
 				For:         alertAfter,
-				Expr:        intstr.FromString(alertQuery(slo, p.App, name)),
+				Expr:        intstr.FromString(burnRateAlertQuery1h(p.App, name)),
+				Labels:      labels,
+				Annotations: annotations,
+			},
+			{
+				Alert:       "SLOErrorRateTooFast6h",
+				For:         alertAfter,
+				Expr:        intstr.FromString(burnRateAlertQuery6h(p.App, name)),
 				Labels:      labels,
 				Annotations: annotations,
 			},
@@ -150,10 +155,6 @@ func prometheusRuleName(app string) string {
 	return fmt.Sprintf("%s-slo", strings.ToLower(app))
 }
 
-func alertQueryName(name string) string {
-	return fmt.Sprintf("%s_slo", name)
-}
-
 func recordingRuleName(name string) string {
 	return fmt.Sprintf("%s_record", name)
 }
@@ -162,16 +163,30 @@ func alertRuleName(name string) string {
 	return fmt.Sprintf("%s_alert", name)
 }
 
+func burnRateAlertQuery1h(app, name string) string {
+	sloName := sanitizeName(name)
+	labels := fmt.Sprintf("service_level=\"%s\", slo=\"%s\"", app, sloName)
+
+	return fmt.Sprintf("(increase(service_level_sli_result_error_ratio_total{%[1]s}[1h]) "+
+		"/ increase(service_level_sli_result_count_total{%[1]s}[1h])) "+
+		"> (1 - service_level_slo_objective_ratio{%[1]s}) * 14.6", labels)
+}
+
+func burnRateAlertQuery6h(app, name string) string {
+	sloName := sanitizeName(name)
+	labels := fmt.Sprintf("service_level=\"%s\", slo=\"%s\"", app, sloName)
+
+	return fmt.Sprintf("(increase(service_level_sli_result_error_ratio_total{%[1]s}[6h]) "+
+		"/ increase(service_level_sli_result_count_total{%[1]s}[6h])) "+
+		"> (1 - service_level_slo_objective_ratio{%[1]s}) * 6", labels)
+}
+
 func totalQueryName(slo *picchuv1alpha1.ServiceLevelObjective, app, name string) string {
 	return fmt.Sprintf("%s:%s:%s", sanitizeName(app), sanitizeName(name), "total")
 }
 
 func errorQueryName(slo *picchuv1alpha1.ServiceLevelObjective, app, name string) string {
 	return fmt.Sprintf("%s:%s:%s", sanitizeName(app), sanitizeName(name), "errors")
-}
-
-func alertQuery(slo *picchuv1alpha1.ServiceLevelObjective, app, name string) string {
-	return fmt.Sprintf("(1 - (%s / %s)) < %s", errorQueryName(slo, app, name), totalQueryName(slo, app, name), formatObjectivePercent(slo))
 }
 
 //ToLower and non-numeric characters replaced with underscores

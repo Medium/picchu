@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"fmt"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
@@ -51,7 +50,7 @@ func (p *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, erro
 
 			errorQuery := errorQueryName(&s, p.App, name)
 			totalQuery := totalQueryName(&s, p.App, name)
-			slo := serviceLevelObjective(&s, p.App, name, errorQuery, totalQuery, labels)
+			slo := serviceLevelObjective(&s, name, errorQuery, totalQuery, labels)
 			slos = append(slos, *slo)
 		}
 	}
@@ -73,17 +72,13 @@ func (p *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, erro
 	return sll, nil
 }
 
-func sanitizeSLOName(app, name string) string {
-	return fmt.Sprintf("%s_%s", sanitizeName(app), sanitizeName(name))
-}
-
-func serviceLevelObjective(slo *picchuv1alpha1.ServiceLevelObjective, app, name, errorQuery, totalQuery string, labels map[string]string) *slov1alpha1.SLO {
+func serviceLevelObjective(slo *picchuv1alpha1.ServiceLevelObjective, name, errorQuery, totalQuery string, labels map[string]string) *slov1alpha1.SLO {
 	sliSource := &slov1alpha1.PrometheusSLISource{
 		ErrorQuery: errorQuery,
 		TotalQuery: totalQuery,
 	}
 	s := &slov1alpha1.SLO{
-		Name:                         sanitizeSLOName(app, name),
+		Name:                         sanitizeName(name),
 		AvailabilityObjectivePercent: slo.ObjectivePercent,
 		Description:                  slo.Description,
 		Disable:                      false,

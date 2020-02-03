@@ -77,13 +77,27 @@ var (
 						Name: "test_app_availability_alert",
 						Rules: []monitoringv1.Rule{
 							{
-								Alert: "test_app_availability_slo",
-								Expr:  intstr.FromString("(1 - (test_app:test_app_availability:errors / test_app:test_app_availability:total)) < 0.99999"),
-								For:   "1m",
+								Alert: "SLOErrorRateTooFast1h",
+								Expr: intstr.FromString("(increase(service_level_sli_result_error_ratio_total{service_level=\"test-app\", slo=\"test_app_availability\"}[1h]) " +
+									"/ increase(service_level_sli_result_count_total{service_level=\"test-app\", slo=\"test_app_availability\"}[1h])) " +
+									"> (1 - service_level_slo_objective_ratio{service_level=\"test-app\", slo=\"test_app_availability\"}) * 14.6"),
+								For: "1m",
 								Labels: map[string]string{
 									"app":      "test-app",
-									"canary":   "false",
-									"slo":      "true",
+									"severity": "test",
+								},
+								Annotations: map[string]string{
+									"test": "true",
+								},
+							},
+							{
+								Alert: "SLOErrorRateTooFast6h",
+								Expr: intstr.FromString("(increase(service_level_sli_result_error_ratio_total{service_level=\"test-app\", slo=\"test_app_availability\"}[6h]) " +
+									"/ increase(service_level_sli_result_count_total{service_level=\"test-app\", slo=\"test_app_availability\"}[6h])) " +
+									"> (1 - service_level_slo_objective_ratio{service_level=\"test-app\", slo=\"test_app_availability\"}) * 6"),
+								For: "1m",
+								Labels: map[string]string{
+									"app":      "test-app",
 									"severity": "test",
 								},
 								Annotations: map[string]string{

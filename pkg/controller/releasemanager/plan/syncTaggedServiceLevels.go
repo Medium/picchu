@@ -53,7 +53,7 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 			labels["tag"] = p.Tag
 			errorQuery := taggedServiceLevelQuery(&s, errorQueryName(&s, p.App, name), p.App, name, p.Tag)
 			totalQuery := taggedServiceLevelQuery(&s, totalQueryName(&s, p.App, name), p.App, name, p.Tag)
-			slo := serviceLevelObjective(&s, p.App, name, errorQuery, totalQuery, labels)
+			slo := serviceLevelObjective(&s, name, errorQuery, totalQuery, labels)
 			slos = append(slos, *slo)
 		}
 	}

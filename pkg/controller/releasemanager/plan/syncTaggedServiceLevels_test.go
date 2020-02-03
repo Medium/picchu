@@ -63,7 +63,7 @@ var (
 					ServiceLevelName: "testapp",
 					ServiceLevelObjectives: []slov1alpha1.SLO{
 						{
-							Name:                         "testapp_test_app_availability",
+							Name:                         "test_app_availability",
 							AvailabilityObjectivePercent: 99.999,
 							Description:                  "test desc",
 							Disable:                      false,
