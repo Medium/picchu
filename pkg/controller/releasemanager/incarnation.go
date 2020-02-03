@@ -166,21 +166,20 @@ func (i *Incarnation) isTimingOut() bool {
 
 	var lastUpdated time.Time
 	var timeout time.Duration
+
+	// TODO(mk) possiblity of generic timeout
+	if i.status.State.LastUpdated != nil {
+		lastUpdated = i.status.State.LastUpdated.Time
+	}
+
 	status := TargetExternalTestStatus(target)
 	if status == ExternalTestStarted || status == ExternalTestPending {
-		if target.ExternalTest.LastUpdated == nil {
-			now := metav1.Now()
-			target.ExternalTest.LastUpdated = &now
+		if target.ExternalTest.LastUpdated != nil {
+			lastUpdated = target.ExternalTest.LastUpdated.Time
 		}
-		lastUpdated = target.ExternalTest.LastUpdated.Time
 		if target.ExternalTest.Timeout != nil {
 			timeout = target.ExternalTest.Timeout.Duration
 		}
-	} else {
-		if i.status.State.LastUpdated != nil {
-			lastUpdated = i.status.State.LastUpdated.Time
-		}
-		// TODO(mk) possiblity of generic timeout
 	}
 	if lastUpdated.IsZero() || timeout.Nanoseconds() == 0 {
 		return false
