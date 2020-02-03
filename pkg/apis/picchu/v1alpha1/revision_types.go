@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"fmt"
 	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -125,6 +126,48 @@ type Canary struct {
 	TTL     int64  `json:"ttl"`
 }
 
+type ServiceLevelObjective struct {
+	Name                  string                `json:"name"`
+	Annotations           map[string]string     `json:"annotations,omitempty"`
+	Labels                map[string]string     `json:"labels,omitempty"`
+	Description           string                `json:"description,omitempty"`
+	Enabled               bool                  `json:"enabled"`
+	ObjectivePercent      float64               `json:"objectivePercent"`
+	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
+}
+
+func (s *ServiceLevelObjective) Validate() error {
+	if s.Enabled {
+		if s.Name == "" {
+			return fmt.Errorf("ServiceLevelObjectives must define a name")
+		}
+
+		if s.ObjectivePercent < 0 || s.ObjectivePercent >= 1 {
+			return fmt.Errorf("ServiceLevelObjective objectivePercent must be a number between 0 and 1")
+		}
+
+		if s.ServiceLevelIndicator.TagKey == "" {
+			return fmt.Errorf("tagKey must be defined, it should correspond to the Prometheus label name which contains the tag identifier for each release")
+		}
+
+		if s.ServiceLevelIndicator.TotalQuery == "" {
+			return fmt.Errorf("ServiceLevelObjectives must define a totalQuery")
+		}
+
+		if s.ServiceLevelIndicator.ErrorQuery == "" {
+			return fmt.Errorf("ServiceLevelObjectives must define an errorQuery")
+		}
+
+		if s.ServiceLevelIndicator.Canary.Enabled {
+			if s.ServiceLevelIndicator.Canary.AllowancePercent < 0 || s.ServiceLevelIndicator.Canary.AllowancePercent >= 1 {
+				return fmt.Errorf("Canary allowancePercent must be a number between 0 and 1")
+			}
+		}
+	}
+
+	return nil
+}
+
 type ServiceLevelIndicator struct {
 	Canary     SLICanaryConfig `json:"canary,omitempty"`
 	TagKey     string          `json:"tagKey,omitempty"`
@@ -134,19 +177,9 @@ type ServiceLevelIndicator struct {
 }
 
 type SLICanaryConfig struct {
-	Enabled          bool    `json:"enabled,omitempty"`
+	Enabled          bool    `json:"enabled"`
 	AllowancePercent float64 `json:"allowancePercent,omitempty"`
 	FailAfter        string  `json:"failAfter,omitempty"`
-}
-
-type ServiceLevelObjective struct {
-	Name                  string                `json:"name"`
-	Annotations           map[string]string     `json:"annotations,omitempty"`
-	Labels                map[string]string     `json:"labels,omitempty"`
-	Description           string                `json:"description,omitempty"`
-	Enabled               bool                  `json:"enabled"`
-	ObjectivePercent      float64               `json:"objectivePercent"`
-	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
 }
 
 type ServiceMonitor struct {
