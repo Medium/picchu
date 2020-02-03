@@ -27,7 +27,7 @@ const (
 type SyncSLORules struct {
 	App                    string
 	Namespace              string
-	ServiceLevelObjectives []picchuv1alpha1.ServiceLevelObjective
+	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
 func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -54,11 +54,11 @@ func (p *SyncSLORules) SLORules() ([]monitoringv1.PrometheusRule, error) {
 	rule := p.prometheusRule()
 
 	for _, slo := range p.ServiceLevelObjectives {
-		recordingRules := p.recordingRules(&slo)
+		recordingRules := p.recordingRules(slo)
 		for _, rg := range recordingRules {
 			rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 		}
-		alertRules := p.alertRules(&slo)
+		alertRules := p.alertRules(slo)
 		for _, rg := range alertRules {
 			rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 		}

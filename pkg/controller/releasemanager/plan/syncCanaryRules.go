@@ -21,7 +21,7 @@ type SyncCanaryRules struct {
 	App                    string
 	Namespace              string
 	Tag                    string
-	ServiceLevelObjectives []picchuv1alpha1.ServiceLevelObjective
+	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
 func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -49,7 +49,7 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 
 	for _, slo := range p.ServiceLevelObjectives {
 		if slo.ServiceLevelIndicator.Canary.Enabled {
-			canaryRules := p.canaryRules(&slo)
+			canaryRules := p.canaryRules(slo)
 			for _, rg := range canaryRules {
 				rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 			}

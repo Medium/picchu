@@ -24,7 +24,7 @@ var (
 	slorplan = &SyncSLORules{
 		App:       "test-app",
 		Namespace: "testnamespace",
-		ServiceLevelObjectives: []picchuv1alpha1.ServiceLevelObjective{{
+		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
 			ObjectivePercent: 99.999,

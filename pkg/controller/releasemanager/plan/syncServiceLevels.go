@@ -15,7 +15,7 @@ import (
 type SyncServiceLevels struct {
 	App                    string
 	Namespace              string
-	ServiceLevelObjectives []picchuv1alpha1.ServiceLevelObjective
+	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
 func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -48,9 +48,9 @@ func (p *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, erro
 				labels[k] = v
 			}
 
-			errorQuery := errorQueryName(&s, p.App, name)
-			totalQuery := totalQueryName(&s, p.App, name)
-			slo := serviceLevelObjective(&s, name, errorQuery, totalQuery, labels)
+			errorQuery := errorQueryName(s, p.App, name)
+			totalQuery := totalQueryName(s, p.App, name)
+			slo := serviceLevelObjective(s, name, errorQuery, totalQuery, labels)
 			slos = append(slos, *slo)
 		}
 	}

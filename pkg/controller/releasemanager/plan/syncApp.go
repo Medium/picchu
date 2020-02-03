@@ -40,8 +40,8 @@ type SyncApp struct {
 	PrivateGateway         string
 	DeployedRevisions      []Revision
 	AlertRules             []monitoringv1.Rule
-	ServiceMonitors        []picchuv1alpha1.ServiceMonitor
-	ServiceLevelObjectives []picchuv1alpha1.ServiceLevelObjective
+	ServiceMonitors        []*picchuv1alpha1.ServiceMonitor
+	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 	Ports                  []picchuv1alpha1.PortInfo
 	TrafficPolicy          *istiov1alpha3.TrafficPolicy
 }

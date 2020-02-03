@@ -17,7 +17,7 @@ type SyncTaggedServiceLevels struct {
 	App                    string
 	Namespace              string
 	Tag                    string
-	ServiceLevelObjectives []picchuv1alpha1.ServiceLevelObjective
+	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
 func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -51,9 +51,9 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 			}
 
 			labels["tag"] = p.Tag
-			errorQuery := taggedServiceLevelQuery(&s, errorQueryName(&s, p.App, name), p.App, name, p.Tag)
-			totalQuery := taggedServiceLevelQuery(&s, totalQueryName(&s, p.App, name), p.App, name, p.Tag)
-			slo := serviceLevelObjective(&s, name, errorQuery, totalQuery, labels)
+			errorQuery := taggedServiceLevelQuery(s, errorQueryName(s, p.App, name), p.App, name, p.Tag)
+			totalQuery := taggedServiceLevelQuery(s, totalQueryName(s, p.App, name), p.App, name, p.Tag)
+			slo := serviceLevelObjective(s, name, errorQuery, totalQuery, labels)
 			slos = append(slos, *slo)
 		}
 	}

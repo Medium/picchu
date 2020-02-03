@@ -22,7 +22,7 @@ var (
 	slplan = &SyncServiceLevels{
 		App:       "testapp",
 		Namespace: "testnamespace",
-		ServiceLevelObjectives: []picchuv1alpha1.ServiceLevelObjective{{
+		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
 			Description:      "test desc",

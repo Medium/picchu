@@ -23,7 +23,7 @@ var (
 		App:       "testapp",
 		Namespace: "testnamespace",
 		Tag:       "v1",
-		ServiceLevelObjectives: []picchuv1alpha1.ServiceLevelObjective{{
+		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
 			Description:      "test desc",

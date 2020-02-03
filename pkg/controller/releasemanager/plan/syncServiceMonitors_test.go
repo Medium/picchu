@@ -22,7 +22,7 @@ var (
 	smplan = &SyncServiceMonitors{
 		App:       "testapp",
 		Namespace: "testnamespace",
-		ServiceMonitors: []picchuv1alpha1.ServiceMonitor{
+		ServiceMonitors: []*picchuv1alpha1.ServiceMonitor{
 			{
 				Name:     "test1",
 				SLORegex: true,
@@ -72,7 +72,7 @@ var (
 				},
 			},
 		},
-		ServiceLevelObjectives: []picchuv1alpha1.ServiceLevelObjective{{
+		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
 			ObjectivePercent: 0.99999,

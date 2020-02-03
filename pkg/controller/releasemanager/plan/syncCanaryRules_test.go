@@ -24,7 +24,7 @@ var (
 		App:       "test-app",
 		Namespace: "testnamespace",
 		Tag:       "tag",
-		ServiceLevelObjectives: []picchuv1alpha1.ServiceLevelObjective{{
+		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
 			ObjectivePercent: 0.99999,

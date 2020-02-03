@@ -17,8 +17,8 @@ import (
 type SyncServiceMonitors struct {
 	App                    string
 	Namespace              string
-	ServiceMonitors        []picchuv1alpha1.ServiceMonitor
-	ServiceLevelObjectives []picchuv1alpha1.ServiceLevelObjective
+	ServiceMonitors        []*picchuv1alpha1.ServiceMonitor
+	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
 func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -49,7 +49,7 @@ func (p *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorLis
 	sms := []*monitoringv1.ServiceMonitor{}
 
 	for _, serviceMonitor := range p.ServiceMonitors {
-		sm := p.serviceMonitor(&serviceMonitor, metricNamesRegex)
+		sm := p.serviceMonitor(serviceMonitor, metricNamesRegex)
 		sms = append(sms, sm)
 	}
 	sml.Items = sms

@@ -316,8 +316,8 @@ func (r *ResourceSyncer) prepareAlertRules() []monitoringv1.Rule {
 }
 
 // returns the ServiceMonitors from the latest deployed revision
-func (r *ResourceSyncer) prepareServiceMonitors() []picchuv1alpha1.ServiceMonitor {
-	sm := []picchuv1alpha1.ServiceMonitor{}
+func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonitor {
+	sm := []*picchuv1alpha1.ServiceMonitor{}
 
 	if len(r.incarnations.deployed()) > 0 {
 		alertable := r.incarnations.alertable()
@@ -332,8 +332,8 @@ func (r *ResourceSyncer) prepareServiceMonitors() []picchuv1alpha1.ServiceMonito
 }
 
 // returns the PrometheusRules to support SLOs from the latest deployed revision
-func (r *ResourceSyncer) prepareServiceLevelObjectives() []picchuv1alpha1.ServiceLevelObjective {
-	slos := []picchuv1alpha1.ServiceLevelObjective{}
+func (r *ResourceSyncer) prepareServiceLevelObjectives() []*picchuv1alpha1.ServiceLevelObjective {
+	slos := []*picchuv1alpha1.ServiceLevelObjective{}
 
 	if len(r.incarnations.deployed()) > 0 {
 		releasable := r.incarnations.releasable()

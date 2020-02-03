@@ -90,16 +90,16 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name                   string                  `json:"name"`
-	Fleet                  string                  `json:"fleet"`
-	Scale                  ScaleInfo               `json:"scale"`
-	Release                ReleaseInfo             `json:"release,omitempty"`
-	ServiceMonitors        []ServiceMonitor        `json:"serviceMonitors,omitempty"`
-	ServiceLevelObjectives []ServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
-	AcceptanceTarget       bool                    `json:"acceptanceTarget,omitempty"`
-	ConfigSelector         *metav1.LabelSelector   `json:"configSelector,omitempty"`
-	AWS                    AWSInfo                 `json:"aws,omitempty"`
-	AlertRules             []monitoringv1.Rule     `json:"alertRules,omitempty"`
+	Name                   string                   `json:"name"`
+	Fleet                  string                   `json:"fleet"`
+	Scale                  ScaleInfo                `json:"scale"`
+	Release                ReleaseInfo              `json:"release,omitempty"`
+	ServiceMonitors        []*ServiceMonitor        `json:"serviceMonitors,omitempty"`
+	ServiceLevelObjectives []*ServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
+	AcceptanceTarget       bool                     `json:"acceptanceTarget,omitempty"`
+	ConfigSelector         *metav1.LabelSelector    `json:"configSelector,omitempty"`
+	AWS                    AWSInfo                  `json:"aws,omitempty"`
+	AlertRules             []monitoringv1.Rule      `json:"alertRules,omitempty"`
 
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
