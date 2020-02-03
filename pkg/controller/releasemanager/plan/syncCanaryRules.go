@@ -13,10 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	DefaultCanaryFailAfter = "1m"
-)
-
 type SyncCanaryRules struct {
 	App                    string
 	Namespace              string
@@ -96,17 +92,12 @@ func (p *SyncCanaryRules) canaryRules(slo *picchuv1alpha1.ServiceLevelObjective)
 		annotations[k] = v
 	}
 
-	canaryFailAfter := DefaultCanaryFailAfter
-	if slo.ServiceLevelIndicator.Canary.FailAfter != "" {
-		canaryFailAfter = slo.ServiceLevelIndicator.Canary.FailAfter
-	}
-
 	ruleGroup := &monitoringv1.RuleGroup{
 		Name: canaryAlertName(name),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       canaryAlertName(name),
-				For:         canaryFailAfter,
+				For:         slo.ServiceLevelIndicator.Canary.FailAfter,
 				Expr:        intstr.FromString(canaryQuery(slo, p.App, p.Tag)),
 				Labels:      labels,
 				Annotations: annotations,

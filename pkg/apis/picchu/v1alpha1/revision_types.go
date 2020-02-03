@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"fmt"
 	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -134,38 +133,6 @@ type ServiceLevelObjective struct {
 	Enabled               bool                  `json:"enabled"`
 	ObjectivePercent      float64               `json:"objectivePercent"`
 	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
-}
-
-func (s *ServiceLevelObjective) Validate() error {
-	if s.Enabled {
-		if s.Name == "" {
-			return fmt.Errorf("ServiceLevelObjectives must define a name")
-		}
-
-		if s.ObjectivePercent < 0 || s.ObjectivePercent >= 1 {
-			return fmt.Errorf("ServiceLevelObjective objectivePercent must be a number between 0 and 1")
-		}
-
-		if s.ServiceLevelIndicator.TagKey == "" {
-			s.ServiceLevelIndicator.TagKey = "version"
-		}
-
-		if s.ServiceLevelIndicator.TotalQuery == "" {
-			return fmt.Errorf("ServiceLevelObjectives must define a totalQuery")
-		}
-
-		if s.ServiceLevelIndicator.ErrorQuery == "" {
-			return fmt.Errorf("ServiceLevelObjectives must define an errorQuery")
-		}
-
-		if s.ServiceLevelIndicator.Canary.Enabled {
-			if s.ServiceLevelIndicator.Canary.AllowancePercent < 0 || s.ServiceLevelIndicator.Canary.AllowancePercent >= 1 {
-				return fmt.Errorf("Canary allowancePercent must be a number between 0 and 1")
-			}
-		}
-	}
-
-	return nil
 }
 
 type ServiceLevelIndicator struct {

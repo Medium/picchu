@@ -20,10 +20,6 @@ var (
 	rgNameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
-const (
-	DefaultAlertAfter = "5m"
-)
-
 type SyncSLORules struct {
 	App                    string
 	Namespace              string
@@ -122,24 +118,19 @@ func (p *SyncSLORules) alertRules(slo *picchuv1alpha1.ServiceLevelObjective) []*
 		annotations[k] = v
 	}
 
-	alertAfter := DefaultAlertAfter
-	if slo.ServiceLevelIndicator.AlertAfter != "" {
-		alertAfter = slo.ServiceLevelIndicator.AlertAfter
-	}
-
 	ruleGroup := &monitoringv1.RuleGroup{
 		Name: alertRuleName(name),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       "SLOErrorRateTooFast1h",
-				For:         alertAfter,
+				For:         slo.ServiceLevelIndicator.AlertAfter,
 				Expr:        intstr.FromString(burnRateAlertQuery1h(p.App, name)),
 				Labels:      labels,
 				Annotations: annotations,
 			},
 			{
 				Alert:       "SLOErrorRateTooFast6h",
-				For:         alertAfter,
+				For:         slo.ServiceLevelIndicator.AlertAfter,
 				Expr:        intstr.FromString(burnRateAlertQuery6h(p.App, name)),
 				Labels:      labels,
 				Annotations: annotations,
