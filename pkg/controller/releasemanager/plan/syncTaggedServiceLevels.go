@@ -41,20 +41,18 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 	sl := []slov1alpha1.ServiceLevel{}
 	slos := []slov1alpha1.SLO{}
 
-	for _, s := range p.ServiceLevelObjectives {
-		if s.Enabled {
-			name := sanitizeName(s.Name)
-			labels := map[string]string{}
-
-			for k, v := range s.Labels {
-				labels[k] = v
+	for _, slo := range p.ServiceLevelObjectives {
+		if slo.Enabled {
+			config := SLOConfig{
+				SLO:  slo,
+				App:  p.App,
+				Name: sanitizeName(slo.Name),
+				Tag:  p.Tag,
 			}
+			serviceLevelObjective := config.serviceLevelObjective()
+			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.taggedSLISource()
 
-			labels["tag"] = p.Tag
-			errorQuery := taggedServiceLevelQuery(s, errorQueryName(s, p.App, name), p.App, name, p.Tag)
-			totalQuery := taggedServiceLevelQuery(s, totalQueryName(s, p.App, name), p.App, name, p.Tag)
-			slo := serviceLevelObjective(s, name, errorQuery, totalQuery, labels)
-			slos = append(slos, *slo)
+			slos = append(slos, *serviceLevelObjective)
 		}
 	}
 
@@ -82,10 +80,23 @@ func (p *SyncTaggedServiceLevels) serviceLevelLabels() map[string]string {
 	}
 	return labels
 }
+
+func (s *SLOConfig) taggedSLISource() *slov1alpha1.PrometheusSLISource {
+	source := &slov1alpha1.PrometheusSLISource{
+		ErrorQuery: s.serviceLevelTaggedErrorQuery(),
+		TotalQuery: s.serviceLevelTaggedTotalQuery(),
+	}
+	return source
+}
+
 func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
 	return fmt.Sprintf("%s-%s", p.App, p.Tag)
 }
 
-func taggedServiceLevelQuery(slo *picchuv1alpha1.ServiceLevelObjective, query, app, name, tag string) string {
-	return fmt.Sprintf("%s{%s=\"%s\"}", query, slo.ServiceLevelIndicator.TagKey, tag)
+func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
+	return fmt.Sprintf("%s{%s=\"%s\"}", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+}
+
+func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
+	return fmt.Sprintf("%s{%s=\"%s\"}", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }

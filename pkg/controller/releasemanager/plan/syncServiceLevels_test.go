@@ -75,8 +75,8 @@ var (
 							ServiceLevelIndicator: slov1alpha1.SLI{
 								SLISource: slov1alpha1.SLISource{
 									Prometheus: &slov1alpha1.PrometheusSLISource{
-										ErrorQuery: "testapp:test_app_availability:errors",
-										TotalQuery: "testapp:test_app_availability:total",
+										ErrorQuery: "sum(testapp:test_app_availability:errors)",
+										TotalQuery: "sum(testapp:test_app_availability:total)",
 									},
 								},
 							},

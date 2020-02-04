@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"fmt"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
@@ -18,8 +19,8 @@ type SyncServiceLevels struct {
 	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
-	serviceLevels, err := p.serviceLevels()
+func (s *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+	serviceLevels, err := s.serviceLevels()
 	if err != nil {
 		return err
 	}
@@ -34,35 +35,32 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalin
 	return nil
 }
 
-func (p *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, error) {
+func (s *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, error) {
 	sll := &slov1alpha1.ServiceLevelList{}
 	sl := []slov1alpha1.ServiceLevel{}
 	slos := []slov1alpha1.SLO{}
 
-	for _, s := range p.ServiceLevelObjectives {
-		if s.Enabled {
-			name := sanitizeName(s.Name)
-			labels := map[string]string{}
-
-			for k, v := range s.Labels {
-				labels[k] = v
+	for _, slo := range s.ServiceLevelObjectives {
+		if slo.Enabled {
+			config := SLOConfig{
+				SLO:  slo,
+				App:  s.App,
+				Name: sanitizeName(slo.Name),
 			}
-
-			errorQuery := errorQueryName(s, p.App, name)
-			totalQuery := totalQueryName(s, p.App, name)
-			slo := serviceLevelObjective(s, name, errorQuery, totalQuery, labels)
-			slos = append(slos, *slo)
+			serviceLevelObjective := config.serviceLevelObjective()
+			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.sliSource()
+			slos = append(slos, *serviceLevelObjective)
 		}
 	}
 
 	serviceLevel := &slov1alpha1.ServiceLevel{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.App,
-			Namespace: p.Namespace,
-			Labels:    p.serviceLevelLabels(),
+			Name:      s.App,
+			Namespace: s.Namespace,
+			Labels:    s.serviceLevelLabels(),
 		},
 		Spec: slov1alpha1.ServiceLevelSpec{
-			ServiceLevelName:       p.App,
+			ServiceLevelName:       s.App,
 			ServiceLevelObjectives: slos,
 		},
 	}
@@ -72,33 +70,49 @@ func (p *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, erro
 	return sll, nil
 }
 
-func serviceLevelObjective(slo *picchuv1alpha1.ServiceLevelObjective, name, errorQuery, totalQuery string, labels map[string]string) *slov1alpha1.SLO {
-	sliSource := &slov1alpha1.PrometheusSLISource{
-		ErrorQuery: errorQuery,
-		TotalQuery: totalQuery,
+func (s *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
+	source := &slov1alpha1.PrometheusSLISource{
+		ErrorQuery: s.serviceLevelErrorQuery(),
+		TotalQuery: s.serviceLevelTotalQuery(),
 	}
-	s := &slov1alpha1.SLO{
-		Name:                         sanitizeName(name),
-		AvailabilityObjectivePercent: slo.ObjectivePercent,
-		Description:                  slo.Description,
+	return source
+}
+
+func (s *SLOConfig) serviceLevelObjective() *slov1alpha1.SLO {
+	labels := make(map[string]string)
+	for k, v := range s.SLO.Labels {
+		labels[k] = v
+	}
+
+	if s.Tag != "" {
+		labels["tag"] = s.Tag
+	}
+
+	slo := &slov1alpha1.SLO{
+		Name:                         s.Name,
+		AvailabilityObjectivePercent: s.SLO.ObjectivePercent,
+		Description:                  s.SLO.Description,
 		Disable:                      false,
 		Output: slov1alpha1.Output{
 			Prometheus: &slov1alpha1.PrometheusOutputSource{
 				Labels: labels,
 			},
 		},
-		ServiceLevelIndicator: slov1alpha1.SLI{
-			SLISource: slov1alpha1.SLISource{
-				Prometheus: sliSource,
-			},
-		},
 	}
-	return s
+	return slo
 }
 
-func (p *SyncServiceLevels) serviceLevelLabels() map[string]string {
+func (s *SyncServiceLevels) serviceLevelLabels() map[string]string {
 	labels := map[string]string{
-		picchuv1alpha1.LabelApp: p.App,
+		picchuv1alpha1.LabelApp: s.App,
 	}
 	return labels
+}
+
+func (s *SLOConfig) serviceLevelTotalQuery() string {
+	return fmt.Sprintf("sum(%s)", s.totalQuery())
+}
+
+func (s *SLOConfig) serviceLevelErrorQuery() string {
+	return fmt.Sprintf("sum(%s)", s.errorQuery())
 }

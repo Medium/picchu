@@ -45,7 +45,13 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 
 	for _, slo := range p.ServiceLevelObjectives {
 		if slo.ServiceLevelIndicator.Canary.Enabled {
-			canaryRules := p.canaryRules(slo)
+			config := SLOConfig{
+				SLO:  slo,
+				App:  p.App,
+				Name: sanitizeName(slo.Name),
+				Tag:  p.Tag,
+			}
+			canaryRules := config.canaryRules()
 			for _, rg := range canaryRules {
 				rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 			}
@@ -60,7 +66,7 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      canaryRuleName(p.App, p.Tag),
+			Name:      p.canaryRuleName(),
 			Namespace: p.Namespace,
 			Labels: map[string]string{
 				picchuv1alpha1.LabelApp: p.App,
@@ -71,34 +77,32 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 	}
 }
 
-func (p *SyncCanaryRules) canaryRules(slo *picchuv1alpha1.ServiceLevelObjective) []*monitoringv1.RuleGroup {
+func (s *SLOConfig) canaryRules() []*monitoringv1.RuleGroup {
 	ruleGroups := []*monitoringv1.RuleGroup{}
 
-	name := sanitizeName(slo.Name)
-
 	labels := map[string]string{
-		"app":    p.App,
-		"tag":    p.Tag,
+		"app":    s.App,
+		"tag":    s.Tag,
 		"canary": "true",
 		"slo":    "true",
 	}
 
-	for k, v := range slo.Labels {
+	for k, v := range s.SLO.Labels {
 		labels[k] = v
 	}
 
 	annotations := map[string]string{}
-	for k, v := range slo.Annotations {
+	for k, v := range s.SLO.Annotations {
 		annotations[k] = v
 	}
 
 	ruleGroup := &monitoringv1.RuleGroup{
-		Name: canaryAlertName(name),
+		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
-				Alert:       canaryAlertName(name),
-				For:         slo.ServiceLevelIndicator.Canary.FailAfter,
-				Expr:        intstr.FromString(canaryQuery(slo, p.App, p.Tag)),
+				Alert:       s.canaryAlertName(),
+				For:         s.SLO.ServiceLevelIndicator.Canary.FailAfter,
+				Expr:        intstr.FromString(s.canaryQuery()),
 				Labels:      labels,
 				Annotations: annotations,
 			},
@@ -109,21 +113,17 @@ func (p *SyncCanaryRules) canaryRules(slo *picchuv1alpha1.ServiceLevelObjective)
 	return ruleGroups
 }
 
-func canaryRuleName(name string, tag string) string {
-	return fmt.Sprintf("%s-canary-%s", name, tag)
+func (p *SyncCanaryRules) canaryRuleName() string {
+	return fmt.Sprintf("%s-canary-%s", p.App, p.Tag)
 }
 
-func canaryAlertName(name string) string {
-	return fmt.Sprintf("%s_canary", name)
+func (s *SLOConfig) canaryAlertName() string {
+	return fmt.Sprintf("%s_canary", s.Name)
 }
 
-func canaryQuery(slo *picchuv1alpha1.ServiceLevelObjective, app string, tag string) string {
-	name := sanitizeName(slo.Name)
-	errorQueryName := errorQueryName(slo, app, name)
-	totalQueryName := totalQueryName(slo, app, name)
-
+func (s *SLOConfig) canaryQuery() string {
 	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} + %v < ignoring(%s) sum(%s) / sum(%s)",
-		errorQueryName, slo.ServiceLevelIndicator.TagKey, tag,
-		totalQueryName, slo.ServiceLevelIndicator.TagKey, tag,
-		slo.ServiceLevelIndicator.Canary.AllowancePercent, slo.ServiceLevelIndicator.TagKey, errorQueryName, totalQueryName)
+		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
+		s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
+		s.SLO.ServiceLevelIndicator.Canary.AllowancePercent, s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery())
 }
