@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -32,18 +33,17 @@ type Revision struct {
 }
 
 type SyncApp struct {
-	App                    string
-	Namespace              string
-	Labels                 map[string]string
-	DefaultDomain          string
-	PublicGateway          string
-	PrivateGateway         string
-	DeployedRevisions      []Revision
-	AlertRules             []monitoringv1.Rule
-	ServiceMonitors        []*picchuv1alpha1.ServiceMonitor
-	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
-	Ports                  []picchuv1alpha1.PortInfo
-	TrafficPolicy          *istiov1alpha3.TrafficPolicy
+	App               string
+	Namespace         string
+	Labels            map[string]string
+	DefaultDomain     string
+	PublicGateway     string
+	PrivateGateway    string
+	DeployedRevisions []Revision
+	AlertRules        []monitoringv1.Rule
+	Ports             []picchuv1alpha1.PortInfo
+	TrafficPolicy     *istiov1alpha3.TrafficPolicy
+	PicchuConfig      utils.Config
 }
 
 func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -83,68 +83,6 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor fl
 		}
 	} else {
 		if err := plan.CreateOrUpdate(ctx, log, cli, prometheusRule); err != nil {
-			return err
-		}
-	}
-
-	if len(p.ServiceLevelObjectives) == 0 {
-		deleteSLORules := &DeleteSLORules{
-			App:       p.App,
-			Namespace: p.Namespace,
-		}
-		err := deleteSLORules.Apply(ctx, cli, scalingFactor, log)
-
-		if err != nil && !errors.IsNotFound(err) {
-			return err
-		}
-
-		deleteServiceLevels := &DeleteServiceLevels{
-			App:       p.App,
-			Namespace: p.Namespace,
-		}
-		err = deleteServiceLevels.Apply(ctx, cli, scalingFactor, log)
-
-		if err != nil && !errors.IsNotFound(err) {
-			return err
-		}
-	} else {
-		syncSLORules := &SyncSLORules{
-			App:                    p.App,
-			Namespace:              p.Namespace,
-			ServiceLevelObjectives: p.ServiceLevelObjectives,
-		}
-		if err := syncSLORules.Apply(ctx, cli, scalingFactor, log); err != nil {
-			return err
-		}
-
-		syncServiceLevels := &SyncServiceLevels{
-			App:                    p.App,
-			Namespace:              p.Namespace,
-			ServiceLevelObjectives: p.ServiceLevelObjectives,
-		}
-		if err := syncServiceLevels.Apply(ctx, cli, scalingFactor, log); err != nil {
-			return err
-		}
-	}
-
-	if len(p.ServiceMonitors) == 0 {
-		deleteServiceMonitors := &DeleteServiceMonitors{
-			App:       p.App,
-			Namespace: p.Namespace,
-		}
-		err := deleteServiceMonitors.Apply(ctx, cli, scalingFactor, log)
-
-		if err != nil && !errors.IsNotFound(err) {
-			return err
-		}
-	} else {
-		syncServiceMonitors := &SyncServiceMonitors{
-			App:                    p.App,
-			Namespace:              p.Namespace,
-			ServiceMonitors:        p.ServiceMonitors,
-			ServiceLevelObjectives: p.ServiceLevelObjectives,
-		}
-		if err := syncServiceMonitors.Apply(ctx, cli, scalingFactor, log); err != nil {
 			return err
 		}
 	}
@@ -443,5 +381,12 @@ func (p *SyncApp) prometheusRule() *monitoringv1.PrometheusRule {
 				Rules: p.AlertRules,
 			}},
 		},
+	}
+}
+
+func (p *SyncApp) defaultLabels() map[string]string {
+	return map[string]string{
+		picchuv1alpha1.LabelApp:     p.App,
+		picchuv1alpha1.LabelK8sName: p.App,
 	}
 }

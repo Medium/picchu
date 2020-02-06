@@ -17,12 +17,13 @@ import (
 type SyncServiceMonitors struct {
 	App                    string
 	Namespace              string
+	Labels                 map[string]string
 	ServiceMonitors        []*picchuv1alpha1.ServiceMonitor
 	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (s *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
-	serviceMonitors, err := s.serviceMonitors()
+func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+	serviceMonitors, err := p.serviceMonitors()
 	if err != nil {
 		return err
 	}
@@ -37,9 +38,9 @@ func (s *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, scal
 	return nil
 }
 
-func (s *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorList, error) {
+func (p *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorList, error) {
 
-	names, err := s.parseMetricNames()
+	names, err := p.parseMetricNames()
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +49,8 @@ func (s *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorLis
 	sml := &monitoringv1.ServiceMonitorList{}
 	sms := []*monitoringv1.ServiceMonitor{}
 
-	for _, serviceMonitor := range s.ServiceMonitors {
-		sm := s.serviceMonitor(serviceMonitor, metricNamesRegex)
+	for _, serviceMonitor := range p.ServiceMonitors {
+		sm := p.serviceMonitor(serviceMonitor, metricNamesRegex)
 		sms = append(sms, sm)
 	}
 	sml.Items = sms
@@ -57,16 +58,14 @@ func (s *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorLis
 	return sml, nil
 }
 
-func (s *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, metricNamesRegex string) *monitoringv1.ServiceMonitor {
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp: s.App,
-	}
+func (p *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, metricNamesRegex string) *monitoringv1.ServiceMonitor {
+	labels := make(map[string]string)
 
 	for k, v := range sm.Labels {
 		labels[k] = v
 	}
 
-	annotations := map[string]string{}
+	annotations := make(map[string]string)
 
 	for k, v := range sm.Annotations {
 		annotations[k] = v
@@ -75,7 +74,7 @@ func (s *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, 
 	serviceMonitor := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        sm.Name,
-			Namespace:   s.Namespace,
+			Namespace:   p.Namespace,
 			Labels:      labels,
 			Annotations: annotations,
 		},
@@ -94,7 +93,7 @@ func (s *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, 
 	}
 
 	nsselector := &monitoringv1.NamespaceSelector{
-		MatchNames: []string{s.Namespace},
+		MatchNames: []string{p.Namespace},
 	}
 
 	serviceMonitor.Spec.NamespaceSelector = *nsselector
@@ -103,10 +102,10 @@ func (s *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, 
 }
 
 // return all unique metric names required by the ServiceLevelObjectives
-func (s *SyncServiceMonitors) parseMetricNames() ([]string, error) {
+func (p *SyncServiceMonitors) parseMetricNames() ([]string, error) {
 
 	n := make(map[string]bool)
-	for _, slo := range s.ServiceLevelObjectives {
+	for _, slo := range p.ServiceLevelObjectives {
 		totalQuery, err := prometheus.MetricNames(slo.ServiceLevelIndicator.TotalQuery)
 		if err != nil {
 			return nil, err

@@ -20,8 +20,17 @@ import (
 
 var (
 	slplan = &SyncServiceLevels{
-		App:       "testapp",
+		App:       "test-app",
 		Namespace: "testnamespace",
+		Labels: map[string]string{
+			picchuv1alpha1.LabelApp:     "test-app",
+			picchuv1alpha1.LabelK8sName: "test-app",
+		},
+		ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+			ServiceLevelLabels: map[string]string{
+				"severity": "test",
+			},
+		},
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
@@ -30,7 +39,7 @@ var (
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
-					AllowancePercent: 0.5,
+					AllowancePercent: 1,
 					FailAfter:        "1m",
 				},
 				TagKey:     "destination_workload",
@@ -38,11 +47,10 @@ var (
 				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
 				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
 			},
-			Labels: map[string]string{
-				"severity": "test",
-			},
-			Annotations: map[string]string{
-				"test": "true",
+			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+				ServiceLevelLabels: map[string]string{
+					"team": "test",
+				},
 			},
 		}},
 	}
@@ -51,14 +59,15 @@ var (
 		Items: []slov1alpha1.ServiceLevel{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testapp",
+					Name:      "test-app",
 					Namespace: "testnamespace",
 					Labels: map[string]string{
-						picchuv1alpha1.LabelApp: "testapp",
+						picchuv1alpha1.LabelApp:     "test-app",
+						picchuv1alpha1.LabelK8sName: "test-app",
 					},
 				},
 				Spec: slov1alpha1.ServiceLevelSpec{
-					ServiceLevelName: "testapp",
+					ServiceLevelName: "test-app",
 					ServiceLevelObjectives: []slov1alpha1.SLO{
 						{
 							Name:                         "test_app_availability",
@@ -69,14 +78,15 @@ var (
 								Prometheus: &slov1alpha1.PrometheusOutputSource{
 									Labels: map[string]string{
 										"severity": "test",
+										"team":     "test",
 									},
 								},
 							},
 							ServiceLevelIndicator: slov1alpha1.SLI{
 								SLISource: slov1alpha1.SLISource{
 									Prometheus: &slov1alpha1.PrometheusSLISource{
-										ErrorQuery: "sum(testapp:test_app_availability:errors)",
-										TotalQuery: "sum(testapp:test_app_availability:total)",
+										ErrorQuery: "sum(test_app:test_app_availability:errors)",
+										TotalQuery: "sum(test_app:test_app_availability:total)",
 									},
 								},
 							},
@@ -95,7 +105,7 @@ func TestServiceLevels(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		client.ObjectKey{Name: "testapp", Namespace: "testnamespace"},
+		client.ObjectKey{Name: "test-app", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 

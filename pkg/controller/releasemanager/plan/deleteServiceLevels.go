@@ -3,8 +3,8 @@ package plan
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
+	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	"k8s.io/apimachinery/pkg/api/errors"

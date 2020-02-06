@@ -14,10 +14,12 @@ import (
 )
 
 type SyncTaggedServiceLevels struct {
-	App                    string
-	Namespace              string
-	Tag                    string
-	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
+	App                         string
+	Namespace                   string
+	Tag                         string
+	Labels                      map[string]string
+	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
+	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
 func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -44,10 +46,11 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 	for _, slo := range p.ServiceLevelObjectives {
 		if slo.Enabled {
 			config := SLOConfig{
-				SLO:  slo,
-				App:  p.App,
-				Name: sanitizeName(slo.Name),
-				Tag:  p.Tag,
+				SLO:    slo,
+				App:    p.App,
+				Name:   sanitizeName(slo.Name),
+				Tag:    p.Tag,
+				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective()
 			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.taggedSLISource()
@@ -60,7 +63,7 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.taggedServiceLevelName(),
 			Namespace: p.Namespace,
-			Labels:    p.serviceLevelLabels(),
+			Labels:    p.Labels,
 		},
 		Spec: slov1alpha1.ServiceLevelSpec{
 			ServiceLevelName:       p.App,
@@ -71,14 +74,6 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 
 	sll.Items = sl
 	return sll, nil
-}
-
-func (p *SyncTaggedServiceLevels) serviceLevelLabels() map[string]string {
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp: p.App,
-		picchuv1alpha1.LabelTag: p.Tag,
-	}
-	return labels
 }
 
 func (s *SLOConfig) taggedSLISource() *slov1alpha1.PrometheusSLISource {
@@ -94,9 +89,9 @@ func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
 }
 
 func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("%s{%s=\"%s\"}", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
 
 func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("%s{%s=\"%s\"}", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }

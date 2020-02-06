@@ -23,6 +23,10 @@ var (
 	log = logf.Log.WithName("prometheus_alerts")
 )
 
+const (
+	TagLabel = "tag"
+)
+
 type PromAPI interface {
 	Query(ctx context.Context, query string, ts time.Time) (model.Value, cli.Warnings, error)
 }
@@ -38,7 +42,7 @@ func NewAlertQuery(app, tag string) AlertQuery {
 	return AlertQuery{
 		App:        app,
 		AlertState: "firing",
-		TagLabel:   "tag",
+		TagLabel:   TagLabel,
 		Tag:        tag,
 	}
 }

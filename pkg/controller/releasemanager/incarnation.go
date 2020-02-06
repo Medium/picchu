@@ -10,6 +10,7 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
 	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
 
 	"github.com/go-logr/logr"
@@ -24,6 +25,7 @@ import (
 type Controller interface {
 	expectedTotalReplicas(count int32, percent int32) int32
 	applyPlan(context.Context, string, plan.Plan) error
+	applyDeliveryPlan(context.Context, string, plan.Plan) error
 	divideReplicas(count int32, percent int32) int32
 	getReleaseManager() *picchuv1alpha1.ReleaseManager
 	getLog() logr.Logger
@@ -40,13 +42,11 @@ type Incarnation struct {
 	revision   *picchuv1alpha1.Revision
 	log        logr.Logger
 	status     *picchuv1alpha1.ReleaseManagerRevisionStatus
-
-	// TODO(lyra): should this be a parameter of schedulePermitsRelease()?
-	humaneReleasesEnabled bool
+	picchuConfig *utils.Config
 }
 
 // NewIncarnation creates a new Incarnation
-func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, humaneReleasesEnabled bool) *Incarnation {
+func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, config *utils.Config) *Incarnation {
 	status := controller.getReleaseManager().RevisionStatus(tag)
 
 	if status.State.Current == "" {
@@ -92,7 +92,7 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		revision:              r,
 		log:                   log,
 		status:                status,
-		humaneReleasesEnabled: humaneReleasesEnabled,
+		picchuConfig: config,
 	}
 	i.update(di)
 	return &i
@@ -262,6 +262,8 @@ func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
 		App:                    i.appName(),
 		Namespace:              i.targetNamespace(),
 		Tag:                    i.tag,
+		Labels:                      i.defaultLabels(),
+		ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
 	})
 }
@@ -274,36 +276,36 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
-func (i *Incarnation) syncServiceLevels(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync ServiceLevels", &rmplan.SyncServiceLevels{
-		App:                    i.appName(),
-		Namespace:              i.targetNamespace(),
-		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
-	})
-}
-
-func (i *Incarnation) deleteServiceLevels(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete ServiceLevels", &rmplan.DeleteServiceLevels{
-		App:       i.appName(),
-		Namespace: i.targetNamespace(),
-	})
-}
-
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync ServiceLevels", &rmplan.SyncTaggedServiceLevels{
+	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
+		err := i.controller.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+			Name: i.picchuConfig.ServiceLevelsNamespace,
+	})
+		if err != nil {
+			return err
+}
+
+		return i.controller.applyDeliveryPlan(ctx, "Sync Tagged Service Levels", &rmplan.SyncTaggedServiceLevels{
 		App:                    i.appName(),
-		Namespace:              i.targetNamespace(),
+			Namespace:                   i.picchuConfig.ServiceLevelsNamespace,
 		Tag:                    i.tag,
+			Labels:                      i.defaultLabels(),
+			ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
 	})
+}
+	return nil
 }
 
 func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete ServiceLevels", &rmplan.DeleteTaggedServiceLevels{
+	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
+		return i.controller.applyDeliveryPlan(ctx, "Delete Tagged Service Levels", &rmplan.DeleteTaggedServiceLevels{
 		App:       i.appName(),
-		Namespace: i.targetNamespace(),
+			Namespace: i.picchuConfig.ServiceLevelsNamespace,
 		Tag:       i.tag,
 	})
+}
+	return nil
 }
 
 func (i *Incarnation) scale(ctx context.Context) error {
@@ -353,7 +355,7 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 	}
 
 	// If engineers are out of office, don't start new releases
-	if !i.humaneReleasesEnabled && i.target().Release.Schedule != "always" {
+	if !i.picchuConfig.HumaneReleasesEnabled && i.target().Release.Schedule != "always" {
 		return false
 	}
 
@@ -602,7 +604,7 @@ type IncarnationCollection struct {
 	controller Controller
 }
 
-func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, humaneReleasesEnabled bool) *IncarnationCollection {
+func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, config *utils.Config) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
 		itemSet:    make(map[string]*Incarnation),
@@ -618,7 +620,7 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 		if di != nil {
 			live = di.Live
 		}
-		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, live, humaneReleasesEnabled)
+		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, live, config)
 	}
 
 	for _, r := range revisionList.Items {

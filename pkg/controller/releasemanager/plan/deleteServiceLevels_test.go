@@ -5,8 +5,8 @@ import (
 	_ "runtime"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/mocks"

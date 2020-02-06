@@ -16,22 +16,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestDeleteSLORules(t *testing.T) {
+func TestDeleteSLOAlerts(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	deleteSLORules := &DeleteSLORules{
+	deleteSLOAlerts := &DeleteServiceLevelAlerts{
 		App:       "testapp",
 		Namespace: "testnamespace",
 	}
 	ctx := context.TODO()
 
 	opts := &client.ListOptions{
-		Namespace: deleteSLORules.Namespace,
+		Namespace: deleteSLOAlerts.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: deleteSLORules.App,
+			picchuv1alpha1.LabelApp: deleteSLOAlerts.App,
 		}),
 	}
 
@@ -56,5 +56,5 @@ func TestDeleteSLORules(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, deleteSLORules.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, deleteSLOAlerts.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }

@@ -24,6 +24,15 @@ var (
 	slorplan = &SyncSLORules{
 		App:       "test-app",
 		Namespace: "testnamespace",
+		Labels: map[string]string{
+			picchuv1alpha1.LabelApp:     "test-app",
+			picchuv1alpha1.LabelK8sName: "test-app",
+		},
+		ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+			RuleLabels: map[string]string{
+				"severity": "test",
+			},
+		},
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
@@ -31,7 +40,7 @@ var (
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
-					AllowancePercent: 0.5,
+					AllowancePercent: 1,
 					FailAfter:        "1m",
 				},
 				TagKey:     "destination_workload",
@@ -39,11 +48,10 @@ var (
 				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
 				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
 			},
-			Labels: map[string]string{
-				"severity": "test",
-			},
-			Annotations: map[string]string{
-				"test": "true",
+			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+				RuleLabels: map[string]string{
+					"team": "test",
+				},
 			},
 		}},
 	}
@@ -54,8 +62,8 @@ var (
 				Name:      "test-app-slo",
 				Namespace: "testnamespace",
 				Labels: map[string]string{
-					picchuv1alpha1.LabelApp: "test-app",
-					"prometheus":            "slo",
+					picchuv1alpha1.LabelApp:     "test-app",
+					picchuv1alpha1.LabelK8sName: "test-app",
 				},
 			},
 			Spec: monitoringv1.PrometheusRuleSpec{
@@ -66,42 +74,17 @@ var (
 							{
 								Record: "test_app:test_app_availability:total",
 								Expr:   intstr.FromString("sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)"),
+								Labels: map[string]string{
+									"severity": "test",
+									"team":     "test",
+								},
 							},
 							{
 								Record: "test_app:test_app_availability:errors",
 								Expr:   intstr.FromString("sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)"),
-							},
-						},
-					},
-					{
-						Name: "test_app_availability_alert",
-						Rules: []monitoringv1.Rule{
-							{
-								Alert: "SLOErrorRateTooFast1h",
-								Expr: intstr.FromString("(increase(service_level_sli_result_error_ratio_total{service_level=\"test-app\", slo=\"test_app_availability\"}[1h]) " +
-									"/ increase(service_level_sli_result_count_total{service_level=\"test-app\", slo=\"test_app_availability\"}[1h])) " +
-									"> (1 - service_level_slo_objective_ratio{service_level=\"test-app\", slo=\"test_app_availability\"}) * 14.6"),
-								For: "1m",
 								Labels: map[string]string{
-									"app":      "test-app",
 									"severity": "test",
-								},
-								Annotations: map[string]string{
-									"test": "true",
-								},
-							},
-							{
-								Alert: "SLOErrorRateTooFast6h",
-								Expr: intstr.FromString("(increase(service_level_sli_result_error_ratio_total{service_level=\"test-app\", slo=\"test_app_availability\"}[6h]) " +
-									"/ increase(service_level_sli_result_count_total{service_level=\"test-app\", slo=\"test_app_availability\"}[6h])) " +
-									"> (1 - service_level_slo_objective_ratio{service_level=\"test-app\", slo=\"test_app_availability\"}) * 6"),
-								For: "1m",
-								Labels: map[string]string{
-									"app":      "test-app",
-									"severity": "test",
-								},
-								Annotations: map[string]string{
-									"test": "true",
+									"team":     "test",
 								},
 							},
 						},

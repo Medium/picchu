@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"reflect"
 	_ "runtime"
 	"testing"
 
@@ -21,15 +20,12 @@ import (
 )
 
 var (
-	crplan = &SyncCanaryRules{
+	slalertsplan = &SyncServiceLevelAlerts{
 		App:       "test-app",
 		Namespace: "testnamespace",
-		Tag:       "tag",
 		Labels: map[string]string{
-			picchuv1alpha1.LabelApp:        "test-app",
-			picchuv1alpha1.LabelTag:        "v1",
-			picchuv1alpha1.LabelK8sName:    "test-app",
-			picchuv1alpha1.LabelK8sVersion: "v1",
+			picchuv1alpha1.LabelApp:     "test-app",
+			picchuv1alpha1.LabelK8sName: "test-app",
 		},
 		ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
 			AlertLabels: map[string]string{
@@ -59,35 +55,41 @@ var (
 		}},
 	}
 
-	crexpected = monitoringv1.PrometheusRuleList{
+	sloalertexpected = &monitoringv1.PrometheusRuleList{
 		Items: []*monitoringv1.PrometheusRule{{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-app-canary-tag",
+				Name:      "test-app-slo-alerts",
 				Namespace: "testnamespace",
 				Labels: map[string]string{
-					picchuv1alpha1.LabelApp:        "test-app",
-					picchuv1alpha1.LabelTag:        "v1",
-					picchuv1alpha1.LabelK8sName:    "test-app",
-					picchuv1alpha1.LabelK8sVersion: "v1",
+					picchuv1alpha1.LabelApp:     "test-app",
+					picchuv1alpha1.LabelK8sName: "test-app",
 				},
 			},
 			Spec: monitoringv1.PrometheusRuleSpec{
 				Groups: []monitoringv1.RuleGroup{
 					{
-						Name: "test_app_availability_canary",
+						Name: "test_app_availability_alert",
 						Rules: []monitoringv1.Rule{
 							{
-								Alert: "test_app_availability_canary",
-								Expr: intstr.FromString("test_app:test_app_availability:errors{destination_workload=\"tag\"} / test_app:test_app_availability:total{destination_workload=\"tag\"} - 0.01 " +
-									"> ignoring(destination_workload) sum(test_app:test_app_availability:errors) / sum(test_app:test_app_availability:total)"),
+								Alert: "SLOErrorRateTooFast1h",
+								Expr: intstr.FromString("(increase(service_level_sli_result_error_ratio_total{service_level=\"test-app\", slo=\"test_app_availability\"}[1h]) " +
+									"/ increase(service_level_sli_result_count_total{service_level=\"test-app\", slo=\"test_app_availability\"}[1h])) " +
+									"> (1 - service_level_slo_objective_ratio{service_level=\"test-app\", slo=\"test_app_availability\"}) * 14.6"),
 								For: "1m",
 								Labels: map[string]string{
-									CanaryAppLabel: "test-app",
-									CanaryTagLabel: "tag",
-									CanaryLabel:    "true",
-									CanarySLOLabel: "true",
-									"severity":     "test",
-									"team":         "test",
+									"severity": "test",
+									"team":     "test",
+								},
+							},
+							{
+								Alert: "SLOErrorRateTooFast6h",
+								Expr: intstr.FromString("(increase(service_level_sli_result_error_ratio_total{service_level=\"test-app\", slo=\"test_app_availability\"}[6h]) " +
+									"/ increase(service_level_sli_result_count_total{service_level=\"test-app\", slo=\"test_app_availability\"}[6h])) " +
+									"> (1 - service_level_slo_objective_ratio{service_level=\"test-app\", slo=\"test_app_availability\"}) * 6"),
+								For: "1m",
+								Labels: map[string]string{
+									"severity": "test",
+									"team":     "test",
 								},
 							},
 						},
@@ -99,14 +101,14 @@ var (
 	}
 )
 
-func TestSyncCanaryRules(t *testing.T) {
+func TestServiceLevelAlerts(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		client.ObjectKey{Name: "test-app-canary-tag", Namespace: "testnamespace"},
+		client.ObjectKey{Name: "test-app-slo-alerts", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 
@@ -118,9 +120,9 @@ func TestSyncCanaryRules(t *testing.T) {
 			Times(1)
 	}
 
-	for i := range crexpected.Items {
+	for i := range slorexpected.Items {
 		for _, obj := range []runtime.Object{
-			crexpected.Items[i],
+			sloalertexpected.Items[i],
 		} {
 			m.
 				EXPECT().
@@ -130,35 +132,5 @@ func TestSyncCanaryRules(t *testing.T) {
 		}
 	}
 
-	assert.NoError(t, crplan.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
-}
-
-func TestFormatAllowancePercent(t *testing.T) {
-	inputs := []struct {
-		float    float64
-		expected string
-	}{
-		{1, "0.01"},
-		{100, "1"},
-		{2, "0.02"},
-		{0.1, "0.001"},
-		{0.01, "0.0001"},
-	}
-
-	for _, i := range inputs {
-		c := SLOConfig{
-			SLO: &picchuv1alpha1.ServiceLevelObjective{
-				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
-					Canary: picchuv1alpha1.SLICanaryConfig{
-						AllowancePercent: i.float,
-					},
-				},
-			},
-		}
-		actual := c.formatAllowancePercent()
-		if !reflect.DeepEqual(i.expected, actual) {
-			t.Errorf("Expected did not match actual. Expected: %v. Actual: %v", i.expected, actual)
-			t.Fail()
-		}
-	}
+	assert.NoError(t, slalertsplan.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }

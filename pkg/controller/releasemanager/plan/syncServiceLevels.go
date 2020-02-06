@@ -8,25 +8,28 @@ import (
 	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
+	prometheus "go.medium.engineering/picchu/pkg/prometheus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type SyncServiceLevels struct {
-	App                    string
-	Namespace              string
-	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
+	App                         string
+	Namespace                   string
+	Labels                      map[string]string
+	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
+	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (s *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
-	serviceLevels, err := s.serviceLevels()
+func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+	serviceLevels, err := p.serviceLevels()
 	if err != nil {
 		return err
 	}
-	if len(serviceLevels.Items) > 0 {
-		for _, sl := range serviceLevels.Items {
-			if err := plan.CreateOrUpdate(ctx, log, cli, &sl); err != nil {
+	if len(serviceLevels) > 0 {
+		for _, sl := range serviceLevels {
+			if err := plan.CreateOrUpdate(ctx, log, cli, sl); err != nil {
 				return err
 			}
 		}
@@ -35,17 +38,17 @@ func (s *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalin
 	return nil
 }
 
-func (s *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, error) {
-	sll := &slov1alpha1.ServiceLevelList{}
-	sl := []slov1alpha1.ServiceLevel{}
+func (p *SyncServiceLevels) serviceLevels() ([]*slov1alpha1.ServiceLevel, error) {
+	sl := []*slov1alpha1.ServiceLevel{}
 	slos := []slov1alpha1.SLO{}
 
-	for _, slo := range s.ServiceLevelObjectives {
+	for _, slo := range p.ServiceLevelObjectives {
 		if slo.Enabled {
 			config := SLOConfig{
-				SLO:  slo,
-				App:  s.App,
-				Name: sanitizeName(slo.Name),
+				SLO:    slo,
+				App:    p.App,
+				Name:   sanitizeName(slo.Name),
+				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective()
 			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.sliSource()
@@ -55,37 +58,40 @@ func (s *SyncServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, erro
 
 	serviceLevel := &slov1alpha1.ServiceLevel{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      s.App,
-			Namespace: s.Namespace,
-			Labels:    s.serviceLevelLabels(),
+			Name:      p.App,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
 		},
 		Spec: slov1alpha1.ServiceLevelSpec{
-			ServiceLevelName:       s.App,
+			ServiceLevelName:       p.App,
 			ServiceLevelObjectives: slos,
 		},
 	}
-	sl = append(sl, *serviceLevel)
+	sl = append(sl, serviceLevel)
 
-	sll.Items = sl
-	return sll, nil
+	return sl, nil
 }
 
-func (s *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
+func (p *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
 	source := &slov1alpha1.PrometheusSLISource{
-		ErrorQuery: s.serviceLevelErrorQuery(),
-		TotalQuery: s.serviceLevelTotalQuery(),
+		ErrorQuery: p.serviceLevelErrorQuery(),
+		TotalQuery: p.serviceLevelTotalQuery(),
 	}
 	return source
 }
 
 func (s *SLOConfig) serviceLevelObjective() *slov1alpha1.SLO {
 	labels := make(map[string]string)
-	for k, v := range s.SLO.Labels {
+	for k, v := range s.Labels.ServiceLevelLabels {
+		labels[k] = v
+	}
+
+	for k, v := range s.SLO.ServiceLevelObjectiveLabels.ServiceLevelLabels {
 		labels[k] = v
 	}
 
 	if s.Tag != "" {
-		labels["tag"] = s.Tag
+		labels[prometheus.TagLabel] = s.Tag
 	}
 
 	slo := &slov1alpha1.SLO{
@@ -100,13 +106,6 @@ func (s *SLOConfig) serviceLevelObjective() *slov1alpha1.SLO {
 		},
 	}
 	return slo
-}
-
-func (s *SyncServiceLevels) serviceLevelLabels() map[string]string {
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp: s.App,
-	}
-	return labels
 }
 
 func (s *SLOConfig) serviceLevelTotalQuery() string {

@@ -89,16 +89,17 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name                   string                   `json:"name"`
-	Fleet                  string                   `json:"fleet"`
-	Scale                  ScaleInfo                `json:"scale"`
-	Release                ReleaseInfo              `json:"release,omitempty"`
-	ServiceMonitors        []*ServiceMonitor        `json:"serviceMonitors,omitempty"`
-	ServiceLevelObjectives []*ServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
-	AcceptanceTarget       bool                     `json:"acceptanceTarget,omitempty"`
-	ConfigSelector         *metav1.LabelSelector    `json:"configSelector,omitempty"`
-	AWS                    AWSInfo                  `json:"aws,omitempty"`
-	AlertRules             []monitoringv1.Rule      `json:"alertRules,omitempty"`
+	Name                        string                      `json:"name"`
+	Fleet                       string                      `json:"fleet"`
+	Scale                       ScaleInfo                   `json:"scale"`
+	Release                     ReleaseInfo                 `json:"release,omitempty"`
+	ServiceMonitors             []*ServiceMonitor           `json:"serviceMonitors,omitempty"`
+	ServiceLevelObjectives      []*ServiceLevelObjective    `json:"serviceLevelObjectives,omitempty"`
+	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
+	AcceptanceTarget            bool                        `json:"acceptanceTarget,omitempty"`
+	ConfigSelector              *metav1.LabelSelector       `json:"configSelector,omitempty"`
+	AWS                         AWSInfo                     `json:"aws,omitempty"`
+	AlertRules                  []monitoringv1.Rule         `json:"alertRules,omitempty"`
 
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
@@ -126,21 +127,27 @@ type Canary struct {
 }
 
 type ServiceLevelObjective struct {
-	Name                  string                `json:"name"`
-	Annotations           map[string]string     `json:"annotations,omitempty"`
-	Labels                map[string]string     `json:"labels,omitempty"`
-	Description           string                `json:"description,omitempty"`
-	Enabled               bool                  `json:"enabled"`
-	ObjectivePercent      float64               `json:"objectivePercent"`
-	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
+	Name                        string                      `json:"name,omitempty"`
+	Annotations                 map[string]string           `json:"annotations,omitempty"`
+	Description                 string                      `json:"description,omitempty"`
+	Enabled                     bool                        `json:"enabled"`
+	ObjectivePercent            float64                     `json:"objectivePercent,omitempty"`
+	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
+	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
+}
+
+type ServiceLevelObjectiveLabels struct {
+	AlertLabels        map[string]string `json:"alertLabels,omitempty"`
+	RuleLabels         map[string]string `json:"ruleLabels,omitempty"`
+	ServiceLevelLabels map[string]string `json:"serviceLevelLabels,omitempty"`
 }
 
 type ServiceLevelIndicator struct {
 	Canary     SLICanaryConfig `json:"canary,omitempty"`
 	TagKey     string          `json:"tagKey,omitempty"`
 	AlertAfter string          `json:"alertAfter,omitempty"`
-	TotalQuery string          `json:"totalQuery"`
-	ErrorQuery string          `json:"errorQuery"`
+	TotalQuery string          `json:"totalQuery,omitempty"`
+	ErrorQuery string          `json:"errorQuery,omitempty"`
 }
 
 type SLICanaryConfig struct {

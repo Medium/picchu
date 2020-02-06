@@ -29,9 +29,6 @@ var (
 				Labels: map[string]string{
 					"test": "test",
 				},
-				Annotations: map[string]string{
-					"test": "test",
-				},
 				Spec: monitoringv1.ServiceMonitorSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
@@ -75,11 +72,11 @@ var (
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
 			Enabled:          true,
 			Name:             "test-app-availability",
-			ObjectivePercent: 0.99999,
+			ObjectivePercent: 99.999,
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
-					AllowancePercent: 0.5,
+					AllowancePercent: 1,
 					FailAfter:        "1m",
 				},
 				TagKey:     "destination_workload",
@@ -96,8 +93,7 @@ var (
 				Name:      "test1",
 				Namespace: "testnamespace",
 				Labels: map[string]string{
-					picchuv1alpha1.LabelApp: "testapp",
-					"test":                  "test",
+					"test": "test",
 				},
 			},
 			Spec: monitoringv1.ServiceMonitorSpec{
@@ -124,8 +120,7 @@ var (
 					Name:      "test2",
 					Namespace: "testnamespace",
 					Labels: map[string]string{
-						picchuv1alpha1.LabelApp: "testapp",
-						"test":                  "test",
+						"test": "test",
 					},
 				},
 				Spec: monitoringv1.ServiceMonitorSpec{

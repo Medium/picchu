@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
@@ -13,11 +14,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	CanaryAppLabel = "app"
+	CanaryTagLabel = "tag"
+	CanarySLOLabel = "slo"
+	CanaryLabel    = "canary"
+)
+
 type SyncCanaryRules struct {
-	App                    string
-	Namespace              string
-	Tag                    string
-	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
+	App                         string
+	Namespace                   string
+	Tag                         string
+	Labels                      map[string]string
+	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
+	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
 func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -46,10 +56,11 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 	for _, slo := range p.ServiceLevelObjectives {
 		if slo.ServiceLevelIndicator.Canary.Enabled {
 			config := SLOConfig{
-				SLO:  slo,
-				App:  p.App,
-				Name: sanitizeName(slo.Name),
-				Tag:  p.Tag,
+				SLO:    slo,
+				App:    p.App,
+				Name:   sanitizeName(slo.Name),
+				Tag:    p.Tag,
+				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			canaryRules := config.canaryRules()
 			for _, rg := range canaryRules {
@@ -64,15 +75,17 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 }
 
 func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
+	labels := make(map[string]string)
+
+	for k, v := range p.Labels {
+		labels[k] = v
+	}
+
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.canaryRuleName(),
 			Namespace: p.Namespace,
-			Labels: map[string]string{
-				picchuv1alpha1.LabelApp: p.App,
-				picchuv1alpha1.LabelTag: p.Tag,
-				"prometheus":            "slo",
-			},
+			Labels:    labels,
 		},
 	}
 }
@@ -80,37 +93,37 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 func (s *SLOConfig) canaryRules() []*monitoringv1.RuleGroup {
 	ruleGroups := []*monitoringv1.RuleGroup{}
 
-	labels := map[string]string{
-		"app":    s.App,
-		"tag":    s.Tag,
-		"canary": "true",
-		"slo":    "true",
-	}
-
-	for k, v := range s.SLO.Labels {
+	labels := s.canaryRuleLabels()
+	for k, v := range s.Labels.AlertLabels {
 		labels[k] = v
 	}
-
-	annotations := map[string]string{}
-	for k, v := range s.SLO.Annotations {
-		annotations[k] = v
+	for k, v := range s.SLO.ServiceLevelObjectiveLabels.AlertLabels {
+		labels[k] = v
 	}
 
 	ruleGroup := &monitoringv1.RuleGroup{
 		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
-				Alert:       s.canaryAlertName(),
-				For:         s.SLO.ServiceLevelIndicator.Canary.FailAfter,
-				Expr:        intstr.FromString(s.canaryQuery()),
-				Labels:      labels,
-				Annotations: annotations,
+				Alert:  s.canaryAlertName(),
+				For:    s.SLO.ServiceLevelIndicator.Canary.FailAfter,
+				Expr:   intstr.FromString(s.canaryQuery()),
+				Labels: labels,
 			},
 		},
 	}
 	ruleGroups = append(ruleGroups, ruleGroup)
 
 	return ruleGroups
+}
+
+func (s *SLOConfig) canaryRuleLabels() map[string]string {
+	return map[string]string{
+		CanaryAppLabel: s.App,
+		CanaryTagLabel: s.Tag,
+		CanaryLabel:    "true",
+		CanarySLOLabel: "true",
+	}
 }
 
 func (p *SyncCanaryRules) canaryRuleName() string {
@@ -122,8 +135,14 @@ func (s *SLOConfig) canaryAlertName() string {
 }
 
 func (s *SLOConfig) canaryQuery() string {
-	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} + %v < ignoring(%s) sum(%s) / sum(%s)",
+	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > ignoring(%s) sum(%s) / sum(%s)",
 		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
-		s.SLO.ServiceLevelIndicator.Canary.AllowancePercent, s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery())
+		s.formatAllowancePercent(), s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery())
+}
+
+func (s *SLOConfig) formatAllowancePercent() string {
+	x, y := big.NewFloat(s.SLO.ServiceLevelIndicator.Canary.AllowancePercent), big.NewFloat(100)
+	r := new(big.Float).Quo(x, y)
+	return fmt.Sprintf("%.10g", r)
 }

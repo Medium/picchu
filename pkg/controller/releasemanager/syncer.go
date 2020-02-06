@@ -15,7 +15,6 @@ import (
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
 
-	//slov1alpha1 "github.com/spotahome/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,14 +34,16 @@ type Incarnations interface {
 }
 
 type ResourceSyncer struct {
-	deliveryClient client.Client
-	planApplier    plan.Applier
-	observer       observe.Observer
-	instance       *picchuv1alpha1.ReleaseManager
-	incarnations   Incarnations
-	reconciler     *ReconcileReleaseManager
-	log            logr.Logger
-	clusterConfig  ClusterConfig
+	deliveryClient  client.Client
+	deliveryApplier plan.Applier
+	planApplier     plan.Applier
+	observer        observe.Observer
+	instance        *picchuv1alpha1.ReleaseManager
+	incarnations    Incarnations
+	reconciler      *ReconcileReleaseManager
+	log             logr.Logger
+	clusterConfig   ClusterConfig
+	picchuConfig    utils.Config
 }
 
 func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
@@ -84,6 +85,15 @@ func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseMana
 	if err := r.syncApp(ctx); err != nil {
 		return rs, err
 	}
+	if err := r.syncServiceMonitors(ctx); err != nil {
+		return rs, err
+	}
+	if err := r.syncServiceLevels(ctx); err != nil {
+		return rs, err
+	}
+	if err := r.syncSLORules(ctx); err != nil {
+		return rs, err
+	}
 	if err := r.garbageCollection(ctx); err != nil {
 		return rs, err
 	}
@@ -107,6 +117,11 @@ func (r *ResourceSyncer) del(ctx context.Context) error {
 func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan) error {
 	r.log.Info("Applying plan", "Name", name, "Plan", p)
 	return r.planApplier.Apply(ctx, p)
+}
+
+func (r *ResourceSyncer) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
+	r.log.Info("Applying delivery plan", "Name", name, "Plan", p)
+	return r.deliveryApplier.Apply(ctx, p)
 }
 
 func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
@@ -234,34 +249,22 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		ports = append(ports, port)
 	}
 
-	// Used to label Service and selector
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
-		picchuv1alpha1.LabelK8sName:   r.instance.Spec.App,
-		picchuv1alpha1.LabelIstioApp:  r.instance.Spec.App,
-		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.instance.Name,
-	}
-
 	revisions := r.prepareRevisions()
 	alertRules := r.prepareAlertRules()
-	slos := r.prepareServiceLevelObjectives()
-	serviceMonitors := r.prepareServiceMonitors()
 
 	// TODO(bob): figure out defaultDomain and gateway names
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
 		App:               r.instance.Spec.App,
 		Namespace:         r.instance.TargetNamespace(),
-		Labels:            labels,
+		Labels:            r.defaultLabels(),
 		DefaultDomain:     r.clusterConfig.DefaultDomain,
 		PublicGateway:     r.clusterConfig.PublicIngressGateway,
 		PrivateGateway:    r.clusterConfig.PrivateIngressGateway,
 		DeployedRevisions: revisions,
 		AlertRules:        alertRules,
-		ServiceMonitors:        serviceMonitors,
-		ServiceLevelObjectives: slos,
 		Ports:             ports,
 		TrafficPolicy:     r.currentTrafficPolicy(),
+		PicchuConfig:      r.picchuConfig,
 	})
 	if err != nil {
 		return err
@@ -275,6 +278,119 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 			}).
 			Set(float64(revision.Weight))
 	}
+	return nil
+}
+
+// Used to label Service and selector
+func (r *ResourceSyncer) defaultLabels() map[string]string {
+	return map[string]string{
+		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
+		picchuv1alpha1.LabelK8sName:   r.instance.Spec.App,
+		picchuv1alpha1.LabelIstioApp:  r.instance.Spec.App,
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
+		picchuv1alpha1.LabelOwnerName: r.instance.Name,
+	}
+}
+
+func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
+	serviceMonitors := r.prepareServiceMonitors()
+	slos, _ := r.prepareServiceLevelObjectives()
+
+	if len(serviceMonitors) == 0 {
+		if err := r.applyPlan(ctx, "Delete Service Monitors", &rmplan.DeleteServiceMonitors{
+			App:       r.instance.Spec.App,
+			Namespace: r.instance.TargetNamespace(),
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := r.applyPlan(ctx, "Sync Service Monitors", &rmplan.SyncServiceMonitors{
+			App:                    r.instance.Spec.App,
+			Namespace:              r.instance.TargetNamespace(),
+			Labels:                 r.defaultLabels(),
+			ServiceLevelObjectives: slos,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
+	if err := r.applyDeliveryPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
+		App:       r.instance.Spec.App,
+		Namespace: r.picchuConfig.ServiceLevelsNamespace,
+	}); err != nil {
+		return err
+	}
+
+	if err := r.applyDeliveryPlan(ctx, "Delete App SLO Alerts", &rmplan.DeleteServiceLevelAlerts{
+		App:       r.instance.Spec.App,
+		Namespace: r.picchuConfig.ServiceLevelsNamespace,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
+	if r.picchuConfig.ServiceLevelsFleet != "" && r.picchuConfig.ServiceLevelsNamespace != "" {
+		slos, labels := r.prepareServiceLevelObjectives()
+		if len(slos) > 0 {
+			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+				Name: r.picchuConfig.ServiceLevelsNamespace,
+			}); err != nil {
+				return err
+			}
+
+			if err := r.applyDeliveryPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
+				App:                         r.instance.Spec.App,
+				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
+				Labels:                      r.defaultLabels(),
+				ServiceLevelObjectiveLabels: labels,
+				ServiceLevelObjectives:      slos,
+			}); err != nil {
+				return err
+			}
+
+			if err := r.applyDeliveryPlan(ctx, "Sync App SLO Alerts", &rmplan.SyncServiceLevelAlerts{
+				App:                         r.instance.Spec.App,
+				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
+				Labels:                      r.defaultLabels(),
+				ServiceLevelObjectiveLabels: labels,
+				ServiceLevelObjectives:      slos,
+			}); err != nil {
+				return err
+			}
+		} else {
+			return r.delServiceLevels(ctx)
+		}
+	}
+	return nil
+}
+
+func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
+	slos, labels := r.prepareServiceLevelObjectives()
+	if len(slos) > 0 {
+		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
+			App:                         r.instance.Spec.App,
+			Namespace:                   r.instance.TargetNamespace(),
+			Labels:                      r.defaultLabels(),
+			ServiceLevelObjectiveLabels: labels,
+			ServiceLevelObjectives:      slos,
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
+			App:       r.instance.Spec.App,
+			Namespace: r.instance.TargetNamespace(),
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -323,28 +439,28 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 		alertable := r.incarnations.alertable()
 		for _, i := range alertable {
 			if i.target() != nil {
-			return i.target().ServiceMonitors
+				return i.target().ServiceMonitors
+			}
 		}
-	}
 	}
 
 	return sm
 }
 
 // returns the PrometheusRules to support SLOs from the latest deployed revision
-func (r *ResourceSyncer) prepareServiceLevelObjectives() []*picchuv1alpha1.ServiceLevelObjective {
+func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.ServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
 	slos := []*picchuv1alpha1.ServiceLevelObjective{}
 
 	if len(r.incarnations.deployed()) > 0 {
-		releasable := r.incarnations.releasable()
+		releasable := r.incarnations.alertable()
 		for _, i := range releasable {
 			if i.target() != nil {
-			return i.target().ServiceLevelObjectives
+				return i.target().ServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
+			}
 		}
 	}
-	}
 
-	return slos
+	return slos, picchuv1alpha1.ServiceLevelObjectiveLabels{}
 }
 
 func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
