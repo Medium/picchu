@@ -103,7 +103,6 @@ func (p *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, 
 
 // return all unique metric names required by the ServiceLevelObjectives
 func (p *SyncServiceMonitors) parseMetricNames() ([]string, error) {
-
 	n := make(map[string]bool)
 	for _, slo := range p.ServiceLevelObjectives {
 		totalQuery, err := prometheus.MetricNames(slo.ServiceLevelIndicator.TotalQuery)

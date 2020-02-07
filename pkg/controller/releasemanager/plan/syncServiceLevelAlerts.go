@@ -24,13 +24,13 @@ type SyncServiceLevelAlerts struct {
 }
 
 func (p *SyncServiceLevelAlerts) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
-	sloAlerts, err := p.SLOAlerts()
+	serviceLevelAlerts, err := p.ServiceLevelAlerts()
 	if err != nil {
 		return err
 	}
 
-	if len(sloAlerts) > 0 {
-		for _, pr := range sloAlerts {
+	if len(serviceLevelAlerts) > 0 {
+		for _, pr := range serviceLevelAlerts {
 			if err := plan.CreateOrUpdate(ctx, log, cli, &pr); err != nil {
 				return err
 			}
@@ -40,8 +40,8 @@ func (p *SyncServiceLevelAlerts) Apply(ctx context.Context, cli client.Client, s
 	return nil
 }
 
-// SLOAlerts returns a PrometheusRuleList of alerts for ServiceLevels
-func (p *SyncServiceLevelAlerts) SLOAlerts() ([]monitoringv1.PrometheusRule, error) {
+// ServiceLevelAlerts returns a PrometheusRuleList of alerts for ServiceLevels
+func (p *SyncServiceLevelAlerts) ServiceLevelAlerts() ([]monitoringv1.PrometheusRule, error) {
 	prs := []monitoringv1.PrometheusRule{}
 
 	rule := p.alertRule()
