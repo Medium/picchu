@@ -14,6 +14,7 @@ import (
 
 type DeleteServiceLevels struct {
 	App       string
+	Target    string
 	Namespace string
 }
 
@@ -23,7 +24,8 @@ func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, scal
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: p.App,
+			picchuv1alpha1.LabelApp:    p.App,
+			picchuv1alpha1.LabelTarget: p.Target,
 		}),
 	}
 

@@ -22,6 +22,7 @@ var (
 	slplan = &SyncServiceLevels{
 		App:       "test-app",
 		Namespace: "testnamespace",
+		Target:    "production",
 		Labels: map[string]string{
 			picchuv1alpha1.LabelApp:     "test-app",
 			picchuv1alpha1.LabelK8sName: "test-app",
@@ -59,7 +60,7 @@ var (
 		Items: []slov1alpha1.ServiceLevel{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-app",
+					Name:      "test-app-production-servicelevels",
 					Namespace: "testnamespace",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:     "test-app",
@@ -105,7 +106,7 @@ func TestServiceLevels(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		client.ObjectKey{Name: "test-app", Namespace: "testnamespace"},
+		client.ObjectKey{Name: "test-app-production-servicelevels", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 

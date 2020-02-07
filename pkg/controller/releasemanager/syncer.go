@@ -320,6 +320,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 	if err := r.applyDeliveryPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 		App:       r.instance.Spec.App,
+		Target:    r.instance.Spec.Target,
 		Namespace: r.picchuConfig.ServiceLevelsNamespace,
 	}); err != nil {
 		return err
@@ -327,6 +328,7 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 
 	if err := r.applyDeliveryPlan(ctx, "Delete App SLO Alerts", &rmplan.DeleteServiceLevelAlerts{
 		App:       r.instance.Spec.App,
+		Target:    r.instance.Spec.Target,
 		Namespace: r.picchuConfig.ServiceLevelsNamespace,
 	}); err != nil {
 		return err
@@ -346,6 +348,7 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 
 			if err := r.applyDeliveryPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
 				App:                         r.instance.Spec.App,
+				Target:                      r.instance.Spec.Target,
 				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
 				Labels:                      r.defaultLabels(),
 				ServiceLevelObjectiveLabels: labels,
@@ -356,6 +359,7 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 
 			if err := r.applyDeliveryPlan(ctx, "Sync App SLO Alerts", &rmplan.SyncServiceLevelAlerts{
 				App:                         r.instance.Spec.App,
+				Target:                      r.instance.Spec.Target,
 				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
 				Labels:                      r.defaultLabels(),
 				ServiceLevelObjectiveLabels: labels,

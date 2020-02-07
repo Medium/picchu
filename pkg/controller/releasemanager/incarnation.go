@@ -287,6 +287,7 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 
 		return i.controller.applyDeliveryPlan(ctx, "Sync Tagged Service Levels", &rmplan.SyncTaggedServiceLevels{
 		App:                    i.appName(),
+			Target:                      i.targetName(),
 			Namespace:                   i.picchuConfig.ServiceLevelsNamespace,
 		Tag:                    i.tag,
 			Labels:                      i.defaultLabels(),
@@ -301,6 +302,7 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
 		return i.controller.applyDeliveryPlan(ctx, "Delete Tagged Service Levels", &rmplan.DeleteTaggedServiceLevels{
 		App:       i.appName(),
+			Target:    i.targetName(),
 			Namespace: i.picchuConfig.ServiceLevelsNamespace,
 		Tag:       i.tag,
 	})

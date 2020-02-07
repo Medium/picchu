@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
@@ -16,6 +17,7 @@ import (
 
 type SyncServiceLevels struct {
 	App                         string
+	Target                      string
 	Namespace                   string
 	Labels                      map[string]string
 	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
@@ -58,7 +60,7 @@ func (p *SyncServiceLevels) serviceLevels() ([]*slov1alpha1.ServiceLevel, error)
 
 	serviceLevel := &slov1alpha1.ServiceLevel{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.App,
+			Name:      p.serviceLevelName(),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
@@ -106,6 +108,10 @@ func (s *SLOConfig) serviceLevelObjective() *slov1alpha1.SLO {
 		},
 	}
 	return slo
+}
+
+func (p *SyncServiceLevels) serviceLevelName() string {
+	return fmt.Sprintf("%s-%s-servicelevels", strings.ToLower(p.App), strings.ToLower(p.Target))
 }
 
 func (s *SLOConfig) serviceLevelTotalQuery() string {

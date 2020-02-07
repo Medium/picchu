@@ -15,6 +15,7 @@ import (
 
 type SyncTaggedServiceLevels struct {
 	App                         string
+	Target                      string
 	Namespace                   string
 	Tag                         string
 	Labels                      map[string]string
@@ -85,7 +86,7 @@ func (s *SLOConfig) taggedSLISource() *slov1alpha1.PrometheusSLISource {
 }
 
 func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
-	return fmt.Sprintf("%s-%s", p.App, p.Tag)
+	return fmt.Sprintf("%s-%s-%s-servicelevels", p.App, p.Target, p.Tag)
 }
 
 func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {

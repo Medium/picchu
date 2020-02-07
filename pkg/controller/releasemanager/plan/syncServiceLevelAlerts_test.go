@@ -23,6 +23,7 @@ var (
 	slalertsplan = &SyncServiceLevelAlerts{
 		App:       "test-app",
 		Namespace: "testnamespace",
+		Target:    "production",
 		Labels: map[string]string{
 			picchuv1alpha1.LabelApp:     "test-app",
 			picchuv1alpha1.LabelK8sName: "test-app",
@@ -58,7 +59,7 @@ var (
 	sloalertexpected = &monitoringv1.PrometheusRuleList{
 		Items: []*monitoringv1.PrometheusRule{{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-app-slo-alerts",
+				Name:      "test-app-production-slo-alerts",
 				Namespace: "testnamespace",
 				Labels: map[string]string{
 					picchuv1alpha1.LabelApp:     "test-app",
@@ -108,7 +109,7 @@ func TestServiceLevelAlerts(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		client.ObjectKey{Name: "test-app-slo-alerts", Namespace: "testnamespace"},
+		client.ObjectKey{Name: "test-app-production-slo-alerts", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 

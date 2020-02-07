@@ -17,6 +17,7 @@ import (
 
 type SyncServiceLevelAlerts struct {
 	App                         string
+	Target                      string
 	Namespace                   string
 	Labels                      map[string]string
 	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
@@ -107,7 +108,7 @@ func (s *SLOConfig) alertRules() []*monitoringv1.RuleGroup {
 }
 
 func (p *SyncServiceLevelAlerts) alertRuleName() string {
-	return fmt.Sprintf("%s-slo-alerts", strings.ToLower(p.App))
+	return fmt.Sprintf("%s-%s-slo-alerts", strings.ToLower(p.App), strings.ToLower(p.Target))
 }
 
 func (s *SLOConfig) alertRuleName() string {

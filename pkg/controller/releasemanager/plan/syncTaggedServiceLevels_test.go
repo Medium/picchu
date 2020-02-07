@@ -21,6 +21,7 @@ import (
 var (
 	sltaggedplan = &SyncTaggedServiceLevels{
 		App:       "test-app",
+		Target:    "production",
 		Namespace: "testnamespace",
 		Tag:       "v1",
 		Labels: map[string]string{
@@ -62,7 +63,7 @@ var (
 		Items: []slov1alpha1.ServiceLevel{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-app-v1",
+					Name:      "test-app-production-v1-servicelevels",
 					Namespace: "testnamespace",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "test-app",
@@ -111,7 +112,7 @@ func TestTaggedServiceLevels(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		client.ObjectKey{Name: "test-app-v1", Namespace: "testnamespace"},
+		client.ObjectKey{Name: "test-app-production-v1-servicelevels", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 
