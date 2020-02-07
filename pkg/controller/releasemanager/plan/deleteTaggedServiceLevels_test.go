@@ -25,6 +25,7 @@ func TestTaggedDeleteServiceLevels(t *testing.T) {
 	deleteTaggedServiceLevels := &DeleteTaggedServiceLevels{
 		App:       "testapp",
 		Namespace: "testnamespace",
+		Target:    "target",
 		Tag:       "v1",
 	}
 	ctx := context.TODO()
@@ -32,8 +33,9 @@ func TestTaggedDeleteServiceLevels(t *testing.T) {
 	opts := &client.ListOptions{
 		Namespace: deleteTaggedServiceLevels.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: deleteTaggedServiceLevels.App,
-			picchuv1alpha1.LabelTag: deleteTaggedServiceLevels.Tag,
+			picchuv1alpha1.LabelApp:    deleteTaggedServiceLevels.App,
+			picchuv1alpha1.LabelTag:    deleteTaggedServiceLevels.Tag,
+			picchuv1alpha1.LabelTarget: deleteTaggedServiceLevels.Target,
 		}),
 	}
 

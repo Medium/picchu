@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestDeleteSLOAlerts(t *testing.T) {
+func TestDeleteServiceLevelAlerts(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockClient(ctrl)
@@ -25,13 +25,15 @@ func TestDeleteSLOAlerts(t *testing.T) {
 	deleteSLOAlerts := &DeleteServiceLevelAlerts{
 		App:       "testapp",
 		Namespace: "testnamespace",
+		Target:    "target",
 	}
 	ctx := context.TODO()
 
 	opts := &client.ListOptions{
 		Namespace: deleteSLOAlerts.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: deleteSLOAlerts.App,
+			picchuv1alpha1.LabelApp:    deleteSLOAlerts.App,
+			picchuv1alpha1.LabelTarget: deleteSLOAlerts.Target,
 		}),
 	}
 

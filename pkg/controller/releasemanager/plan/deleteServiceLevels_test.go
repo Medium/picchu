@@ -25,13 +25,15 @@ func TestDeleteServiceLevels(t *testing.T) {
 	deleteServiceLevels := &DeleteServiceLevels{
 		App:       "testapp",
 		Namespace: "testnamespace",
+		Target:    "target",
 	}
 	ctx := context.TODO()
 
 	opts := &client.ListOptions{
 		Namespace: deleteServiceLevels.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: deleteServiceLevels.App,
+			picchuv1alpha1.LabelApp:    deleteServiceLevels.App,
+			picchuv1alpha1.LabelTarget: deleteServiceLevels.Target,
 		}),
 	}
 
