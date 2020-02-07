@@ -3,7 +3,6 @@ package plan
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
@@ -142,7 +141,6 @@ func (s *SLOConfig) canaryQuery() string {
 }
 
 func (s *SLOConfig) formatAllowancePercent() string {
-	x, y := big.NewFloat(s.SLO.ServiceLevelIndicator.Canary.AllowancePercent), big.NewFloat(100)
-	r := new(big.Float).Quo(x, y)
+	r := s.SLO.ServiceLevelIndicator.Canary.AllowancePercent / 100
 	return fmt.Sprintf("%.10g", r)
 }

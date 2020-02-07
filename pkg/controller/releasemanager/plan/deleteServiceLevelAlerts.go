@@ -30,20 +30,18 @@ func (p *DeleteServiceLevelAlerts) Apply(ctx context.Context, cli client.Client,
 	}
 
 	if err := cli.List(ctx, prlist, opts); err != nil {
-		log.Error(err, "Failed to delete SLO Alerts")
+		log.Error(err, "Failed to delete Service Level Alerts")
 		return err
 	}
 
-	if prlist.Items != nil {
-		for _, sm := range prlist.Items {
-			err := cli.Delete(ctx, sm)
-			if err != nil && !errors.IsNotFound(err) {
-				plan.LogSync(log, "deleted", err, sm)
-				return err
-			}
-			if err == nil {
-				plan.LogSync(log, "deleted", err, sm)
-			}
+	for _, sm := range prlist.Items {
+		err := cli.Delete(ctx, sm)
+		if err != nil && !errors.IsNotFound(err) {
+			plan.LogSync(log, "deleted", err, sm)
+			return err
+		}
+		if err == nil {
+			plan.LogSync(log, "deleted", err, sm)
 		}
 	}
 	return nil

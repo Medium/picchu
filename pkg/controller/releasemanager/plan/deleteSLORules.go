@@ -32,17 +32,16 @@ func (p *DeleteSLORules) Apply(ctx context.Context, cli client.Client, scalingFa
 		return err
 	}
 
-	if prlist.Items != nil {
-		for _, sm := range prlist.Items {
-			err := cli.Delete(ctx, sm)
-			if err != nil && !errors.IsNotFound(err) {
-				plan.LogSync(log, "deleted", err, sm)
-				return err
-			}
-			if err == nil {
-				plan.LogSync(log, "deleted", err, sm)
-			}
+	for _, sm := range prlist.Items {
+		err := cli.Delete(ctx, sm)
+		if err != nil && !errors.IsNotFound(err) {
+			plan.LogSync(log, "deleted", err, sm)
+			return err
+		}
+		if err == nil {
+			plan.LogSync(log, "deleted", err, sm)
 		}
 	}
+
 	return nil
 }

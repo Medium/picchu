@@ -250,13 +250,16 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		rmLog.Info("Updated releasemanager status", "Content", rm.Status, "Type", "ReleaseManager.Status")
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	} else if !rm.IsFinalized() {
+		rmLog.Info("Deleting ServiceLevels")
+		if err := syncer.delServiceLevels(ctx); err != nil {
+			return reconcile.Result{}, err
+		}
+
 		rmLog.Info("Deleting releasemanager")
 		if err := syncer.del(ctx); err != nil {
 			return reconcile.Result{}, err
 		}
-		if err := syncer.delServiceLevels(ctx); err != nil {
-			return reconcile.Result{}, err
-		}
+
 		rm.Finalize()
 		err := r.client.Update(ctx, rm)
 		return reconcile.Result{}, err

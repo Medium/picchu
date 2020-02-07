@@ -27,14 +27,6 @@ type SyncSLORules struct {
 	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
-type SLOConfig struct {
-	SLO    *picchuv1alpha1.ServiceLevelObjective
-	App    string
-	Name   string
-	Tag    string
-	Labels picchuv1alpha1.ServiceLevelObjectiveLabels
-}
-
 func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
 	sloRules, err := p.SLORules()
 	if err != nil {
@@ -117,14 +109,6 @@ func (s *SLOConfig) recordingRules() []*monitoringv1.RuleGroup {
 
 func (s *SLOConfig) recordingRuleName() string {
 	return fmt.Sprintf("%s_record", s.Name)
-}
-
-func (s *SLOConfig) totalQuery() string {
-	return fmt.Sprintf("%s:%s:%s", sanitizeName(s.App), sanitizeName(s.Name), "total")
-}
-
-func (s *SLOConfig) errorQuery() string {
-	return fmt.Sprintf("%s:%s:%s", sanitizeName(s.App), sanitizeName(s.Name), "errors")
 }
 
 func (p *SyncSLORules) prometheusRuleName() string {

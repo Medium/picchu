@@ -308,6 +308,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 			App:                    r.instance.Spec.App,
 			Namespace:              r.instance.TargetNamespace(),
 			Labels:                 r.defaultLabels(),
+			ServiceMonitors:        serviceMonitors,
 			ServiceLevelObjectives: slos,
 		}); err != nil {
 			return err
@@ -338,7 +339,7 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 	if r.picchuConfig.ServiceLevelsFleet != "" && r.picchuConfig.ServiceLevelsNamespace != "" {
-		slos, labels := r.prepareServiceLevelObjectives()
+		slos, sloLabels := r.prepareServiceLevelObjectives()
 		if len(slos) > 0 {
 			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
 				Name: r.picchuConfig.ServiceLevelsNamespace,
@@ -346,12 +347,15 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 				return err
 			}
 
+			labels := r.defaultLabels()
+			labels[picchuv1alpha1.LabelTarget] = r.instance.Spec.Target
+
 			if err := r.applyDeliveryPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
 				App:                         r.instance.Spec.App,
 				Target:                      r.instance.Spec.Target,
 				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
-				Labels:                      r.defaultLabels(),
-				ServiceLevelObjectiveLabels: labels,
+				Labels:                      labels,
+				ServiceLevelObjectiveLabels: sloLabels,
 				ServiceLevelObjectives:      slos,
 			}); err != nil {
 				return err
@@ -361,8 +365,8 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 				App:                         r.instance.Spec.App,
 				Target:                      r.instance.Spec.Target,
 				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
-				Labels:                      r.defaultLabels(),
-				ServiceLevelObjectiveLabels: labels,
+				Labels:                      labels,
+				ServiceLevelObjectiveLabels: sloLabels,
 				ServiceLevelObjectives:      slos,
 			}); err != nil {
 				return err
@@ -443,7 +447,7 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 		alertable := r.incarnations.alertable()
 		for _, i := range alertable {
 			if i.target() != nil {
-				return i.target().ServiceMonitors
+				sm = i.target().ServiceMonitors
 			}
 		}
 	}
