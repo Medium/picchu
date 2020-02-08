@@ -236,6 +236,7 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	labels := map[string]string{
 		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
 		picchuv1alpha1.LabelK8sName:   r.instance.Spec.App,
+		picchuv1alpha1.LabelIstioApp:  r.instance.Spec.App,
 		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
 		picchuv1alpha1.LabelOwnerName: r.instance.Name,
 	}
