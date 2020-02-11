@@ -68,11 +68,19 @@ func (p *SyncSLORules) SLORules() ([]monitoringv1.PrometheusRule, error) {
 }
 
 func (p *SyncSLORules) prometheusRule() *monitoringv1.PrometheusRule {
+	labels := make(map[string]string)
+	for k, v := range p.Labels {
+		labels[k] = v
+	}
+	for k, v := range p.ServiceLevelObjectiveLabels.RuleLabels {
+		labels[k] = v
+	}
+
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.prometheusRuleName(),
 			Namespace: p.Namespace,
-			Labels:    p.Labels,
+			Labels:    labels,
 		},
 	}
 }
@@ -80,25 +88,16 @@ func (p *SyncSLORules) prometheusRule() *monitoringv1.PrometheusRule {
 func (s *SLOConfig) recordingRules() []*monitoringv1.RuleGroup {
 	ruleGroups := []*monitoringv1.RuleGroup{}
 
-	labels := make(map[string]string)
-	for k, v := range s.Labels.RuleLabels {
-		labels[k] = v
-	}
-	for k, v := range s.SLO.ServiceLevelObjectiveLabels.RuleLabels {
-		labels[k] = v
-	}
 	ruleGroup := &monitoringv1.RuleGroup{
 		Name: s.recordingRuleName(),
 		Rules: []monitoringv1.Rule{
 			{
 				Record: s.totalQuery(),
 				Expr:   intstr.FromString(s.SLO.ServiceLevelIndicator.TotalQuery),
-				Labels: labels,
 			},
 			{
 				Record: s.errorQuery(),
 				Expr:   intstr.FromString(s.SLO.ServiceLevelIndicator.ErrorQuery),
-				Labels: labels,
 			},
 		},
 	}

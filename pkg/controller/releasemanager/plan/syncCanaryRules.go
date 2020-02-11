@@ -79,6 +79,9 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 	for k, v := range p.Labels {
 		labels[k] = v
 	}
+	for k, v := range p.ServiceLevelObjectiveLabels.RuleLabels {
+		labels[k] = v
+	}
 
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{

@@ -64,6 +64,7 @@ var (
 				Labels: map[string]string{
 					picchuv1alpha1.LabelApp:     "test-app",
 					picchuv1alpha1.LabelK8sName: "test-app",
+					"severity":                  "test",
 				},
 			},
 			Spec: monitoringv1.PrometheusRuleSpec{
@@ -74,18 +75,10 @@ var (
 							{
 								Record: "test_app:test_app_availability:total",
 								Expr:   intstr.FromString("sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)"),
-								Labels: map[string]string{
-									"severity": "test",
-									"team":     "test",
-								},
 							},
 							{
 								Record: "test_app:test_app_availability:errors",
 								Expr:   intstr.FromString("sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)"),
-								Labels: map[string]string{
-									"severity": "test",
-									"team":     "test",
-								},
 							},
 						},
 					},
