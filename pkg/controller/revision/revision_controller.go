@@ -36,7 +36,7 @@ const (
 
 var (
 	clog              = logf.Log.WithName("controller_revision")
-	AcceptanceTargets = []string{"production"}
+	AcceptanceTargets = map[string]bool{"production": true}
 
 	revisionFailedGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_failed",
@@ -202,32 +202,30 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 	if triggered && !instance.Spec.IgnoreSLOs {
+		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
+		for i := range status.Targets {
+			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
+		}
+
 		accepted := true
-		var acceptanceTargets []string
-		for _, target := range instance.Spec.Targets {
-			if target.AcceptanceTarget {
-				acceptanceTargets = append(acceptanceTargets, target.Name)
-			} else {
-				for _, targetName := range AcceptanceTargets {
-					if target.Name == targetName {
-						acceptanceTargets = append(acceptanceTargets, target.Name)
-					}
+		var peakPercent uint32
+		for _, revisionTarget := range instance.Spec.Targets {
+			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
+				targetStatus := targetStatusMap[revisionTarget.Name]
+				if targetStatus == nil {
+					continue
+				}
+				if targetStatus.Release.PeakPercent < AcceptancePercentage {
+					accepted = false
+					peakPercent = targetStatus.Release.PeakPercent
+					break
 				}
 			}
 		}
 
-		for _, targetStatus := range status.Targets {
-			for _, targetName := range acceptanceTargets {
-				if targetStatus.Name == targetName {
-					if targetStatus.Release.PeakPercent < AcceptancePercentage {
-						accepted = false
-					}
-				}
-			}
-		}
 		if !accepted {
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
-				instance.Fail()
+				instance.Fail(fmt.Sprintf("Release PeakPercent of %d%% does not meet AcceptancePercentage of %d%%", peakPercent, AcceptancePercentage))
 				return nil
 			})
 			if err != nil {
