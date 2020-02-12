@@ -52,12 +52,12 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 
 	rule := p.prometheusRule()
 
-	for _, slo := range p.ServiceLevelObjectives {
-		if slo.ServiceLevelIndicator.Canary.Enabled {
+	for i := range p.ServiceLevelObjectives {
+		if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
 			config := SLOConfig{
-				SLO:    slo,
+				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
-				Name:   sanitizeName(slo.Name),
+				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
 				Tag:    p.Tag,
 				Labels: p.ServiceLevelObjectiveLabels,
 			}

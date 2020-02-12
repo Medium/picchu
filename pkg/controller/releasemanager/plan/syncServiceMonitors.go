@@ -28,8 +28,8 @@ func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, scal
 		return err
 	}
 	if len(serviceMonitors.Items) > 0 {
-		for _, sm := range serviceMonitors.Items {
-			if err := plan.CreateOrUpdate(ctx, log, cli, sm); err != nil {
+		for i := range serviceMonitors.Items {
+			if err := plan.CreateOrUpdate(ctx, log, cli, serviceMonitors.Items[i]); err != nil {
 				return err
 			}
 		}
@@ -49,8 +49,8 @@ func (p *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorLis
 	sml := &monitoringv1.ServiceMonitorList{}
 	sms := []*monitoringv1.ServiceMonitor{}
 
-	for _, serviceMonitor := range p.ServiceMonitors {
-		sm := p.serviceMonitor(serviceMonitor, metricNamesRegex)
+	for i := range p.ServiceMonitors {
+		sm := p.serviceMonitor(p.ServiceMonitors[i], metricNamesRegex)
 		sms = append(sms, sm)
 	}
 	sml.Items = sms
@@ -104,15 +104,15 @@ func (p *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, 
 // return all unique metric names required by the ServiceLevelObjectives
 func (p *SyncServiceMonitors) parseMetricNames() ([]string, error) {
 	n := make(map[string]bool)
-	for _, slo := range p.ServiceLevelObjectives {
-		totalQuery, err := prometheus.MetricNames(slo.ServiceLevelIndicator.TotalQuery)
+	for i := range p.ServiceLevelObjectives {
+		totalQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.TotalQuery)
 		if err != nil {
 			return nil, err
 		}
 		for name := range totalQuery {
 			n[name] = true
 		}
-		errorQuery, err := prometheus.MetricNames(slo.ServiceLevelIndicator.ErrorQuery)
+		errorQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.ErrorQuery)
 		if err != nil {
 			return nil, err
 		}

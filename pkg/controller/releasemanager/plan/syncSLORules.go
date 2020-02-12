@@ -50,16 +50,16 @@ func (p *SyncSLORules) SLORules() ([]monitoringv1.PrometheusRule, error) {
 
 	rule := p.prometheusRule()
 
-	for _, slo := range p.ServiceLevelObjectives {
+	for i := range p.ServiceLevelObjectives {
 		config := SLOConfig{
-			SLO:    slo,
+			SLO:    p.ServiceLevelObjectives[i],
 			App:    p.App,
-			Name:   sanitizeName(slo.Name),
+			Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
 			Labels: p.ServiceLevelObjectiveLabels,
 		}
 		recordingRules := config.recordingRules()
-		for _, rg := range recordingRules {
-			rule.Spec.Groups = append(rule.Spec.Groups, *rg)
+		for j := range recordingRules {
+			rule.Spec.Groups = append(rule.Spec.Groups, *recordingRules[j])
 		}
 	}
 

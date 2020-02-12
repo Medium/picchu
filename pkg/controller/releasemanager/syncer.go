@@ -264,7 +264,6 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		AlertRules:        alertRules,
 		Ports:             ports,
 		TrafficPolicy:     r.currentTrafficPolicy(),
-		PicchuConfig:      r.picchuConfig,
 	})
 	if err != nil {
 		return err
@@ -375,6 +374,7 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 			return r.delServiceLevels(ctx)
 		}
 	}
+	r.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncServiceLevels")
 	return nil
 }
 
@@ -455,12 +455,12 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 	return sm
 }
 
-// returns the PrometheusRules to support SLOs from the latest deployed revision
+// returns the PrometheusRules to support SLOs from the latest released revision
 func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.ServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
 	slos := []*picchuv1alpha1.ServiceLevelObjective{}
 
 	if len(r.incarnations.deployed()) > 0 {
-		releasable := r.incarnations.alertable()
+		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
 				return i.target().ServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels

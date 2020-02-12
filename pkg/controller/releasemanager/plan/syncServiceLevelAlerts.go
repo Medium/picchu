@@ -47,11 +47,11 @@ func (p *SyncServiceLevelAlerts) ServiceLevelAlerts() ([]monitoringv1.Prometheus
 
 	rule := p.alertRule()
 
-	for _, slo := range p.ServiceLevelObjectives {
+	for i := range p.ServiceLevelObjectives {
 		config := SLOConfig{
-			SLO:    slo,
+			SLO:    p.ServiceLevelObjectives[i],
 			App:    p.App,
-			Name:   sanitizeName(slo.Name),
+			Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
 			Labels: p.ServiceLevelObjectiveLabels,
 		}
 		recordingRules := config.alertRules()

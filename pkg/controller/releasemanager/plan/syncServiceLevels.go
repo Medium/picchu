@@ -30,8 +30,8 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, scalin
 		return err
 	}
 	if len(serviceLevels) > 0 {
-		for _, sl := range serviceLevels {
-			if err := plan.CreateOrUpdate(ctx, log, cli, sl); err != nil {
+		for i := range serviceLevels {
+			if err := plan.CreateOrUpdate(ctx, log, cli, serviceLevels[i]); err != nil {
 				return err
 			}
 		}
@@ -44,12 +44,12 @@ func (p *SyncServiceLevels) serviceLevels() ([]*slov1alpha1.ServiceLevel, error)
 	sl := []*slov1alpha1.ServiceLevel{}
 	slos := []slov1alpha1.SLO{}
 
-	for _, slo := range p.ServiceLevelObjectives {
-		if slo.Enabled {
+	for i := range p.ServiceLevelObjectives {
+		if p.ServiceLevelObjectives[i].Enabled {
 			config := SLOConfig{
-				SLO:    slo,
+				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
-				Name:   sanitizeName(slo.Name),
+				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective()

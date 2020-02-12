@@ -29,8 +29,8 @@ func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, 
 		return err
 	}
 	if len(serviceLevels.Items) > 0 {
-		for _, sl := range serviceLevels.Items {
-			if err := plan.CreateOrUpdate(ctx, log, cli, &sl); err != nil {
+		for i := range serviceLevels.Items {
+			if err := plan.CreateOrUpdate(ctx, log, cli, &serviceLevels.Items[i]); err != nil {
 				return err
 			}
 		}
@@ -44,12 +44,12 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 	sl := []slov1alpha1.ServiceLevel{}
 	slos := []slov1alpha1.SLO{}
 
-	for _, slo := range p.ServiceLevelObjectives {
-		if slo.Enabled {
+	for i := range p.ServiceLevelObjectives {
+		if p.ServiceLevelObjectives[i].Enabled {
 			config := SLOConfig{
-				SLO:    slo,
+				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
-				Name:   sanitizeName(slo.Name),
+				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
 				Tag:    p.Tag,
 				Labels: p.ServiceLevelObjectiveLabels,
 			}

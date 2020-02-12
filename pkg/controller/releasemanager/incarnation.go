@@ -295,6 +295,8 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
 	})
 }
+
+	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncTaggedServiceLevels")
 	return nil
 }
 
@@ -307,6 +309,7 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 		Tag:       i.tag,
 	})
 }
+	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping DeleteTaggedServiceLevels")
 	return nil
 }
 
