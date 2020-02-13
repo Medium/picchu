@@ -42,11 +42,11 @@ type Incarnation struct {
 	revision   *picchuv1alpha1.Revision
 	log        logr.Logger
 	status     *picchuv1alpha1.ReleaseManagerRevisionStatus
-	picchuConfig *utils.Config
+	picchuConfig utils.Config
 }
 
 // NewIncarnation creates a new Incarnation
-func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, config *utils.Config) *Incarnation {
+func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.Revision, log logr.Logger, di *observe.DeploymentInfo, config utils.Config) *Incarnation {
 	status := controller.getReleaseManager().RevisionStatus(tag)
 
 	if status.State.Current == "" {
@@ -86,6 +86,7 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 		rev := *revision
 		r = &rev
 	}
+
 	i := Incarnation{
 		controller:            controller,
 		tag:                   tag,
@@ -609,7 +610,7 @@ type IncarnationCollection struct {
 	controller Controller
 }
 
-func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, config *utils.Config) *IncarnationCollection {
+func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha1.RevisionList, observation *observe.Observation, config utils.Config) *IncarnationCollection {
 	ic := &IncarnationCollection{
 		controller: controller,
 		itemSet:    make(map[string]*Incarnation),
