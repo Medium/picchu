@@ -5,7 +5,7 @@ import (
 	_ "runtime"
 	"testing"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -16,33 +16,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestDeleteAlerts(t *testing.T) {
+func TestTaggedDeleteServiceLevels(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockClient(ctrl)
 	defer ctrl.Finish()
 
-	deleteAlerts := &DeleteAlerts{
+	deleteTaggedServiceLevels := &DeleteTaggedServiceLevels{
 		App:       "testapp",
 		Namespace: "testnamespace",
-		Tag:       "testtag",
-		AlertType: Canary,
+		Target:    "target",
+		Tag:       "v1",
 	}
 	ctx := context.TODO()
 
 	opts := &client.ListOptions{
-		Namespace: deleteAlerts.Namespace,
+		Namespace: deleteTaggedServiceLevels.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp:      deleteAlerts.App,
-			picchuv1alpha1.LabelTag:      deleteAlerts.Tag,
-			picchuv1alpha1.LabelRuleType: string(deleteAlerts.AlertType),
+			picchuv1alpha1.LabelApp:    deleteTaggedServiceLevels.App,
+			picchuv1alpha1.LabelTag:    deleteTaggedServiceLevels.Tag,
+			picchuv1alpha1.LabelTarget: deleteTaggedServiceLevels.Target,
 		}),
 	}
 
-	rules := []monitoringv1.PrometheusRule{
-		monitoringv1.PrometheusRule{
+	sl := []slov1alpha1.ServiceLevel{
+		slov1alpha1.ServiceLevel{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-rules",
+				Name:      "test",
 				Namespace: "testnamespace",
 			},
 		},
@@ -50,15 +50,15 @@ func TestDeleteAlerts(t *testing.T) {
 
 	m.
 		EXPECT().
-		List(ctx, mocks.InjectPrometheusRules(rules), mocks.ListOptions(opts)).
+		List(ctx, mocks.InjectServiceLevels(sl), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 
 	m.
 		EXPECT().
-		Delete(ctx, mocks.And(mocks.NamespacedName("testnamespace", "test-rules"), mocks.Kind("PrometheusRule"))).
+		Delete(ctx, mocks.And(mocks.NamespacedName("testnamespace", "test"), mocks.Kind("ServiceLevel"))).
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, deleteAlerts.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, deleteTaggedServiceLevels.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }

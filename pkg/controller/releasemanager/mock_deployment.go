@@ -77,18 +77,32 @@ func (mr *MockDeploymentMockRecorder) deleteCanaryRules(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteCanaryRules", reflect.TypeOf((*MockDeployment)(nil).deleteCanaryRules), arg0)
 }
 
-// deleteSLIRules mocks base method
-func (m *MockDeployment) deleteSLIRules(arg0 context.Context) error {
+// deleteServiceLevels mocks base method
+func (m *MockDeployment) deleteServiceLevels(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "deleteSLIRules", arg0)
+	ret := m.ctrl.Call(m, "deleteServiceLevels", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// deleteSLIRules indicates an expected call of deleteSLIRules
-func (mr *MockDeploymentMockRecorder) deleteSLIRules(arg0 interface{}) *gomock.Call {
+// deleteServiceLevels indicates an expected call of deleteServiceLevels
+func (mr *MockDeploymentMockRecorder) deleteServiceLevels(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteSLIRules", reflect.TypeOf((*MockDeployment)(nil).deleteSLIRules), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteServiceLevels", reflect.TypeOf((*MockDeployment)(nil).deleteServiceLevels), arg0)
+}
+
+// deleteTaggedServiceLevels mocks base method
+func (m *MockDeployment) deleteTaggedServiceLevels(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deleteTaggedServiceLevels", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// deleteTaggedServiceLevels indicates an expected call of deleteTaggedServiceLevels
+func (mr *MockDeploymentMockRecorder) deleteTaggedServiceLevels(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteTaggedServiceLevels", reflect.TypeOf((*MockDeployment)(nil).deleteTaggedServiceLevels), arg0)
 }
 
 // getExternalTestStatus mocks base method
@@ -299,16 +313,30 @@ func (mr *MockDeploymentMockRecorder) syncCanaryRules(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncCanaryRules", reflect.TypeOf((*MockDeployment)(nil).syncCanaryRules), arg0)
 }
 
-// syncSLIRules mocks base method
-func (m *MockDeployment) syncSLIRules(arg0 context.Context) error {
+// syncServiceLevels mocks base method
+func (m *MockDeployment) syncServiceLevels(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "syncSLIRules", arg0)
+	ret := m.ctrl.Call(m, "syncServiceLevels", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// syncSLIRules indicates an expected call of syncSLIRules
-func (mr *MockDeploymentMockRecorder) syncSLIRules(arg0 interface{}) *gomock.Call {
+// syncServiceLevels indicates an expected call of syncServiceLevels
+func (mr *MockDeploymentMockRecorder) syncServiceLevels(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncSLIRules", reflect.TypeOf((*MockDeployment)(nil).syncSLIRules), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncServiceLevels", reflect.TypeOf((*MockDeployment)(nil).syncServiceLevels), arg0)
+}
+
+// syncTaggedServiceLevels mocks base method
+func (m *MockDeployment) syncTaggedServiceLevels(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "syncTaggedServiceLevels", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// syncTaggedServiceLevels indicates an expected call of syncTaggedServiceLevels
+func (mr *MockDeploymentMockRecorder) syncTaggedServiceLevels(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncTaggedServiceLevels", reflect.TypeOf((*MockDeployment)(nil).syncTaggedServiceLevels), arg0)
 }

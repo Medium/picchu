@@ -16,11 +16,15 @@ import (
 var (
 	CanaryFiringTemplate = template.Must(template.
 				New("canaryFiringAlerts").
-				Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.TagLabel}}="{{.Tag}}",alertType="canary",alertstate="{{.AlertState}}"})`))
+				Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.TagLabel}}="{{.Tag}}",canary="true",alertstate="{{.AlertState}}"})`))
 	SLOFiringTemplate = template.Must(template.
 				New("sloFiringAlerts").
 				Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
 	log = logf.Log.WithName("prometheus_alerts")
+)
+
+const (
+	TagLabel = "tag"
 )
 
 type PromAPI interface {
@@ -38,7 +42,7 @@ func NewAlertQuery(app, tag string) AlertQuery {
 	return AlertQuery{
 		App:        app,
 		AlertState: "firing",
-		TagLabel:   "tag",
+		TagLabel:   TagLabel,
 		Tag:        tag,
 	}
 }

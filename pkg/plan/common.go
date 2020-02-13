@@ -6,6 +6,7 @@ import (
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
+	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
@@ -134,6 +135,40 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, pm)
+		if err != nil {
+			return err
+		}
+	case *monitoringv1.ServiceMonitor:
+		typed := orig.DeepCopy()
+		sm := &monitoringv1.ServiceMonitor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, sm, func() error {
+			sm.Spec = typed.Spec
+			sm.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, sm)
+		if err != nil {
+			return err
+		}
+	case *slov1alpha1.ServiceLevel:
+		typed := orig.DeepCopy()
+		sl := &slov1alpha1.ServiceLevel{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, sl, func() error {
+			sl.Spec = typed.Spec
+			sl.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, sl)
 		if err != nil {
 			return err
 		}

@@ -50,11 +50,12 @@ func (c *ClusterInfoList) ExpectedReplicaCount(liveness bool, count int) int {
 }
 
 type IncarnationController struct {
-	deliveryClient client.Client
-	planApplier    plan.Applier
-	log            logr.Logger
-	releaseManager *picchuv1alpha1.ReleaseManager
-	clusterInfo    ClusterInfoList
+	deliveryClient  client.Client
+	deliveryApplier plan.Applier
+	planApplier     plan.Applier
+	log             logr.Logger
+	releaseManager  *picchuv1alpha1.ReleaseManager
+	clusterInfo     ClusterInfoList
 }
 
 func (i *IncarnationController) getLog() logr.Logger {
@@ -109,6 +110,11 @@ func (i *IncarnationController) getConfigMaps(ctx context.Context, opts *client.
 func (i *IncarnationController) applyPlan(ctx context.Context, name string, p plan.Plan) error {
 	i.log.Info("Applying plan", "Name", name, "Plan", p)
 	return i.planApplier.Apply(ctx, p)
+}
+
+func (i *IncarnationController) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
+	i.log.Info("Applying delivery plan", "Name", name, "Plan", p)
+	return i.deliveryApplier.Apply(ctx, p)
 }
 
 func (i *IncarnationController) divideReplicas(count int32, percent int32) int32 {
