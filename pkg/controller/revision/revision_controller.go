@@ -57,13 +57,13 @@ func Add(mgr manager.Manager, c utils.Config) error {
 }
 
 type PromAPI interface {
-	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, error)
+	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error)
 }
 
 type NoopPromAPI struct{}
 
-func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, error) {
-	return false, nil
+func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error) {
+	return false, nil, nil
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -197,7 +197,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
+	triggered, alerts, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -224,6 +224,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		if !accepted {
+			_ = alerts // TODO(mk) save alertnames to be read later
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
 				instance.Fail(fmt.Sprintf("Release PeakPercent of %d%% does not meet AcceptancePercentage of %d%%", peakPercent, AcceptancePercentage))
 				return nil
