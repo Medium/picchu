@@ -36,12 +36,12 @@ type Controller interface {
 
 // Incarnation respresents an applied revision
 type Incarnation struct {
-	deployed   bool
-	controller Controller
-	tag        string
-	revision   *picchuv1alpha1.Revision
-	log        logr.Logger
-	status     *picchuv1alpha1.ReleaseManagerRevisionStatus
+	deployed     bool
+	controller   Controller
+	tag          string
+	revision     *picchuv1alpha1.Revision
+	log          logr.Logger
+	status       *picchuv1alpha1.ReleaseManagerRevisionStatus
 	picchuConfig utils.Config
 }
 
@@ -88,11 +88,11 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 	}
 
 	i := Incarnation{
-		controller:            controller,
-		tag:                   tag,
-		revision:              r,
-		log:                   log,
-		status:                status,
+		controller:   controller,
+		tag:          tag,
+		revision:     r,
+		log:          log,
+		status:       status,
 		picchuConfig: config,
 	}
 	i.update(di)
@@ -260,12 +260,12 @@ func (i *Incarnation) sync(ctx context.Context) error {
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
 	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncCanaryRules{
-		App:                    i.appName(),
-		Namespace:              i.targetNamespace(),
-		Tag:                    i.tag,
+		App:                         i.appName(),
+		Namespace:                   i.targetNamespace(),
+		Tag:                         i.tag,
 		Labels:                      i.defaultLabels(),
 		ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
-		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
+		ServiceLevelObjectives:      i.target().ServiceLevelObjectives,
 	})
 }
 
@@ -281,21 +281,21 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
 		err := i.controller.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
 			Name: i.picchuConfig.ServiceLevelsNamespace,
-	})
+		})
 		if err != nil {
 			return err
-}
+		}
 
 		return i.controller.applyDeliveryPlan(ctx, "Sync Tagged Service Levels", &rmplan.SyncTaggedServiceLevels{
-		App:                    i.appName(),
+			App:                         i.appName(),
 			Target:                      i.targetName(),
 			Namespace:                   i.picchuConfig.ServiceLevelsNamespace,
-		Tag:                    i.tag,
+			Tag:                         i.tag,
 			Labels:                      i.defaultLabels(),
 			ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
-		ServiceLevelObjectives: i.target().ServiceLevelObjectives,
-	})
-}
+			ServiceLevelObjectives:      i.target().ServiceLevelObjectives,
+		})
+	}
 
 	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncTaggedServiceLevels")
 	return nil
@@ -304,12 +304,12 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
 		return i.controller.applyDeliveryPlan(ctx, "Delete Tagged Service Levels", &rmplan.DeleteTaggedServiceLevels{
-		App:       i.appName(),
+			App:       i.appName(),
 			Target:    i.targetName(),
 			Namespace: i.picchuConfig.ServiceLevelsNamespace,
-		Tag:       i.tag,
-	})
-}
+			Tag:       i.tag,
+		})
+	}
 	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping DeleteTaggedServiceLevels")
 	return nil
 }

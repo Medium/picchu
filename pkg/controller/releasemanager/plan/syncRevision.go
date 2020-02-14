@@ -201,6 +201,15 @@ func (p *SyncRevision) syncReplicaSet(
 	}
 
 	scaledReplicas := int32(math.Ceil(float64(p.Replicas) * scalingFactor))
+
+	// Safe to remove once no existing ReplicaSets are missing the new picchuv1alpha1.LabelIstioApp label
+	tempSelector := make(map[string]string)
+	for k, v := range podLabels {
+		if k != picchuv1alpha1.LabelIstioApp && k != picchuv1alpha1.LabelIstioVersion {
+			tempSelector[k] = v
+		}
+	}
+	// End badness
 	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: p.Namespace,
@@ -209,7 +218,7 @@ func (p *SyncRevision) syncReplicaSet(
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas:        &scaledReplicas,
-			Selector:        metav1.SetAsLabelSelector(podLabels),
+			Selector:        metav1.SetAsLabelSelector(tempSelector),
 			Template:        template,
 			MinReadySeconds: p.MinReadySeconds,
 		},
