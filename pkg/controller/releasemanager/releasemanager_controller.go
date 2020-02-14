@@ -172,6 +172,28 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
+	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.config.ServiceLevelsFleet)
+	if err != nil {
+		rmLog.Error(err, "Failed to get delivery clusters for fleet", "Fleet.Name", r.config.ServiceLevelsFleet)
+	}
+	deliveryClusterInfo := ClusterInfoList{}
+	for _, cluster := range deliveryClusters {
+		var scalingFactor float64 = 0.0
+		if cluster.Spec.ScalingFactor != nil {
+			scalingFactor = *cluster.Spec.ScalingFactor
+		}
+		deliveryClusterInfo = append(deliveryClusterInfo, ClusterInfo{
+			Name:          cluster.Name,
+			Live:          !cluster.Spec.HotStandby,
+			ScalingFactor: scalingFactor,
+		})
+	}
+
+	deliveryApplier, err := r.newPlanApplier(ctx, rmLog, deliveryClusters)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	observer, err := r.newObserver(ctx, rmLog, clusters)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -193,22 +215,25 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	ic := &IncarnationController{
-		deliveryClient: r.client,
-		planApplier:    planApplier,
-		log:            rmLog,
-		releaseManager: rm,
-		clusterInfo:    clusterInfo,
+		deliveryClient:  r.client,
+		deliveryApplier: deliveryApplier,
+		planApplier:     planApplier,
+		log:             rmLog,
+		releaseManager:  rm,
+		clusterInfo:     clusterInfo,
 	}
 
 	syncer := ResourceSyncer{
-		deliveryClient: r.client,
-		planApplier:    planApplier,
-		observer:       observer,
-		instance:       rm,
-		incarnations:   newIncarnationCollection(ic, revisions, observation, r.config.HumaneReleasesEnabled),
-		reconciler:     r,
-		log:            rmLog,
-		clusterConfig:  clusterConfig,
+		deliveryClient:  r.client,
+		deliveryApplier: deliveryApplier,
+		planApplier:     planApplier,
+		observer:        observer,
+		instance:        rm,
+		incarnations:    newIncarnationCollection(ic, revisions, observation, r.config),
+		reconciler:      r,
+		log:             rmLog,
+		clusterConfig:   clusterConfig,
+		picchuConfig:    r.config,
 	}
 
 	if !rm.IsDeleted() {
@@ -225,10 +250,16 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		rmLog.Info("Updated releasemanager status", "Content", rm.Status, "Type", "ReleaseManager.Status")
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	} else if !rm.IsFinalized() {
+		rmLog.Info("Deleting ServiceLevels")
+		if err := syncer.delServiceLevels(ctx); err != nil {
+			return reconcile.Result{}, err
+		}
+
 		rmLog.Info("Deleting releasemanager")
 		if err := syncer.del(ctx); err != nil {
 			return reconcile.Result{}, err
 		}
+
 		rm.Finalize()
 		err := r.client.Update(ctx, rm)
 		return reconcile.Result{}, err

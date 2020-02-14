@@ -9,11 +9,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"go.medium.engineering/picchu/pkg/apis"
-	"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/controller"
-	"go.medium.engineering/picchu/pkg/controller/utils"
-
+	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -22,7 +18,12 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	"go.medium.engineering/picchu/pkg/apis"
+	"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	v1 "k8s.io/api/core/v1"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -62,6 +63,8 @@ func main() {
 	humaneReleasesEnabled := pflag.Bool("humane-releases-enabled", true, "Release apps on the humane schedule")
 	prometheusEnabled := pflag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
 	sentryEnabled := pflag.Bool("sentry-enabled", true, "Sentry integration is enabled")
+	serviceLevelsNamespace := pflag.String("service-levels-namespace", "service-levels", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
+	serviceLevelsFleet := pflag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 
 	pflag.Parse()
 
@@ -126,24 +129,19 @@ func main() {
 
 	log.Info("Registering Components.")
 
-	// Setup Scheme for all resources
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-	if err := v1alpha1.RegisterDefaults(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
-		os.Exit(1)
+	schemes := k8sruntime.SchemeBuilder{
+		apis.AddToScheme,
+		v1alpha1.AddToScheme,
+		istiov1alpha3.AddToScheme,
+		monitoringv1.AddToScheme,
+		slov1alpha1.AddToScheme,
 	}
 
-	// Setup Scheme for 3rd party
-	if err := istiov1alpha3.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-	if err := monitoringv1.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
-		os.Exit(1)
+	for _, addToScheme := range schemes {
+		if err := addToScheme(mgr.GetScheme()); err != nil {
+			log.Error(err, "")
+			os.Exit(1)
+		}
 	}
 
 	config := utils.Config{
@@ -154,6 +152,8 @@ func main() {
 		PrometheusQueryTTL:     *prometheusQueryTTL,
 		SentryAuthToken:        *sentryAuthToken,
 		SentryOrg:              *sentryOrg,
+		ServiceLevelsNamespace: *serviceLevelsNamespace,
+		ServiceLevelsFleet:     *serviceLevelsFleet,
 	}
 
 	// Setup all Controllers

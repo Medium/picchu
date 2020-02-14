@@ -3,6 +3,7 @@ package mocks
 import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
+	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -78,6 +79,38 @@ func InjectPrometheusRules(rules []monitoringv1.PrometheusRule) gomock.Matcher {
 		}
 	}
 	return Callback(fn, "injects PrometheusRules")
+}
+
+// InjectServiceLevels puts ServiceLevel into a *ServiceLevelList
+func InjectServiceLevels(sls []slov1alpha1.ServiceLevel) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *slov1alpha1.ServiceLevelList:
+			for i := range sls {
+				o.Items = append(o.Items, sls[i])
+			}
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "injects ServiceLevels")
+}
+
+// InjectServiceMonitors puts ServiceMonitor into a *ServiceMonitorList
+func InjectServiceMonitors(sms []monitoringv1.ServiceMonitor) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *monitoringv1.ServiceMonitorList:
+			for i := range sms {
+				o.Items = append(o.Items, &sms[i])
+			}
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "injects ServiceMonitors")
 }
 
 // UpdateNamespaceLabes sets the labels on a *Namespace

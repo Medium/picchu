@@ -14,6 +14,7 @@ import (
 	"github.com/go-logr/logr"
 	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,14 +34,16 @@ type Incarnations interface {
 }
 
 type ResourceSyncer struct {
-	deliveryClient client.Client
-	planApplier    plan.Applier
-	observer       observe.Observer
-	instance       *picchuv1alpha1.ReleaseManager
-	incarnations   Incarnations
-	reconciler     *ReconcileReleaseManager
-	log            logr.Logger
-	clusterConfig  ClusterConfig
+	deliveryClient  client.Client
+	deliveryApplier plan.Applier
+	planApplier     plan.Applier
+	observer        observe.Observer
+	instance        *picchuv1alpha1.ReleaseManager
+	incarnations    Incarnations
+	reconciler      *ReconcileReleaseManager
+	log             logr.Logger
+	clusterConfig   ClusterConfig
+	picchuConfig    utils.Config
 }
 
 func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
@@ -82,6 +85,15 @@ func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseMana
 	if err := r.syncApp(ctx); err != nil {
 		return rs, err
 	}
+	if err := r.syncServiceMonitors(ctx); err != nil {
+		return rs, err
+	}
+	if err := r.syncServiceLevels(ctx); err != nil {
+		return rs, err
+	}
+	if err := r.syncSLORules(ctx); err != nil {
+		return rs, err
+	}
 	if err := r.garbageCollection(ctx); err != nil {
 		return rs, err
 	}
@@ -105,6 +117,11 @@ func (r *ResourceSyncer) del(ctx context.Context) error {
 func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan) error {
 	r.log.Info("Applying plan", "Name", name, "Plan", p)
 	return r.planApplier.Apply(ctx, p)
+}
+
+func (r *ResourceSyncer) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
+	r.log.Info("Applying delivery plan", "Name", name, "Plan", p)
+	return r.deliveryApplier.Apply(ctx, p)
 }
 
 func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
@@ -232,22 +249,14 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		ports = append(ports, port)
 	}
 
-	// Used to label Service and selector
-	labels := map[string]string{
-		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
-		picchuv1alpha1.LabelK8sName:   r.instance.Spec.App,
-		picchuv1alpha1.LabelIstioApp:  r.instance.Spec.App,
-		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
-		picchuv1alpha1.LabelOwnerName: r.instance.Name,
-	}
-
-	revisions, alertRules := r.prepareRevisionsAndRules()
+	revisions := r.prepareRevisions()
+	alertRules := r.prepareAlertRules()
 
 	// TODO(bob): figure out defaultDomain and gateway names
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
 		App:               r.instance.Spec.App,
 		Namespace:         r.instance.TargetNamespace(),
-		Labels:            labels,
+		Labels:            r.defaultLabels(),
 		DefaultDomain:     r.clusterConfig.DefaultDomain,
 		PublicGateway:     r.clusterConfig.PublicIngressGateway,
 		PrivateGateway:    r.clusterConfig.PrivateIngressGateway,
@@ -271,6 +280,128 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	return nil
 }
 
+// Used to label Service and selector
+func (r *ResourceSyncer) defaultLabels() map[string]string {
+	return map[string]string{
+		picchuv1alpha1.LabelApp:       r.instance.Spec.App,
+		picchuv1alpha1.LabelK8sName:   r.instance.Spec.App,
+		picchuv1alpha1.LabelIstioApp:  r.instance.Spec.App,
+		picchuv1alpha1.LabelOwnerType: picchuv1alpha1.OwnerReleaseManager,
+		picchuv1alpha1.LabelOwnerName: r.instance.Name,
+	}
+}
+
+func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
+	serviceMonitors := r.prepareServiceMonitors()
+	slos, _ := r.prepareServiceLevelObjectives()
+
+	if len(serviceMonitors) == 0 {
+		if err := r.applyPlan(ctx, "Delete Service Monitors", &rmplan.DeleteServiceMonitors{
+			App:       r.instance.Spec.App,
+			Namespace: r.instance.TargetNamespace(),
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := r.applyPlan(ctx, "Sync Service Monitors", &rmplan.SyncServiceMonitors{
+			App:                    r.instance.Spec.App,
+			Namespace:              r.instance.TargetNamespace(),
+			Labels:                 r.defaultLabels(),
+			ServiceMonitors:        serviceMonitors,
+			ServiceLevelObjectives: slos,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
+	if err := r.applyDeliveryPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
+		App:       r.instance.Spec.App,
+		Target:    r.instance.Spec.Target,
+		Namespace: r.picchuConfig.ServiceLevelsNamespace,
+	}); err != nil {
+		return err
+	}
+
+	if err := r.applyDeliveryPlan(ctx, "Delete App SLO Alerts", &rmplan.DeleteServiceLevelAlerts{
+		App:       r.instance.Spec.App,
+		Target:    r.instance.Spec.Target,
+		Namespace: r.picchuConfig.ServiceLevelsNamespace,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
+	if r.picchuConfig.ServiceLevelsFleet != "" && r.picchuConfig.ServiceLevelsNamespace != "" {
+		slos, sloLabels := r.prepareServiceLevelObjectives()
+		if len(slos) > 0 {
+			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+				Name: r.picchuConfig.ServiceLevelsNamespace,
+			}); err != nil {
+				return err
+			}
+
+			labels := r.defaultLabels()
+			labels[picchuv1alpha1.LabelTarget] = r.instance.Spec.Target
+
+			if err := r.applyDeliveryPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
+				App:                         r.instance.Spec.App,
+				Target:                      r.instance.Spec.Target,
+				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
+				Labels:                      labels,
+				ServiceLevelObjectiveLabels: sloLabels,
+				ServiceLevelObjectives:      slos,
+			}); err != nil {
+				return err
+			}
+
+			if err := r.applyDeliveryPlan(ctx, "Sync App SLO Alerts", &rmplan.SyncServiceLevelAlerts{
+				App:                         r.instance.Spec.App,
+				Target:                      r.instance.Spec.Target,
+				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
+				Labels:                      labels,
+				ServiceLevelObjectiveLabels: sloLabels,
+				ServiceLevelObjectives:      slos,
+			}); err != nil {
+				return err
+			}
+		} else {
+			return r.delServiceLevels(ctx)
+		}
+	}
+	r.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncServiceLevels")
+	return nil
+}
+
+func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
+	slos, labels := r.prepareServiceLevelObjectives()
+	if len(slos) > 0 {
+		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
+			App:                         r.instance.Spec.App,
+			Namespace:                   r.instance.TargetNamespace(),
+			Labels:                      r.defaultLabels(),
+			ServiceLevelObjectiveLabels: labels,
+			ServiceLevelObjectives:      slos,
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
+			App:       r.instance.Spec.App,
+			Namespace: r.instance.TargetNamespace(),
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // currentTrafficPolicy gets the latest release's traffic policy, or if there
 // are no releases, then the latest revisions traffic policy.
 func (r *ResourceSyncer) currentTrafficPolicy() *istiov1alpha3.TrafficPolicy {
@@ -291,11 +422,58 @@ func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {
 	return markGarbage(ctx, r.log, r.deliveryClient, r.incarnations.sorted())
 }
 
-func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monitoringv1.Rule) {
+// returns the AlertRules from the latest deployed revision
+func (r *ResourceSyncer) prepareAlertRules() []monitoringv1.Rule {
 	alertRules := []monitoringv1.Rule{}
 
 	if len(r.incarnations.deployed()) == 0 {
-		return []rmplan.Revision{}, alertRules
+		return alertRules
+	}
+
+	alertable := r.incarnations.alertable()
+	for _, i := range alertable {
+		alertRules = i.target().AlertRules
+		break
+	}
+
+	return alertRules
+}
+
+// returns the ServiceMonitors from the latest deployed revision
+func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonitor {
+	sm := []*picchuv1alpha1.ServiceMonitor{}
+
+	if len(r.incarnations.deployed()) > 0 {
+		alertable := r.incarnations.alertable()
+		for _, i := range alertable {
+			if i.target() != nil {
+				sm = i.target().ServiceMonitors
+			}
+		}
+	}
+
+	return sm
+}
+
+// returns the PrometheusRules to support SLOs from the latest released revision
+func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.ServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
+	slos := []*picchuv1alpha1.ServiceLevelObjective{}
+
+	if len(r.incarnations.deployed()) > 0 {
+		releasable := r.incarnations.releasable()
+		for _, i := range releasable {
+			if i.target() != nil {
+				return i.target().ServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
+			}
+		}
+	}
+
+	return slos, picchuv1alpha1.ServiceLevelObjectiveLabels{}
+}
+
+func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
+	if len(r.incarnations.deployed()) == 0 {
+		return []rmplan.Revision{}
 	}
 
 	revisionsMap := map[string]*rmplan.Revision{}
@@ -325,13 +503,6 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	// Tracking one route per port number
 	incarnations := r.incarnations.releasable()
 	count := len(incarnations)
-
-	// setup alerts from latest release that has revision
-	alertable := r.incarnations.alertable()
-	for _, i := range alertable {
-		alertRules = i.target().AlertRules
-		break
-	}
 
 	firstNonCanary := -1
 	for i, incarnation := range incarnations {
@@ -414,5 +585,5 @@ func (r *ResourceSyncer) prepareRevisionsAndRules() ([]rmplan.Revision, []monito
 	for _, revision := range revisionsMap {
 		revisions = append(revisions, *revision)
 	}
-	return revisions, alertRules
+	return revisions
 }

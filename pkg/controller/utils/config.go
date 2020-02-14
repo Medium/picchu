@@ -10,4 +10,6 @@ type Config struct {
 	PrometheusQueryTTL     time.Duration
 	SentryAuthToken        string
 	SentryOrg              string
+	ServiceLevelsNamespace string
+	ServiceLevelsFleet     string
 }
