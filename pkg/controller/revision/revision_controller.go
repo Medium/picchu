@@ -207,7 +207,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
 		}
 
-		accepted := true
+		var failingRevisionTarget *picchuv1alpha1.RevisionTarget
 		for _, revisionTarget := range instance.Spec.Targets {
 			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
 				targetStatus := targetStatusMap[revisionTarget.Name]
@@ -215,17 +215,17 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 					continue
 				}
 				if targetStatus.Release.PeakPercent < AcceptancePercentage {
-					accepted = false
+					failingRevisionTarget = &revisionTarget
 					break
 				}
 			}
 		}
 
-		if !accepted {
+		if failingRevisionTarget != nil {
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
 				instance.Fail()
 
-				rm, err := r.getOrCreateReleaseManager(log, nil, "fleet", instance) // TODO(mk) need target & fleet
+				rm, err := r.getOrCreateReleaseManager(log, failingRevisionTarget, instance)
 				if err != nil {
 					return err
 				}
@@ -306,7 +306,6 @@ func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *pic
 func (r *ReconcileRevision) getOrCreateReleaseManager(
 	log logr.Logger,
 	target *picchuv1alpha1.RevisionTarget,
-	fleet string,
 	revision *picchuv1alpha1.Revision,
 ) (*picchuv1alpha1.ReleaseManager, error) {
 	rms := &picchuv1alpha1.ReleaseManagerList{}
@@ -356,7 +355,7 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 	rstatus.Sentry = revision.Status.Sentry
 	for _, target := range revision.Spec.Targets {
 		status := picchuv1alpha1.RevisionTargetStatus{Name: target.Name}
-		rm, err := r.getOrCreateReleaseManager(log, &target, target.Fleet, revision)
+		rm, err := r.getOrCreateReleaseManager(log, &target, revision)
 		if err != nil {
 			return rstatus, err
 		}
