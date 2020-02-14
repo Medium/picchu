@@ -62,7 +62,7 @@ build-dirs:
 test: build-dirs
 	hack/test.sh
 
-verify:
+verify: crds
 	hack/verify-all.sh
 
 ci: all verify test
