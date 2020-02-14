@@ -37,7 +37,7 @@ func TestDeleteRevision(t *testing.T) {
 	}
 
 	secrets := []corev1.Secret{
-		corev1.Secret{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "testsecret",
 				Namespace: "testnamespace",
@@ -46,7 +46,7 @@ func TestDeleteRevision(t *testing.T) {
 	}
 
 	configMaps := []corev1.ConfigMap{
-		corev1.ConfigMap{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "testconfigmap",
 				Namespace: "testnamespace",
@@ -55,7 +55,7 @@ func TestDeleteRevision(t *testing.T) {
 	}
 
 	replicaSets := []appsv1.ReplicaSet{
-		appsv1.ReplicaSet{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "testreplicaset",
 				Namespace: "testnamespace",
@@ -64,7 +64,7 @@ func TestDeleteRevision(t *testing.T) {
 	}
 
 	hpas := []autoscaling.HorizontalPodAutoscaler{
-		autoscaling.HorizontalPodAutoscaler{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "testhpa",
 				Namespace: "testnamespace",

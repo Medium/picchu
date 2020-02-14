@@ -36,7 +36,7 @@ func TestDeleteServiceMonitors(t *testing.T) {
 	}
 
 	sm := []monitoringv1.ServiceMonitor{
-		monitoringv1.ServiceMonitor{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
 				Namespace: "testnamespace",

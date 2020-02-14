@@ -1050,6 +1050,21 @@ spec:
                     type: object
                   serviceAccountName:
                     type: string
+                  serviceLevelObjectiveLabels:
+                    properties:
+                      alertLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      ruleLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      serviceLevelLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                    type: object
                   serviceLevelObjectives:
                     items:
                       properties:
@@ -1061,10 +1076,6 @@ spec:
                           type: string
                         enabled:
                           type: boolean
-                        labels:
-                          additionalProperties:
-                            type: string
-                          type: object
                         name:
                           type: string
                         objectivePercent: {}
@@ -1072,25 +1083,40 @@ spec:
                           properties:
                             alertAfter:
                               type: string
-                            canaryAllowance: {}
+                            canary:
+                              properties:
+                                allowancePercent: {}
+                                enabled:
+                                  type: boolean
+                                failAfter:
+                                  type: string
+                              required:
+                              - enabled
+                              type: object
                             errorQuery:
                               type: string
                             tagKey:
                               type: string
                             totalQuery:
                               type: string
-                            useForCanary:
-                              type: boolean
-                          required:
-                          - errorQuery
-                          - totalQuery
-                          - useForCanary
+                          type: object
+                        serviceLevelObjectiveLabels:
+                          properties:
+                            alertLabels:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            ruleLabels:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            serviceLevelLabels:
+                              additionalProperties:
+                                type: string
+                              type: object
                           type: object
                       required:
                       - enabled
-                      - name
-                      - objectivePercent
-                      - serviceLevelIndicator
                       type: object
                     type: array
                   serviceMonitors:
