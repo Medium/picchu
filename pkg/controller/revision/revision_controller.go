@@ -197,7 +197,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	triggered, alerts, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
+	triggered, alarms, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -208,7 +208,6 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		accepted := true
-		var peakPercent uint32
 		for _, revisionTarget := range instance.Spec.Targets {
 			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
 				targetStatus := targetStatusMap[revisionTarget.Name]
@@ -217,16 +216,23 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 				}
 				if targetStatus.Release.PeakPercent < AcceptancePercentage {
 					accepted = false
-					peakPercent = targetStatus.Release.PeakPercent
 					break
 				}
 			}
 		}
 
 		if !accepted {
-			_ = alerts // TODO(mk) save alertnames to be read later
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
-				instance.Fail(fmt.Sprintf("Release PeakPercent of %d%% does not meet AcceptancePercentage of %d%%", peakPercent, AcceptancePercentage))
+				instance.Fail()
+
+				rm, err := r.getOrCreateReleaseManager(log, nil, "fleet", instance) // TODO(mk) need target & fleet
+				if err != nil {
+					return err
+				}
+				revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
+				revisionStatus.TriggeredAlarms = alarms
+				rm.UpdateRevisionStatus(revisionStatus)
+
 				return nil
 			})
 			if err != nil {

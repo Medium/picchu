@@ -32,10 +32,9 @@ type Revision struct {
 	Status RevisionStatus `json:"status,omitempty"`
 }
 
-func (r *Revision) Fail(msg string) {
+func (r *Revision) Fail() {
 	if !r.Spec.Failed {
 		r.Spec.Failed = true
-		r.Spec.FailureMessage = msg
 		t := time.Now()
 		if r.Annotations == nil {
 			r.Annotations = map[string]string{
@@ -75,7 +74,6 @@ type RevisionSpec struct {
 	Targets            []RevisionTarget             `json:"targets"`
 	TrafficPolicy      *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
 	Failed             bool                         `json:"failed"`
-	FailureMessage     string                       `json:"failureMessage"`
 	IgnoreSLOs         bool                         `json:"ignoreSLOs,omitempty"`
 	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
 	Sentry             SentryInfo                   `json:"sentry,omitempty"`
