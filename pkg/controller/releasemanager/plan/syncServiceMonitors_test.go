@@ -152,8 +152,8 @@ func TestSyncServiceMonitors(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		client.ObjectKey{Name: "test1", Namespace: "testnamespace"},
-		client.ObjectKey{Name: "test2", Namespace: "testnamespace"},
+		{Name: "test1", Namespace: "testnamespace"},
+		{Name: "test2", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 

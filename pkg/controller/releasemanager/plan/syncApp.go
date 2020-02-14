@@ -259,7 +259,7 @@ func (p *SyncApp) hosts() []string {
 	}
 
 	hosts := make([]string, 0, len(hostsMap))
-	for host, _ := range hostsMap {
+	for host := range hostsMap {
 		hosts = append(hosts, host)
 	}
 	sort.Strings(hosts)

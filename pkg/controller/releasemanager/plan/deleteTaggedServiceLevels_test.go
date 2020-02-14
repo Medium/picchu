@@ -40,7 +40,7 @@ func TestTaggedDeleteServiceLevels(t *testing.T) {
 	}
 
 	sl := []slov1alpha1.ServiceLevel{
-		slov1alpha1.ServiceLevel{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
 				Namespace: "testnamespace",
