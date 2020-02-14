@@ -207,7 +207,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
 		}
 
-		var failingRevisionTarget *picchuv1alpha1.RevisionTarget
+		var revisionFailing bool
 		for _, revisionTarget := range instance.Spec.Targets {
 			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
 				targetStatus := targetStatusMap[revisionTarget.Name]
@@ -215,24 +215,27 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 					continue
 				}
 				if targetStatus.Release.PeakPercent < AcceptancePercentage {
-					failingRevisionTarget = &revisionTarget
-					break
+					revisionFailing = true
+
+					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
+					if err != nil {
+						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
+						continue
+					}
+					if rm == nil {
+						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
+						continue
+					}
+					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
+					revisionStatus.TriggeredAlarms = alarms
+					rm.UpdateRevisionStatus(revisionStatus)
 				}
 			}
 		}
 
-		if failingRevisionTarget != nil {
+		if revisionFailing {
 			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
 				instance.Fail()
-
-				rm, err := r.getOrCreateReleaseManager(log, failingRevisionTarget, instance)
-				if err != nil {
-					return err
-				}
-				revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
-				revisionStatus.TriggeredAlarms = alarms
-				rm.UpdateRevisionStatus(revisionStatus)
-
 				return nil
 			})
 			if err != nil {
@@ -303,13 +306,13 @@ func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *pic
 	return nil
 }
 
-func (r *ReconcileRevision) getOrCreateReleaseManager(
+func (r *ReconcileRevision) getReleaseManager(
 	log logr.Logger,
 	target *picchuv1alpha1.RevisionTarget,
 	revision *picchuv1alpha1.Revision,
-) (*picchuv1alpha1.ReleaseManager, error) {
+) (rm *picchuv1alpha1.ReleaseManager, lbls map[string]string, err error) {
 	rms := &picchuv1alpha1.ReleaseManagerList{}
-	lbls := map[string]string{
+	lbls = map[string]string{
 		picchuv1alpha1.LabelTarget: target.Name,
 		picchuv1alpha1.LabelFleet:  target.Fleet,
 		picchuv1alpha1.LabelApp:    revision.Spec.App.Name,
@@ -323,9 +326,23 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", lbls))
 	}
 	if len(rms.Items) == 1 {
-		return &rms.Items[0], nil
+		rm = &rms.Items[0]
 	}
-	rm := &picchuv1alpha1.ReleaseManager{
+
+	return
+}
+
+func (r *ReconcileRevision) getOrCreateReleaseManager(
+	log logr.Logger,
+	target *picchuv1alpha1.RevisionTarget,
+	revision *picchuv1alpha1.Revision,
+) (rm *picchuv1alpha1.ReleaseManager, err error) {
+	var lbls map[string]string
+	if rm, lbls, err = r.getReleaseManager(log, target, revision); err == nil && revision != nil {
+		return
+	}
+
+	rm = &picchuv1alpha1.ReleaseManager{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", revision.Spec.App.Name, target.Name),
 			Namespace: revision.Namespace,
@@ -346,7 +363,7 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 	}
 	log.Info("ReleaseManager sync'd", "Type", "ReleaseManager", "Op", "created", "Content", rm, "Audit", true)
 
-	return rm, nil
+	return
 }
 
 func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
