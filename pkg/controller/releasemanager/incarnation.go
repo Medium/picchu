@@ -12,6 +12,7 @@ import (
 	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/go-logr/logr"
 	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
@@ -236,26 +237,12 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		LivenessProbe:      i.target().LivenessProbe,
 		MinReadySeconds:    i.target().Scale.MinReadySeconds,
 	}
-	requestsRate, err := i.target().Scale.TargetReqeustsRateQuantity()
-	if err != nil {
-		i.log.Error(err, "Failed to parse targetRequestsRate", "TargetRequestsRate", i.target().Scale.TargetRequestsRate)
-	}
-
-	scalePlan := &rmplan.ScaleRevision{
-		Tag:                i.tag,
-		Namespace:          i.targetNamespace(),
-		Min:                i.divideReplicas(*i.target().Scale.Min),
-		Max:                i.divideReplicas(i.target().Scale.Max),
-		Labels:             i.defaultLabels(),
-		CPUTarget:          i.target().Scale.TargetCPUUtilizationPercentage,
-		RequestsRateTarget: requestsRate,
-	}
 
 	if !i.isRoutable() {
 		syncPlan.Replicas = 0
 	}
 
-	return i.controller.applyPlan(ctx, "Sync and Scale Revision", plan.All(syncPlan, scalePlan))
+	return i.controller.applyPlan(ctx, "Sync and Scale Revision", plan.All(syncPlan, i.genScalePlan(ctx)))
 }
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
@@ -315,19 +302,39 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 }
 
 func (i *Incarnation) scale(ctx context.Context) error {
-	requestsRate, err := i.target().Scale.TargetReqeustsRateQuantity()
+	return i.controller.applyPlan(ctx, "Scale Revision", i.genScalePlan(ctx))
+
+}
+
+func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
+	requestsRateTarget, err := i.target().Scale.TargetReqeustsRateQuantity()
 	if err != nil {
 		i.log.Error(err, "Failed to parse targetRequestsRate", "TargetRequestsRate", i.target().Scale.TargetRequestsRate)
 	}
-	return i.controller.applyPlan(ctx, "Scale Revision", &rmplan.ScaleRevision{
+	if requestsRateTarget != nil {
+		requestsRateTarget = resource.NewMilliQuantity(int64(math.Floor(float64(requestsRateTarget.MilliValue())*i.targetScale())), requestsRateTarget.Format)
+	}
+
+	cpuTarget := i.target().Scale.TargetCPUUtilizationPercentage
+	if cpuTarget != nil {
+		*cpuTarget = int32(math.Floor(float64(*cpuTarget) * i.targetScale()))
+	}
+
+	min := i.divideReplicas(*i.target().Scale.Min)
+	max := i.divideReplicas(i.target().Scale.Max)
+	if i.status.CurrentPercent == 0 {
+		min = max
+	}
+
+	return &rmplan.ScaleRevision{
 		Tag:                i.tag,
 		Namespace:          i.targetNamespace(),
-		Min:                i.divideReplicas(*i.target().Scale.Min),
-		Max:                i.divideReplicas(i.target().Scale.Max),
+		Min:                min,
+		Max:                max,
 		Labels:             i.defaultLabels(),
-		CPUTarget:          i.target().Scale.TargetCPUUtilizationPercentage,
-		RequestsRateTarget: requestsRate,
-	})
+		CPUTarget:          cpuTarget,
+		RequestsRateTarget: requestsRateTarget,
+	}
 }
 
 func (i *Incarnation) getLog() logr.Logger {
@@ -563,6 +570,26 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 	}
 
 	return i.controller.divideReplicas(count, perc)
+}
+
+// targetScale is used to scale HPA targets to prepare for next
+// level of traffic. 10% -> 20% would be 1/2, 20% -> 30% would be 2/3. We
+// prepare the revision for the next level by scaling it's target so it's
+// not underprovisioned when it recieves more traffic.
+func (i *Incarnation) targetScale() float64 {
+	status := i.getStatus()
+	if status.State.Current == "deploying" || status.State.Current == "deployed" || status.State.Current == "pendingrelease" {
+		return 1.0
+	}
+
+	if !i.target().Release.Eligible || i.status.CurrentPercent == 0 {
+		return 1.0
+	}
+
+	current := i.status.CurrentPercent
+	next := float64(current + i.target().Release.Rate.Increment)
+
+	return float64(current) / next
 }
 
 func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
