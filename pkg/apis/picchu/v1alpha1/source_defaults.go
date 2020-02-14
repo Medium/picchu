@@ -28,15 +28,15 @@ func SetDefaults_ClusterSpec(spec *ClusterSpec) {
 }
 
 func SetDefaults_RevisionSpec(spec *RevisionSpec) {
-	for i, _ := range spec.Targets {
+	for i := range spec.Targets {
 		SetReleaseDefaults(&spec.Targets[i].Release)
 		SetScaleDefaults(&spec.Targets[i].Scale)
 	}
-	for i, _ := range spec.Ports {
+	for i := range spec.Ports {
 		SetPortDefaults(&spec.Ports[i])
 	}
-	for i, _ := range spec.Targets {
-		for j, _ := range spec.Targets[i].Ports {
+	for i := range spec.Targets {
+		for j := range spec.Targets[i].Ports {
 			SetPortDefaults(&spec.Targets[i].Ports[j])
 		}
 	}

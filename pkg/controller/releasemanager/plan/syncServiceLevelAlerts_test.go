@@ -109,7 +109,7 @@ func TestServiceLevelAlerts(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		client.ObjectKey{Name: "test-app-production-slo-alerts", Namespace: "testnamespace"},
+		{Name: "test-app-production-slo-alerts", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 

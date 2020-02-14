@@ -38,7 +38,7 @@ func TestDeleteServiceLevelAlerts(t *testing.T) {
 	}
 
 	pr := []monitoringv1.PrometheusRule{
-		monitoringv1.PrometheusRule{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test",
 				Namespace: "testnamespace",
