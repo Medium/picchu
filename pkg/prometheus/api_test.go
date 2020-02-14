@@ -111,5 +111,5 @@ func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 
 	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 	assert.Nil(t, err, "Should succeed in querying alerts")
-	assert.Equal(t, map[string][]string{"v1": []string{"test"}}, r, "Should get 1 firing alerts (v1)")
+	assert.Equal(t, map[string][]string{"v1": {"test"}}, r, "Should get 1 firing alerts (v1)")
 }
