@@ -60,18 +60,20 @@ func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList
 		}
 	}
 
-	serviceLevel := &slov1alpha1.ServiceLevel{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.taggedServiceLevelName(),
-			Namespace: p.Namespace,
-			Labels:    p.Labels,
-		},
-		Spec: slov1alpha1.ServiceLevelSpec{
-			ServiceLevelName:       p.App,
-			ServiceLevelObjectives: slos,
-		},
+	if len(slos) > 0 {
+		serviceLevel := &slov1alpha1.ServiceLevel{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      p.taggedServiceLevelName(),
+				Namespace: p.Namespace,
+				Labels:    p.Labels,
+			},
+			Spec: slov1alpha1.ServiceLevelSpec{
+				ServiceLevelName:       p.App,
+				ServiceLevelObjectives: slos,
+			},
+		}
+		sl = append(sl, *serviceLevel)
 	}
-	sl = append(sl, *serviceLevel)
 
 	sll.Items = sl
 	return sll, nil
