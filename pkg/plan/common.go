@@ -237,6 +237,7 @@ func CreateOrUpdate(
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      typed.Name,
 				Namespace: typed.Namespace,
+				Labels:    typed.Labels,
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, hpa, func() error {
