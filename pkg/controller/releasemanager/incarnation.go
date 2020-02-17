@@ -578,11 +578,7 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 // not underprovisioned when it recieves more traffic.
 func (i *Incarnation) targetScale() float64 {
 	status := i.getStatus()
-	if status.State.Current == "deploying" || status.State.Current == "deployed" || status.State.Current == "pendingrelease" {
-		return 1.0
-	}
-
-	if !i.target().Release.Eligible || i.status.CurrentPercent == 0 {
+	if status.State.Current != "releasing" || i.status.CurrentPercent == 0 {
 		return 1.0
 	}
 
