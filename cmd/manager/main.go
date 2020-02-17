@@ -129,6 +129,11 @@ func main() {
 
 	log.Info("Registering Components.")
 
+	if err := v1alpha1.RegisterDefaults(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
 	schemes := k8sruntime.SchemeBuilder{
 		apis.AddToScheme,
 		v1alpha1.AddToScheme,
