@@ -338,7 +338,7 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 	revision *picchuv1alpha1.Revision,
 ) (rm *picchuv1alpha1.ReleaseManager, err error) {
 	var lbls map[string]string
-	if rm, lbls, err = r.getReleaseManager(log, target, revision); err == nil && revision != nil {
+	if rm, lbls, err = r.getReleaseManager(log, target, revision); err == nil && rm != nil {
 		return
 	}
 
