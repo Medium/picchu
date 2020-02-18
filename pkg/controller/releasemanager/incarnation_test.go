@@ -87,3 +87,17 @@ func assertExternalTestStatus(
 	assert.Equal(t, expectedStatus, testIncarnation.getExternalTestStatus())
 	assert.Equal(t, expectedTimeout, testIncarnation.isTimingOut())
 }
+
+func TestIncarnation_targetScale(t *ttesting.T) {
+	testIncarnation := createTestIncarnation("test", testing, 10)
+	testIncarnation.status.State.Current = "releasing"
+	testIncarnation.revision.Spec.Targets[0].Release.Rate.Increment = 10
+	testIncarnation.status.CurrentPercent = 0
+	assert.Equal(t, 1.0, testIncarnation.targetScale())
+	testIncarnation.status.CurrentPercent = 10
+	assert.Equal(t, 0.5, testIncarnation.targetScale())
+	testIncarnation.status.CurrentPercent = 90
+	assert.Equal(t, 0.9, testIncarnation.targetScale())
+	testIncarnation.status.CurrentPercent = 100
+	assert.Equal(t, 1.0, testIncarnation.targetScale())
+}
