@@ -18,6 +18,9 @@ const (
 	CanaryTagLabel = "tag"
 	CanarySLOLabel = "slo"
 	CanaryLabel    = "canary"
+
+	// RuleTypeCanary is the value of the LabelRuleType label for canary rules.
+	RuleTypeCanary = "canary"
 )
 
 type SyncCanaryRules struct {
@@ -82,6 +85,8 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 	for k, v := range p.ServiceLevelObjectiveLabels.RuleLabels {
 		labels[k] = v
 	}
+
+	labels[picchuv1alpha1.LabelRuleType] = RuleTypeCanary
 
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{

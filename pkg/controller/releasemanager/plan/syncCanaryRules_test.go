@@ -69,6 +69,7 @@ var (
 					picchuv1alpha1.LabelTag:        "v1",
 					picchuv1alpha1.LabelK8sName:    "test-app",
 					picchuv1alpha1.LabelK8sVersion: "v1",
+					picchuv1alpha1.LabelRuleType:   RuleTypeCanary,
 				},
 			},
 			Spec: monitoringv1.PrometheusRuleSpec{

@@ -32,8 +32,9 @@ func TestDeleteCanaryRules(t *testing.T) {
 	opts := &client.ListOptions{
 		Namespace: deleteCanaryRules.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: deleteCanaryRules.App,
-			picchuv1alpha1.LabelTag: deleteCanaryRules.Tag,
+			picchuv1alpha1.LabelApp:      deleteCanaryRules.App,
+			picchuv1alpha1.LabelTag:      deleteCanaryRules.Tag,
+			picchuv1alpha1.LabelRuleType: RuleTypeCanary,
 		}),
 	}
 
