@@ -36,7 +36,7 @@ const (
 
 var (
 	clog              = logf.Log.WithName("controller_revision")
-	AcceptanceTargets = []string{"production"}
+	AcceptanceTargets = map[string]bool{"production": true}
 
 	revisionFailedGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_failed",
@@ -57,13 +57,13 @@ func Add(mgr manager.Manager, c utils.Config) error {
 }
 
 type PromAPI interface {
-	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, error)
+	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error)
 }
 
 type NoopPromAPI struct{}
 
-func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, error) {
-	return false, nil
+func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error) {
+	return false, nil, nil
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -197,36 +197,49 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 	}
 
-	triggered, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
+	triggered, alarms, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 	if triggered && !instance.Spec.IgnoreSLOs {
-		accepted := true
-		var acceptanceTargets []string
-		for _, target := range instance.Spec.Targets {
-			if target.AcceptanceTarget {
-				acceptanceTargets = append(acceptanceTargets, target.Name)
-			} else {
-				for _, targetName := range AcceptanceTargets {
-					if target.Name == targetName {
-						acceptanceTargets = append(acceptanceTargets, target.Name)
+		log.Info("Revision triggered", "alarms", alarms)
+		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
+		for i := range status.Targets {
+			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
+		}
+
+		var revisionFailing bool
+		for _, revisionTarget := range instance.Spec.Targets {
+			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
+				targetStatus := targetStatusMap[revisionTarget.Name]
+				if targetStatus == nil {
+					continue
+				}
+				if targetStatus.Release.PeakPercent < AcceptancePercentage {
+					revisionFailing = true
+
+					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
+					if err != nil {
+						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
+						break
+					}
+					if rm == nil {
+						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
+						break
+					}
+					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
+					revisionStatus.TriggeredAlarms = alarms
+					rm.UpdateRevisionStatus(revisionStatus)
+					if err := utils.UpdateStatus(ctx, r.client, rm); err != nil {
+						log.Error(err, "Could not save alarms to RevisionStatus", "alarms", alarms)
 					}
 				}
+				break
 			}
 		}
 
-		for _, targetStatus := range status.Targets {
-			for _, targetName := range acceptanceTargets {
-				if targetStatus.Name == targetName {
-					if targetStatus.Release.PeakPercent < AcceptancePercentage {
-						accepted = false
-					}
-				}
-			}
-		}
-		if !accepted {
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
+		if revisionFailing {
+			op, err := controllerutil.CreateOrUpdate(ctx, r.client, instance, func() error {
 				instance.Fail()
 				return nil
 			})
@@ -298,14 +311,13 @@ func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *pic
 	return nil
 }
 
-func (r *ReconcileRevision) getOrCreateReleaseManager(
+func (r *ReconcileRevision) getReleaseManager(
 	log logr.Logger,
 	target *picchuv1alpha1.RevisionTarget,
-	fleet string,
 	revision *picchuv1alpha1.Revision,
-) (*picchuv1alpha1.ReleaseManager, error) {
+) (rm *picchuv1alpha1.ReleaseManager, lbls map[string]string, err error) {
 	rms := &picchuv1alpha1.ReleaseManagerList{}
-	lbls := map[string]string{
+	lbls = map[string]string{
 		picchuv1alpha1.LabelTarget: target.Name,
 		picchuv1alpha1.LabelFleet:  target.Fleet,
 		picchuv1alpha1.LabelApp:    revision.Spec.App.Name,
@@ -319,9 +331,23 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", lbls))
 	}
 	if len(rms.Items) == 1 {
-		return &rms.Items[0], nil
+		rm = &rms.Items[0]
 	}
-	rm := &picchuv1alpha1.ReleaseManager{
+
+	return
+}
+
+func (r *ReconcileRevision) getOrCreateReleaseManager(
+	log logr.Logger,
+	target *picchuv1alpha1.RevisionTarget,
+	revision *picchuv1alpha1.Revision,
+) (rm *picchuv1alpha1.ReleaseManager, err error) {
+	var lbls map[string]string
+	if rm, lbls, err = r.getReleaseManager(log, target, revision); err == nil && rm != nil {
+		return
+	}
+
+	rm = &picchuv1alpha1.ReleaseManager{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", revision.Spec.App.Name, target.Name),
 			Namespace: revision.Namespace,
@@ -342,7 +368,7 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 	}
 	log.Info("ReleaseManager sync'd", "Type", "ReleaseManager", "Op", "created", "Content", rm, "Audit", true)
 
-	return rm, nil
+	return
 }
 
 func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
@@ -351,7 +377,7 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 	rstatus.Sentry = revision.Status.Sentry
 	for _, target := range revision.Spec.Targets {
 		status := picchuv1alpha1.RevisionTargetStatus{Name: target.Name}
-		rm, err := r.getOrCreateReleaseManager(log, &target, target.Fleet, revision)
+		rm, err := r.getOrCreateReleaseManager(log, &target, revision)
 		if err != nil {
 			return rstatus, err
 		}

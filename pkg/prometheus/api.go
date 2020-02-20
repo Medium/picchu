@@ -16,10 +16,10 @@ import (
 var (
 	CanaryFiringTemplate = template.Must(template.
 				New("canaryFiringAlerts").
-				Parse(`sum by({{.TagLabel}},app)(ALERTS{ {{.TagLabel}}="{{.Tag}}",canary="true",alertstate="{{.AlertState}}"})`))
+				Parse(`sum by({{.TagLabel}},app,alertname)(ALERTS{ {{.TagLabel}}="{{.Tag}}",canary="true",alertstate="{{.AlertState}}"})`))
 	SLOFiringTemplate = template.Must(template.
 				New("sloFiringAlerts").
-				Parse(`sum by({{.TagLabel}},app)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
+				Parse(`sum by({{.TagLabel}},app,alertname)(ALERTS{slo="true",alertstate="{{.AlertState}}"})`))
 	log = logf.Log.WithName("prometheus_alerts")
 )
 
@@ -95,9 +95,8 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 	return val, nil
 }
 
-// TaggedAlerts returns a list of tags that are firing slo alerts for an app at
-// a particular time.
-func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, canariesOnly bool) ([]string, error) {
+// TaggedAlerts returns a set of tags that are firing SLO alerts for an app at a given time.
+func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, canariesOnly bool) (map[string][]string, error) {
 	q := bytes.NewBufferString("")
 	var template template.Template
 	if canariesOnly {
@@ -112,48 +111,38 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 	if err != nil {
 		return nil, err
 	}
-	tagset := map[string]bool{}
+
+	tagset := map[string][]string{}
 	switch v := val.(type) {
 	case model.Vector:
 		for _, sample := range v {
-			appMatch := false
-			tag := ""
-			for name, value := range sample.Metric {
-				if string(name) == "app" && string(value) == query.App {
-					appMatch = true
+			metricTag := string(sample.Metric["tag"])
+			if string(sample.Metric["app"]) == query.App && metricTag != "" {
+				if tagset[metricTag] == nil {
+					tagset[metricTag] = []string{}
 				}
-				if string(name) == "tag" {
-					tag = string(value)
-				}
-			}
-			if appMatch && tag != "" {
-				tagset[tag] = true
+				tagset[metricTag] = append(tagset[metricTag], string(sample.Metric["alertname"]))
 			}
 		}
 	default:
 		return nil, fmt.Errorf("Unexpected prom response: %+v", v)
 	}
 
-	tags := []string{}
-	for tag := range tagset {
-		tags = append(tags, tag)
-	}
-	return tags, nil
+	return tagset, nil
 }
 
-// IsRevisionTriggered returns true if any slo alerts are currently triggered
-// for the app/tag pair.
-func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesOnly bool) (bool, error) {
+// IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
+func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesOnly bool) (bool, []string, error) {
 	q := NewAlertQuery(app, tag)
 
 	tags, err := a.TaggedAlerts(ctx, q, time.Now(), canariesOnly)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
-	for _, t := range tags {
-		if tag == t {
-			return true, nil
-		}
+
+	if alerts, ok := tags[tag]; ok && len(alerts) > 0 {
+		return true, alerts, nil
 	}
-	return false, nil
+
+	return false, nil, nil
 }

@@ -51,12 +51,12 @@ func testAlertCache(t *testing.T, template template.Template, canariesOnly bool)
 	for i := 0; i < 5; i++ {
 		r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 		assert.Nil(t, err, "Should succeed in querying alerts")
-		assert.Equal(t, []string{}, r, "Should get no firing alerts")
+		assert.Equal(t, map[string][]string{}, r, "Should get no firing alerts")
 	}
 	time.Sleep(time.Duration(25) * time.Millisecond)
 	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 	assert.Nil(t, err, "Should succeed in querying alerts")
-	assert.Equal(t, []string{}, r, "Should get no firing alerts")
+	assert.Equal(t, map[string][]string{}, r, "Should get no firing alerts")
 }
 
 func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
@@ -75,26 +75,30 @@ func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 	response := model.Vector{
 		&model.Sample{
 			Metric: map[model.LabelName]model.LabelValue{
-				"app": "tutu",
-				"tag": "v1",
+				"app":       "tutu",
+				"tag":       "v1",
+				"alertname": "test",
 			},
 		},
 		&model.Sample{
 			Metric: map[model.LabelName]model.LabelValue{
-				"app":  "tutu",
-				"xtag": "v2",
+				"app":       "tutu",
+				"xtag":      "v2",
+				"alertname": "test",
 			},
 		},
 		&model.Sample{
 			Metric: map[model.LabelName]model.LabelValue{
-				"xapp": "tutu",
-				"tag":  "v3",
+				"xapp":      "tutu",
+				"tag":       "v3",
+				"alertname": "test",
 			},
 		},
 		&model.Sample{
 			Metric: map[model.LabelName]model.LabelValue{
-				"app": "tutux",
-				"tag": "v4",
+				"app":       "tutux",
+				"tag":       "v4",
+				"alertname": "test",
 			},
 		},
 	}
@@ -107,5 +111,5 @@ func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 
 	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 	assert.Nil(t, err, "Should succeed in querying alerts")
-	assert.Equal(t, []string{"v1"}, r, "Should get 1 firing alerts (v1)")
+	assert.Equal(t, map[string][]string{"v1": {"test"}}, r, "Should get 1 firing alerts (v1)")
 }

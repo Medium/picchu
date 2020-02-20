@@ -2,6 +2,8 @@ module go.medium.engineering/picchu
 
 go 1.13
 
+replace github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20191111142012-edeb7a44cbf7 // v2.14.0
+
 require (
 	github.com/Medium/service-level-operator v0.3.1-0.20200128160720-77476ad50a61
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
@@ -16,7 +18,7 @@ require (
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/prometheus/client_golang v1.2.1
 	github.com/prometheus/common v0.7.0
-	github.com/prometheus/prometheus v2.14.0+incompatible
+	github.com/prometheus/prometheus v2.3.2+incompatible
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	go.uber.org/zap v1.10.0

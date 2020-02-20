@@ -49,9 +49,9 @@ func markDeletable(ctx context.Context, log logr.Logger, cli client.Client, inca
 }
 
 func markGarbage(ctx context.Context, log logr.Logger, cli client.Client, incarnations []*Incarnation) error {
-	revisions := make([]garbagecollector.Revision, 0, len(incarnations))
+	revisions := make([]garbagecollector.Revision, len(incarnations))
 	for i := range incarnations {
-		revisions = append(revisions, incarnations[i])
+		revisions[i] = incarnations[i]
 	}
 	toDelete, err := garbagecollector.FindGarbage(log, garbagecollector.DefaultStrategy, revisions)
 	if err != nil {
