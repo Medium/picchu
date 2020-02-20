@@ -202,6 +202,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 	if triggered && !instance.Spec.IgnoreSLOs {
+		log.Info("Revision triggered", "alarms", alarms)
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
 		for i := range status.Targets {
 			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
@@ -220,21 +221,25 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
 					if err != nil {
 						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
-						continue
+						break
 					}
 					if rm == nil {
 						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
-						continue
+						break
 					}
 					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
 					revisionStatus.TriggeredAlarms = alarms
 					rm.UpdateRevisionStatus(revisionStatus)
+					if err := utils.UpdateStatus(ctx, r.client, rm); err != nil {
+						log.Error(err, "Could not save alarms to RevisionStatus", "alarms", alarms)
+					}
 				}
+				break
 			}
 		}
 
 		if revisionFailing {
-			op, err := controllerutil.CreateOrUpdate(context.TODO(), r.client, instance, func() error {
+			op, err := controllerutil.CreateOrUpdate(ctx, r.client, instance, func() error {
 				instance.Fail()
 				return nil
 			})
