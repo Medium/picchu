@@ -426,14 +426,14 @@ func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {
 func (r *ResourceSyncer) prepareAlertRules() []monitoringv1.Rule {
 	alertRules := []monitoringv1.Rule{}
 
-	if len(r.incarnations.deployed()) == 0 {
-		return alertRules
-	}
-
-	alertable := r.incarnations.alertable()
-	for _, i := range alertable {
-		alertRules = i.target().AlertRules
-		break
+	if len(r.incarnations.deployed()) > 0 {
+		alertable := r.incarnations.alertable()
+		for _, i := range alertable {
+			if i.target() != nil {
+				alertRules = i.target().AlertRules
+				break
+			}
+		}
 	}
 
 	return alertRules
@@ -448,6 +448,7 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 		for _, i := range alertable {
 			if i.target() != nil {
 				sm = i.target().ServiceMonitors
+				break
 			}
 		}
 	}
