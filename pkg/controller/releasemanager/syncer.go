@@ -318,22 +318,11 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
-	if err := r.applyDeliveryPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
+	return r.applyDeliveryPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 		App:       r.instance.Spec.App,
 		Target:    r.instance.Spec.Target,
 		Namespace: r.picchuConfig.ServiceLevelsNamespace,
-	}); err != nil {
-		return err
-	}
-
-	if err := r.applyDeliveryPlan(ctx, "Delete App SLO Alerts", &rmplan.DeleteServiceLevelAlerts{
-		App:       r.instance.Spec.App,
-		Target:    r.instance.Spec.Target,
-		Namespace: r.picchuConfig.ServiceLevelsNamespace,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
@@ -359,22 +348,12 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
-
-			if err := r.applyDeliveryPlan(ctx, "Sync App SLO Alerts", &rmplan.SyncServiceLevelAlerts{
-				App:                         r.instance.Spec.App,
-				Target:                      r.instance.Spec.Target,
-				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
-				Labels:                      labels,
-				ServiceLevelObjectiveLabels: sloLabels,
-				ServiceLevelObjectives:      slos,
-			}); err != nil {
-				return err
-			}
 		} else {
 			return r.delServiceLevels(ctx)
 		}
+	} else {
+		r.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncServiceLevels")
 	}
-	r.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncServiceLevels")
 	return nil
 }
 
