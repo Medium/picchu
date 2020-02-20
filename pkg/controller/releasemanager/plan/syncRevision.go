@@ -63,6 +63,7 @@ type SyncRevision struct {
 	Replicas           int32
 	Image              string
 	Resources          corev1.ResourceRequirements
+	RestartPolicy      corev1.RestartPolicy
 	IAMRole            string // AWS iam role
 	ServiceAccountName string // k8s ServiceAccount
 	LivenessProbe      *corev1.Probe
@@ -191,6 +192,7 @@ func (p *SyncRevision) syncReplicaSet(
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: p.ServiceAccountName,
+			RestartPolicy:      p.RestartPolicy,
 			Containers:         []corev1.Container{appContainer},
 			DNSConfig:          DefaultDNSConfig(),
 		},

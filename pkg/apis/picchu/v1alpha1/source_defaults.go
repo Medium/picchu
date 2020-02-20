@@ -40,6 +40,10 @@ func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 			SetPortDefaults(&spec.Targets[i].Ports[j])
 		}
 	}
+
+	if spec.RestartPolicy == corev1.RestartPolicy("") {
+		spec.RestartPolicy = corev1.RestartPolicyAlways
+	}
 }
 
 func SetReleaseDefaults(release *ReleaseInfo) {

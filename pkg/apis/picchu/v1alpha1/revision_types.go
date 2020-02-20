@@ -77,6 +77,7 @@ type RevisionSpec struct {
 	IgnoreSLOs         bool                         `json:"ignoreSLOs,omitempty"`
 	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
 	Sentry             SentryInfo                   `json:"sentry,omitempty"`
+	RestartPolicy      corev1.RestartPolicy         `json:"restartPolicy,omitempty"`
 	TagRoutingHeader   string                       `json:"tagRoutingHeader,omitempty"`
 	DisableMirroring   bool                         `json:"disableMirroring,omitempty"`
 }

@@ -38,8 +38,9 @@ var (
 			Protocol:      "TCP",
 			ContainerPort: 4242,
 		}},
-		Replicas: 2,
-		Image:    "docker.medium.sh/test:testtag",
+		Replicas:      2,
+		Image:         "docker.medium.sh/test:testtag",
+		RestartPolicy: corev1.RestartPolicyOnFailure,
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"cpu":    mustParseQuantity("4"),
@@ -117,6 +118,7 @@ var (
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "testaccount",
+					RestartPolicy:      corev1.RestartPolicyOnFailure,
 					Containers: []corev1.Container{{
 						EnvFrom: []corev1.EnvFromSource{},
 						Image:   "docker.medium.sh/test:testtag",

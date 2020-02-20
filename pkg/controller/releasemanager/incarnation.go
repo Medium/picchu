@@ -231,6 +231,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Replicas:           i.divideReplicas(i.target().Scale.Default),
 		Image:              i.image(),
 		Resources:          i.target().Resources,
+		RestartPolicy:      i.revision.Spec.RestartPolicy,
 		IAMRole:            i.target().AWS.IAM.RoleARN,
 		ServiceAccountName: i.target().ServiceAccountName,
 		ReadinessProbe:     i.target().ReadinessProbe,
