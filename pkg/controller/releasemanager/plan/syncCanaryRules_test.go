@@ -40,6 +40,7 @@ var (
 			Enabled:          true,
 			Name:             "test-app-availability",
 			ObjectivePercent: 99.999,
+			Description:      "Test description",
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
@@ -82,6 +83,10 @@ var (
 								Expr: intstr.FromString("test_app:test_app_availability:errors{destination_workload=\"tag\"} / test_app:test_app_availability:total{destination_workload=\"tag\"} - 0.01 " +
 									"> ignoring(destination_workload) sum(test_app:test_app_availability:errors) / sum(test_app:test_app_availability:total)"),
 								For: "1m",
+								Annotations: map[string]string{
+									CanaryMessageAnnotation: "Test description",
+									CanarySummaryAnnotation: "Canary is failing SLO",
+								},
 								Labels: map[string]string{
 									CanaryAppLabel: "test-app",
 									CanaryTagLabel: "tag",
