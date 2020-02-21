@@ -25,13 +25,13 @@ func TestCompositePlanFlat(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, 1.0, log).
+		Apply(ctx, cli, 1.0, gomock.Any()).
 		Return(nil).
 		Times(1)
 
 	p2.
 		EXPECT().
-		Apply(ctx, cli, 1.0, log).
+		Apply(ctx, cli, 1.0, gomock.Any()).
 		Return(nil).
 		Times(1)
 
@@ -53,17 +53,17 @@ func TestCompositePlanLevels(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, 1.0, log).
+		Apply(ctx, cli, 1.0, gomock.Any()).
 		Return(nil).
 		Times(1)
 	p2.
 		EXPECT().
-		Apply(ctx, cli, 1.0, log).
+		Apply(ctx, cli, 1.0, gomock.Any()).
 		Return(nil).
 		Times(1)
 	p3.
 		EXPECT().
-		Apply(ctx, cli, 1.0, log).
+		Apply(ctx, cli, 1.0, gomock.Any()).
 		Return(nil).
 		Times(1)
 
