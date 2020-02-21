@@ -19,6 +19,9 @@ const (
 	CanarySLOLabel = "slo"
 	CanaryLabel    = "canary"
 
+	CanarySummaryAnnotation = "summary"
+	CanaryMessageAnnotation = "message"
+
 	// RuleTypeCanary is the value of the LabelRuleType label for canary rules.
 	RuleTypeCanary = "canary"
 )
@@ -112,10 +115,11 @@ func (s *SLOConfig) canaryRules() []*monitoringv1.RuleGroup {
 		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
-				Alert:  s.canaryAlertName(),
-				For:    s.SLO.ServiceLevelIndicator.Canary.FailAfter,
-				Expr:   intstr.FromString(s.canaryQuery()),
-				Labels: labels,
+				Alert:       s.canaryAlertName(),
+				For:         s.SLO.ServiceLevelIndicator.Canary.FailAfter,
+				Expr:        intstr.FromString(s.canaryQuery()),
+				Labels:      labels,
+				Annotations: s.canaryRuleAnnotations(),
 			},
 		},
 	}
@@ -130,6 +134,13 @@ func (s *SLOConfig) canaryRuleLabels() map[string]string {
 		CanaryTagLabel: s.Tag,
 		CanaryLabel:    "true",
 		CanarySLOLabel: "true",
+	}
+}
+
+func (s *SLOConfig) canaryRuleAnnotations() map[string]string {
+	return map[string]string{
+		CanarySummaryAnnotation: "Canary is failing SLO",
+		CanaryMessageAnnotation: s.serviceLevelObjective().Description,
 	}
 }
 
