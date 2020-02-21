@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"golang.org/x/sync/errgroup"
@@ -23,7 +24,8 @@ func NewClusterApplier(cli client.Client, scalingFactor float64, log logr.Logger
 }
 
 func (a *ClusterApplier) Apply(ctx context.Context, plan Plan) error {
-	return plan.Apply(ctx, a.cli, a.scalingFactor, a.log)
+	planType := reflect.TypeOf(plan).Elem()
+	return plan.Apply(ctx, a.cli, a.scalingFactor, a.log.WithValues("Applier", planType.Name()))
 }
 
 type ConcurrentApplier struct {
