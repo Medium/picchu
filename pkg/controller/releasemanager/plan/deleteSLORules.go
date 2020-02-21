@@ -23,7 +23,8 @@ func (p *DeleteSLORules) Apply(ctx context.Context, cli client.Client, scalingFa
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: p.App,
+			picchuv1alpha1.LabelApp:      p.App,
+			picchuv1alpha1.LabelRuleType: RuleTypeSLO,
 		}),
 	}
 
@@ -32,14 +33,14 @@ func (p *DeleteSLORules) Apply(ctx context.Context, cli client.Client, scalingFa
 		return err
 	}
 
-	for _, sm := range prlist.Items {
-		err := cli.Delete(ctx, sm)
+	for _, prometheusRule := range prlist.Items {
+		err := cli.Delete(ctx, prometheusRule)
 		if err != nil && !errors.IsNotFound(err) {
-			plan.LogSync(log, "deleted", err, sm)
+			plan.LogSync(log, "deleted", err, prometheusRule)
 			return err
 		}
 		if err == nil {
-			plan.LogSync(log, "deleted", err, sm)
+			plan.LogSync(log, "deleted", err, prometheusRule)
 		}
 	}
 

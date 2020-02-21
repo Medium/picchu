@@ -31,7 +31,8 @@ func TestDeleteSLORules(t *testing.T) {
 	opts := &client.ListOptions{
 		Namespace: deleteSLORules.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: deleteSLORules.App,
+			picchuv1alpha1.LabelApp:      deleteSLORules.App,
+			picchuv1alpha1.LabelRuleType: RuleTypeSLO,
 		}),
 	}
 
