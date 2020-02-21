@@ -15,6 +15,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	// RuleTypeSLO is the value of the LabelRuleType label for SLO rules.
+	RuleTypeSLO = "slo"
+)
+
 var (
 	rgNameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
@@ -75,6 +80,8 @@ func (p *SyncSLORules) prometheusRule() *monitoringv1.PrometheusRule {
 	for k, v := range p.ServiceLevelObjectiveLabels.RuleLabels {
 		labels[k] = v
 	}
+
+	labels[picchuv1alpha1.LabelRuleType] = RuleTypeSLO
 
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{

@@ -62,9 +62,10 @@ var (
 				Name:      "test-app-slo",
 				Namespace: "testnamespace",
 				Labels: map[string]string{
-					picchuv1alpha1.LabelApp:     "test-app",
-					picchuv1alpha1.LabelK8sName: "test-app",
-					"severity":                  "test",
+					picchuv1alpha1.LabelApp:      "test-app",
+					picchuv1alpha1.LabelK8sName:  "test-app",
+					picchuv1alpha1.LabelRuleType: RuleTypeSLO,
+					"severity":                   "test",
 				},
 			},
 			Spec: monitoringv1.PrometheusRuleSpec{
