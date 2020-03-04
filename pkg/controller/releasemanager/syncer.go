@@ -76,6 +76,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseMana
 	if err := r.syncNamespace(ctx); err != nil {
 		return rs, err
 	}
+	if err := r.reportMetrics(ctx); err != nil {
+		return rs, err
+	}
 	if err := r.tickIncarnations(ctx); err != nil {
 		return rs, err
 	}
@@ -132,87 +135,48 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 	})
 }
 
-func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
-	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
+func (r *ResourceSyncer) reportMetrics(ctx context.Context) error {
 	incarnationsInState := map[string]int{}
 	oldestIncarnationsInState := map[string]float64{}
+
 	for _, incarnation := range r.incarnations.sorted() {
-		sm := NewDeploymentStateManager(incarnation)
-		if err := sm.tick(ctx); err != nil {
-			return err
-		}
 		current := incarnation.status.State.Current
 		incarnationsInState[current]++
 		gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
 		if age, ok := oldestIncarnationsInState[current]; !ok || age < gitElapsed {
 			oldestIncarnationsInState[current] = gitElapsed
 		}
-		if current == "created" && incarnation.status.Metrics.GitCreateSeconds == nil {
-			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
-			incarnation.status.Metrics.GitCreateSeconds = &gitElapsed
-			incarnationGitCreateLatency.With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"target": r.instance.Spec.Target,
-			}).Observe(gitElapsed)
-		}
-		if (current == "deployed" || current == "released") && incarnation.status.Metrics.GitDeploySeconds == nil {
-			gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
-			incarnation.status.Metrics.GitDeploySeconds = &gitElapsed
-			incarnationGitDeployLatency.With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"target": r.instance.Spec.Target,
-			}).Observe(gitElapsed)
-			revElapsed := time.Since(incarnation.status.RevisionTimestamp.Time).Seconds()
-			incarnation.status.Metrics.RevisionDeploySeconds = &revElapsed
-			incarnationRevisionDeployLatency.With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"target": r.instance.Spec.Target,
-			}).Observe(revElapsed)
-		}
-		if current == "released" && incarnation.status.Metrics.GitReleaseSeconds == nil {
-			elapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
-			incarnation.status.Metrics.GitReleaseSeconds = &elapsed
-			incarnationGitReleaseLatency.With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"target": r.instance.Spec.Target,
-			}).Observe(elapsed)
-			revElapsed := time.Since(incarnation.status.RevisionTimestamp.Time).Seconds()
-			incarnation.status.Metrics.RevisionReleaseSeconds = &revElapsed
-			incarnationRevisionReleaseLatency.With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"target": r.instance.Spec.Target,
-			}).Observe(revElapsed)
-		}
-		if current == "failed" && incarnation.status.Metrics.RevisionRollbackSeconds == nil {
-			if incarnation.revision != nil {
-				r.log.Info("observing rollback elapsed time")
-				elapsed := incarnation.revision.SinceFailed().Seconds()
-				incarnation.status.Metrics.RevisionRollbackSeconds = &elapsed
-				incarnationRevisionRollbackLatency.With(prometheus.Labels{
-					"app":    r.instance.Spec.App,
-					"target": r.instance.Spec.Target,
-				}).Observe(elapsed)
-			} else {
-				r.log.Info("no revision rollback revision found")
-			}
-		}
+
+		incarnation.reportMetrics()
 	}
 	for state, numIncarnations := range incarnationsInState {
 		incarnationReleaseStateGauge.With(prometheus.Labels{
 			"app":    r.instance.Spec.App,
 			"target": r.instance.Spec.Target,
 			"state":  state,
-		}).
-			Set(float64(numIncarnations))
+		}).Set(float64(numIncarnations))
 		if age, ok := oldestIncarnationsInState[state]; ok {
 			incarnationRevisionOldestStateGauge.With(prometheus.Labels{
 				"app":    r.instance.Spec.App,
 				"target": r.instance.Spec.Target,
 				"state":  state,
-			}).
-				Set(age)
+			}).Set(age)
 		}
 	}
+	return nil
+}
+
+func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
+	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
+
+	for _, incarnation := range r.incarnations.sorted() {
+		sm := NewDeploymentStateManager(incarnation)
+
+		if err := sm.tick(ctx); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

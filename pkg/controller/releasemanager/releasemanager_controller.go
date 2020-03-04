@@ -29,31 +29,51 @@ import (
 )
 
 var (
-	clog                         = logf.Log.WithName("controller_releasemanager")
-	incarnationGitReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "picchu_git_release_latency",
-		Help:    "track time from git revision creation to incarnation release",
-		Buckets: prometheus.ExponentialBuckets(10, 3, 7),
+	clog                        = logf.Log.WithName("controller_releasemanager")
+	incarnationGitCreateLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_git_create_latency",
+		Help:    "track time from git revision creation to incarnation create",
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
 	}, []string{"app", "target"})
 	incarnationGitDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_git_deploy_latency",
 		Help:    "track time from git revision creation to incarnation deploy",
-		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
 	}, []string{"app", "target"})
-	incarnationGitCreateLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "picchu_git_create_latency",
-		Help:    "track time from git revision creation to incarnation create",
-		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+	incarnationGitCanaryLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_git_canary_latency",
+		Help:    "track time from git revision creation to incarnation canary",
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
+	}, []string{"app", "target"})
+	incarnationGitPendingReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_git_pending_release_latency",
+		Help:    "track time from git revision creation to incarnation pendingRelease",
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
+	}, []string{"app", "target"})
+	incarnationGitReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_git_release_latency",
+		Help:    "track time from git revision creation to incarnation release",
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
 	}, []string{"app", "target"})
 	incarnationRevisionDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_revision_deploy_latency",
 		Help:    "track time from revision creation to incarnation deploy",
-		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
+	}, []string{"app", "target"})
+	incarnationRevisionCanaryLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_revision_canary_latency",
+		Help:    "track time from revision creation to incarnation canary",
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
+	}, []string{"app", "target"})
+	incarnationRevisionPendingReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_revision_pending_release_latency",
+		Help:    "track time from revision creation to incarnation pendingRelease",
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
 	}, []string{"app", "target"})
 	incarnationRevisionReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_revision_release_latency",
 		Help:    "track time from revision creation to incarnation release",
-		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+		Buckets: prometheus.ExponentialBuckets(120, 3, 7),
 	}, []string{"app", "target"})
 	revisionReleaseWeightGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_release_weight",
@@ -62,7 +82,7 @@ var (
 	incarnationRevisionRollbackLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_revision_rollback_latency",
 		Help:    "track time from failed revision to rollbacked incarnation",
-		Buckets: prometheus.ExponentialBuckets(1, 3, 7),
+		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
 	}, []string{"app", "target"})
 	incarnationReleaseStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_incarnation_count",
@@ -72,6 +92,21 @@ var (
 		Name: "picchu_revision_oldest_age_seconds",
 		Help: "The oldest revision in seconds for each state",
 	}, []string{"app", "target", "state"})
+	deployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_deploy_latency",
+		Help:    "track time a revision spends from deploying to deployed",
+		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
+	}, []string{"app", "target"})
+	canaryLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_canary_latency",
+		Help:    "track time a revision spends from canarying to canaried",
+		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
+	}, []string{"app", "target"})
+	releaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_release_latency",
+		Help:    "track time a revision spends from releasing to released",
+		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
+	}, []string{"app", "target"})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
