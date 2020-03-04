@@ -133,12 +133,14 @@ func (i *Incarnation) reportMetrics() {
 		}
 
 		if i.status.Metrics.DeploySeconds == nil {
-			elapsed := time.Since(i.status.DeployingStartTimestamp.Time).Seconds()
-			i.status.Metrics.DeploySeconds = &elapsed
-			deployLatency.With(prometheus.Labels{
-				"app":    i.appName(),
-				"target": i.targetName(),
-			}).Observe(elapsed)
+			if i.status.DeployingStartTimestamp != nil {
+				elapsed := time.Since(i.status.DeployingStartTimestamp.Time).Seconds()
+				i.status.Metrics.DeploySeconds = &elapsed
+				incarnationDeployLatency.With(prometheus.Labels{
+					"app":    i.appName(),
+					"target": i.targetName(),
+				}).Observe(elapsed)
+			}
 		}
 	}
 
@@ -162,12 +164,14 @@ func (i *Incarnation) reportMetrics() {
 		}
 
 		if i.status.Metrics.CanarySeconds == nil {
-			elapsed := time.Since(i.status.CanaryStartTimestamp.Time).Seconds()
-			i.status.Metrics.CanarySeconds = &elapsed
-			canaryLatency.With(prometheus.Labels{
-				"app":    i.appName(),
-				"target": i.targetName(),
-			}).Observe(elapsed)
+			if i.status.CanaryStartTimestamp != nil {
+				elapsed := time.Since(i.status.CanaryStartTimestamp.Time).Seconds()
+				i.status.Metrics.CanarySeconds = &elapsed
+				incarnationCanaryLatency.With(prometheus.Labels{
+					"app":    i.appName(),
+					"target": i.targetName(),
+				}).Observe(elapsed)
+			}
 		}
 	}
 
@@ -211,12 +215,14 @@ func (i *Incarnation) reportMetrics() {
 		}
 
 		if i.status.Metrics.ReleaseSeconds == nil {
-			elapsed := time.Since(i.status.ReleaseStartTimestamp.Time).Seconds()
-			i.status.Metrics.ReleaseSeconds = &elapsed
-			releaseLatency.With(prometheus.Labels{
-				"app":    i.appName(),
-				"target": i.targetName(),
-			}).Observe(elapsed)
+			if i.status.ReleaseStartTimestamp != nil {
+				elapsed := time.Since(i.status.ReleaseStartTimestamp.Time).Seconds()
+				i.status.Metrics.ReleaseSeconds = &elapsed
+				incarnationReleaseLatency.With(prometheus.Labels{
+					"app":    i.appName(),
+					"target": i.targetName(),
+				}).Observe(elapsed)
+			}
 		}
 	}
 

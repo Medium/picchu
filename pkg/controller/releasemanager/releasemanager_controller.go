@@ -92,17 +92,17 @@ var (
 		Name: "picchu_revision_oldest_age_seconds",
 		Help: "The oldest revision in seconds for each state",
 	}, []string{"app", "target", "state"})
-	deployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	incarnationDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_deploy_latency",
 		Help:    "track time a revision spends from deploying to deployed",
 		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
 	}, []string{"app", "target"})
-	canaryLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	incarnationCanaryLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_canary_latency",
 		Help:    "track time a revision spends from canarying to canaried",
 		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
 	}, []string{"app", "target"})
-	releaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	incarnationReleaseLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_release_latency",
 		Help:    "track time a revision spends from releasing to released",
 		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
@@ -112,15 +112,24 @@ var (
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager, c utils.Config) error {
-	metrics.Registry.MustRegister(incarnationGitReleaseLatency)
-	metrics.Registry.MustRegister(incarnationGitDeployLatency)
-	metrics.Registry.MustRegister(incarnationGitCreateLatency)
-	metrics.Registry.MustRegister(incarnationRevisionDeployLatency)
-	metrics.Registry.MustRegister(incarnationRevisionRollbackLatency)
-	metrics.Registry.MustRegister(incarnationRevisionReleaseLatency)
-	metrics.Registry.MustRegister(incarnationReleaseStateGauge)
-	metrics.Registry.MustRegister(incarnationRevisionOldestStateGauge)
-	metrics.Registry.MustRegister(revisionReleaseWeightGauge)
+	metrics.Registry.MustRegister(
+		incarnationGitCreateLatency,
+		incarnationGitDeployLatency,
+		incarnationGitCanaryLatency,
+		incarnationGitPendingReleaseLatency,
+		incarnationGitReleaseLatency,
+		incarnationRevisionDeployLatency,
+		incarnationRevisionCanaryLatency,
+		incarnationRevisionPendingReleaseLatency,
+		incarnationRevisionReleaseLatency,
+		incarnationRevisionRollbackLatency,
+		incarnationDeployLatency,
+		incarnationCanaryLatency,
+		incarnationReleaseLatency,
+		incarnationReleaseStateGauge,
+		incarnationRevisionOldestStateGauge,
+		revisionReleaseWeightGauge,
+	)
 	return add(mgr, newReconciler(mgr, c))
 }
 
