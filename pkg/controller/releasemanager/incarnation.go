@@ -102,9 +102,9 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 }
 
 func (i *Incarnation) reportMetrics() {
-	current := i.status.State.Current
+	current := State(i.status.State.Current)
 
-	if current == "created" && i.status.Metrics.GitCreateSeconds == nil {
+	if current == created && i.status.Metrics.GitCreateSeconds == nil {
 		elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
 		i.status.Metrics.GitCreateSeconds = &elapsed
 		incarnationGitCreateLatency.With(prometheus.Labels{
@@ -113,7 +113,7 @@ func (i *Incarnation) reportMetrics() {
 		}).Observe(elapsed)
 	}
 
-	if current == "deployed" {
+	if current == deployed {
 		if i.status.Metrics.GitDeploySeconds == nil {
 			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
 			i.status.Metrics.GitDeploySeconds = &elapsed
@@ -144,7 +144,7 @@ func (i *Incarnation) reportMetrics() {
 		}
 	}
 
-	if current == "canaried" {
+	if current == canaried {
 		if i.status.Metrics.GitCanarySeconds == nil {
 			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
 			i.status.Metrics.GitCanarySeconds = &elapsed
@@ -175,7 +175,7 @@ func (i *Incarnation) reportMetrics() {
 		}
 	}
 
-	if current == "pendingRelease" {
+	if current == pendingrelease {
 		if i.status.Metrics.GitPendingReleaseSeconds == nil {
 			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
 			i.status.Metrics.GitPendingReleaseSeconds = &elapsed
@@ -195,7 +195,7 @@ func (i *Incarnation) reportMetrics() {
 		}
 	}
 
-	if current == "released" {
+	if current == released {
 		if i.status.Metrics.GitReleaseSeconds == nil {
 			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
 			i.status.Metrics.GitReleaseSeconds = &elapsed
@@ -226,7 +226,7 @@ func (i *Incarnation) reportMetrics() {
 		}
 	}
 
-	if current == "failed" && i.status.Metrics.RevisionRollbackSeconds == nil {
+	if current == failed && i.status.Metrics.RevisionRollbackSeconds == nil {
 		if i.revision != nil {
 			elapsed := i.revision.SinceFailed().Seconds()
 			i.status.Metrics.RevisionRollbackSeconds = &elapsed
