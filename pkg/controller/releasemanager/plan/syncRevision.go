@@ -68,6 +68,8 @@ type SyncRevision struct {
 	LivenessProbe      *corev1.Probe
 	ReadinessProbe     *corev1.Probe
 	MinReadySeconds    int32
+	Affinity           *corev1.Affinity
+	Tolerations        []corev1.Toleration
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -193,6 +195,8 @@ func (p *SyncRevision) syncReplicaSet(
 			ServiceAccountName: p.ServiceAccountName,
 			Containers:         []corev1.Container{appContainer},
 			DNSConfig:          DefaultDNSConfig(),
+			Affinity:           p.Affinity,
+			Tolerations:        p.Tolerations,
 		},
 	}
 

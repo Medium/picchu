@@ -50,6 +50,25 @@ var (
 				"memory": mustParseQuantity("4352Mi"),
 			},
 		},
+		Affinity: &corev1.Affinity{
+			NodeAffinity: &corev1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+					NodeSelectorTerms: []corev1.NodeSelectorTerm{
+						{
+							MatchFields: []corev1.NodeSelectorRequirement{
+								{Key: "node-role.kubernetes.io/infrastructure", Operator: corev1.NodeSelectorOpExists},
+							},
+						},
+					},
+				},
+			},
+		},
+		Tolerations: []corev1.Toleration{
+			{
+				Key:    "infrastructure",
+				Effect: corev1.TaintEffectNoExecute,
+			},
+		},
 		IAMRole:            "testrole",
 		ServiceAccountName: "testaccount",
 	}
@@ -172,6 +191,25 @@ var (
 							Name:  "ndots",
 							Value: &oneStr,
 						}},
+					},
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchFields: []corev1.NodeSelectorRequirement{
+											{Key: "node-role.kubernetes.io/infrastructure", Operator: corev1.NodeSelectorOpExists},
+										},
+									},
+								},
+							},
+						},
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "infrastructure",
+							Effect: corev1.TaintEffectNoExecute,
+						},
 					},
 				},
 			},
