@@ -47,30 +47,40 @@ type ReleaseManagerStatus struct {
 }
 
 type ReleaseManagerRevisionStatus struct {
-	Tag                  string                              `json:"tag"`
-	State                ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
-	CurrentPercent       uint32                              `json:"currentPercent"`
-	PeakPercent          uint32                              `json:"peakPercent"`
-	ReleaseEligible      bool                                `json:"releaseEligible"`
-	TriggeredAlarms      []string                            `json:"triggeredAlerts,omitempty"`
-	LastUpdated          *metav1.Time                        `json:"lastUpdated"`
-	GitTimestamp         *metav1.Time                        `json:"gitTimestamp,omitempty"`
-	RevisionTimestamp    *metav1.Time                        `json:"revisionTimestamp,omitempty"`
-	CanaryStartTimestamp *metav1.Time                        `json:"canaryStartTimestamp,omitempty"`
-	TTL                  int64                               `json:"ttl,omitempty"`
-	Metrics              ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
-	Scale                ReleaseManagerRevisionScaleStatus   `json:"scale"`
-	Deleted              bool                                `json:"deleted,omitempty"`
+	Tag                          string                              `json:"tag"`
+	State                        ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
+	CurrentPercent               uint32                              `json:"currentPercent"`
+	PeakPercent                  uint32                              `json:"peakPercent"`
+	ReleaseEligible              bool                                `json:"releaseEligible"`
+	TriggeredAlarms              []string                            `json:"triggeredAlerts,omitempty"`
+	LastUpdated                  *metav1.Time                        `json:"lastUpdated"`
+	GitTimestamp                 *metav1.Time                        `json:"gitTimestamp,omitempty"`
+	RevisionTimestamp            *metav1.Time                        `json:"revisionTimestamp,omitempty"`
+	DeployingStartTimestamp      *metav1.Time                        `json:"deployingStartTimestamp,omitempty"`
+	CanaryStartTimestamp         *metav1.Time                        `json:"canaryStartTimestamp,omitempty"`
+	PendingReleaseStartTimestamp *metav1.Time                        `json:"pendingReleaseStartTimestamp,omitempty"`
+	ReleaseStartTimestamp        *metav1.Time                        `json:"releaseStartTimestamp,omitempty"`
+	TTL                          int64                               `json:"ttl,omitempty"`
+	Metrics                      ReleaseManagerRevisionMetricsStatus `json:"metrics,omitempty"`
+	Scale                        ReleaseManagerRevisionScaleStatus   `json:"scale"`
+	Deleted                      bool                                `json:"deleted,omitempty"`
 }
 
 // ReleaseManagerRevisionMetricsStatus defines the observed state of ReleaseManagerRevisionMetrics
 type ReleaseManagerRevisionMetricsStatus struct {
-	GitReleaseSeconds       *float64 `json:"gitReleaseSeconds,omitempty"`
-	GitDeploySeconds        *float64 `json:"gitDeploySeconds,omitempty"`
-	GitCreateSeconds        *float64 `json:"gitCreateSeconds,omitempty"`
-	RevisionDeploySeconds   *float64 `json:"revisionDeploySeconds,omitempty"`
-	RevisionReleaseSeconds  *float64 `json:"revisionReleaseSeconds,omitempty"`
-	RevisionRollbackSeconds *float64 `json:"revisionRollbackSeconds,omitempty"`
+	GitCreateSeconds              *float64 `json:"gitCreateSeconds,omitempty"`
+	GitDeploySeconds              *float64 `json:"gitDeploySeconds,omitempty"`
+	GitCanarySeconds              *float64 `json:"gitCanarySeconds,omitempty"`
+	GitPendingReleaseSeconds      *float64 `json:"gitPendingReleaseSeconds,omitempty"`
+	GitReleaseSeconds             *float64 `json:"gitReleaseSeconds,omitempty"`
+	RevisionDeploySeconds         *float64 `json:"revisionDeploySeconds,omitempty"`
+	RevisionCanarySeconds         *float64 `json:"revisionCanarySeconds,omitempty"`
+	RevisionReleaseSeconds        *float64 `json:"revisionReleaseSeconds,omitempty"`
+	ReivisonPendingReleaseSeconds *float64 `json:"revisionPendingReleaseSeconds,omitempty"`
+	RevisionRollbackSeconds       *float64 `json:"revisionRollbackSeconds,omitempty"`
+	DeploySeconds                 *float64 `json:"deploySeconds,omitempty"`
+	CanarySeconds                 *float64 `json:"canarySeconds,omitempty"`
+	ReleaseSeconds                *float64 `json:"releaseSeconds,omitempty"`
 }
 
 type ReleaseManagerRevisionStateStatus struct {

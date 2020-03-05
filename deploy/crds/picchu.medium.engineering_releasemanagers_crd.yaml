@@ -59,6 +59,9 @@ spec:
                     type: integer
                   deleted:
                     type: boolean
+                  deployingStartTimestamp:
+                    format: date-time
+                    type: string
                   gitTimestamp:
                     format: date-time
                     type: string
@@ -69,18 +72,31 @@ spec:
                     description: ReleaseManagerRevisionMetricsStatus defines the observed
                       state of ReleaseManagerRevisionMetrics
                     properties:
+                      canarySeconds: {}
+                      deploySeconds: {}
+                      gitCanarySeconds: {}
                       gitCreateSeconds: {}
                       gitDeploySeconds: {}
+                      gitPendingReleaseSeconds: {}
                       gitReleaseSeconds: {}
+                      releaseSeconds: {}
+                      revisionCanarySeconds: {}
                       revisionDeploySeconds: {}
+                      revisionPendingReleaseSeconds: {}
                       revisionReleaseSeconds: {}
                       revisionRollbackSeconds: {}
                     type: object
                   peakPercent:
                     format: int32
                     type: integer
+                  pendingReleaseStartTimestamp:
+                    format: date-time
+                    type: string
                   releaseEligible:
                     type: boolean
+                  releaseStartTimestamp:
+                    format: date-time
+                    type: string
                   revisionTimestamp:
                     format: date-time
                     type: string
