@@ -374,6 +374,8 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		ReadinessProbe:     i.target().ReadinessProbe,
 		LivenessProbe:      i.target().LivenessProbe,
 		MinReadySeconds:    i.target().Scale.MinReadySeconds,
+		Affinity:           i.target().Affinity,
+		Tolerations:        i.target().Tolerations,
 	}
 
 	if !i.isRoutable() {

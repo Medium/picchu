@@ -107,6 +107,9 @@ type RevisionTarget struct {
 	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 
+	Affinity    *corev1.Affinity    `json:"affinity,omitempty"`
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
 	ExternalTest ExternalTest `json:"externalTest,omitempty"`
 	Canary       Canary       `json:"canary,omitempty"`
 	Ports        []PortInfo   `json:"ports,omitempty"`
