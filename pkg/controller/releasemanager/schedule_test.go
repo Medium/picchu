@@ -18,7 +18,8 @@ func TestSchedulePermitsRelease(t *tt.T) {
 		Time     time.Time
 		Expected bool
 	}{
-		{parse("2019-04-17T16:59:00Z"), false},
+		{parse("2019-04-17T13:59:00Z"), false},
+		{parse("2019-04-17T14:00:00Z"), true},
 		{parse("2019-04-17T17:00:00Z"), true},
 		{parse("2019-04-17T22:59:00Z"), true},
 		{parse("2019-04-17T23:00:00Z"), false},
@@ -27,8 +28,8 @@ func TestSchedulePermitsRelease(t *tt.T) {
 		{parse("2019-04-19T22:00:00Z"), false},
 		{parse("2019-04-20T18:00:00Z"), false},
 		{parse("2019-04-21T18:00:00Z"), false},
-		{parse("2019-04-22T16:59:00Z"), false},
-		{parse("2019-04-22T17:00:00Z"), true},
+		{parse("2019-04-22T13:59:00Z"), false},
+		{parse("2019-04-22T14:00:00Z"), true},
 	}
 	for _, c := range cases {
 		permitted := schedulePermitsRelease(c.Time, "humane")
