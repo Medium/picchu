@@ -434,6 +434,9 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	if err := deployment.syncTaggedServiceLevels(ctx); err != nil {
 		return canarying, err
 	}
+	if err := deployment.sync(ctx); err != nil {
+		return canarying, err
+	}
 	if !deployment.isCanaryPending() {
 		return canaried, nil
 	}

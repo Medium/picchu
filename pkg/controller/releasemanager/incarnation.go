@@ -719,12 +719,16 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 	}
 
 	var perc int32 = 100
-
-	release := i.target().Release
-	if release.Eligible || i.status.CurrentPercent > 0 {
-		// since we sync before incrementing, we'll just err on the side of
-		// caution and use the next increment percent.
-		perc = int32(i.status.CurrentPercent + release.Rate.Increment)
+	if status.State.Current == "canarying" {
+		perc = int32(i.target().Canary.Percent)
+	} else {
+		release := i.target().Release
+		increment := release.Rate.Increment
+		if release.Eligible || i.status.CurrentPercent > 0 {
+			// since we sync before incrementing, we'll just err on the side of
+			// caution and use the next increment percent.
+			perc = int32(i.status.CurrentPercent + increment)
+		}
 	}
 
 	return i.controller.divideReplicas(count, perc)
