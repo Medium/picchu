@@ -753,10 +753,9 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 	}
 
 	if status.State.Current == "canarying" {
-		if max < i.target().Canary.Percent {
-			return max
+		if max > i.target().Canary.Percent {
+			max = i.target().Canary.Percent
 		}
-		return i.target().Canary.Percent
 	}
 
 	return LinearScale(*i, max, time.Now())
