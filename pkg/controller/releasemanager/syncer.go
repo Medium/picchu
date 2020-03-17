@@ -496,7 +496,7 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 
 		percRemaining -= currentPercent
 
-		if currentPercent <= 0 && i > firstNonCanary {
+		if currentPercent <= 0 && firstNonCanary != -1 && i > firstNonCanary {
 			r.log.Info(
 				"Setting incarnation release-eligibility to false; will trigger retirement",
 				"Tag", incarnation.tag,
