@@ -449,14 +449,21 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 	count := len(incarnations)
 
 	firstNonCanary := -1
+	firstNonCanaryTag := ""
 	for i, incarnation := range incarnations {
 		status := incarnation.status
 		oldCurrentPercent := status.CurrentPercent
 		currentState := State(status.State.Current)
 
 		if firstNonCanary == -1 && currentState != canaried && currentState != canarying {
-			r.log.Info("Found first ramping release", "firstNonCanary", i)
+			r.log.Info(
+				"Found first ramping release",
+				"firstNonCanary", i,
+				"Tag", incarnation.tag,
+				"currentState", status.State.Current,
+			)
 			firstNonCanary = i
+			firstNonCanaryTag = incarnation.tag
 		}
 
 		// what this means in practice is that only the latest "releasing" revision will be incremented,
@@ -489,10 +496,11 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 
 		percRemaining -= currentPercent
 
-		if currentPercent <= 0 && i > firstNonCanary {
+		if currentPercent <= 0 && firstNonCanary != -1 && i > firstNonCanary {
 			r.log.Info(
 				"Setting incarnation release-eligibility to false; will trigger retirement",
 				"Tag", incarnation.tag,
+				"rampingTag", firstNonCanaryTag,
 				"oldCurrentPercent", oldCurrentPercent,
 				"currentPercent", currentPercent,
 				"currentState", status.State.Current,
