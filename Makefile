@@ -11,7 +11,7 @@ GEN := zz_generated
 platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))
 GOARCH = $(word 2, $(platform_temp))
-GOROOT = $(shell go env GOROOT)
+export GOROOT = $(shell go env GOROOT)
 
 .PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
@@ -23,7 +23,7 @@ build:
 
 docker:
 	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
-	GOROOT=$(GOROOT) operator-sdk build $(IMAGE)
+	operator-sdk build $(IMAGE)
 
 deps:
 	go mod tidy
@@ -33,7 +33,7 @@ generate: deepcopy defaulter openapi clientset
 
 deepcopy:
 	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
-	GOROOT=$(GOROOT) operator-sdk generate k8s
+	operator-sdk generate k8s
 
 defaulter: generators/defaulter
 	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).defaults -h $(BOILERPLATE)
