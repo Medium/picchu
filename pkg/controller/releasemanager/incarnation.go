@@ -441,11 +441,6 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 	return nil
 }
 
-func (i *Incarnation) scale(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Scale Revision", i.genScalePlan(ctx))
-
-}
-
 func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 	requestsRateTarget, err := i.target().Scale.TargetReqeustsRateQuantity()
 	if err != nil {
