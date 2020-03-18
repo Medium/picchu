@@ -547,7 +547,7 @@ func (i *Incarnation) setState(state string) {
 		}
 	}
 	if state == "canarying" {
-		if i.status.CanaryStartTimestamp == nil {
+		if i.status.CanaryStartTimestamp == nil && i.status.CurrentPercent > 0 {
 			t := metav1.Now()
 			i.status.CanaryStartTimestamp = &t
 		}
