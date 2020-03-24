@@ -97,10 +97,6 @@ func (p *SyncApp) serviceHost() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", p.App, p.Namespace)
 }
 
-func (p *SyncApp) defaultHost() string {
-	return fmt.Sprintf("%s.%s", p.Namespace, p.DefaultDomain)
-}
-
 func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) []istiov1alpha3.HTTPMatchRequest {
 	matches := []istiov1alpha3.HTTPMatchRequest{{
 		Port:     uint32(port.Port),
@@ -126,7 +122,12 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 			return matches
 		}
 		gateway = []string{p.PrivateGateway}
-		hosts = append(hosts, p.defaultHost())
+		hosts = append(hosts, fmt.Sprintf("%s.%s", p.Namespace, p.DefaultDomain)) // default host
+
+		if port.Name != "" {
+			hosts = append(hosts, fmt.Sprintf("%s-%s.%s", p.Namespace, port.Name, p.DefaultDomain))
+		}
+
 		portNumber = uint32(port.IngressPort)
 	}
 
@@ -247,36 +248,6 @@ func (p *SyncApp) taggedRoutes() []istiov1alpha3.HTTPRoute {
 	return routes
 }
 
-func (p *SyncApp) hosts() []string {
-	hostsMap := map[string]bool{
-		p.defaultHost(): true,
-		p.serviceHost(): true,
-	}
-	for _, port := range p.Ports {
-		for _, host := range port.Hosts {
-			hostsMap[host] = true
-		}
-	}
-
-	hosts := make([]string, 0, len(hostsMap))
-	for host := range hostsMap {
-		hosts = append(hosts, host)
-	}
-	sort.Strings(hosts)
-	return hosts
-}
-
-func (p *SyncApp) gateways() []string {
-	gateways := []string{"mesh"}
-	if p.PublicGateway != "" {
-		gateways = append(gateways, p.PublicGateway)
-	}
-	if p.PrivateGateway != "" {
-		gateways = append(gateways, p.PrivateGateway)
-	}
-	return gateways
-}
-
 func (p *SyncApp) service() *corev1.Service {
 	ports := []corev1.ServicePort{}
 	for _, port := range p.Ports {
@@ -342,6 +313,31 @@ func (p *SyncApp) virtualService(log logr.Logger) *istiov1alpha3.VirtualService 
 		return nil
 	}
 
+	hostsMap := map[string]bool{
+		p.serviceHost(): true,
+	}
+	for _, httpRoute := range http {
+		for _, httpMatch := range httpRoute.Match {
+			if httpMatch.Authority == nil || httpMatch.Authority.Prefix == "" {
+				continue
+			}
+			hostsMap[httpMatch.Authority.Prefix] = true
+		}
+	}
+	hosts := make([]string, 0, len(hostsMap))
+	for host := range hostsMap {
+		hosts = append(hosts, host)
+	}
+	sort.Strings(hosts)
+
+	gateways := []string{"mesh"}
+	if p.PublicGateway != "" {
+		gateways = append(gateways, p.PublicGateway)
+	}
+	if p.PrivateGateway != "" {
+		gateways = append(gateways, p.PrivateGateway)
+	}
+
 	return &istiov1alpha3.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.App,
@@ -349,8 +345,8 @@ func (p *SyncApp) virtualService(log logr.Logger) *istiov1alpha3.VirtualService 
 			Labels:    p.Labels,
 		},
 		Spec: istiov1alpha3.VirtualServiceSpec{
-			Hosts:    p.hosts(),
-			Gateways: p.gateways(),
+			Hosts:    hosts,
+			Gateways: gateways,
 			Http:     http,
 		},
 	}
