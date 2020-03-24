@@ -1,9 +1,9 @@
 package v1alpha1
 
 import (
-	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type PortMode string
@@ -69,14 +69,13 @@ type IstioPortConfig struct {
 	HTTP IstioHTTPPortConfig `json:"http,omitempty"`
 }
 
+type Retries struct {
+	Attempts      int32            `json:"attempts,omitempty"`
+	PerTryTimeout *metav1.Duration `json:"per_try_timeout,omitempty"`
+}
+
 type IstioHTTPPortConfig struct {
-	Redirect              *istiov1alpha3.HTTPRedirect       `json:"redirect,omitempty"`
-	Rewrite               *istiov1alpha3.HTTPRewrite        `json:"rewrite,omitempty"`
-	Retries               *istiov1alpha3.HTTPRetry          `json:"retries,omitempty"`
-	Fault                 *istiov1alpha3.HTTPFaultInjection `json:"fault,omitempty"`
-	Mirror                *istiov1alpha3.Destination        `json:"mirror,omitempty"`
-	AppendHeaders         map[string]string                 `json:"appendHeaders,omitempty"`
-	RemoveResponseHeaders map[string]string                 `json:"removeResponseHeaders,omitempty"`
+	Retries *Retries `json:"retries,omitempty"`
 }
 
 type ScaleInfo struct {
