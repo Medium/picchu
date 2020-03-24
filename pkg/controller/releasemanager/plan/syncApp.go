@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strconv"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -125,11 +124,9 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 		gateway = []string{p.PrivateGateway}
 		hosts = append(hosts, fmt.Sprintf("%s.%s", p.Namespace, p.DefaultDomain)) // default host
 
-		portName := port.Name
-		if portName == "" {
-			portName = strconv.Itoa(int(port.Port))
+		if port.Name != "" {
+			hosts = append(hosts, fmt.Sprintf("%s-%s.%s", p.Namespace, port.Name, p.DefaultDomain))
 		}
-		hosts = append(hosts, fmt.Sprintf("%s-%s.%s", p.Namespace, portName, p.DefaultDomain))
 
 		portNumber = uint32(port.IngressPort)
 	}
@@ -327,11 +324,9 @@ func (p *SyncApp) virtualService(log logr.Logger) *istiov1alpha3.VirtualService 
 			hostsMap[httpMatch.Authority.Prefix] = true
 		}
 	}
-	hosts := make([]string, len(hostsMap))
-	var i int
+	hosts := make([]string, 0, len(hostsMap))
 	for host := range hostsMap {
-		hosts[i] = host
-		i++
+		hosts = append(hosts, host)
 	}
 	sort.Strings(hosts)
 
