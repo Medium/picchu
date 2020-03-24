@@ -4,7 +4,6 @@ import (
 	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -69,16 +68,15 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                RevisionApp                  `json:"app"`
-	Ports              []PortInfo                   `json:"ports,omitempty"`
-	Targets            []RevisionTarget             `json:"targets"`
-	TrafficPolicy      *istiov1alpha3.TrafficPolicy `json:"trafficPolicy,omitempty"`
-	Failed             bool                         `json:"failed"`
-	IgnoreSLOs         bool                         `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules bool                         `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo                   `json:"sentry,omitempty"`
-	TagRoutingHeader   string                       `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring   bool                         `json:"disableMirroring,omitempty"`
+	App                RevisionApp      `json:"app"`
+	Ports              []PortInfo       `json:"ports,omitempty"`
+	Targets            []RevisionTarget `json:"targets"`
+	Failed             bool             `json:"failed"`
+	IgnoreSLOs         bool             `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules bool             `json:"canaryWithSLIRules,omitempty"`
+	Sentry             SentryInfo       `json:"sentry,omitempty"`
+	TagRoutingHeader   string           `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring   bool             `json:"disableMirroring,omitempty"`
 }
 
 type RevisionApp struct {
