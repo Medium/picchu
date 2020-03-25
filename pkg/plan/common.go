@@ -121,6 +121,23 @@ func CreateOrUpdate(
 		if err != nil {
 			return err
 		}
+	case *istiov1alpha3.Gateway:
+		typed := orig.DeepCopy()
+		vs := &istiov1alpha3.Gateway{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, vs, func() error {
+			vs.Spec = typed.Spec
+			vs.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, vs)
+		if err != nil {
+			return err
+		}
 	case *monitoringv1.PrometheusRule:
 		typed := orig.DeepCopy()
 		pm := &monitoringv1.PrometheusRule{
