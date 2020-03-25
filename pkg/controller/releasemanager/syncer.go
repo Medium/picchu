@@ -13,7 +13,6 @@ import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -227,7 +226,6 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		DeployedRevisions: revisions,
 		AlertRules:        alertRules,
 		Ports:             ports,
-		TrafficPolicy:     r.currentTrafficPolicy(),
 	})
 	if err != nil {
 		return err
@@ -342,12 +340,6 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 		}
 	}
 
-	return nil
-}
-
-// currentTrafficPolicy gets the latest release's traffic policy, or if there
-// are no releases, then the latest revisions traffic policy.
-func (r *ResourceSyncer) currentTrafficPolicy() *istiov1alpha3.TrafficPolicy {
 	return nil
 }
 

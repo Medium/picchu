@@ -42,7 +42,6 @@ type SyncApp struct {
 	DeployedRevisions []Revision
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
-	TrafficPolicy     *istio.TrafficPolicy
 }
 
 func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -304,9 +303,8 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 			Labels:    p.Labels,
 		},
 		Spec: istio.DestinationRule{
-			Host:          p.serviceHost(),
-			Subsets:       subsets,
-			TrafficPolicy: p.TrafficPolicy,
+			Host:    p.serviceHost(),
+			Subsets: subsets,
 		},
 	}
 
