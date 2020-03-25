@@ -59,6 +59,10 @@ spec:
               type: object
             defaultDomain:
               type: string
+            defaultDomains:
+              items:
+                type: string
+              type: array
             dns:
               items:
                 properties:
@@ -111,7 +115,6 @@ spec:
               type: boolean
             weight: {}
           required:
-          - defaultDomain
           - enabled
           - ingresses
           - weight
