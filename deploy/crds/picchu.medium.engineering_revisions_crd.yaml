@@ -80,7 +80,7 @@ spec:
                               attempts:
                                 format: int32
                                 type: integer
-                              per_try_timeout:
+                              perTryTimeout:
                                 type: string
                             type: object
                         type: object
@@ -984,7 +984,7 @@ spec:
                                     attempts:
                                       format: int32
                                       type: integer
-                                    per_try_timeout:
+                                    perTryTimeout:
                                       type: string
                                   type: object
                               type: object
