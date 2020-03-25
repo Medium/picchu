@@ -15,9 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/go-logr/logr"
-	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
-	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/prometheus/client_golang/prometheus"
+	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -662,14 +661,14 @@ func (i *Incarnation) update(di *observe.DeploymentInfo) {
 	}
 }
 
-func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []istiov1alpha3.HTTPRoute {
-	http := []istiov1alpha3.HTTPRoute{}
+func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []*istiov1alpha3.HTTPRoute {
+	http := []*istiov1alpha3.HTTPRoute{}
 	if i.revision == nil {
 		return http
 	}
 	overrideLabel := fmt.Sprintf("pin/%s", i.appName())
 	for _, port := range i.ports() {
-		matches := []istiov1alpha3.HTTPMatchRequest{{
+		matches := []*istiov1alpha3.HTTPMatchRequest{{
 			// mesh traffic from same tag'd service with and test tag
 			SourceLabels: map[string]string{
 				overrideLabel: i.tag,
@@ -679,10 +678,10 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 		}}
 		if privateGateway != "" {
 			matches = append(matches,
-				istiov1alpha3.HTTPMatchRequest{
+				&istiov1alpha3.HTTPMatchRequest{
 					// internal traffic with MEDIUM-TAG header
-					Headers: map[string]istiocommonv1alpha1.StringMatch{
-						"Medium-Tag": {Exact: i.tag},
+					Headers: map[string]*istiov1alpha3.StringMatch{
+						"Medium-Tag": {MatchType: &istiov1alpha3.StringMatch_Exact{Exact: i.tag}},
 					},
 					Port:     uint32(port.IngressPort),
 					Gateways: []string{privateGateway},
@@ -690,13 +689,13 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 			)
 		}
 
-		http = append(http, istiov1alpha3.HTTPRoute{
+		http = append(http, &istiov1alpha3.HTTPRoute{
 			Match: matches,
-			Route: []istiov1alpha3.DestinationWeight{
+			Route: []*istiov1alpha3.HTTPRouteDestination{
 				{
-					Destination: istiov1alpha3.Destination{
+					Destination: &istiov1alpha3.Destination{
 						Host:   serviceHost,
-						Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
+						Port:   &istiov1alpha3.PortSelector{Number: uint32(port.Port)},
 						Subset: i.tag,
 					},
 					Weight: 100,

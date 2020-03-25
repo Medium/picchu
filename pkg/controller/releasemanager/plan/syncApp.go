@@ -10,8 +10,9 @@ import (
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
-	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
-	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
+	"github.com/gogo/protobuf/types"
+	istio "istio.io/api/networking/v1alpha3"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +42,6 @@ type SyncApp struct {
 	DeployedRevisions []Revision
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
-	TrafficPolicy     *istiov1alpha3.TrafficPolicy
 }
 
 func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
@@ -97,11 +97,11 @@ func (p *SyncApp) serviceHost() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", p.App, p.Namespace)
 }
 
-func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) []istiov1alpha3.HTTPMatchRequest {
-	matches := []istiov1alpha3.HTTPMatchRequest{{
+func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) []*istio.HTTPMatchRequest {
+	matches := []*istio.HTTPMatchRequest{{
 		Port:     uint32(port.Port),
 		Gateways: []string{"mesh"},
-		Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+		Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 	}}
 
 	portNumber := uint32(port.Port)
@@ -132,25 +132,25 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 	}
 
 	for _, host := range hosts {
-		matches = append(matches, istiov1alpha3.HTTPMatchRequest{
-			Authority: &istiocommonv1alpha1.StringMatch{Prefix: host},
+		matches = append(matches, &istio.HTTPMatchRequest{
+			Authority: &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: host}},
 			Port:      portNumber,
 			Gateways:  gateway,
-			Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+			Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 		})
 	}
 	return matches
 }
 
-func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, revision Revision) []istiov1alpha3.HTTPMatchRequest {
-	headers := map[string]istiocommonv1alpha1.StringMatch{
-		revision.TagRoutingHeader: {Exact: revision.Tag},
+func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, revision Revision) []*istio.HTTPMatchRequest {
+	headers := map[string]*istio.StringMatch{
+		revision.TagRoutingHeader: {MatchType: &istio.StringMatch_Exact{Exact: revision.Tag}},
 	}
-	matches := []istiov1alpha3.HTTPMatchRequest{{
+	matches := []*istio.HTTPMatchRequest{{
 		Headers:  headers,
 		Port:     uint32(port.Port),
 		Gateways: []string{"mesh"},
-		Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+		Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 	}}
 
 	gateways := []string{}
@@ -167,39 +167,39 @@ func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, revision Revision)
 	}
 
 	if len(gateways) > 0 {
-		matches = append(matches, istiov1alpha3.HTTPMatchRequest{
+		matches = append(matches, &istio.HTTPMatchRequest{
 			Headers:  headers,
 			Port:     uint32(port.IngressPort),
 			Gateways: gateways,
-			Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+			Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 		})
 	}
 	return matches
 }
 
-func (p *SyncApp) releaseRoute(port picchuv1alpha1.PortInfo) []istiov1alpha3.DestinationWeight {
-	weights := []istiov1alpha3.DestinationWeight{}
+func (p *SyncApp) releaseRoute(port picchuv1alpha1.PortInfo) []*istio.HTTPRouteDestination {
+	weights := []*istio.HTTPRouteDestination{}
 	for _, revision := range p.DeployedRevisions {
 		if revision.Weight == 0 {
 			continue
 		}
-		weights = append(weights, istiov1alpha3.DestinationWeight{
-			Destination: istiov1alpha3.Destination{
+		weights = append(weights, &istio.HTTPRouteDestination{
+			Destination: &istio.Destination{
 				Host:   p.serviceHost(),
-				Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
+				Port:   &istio.PortSelector{Number: uint32(port.Port)},
 				Subset: revision.Tag,
 			},
-			Weight: int(revision.Weight),
+			Weight: int32(revision.Weight),
 		})
 	}
 	return weights
 }
 
-func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, revision Revision) []istiov1alpha3.DestinationWeight {
-	return []istiov1alpha3.DestinationWeight{{
-		Destination: istiov1alpha3.Destination{
+func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, revision Revision) []*istio.HTTPRouteDestination {
+	return []*istio.HTTPRouteDestination{{
+		Destination: &istio.Destination{
 			Host:   p.serviceHost(),
-			Port:   istiov1alpha3.PortSelector{Number: uint32(port.Port)},
+			Port:   &istio.PortSelector{Number: uint32(port.Port)},
 			Subset: revision.Tag,
 		},
 		Weight: 100,
@@ -208,24 +208,30 @@ func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, revision Revision) [
 
 func (p *SyncApp) makeRoute(
 	port picchuv1alpha1.PortInfo,
-	match []istiov1alpha3.HTTPMatchRequest,
-	route []istiov1alpha3.DestinationWeight,
-) istiov1alpha3.HTTPRoute {
-	return istiov1alpha3.HTTPRoute{
-		Redirect:              port.Istio.HTTP.Redirect,
-		Rewrite:               port.Istio.HTTP.Rewrite,
-		Retries:               port.Istio.HTTP.Retries,
-		Fault:                 port.Istio.HTTP.Fault,
-		Mirror:                port.Istio.HTTP.Mirror,
-		AppendHeaders:         port.Istio.HTTP.AppendHeaders,
-		RemoveResponseHeaders: port.Istio.HTTP.RemoveResponseHeaders,
-		Match:                 match,
-		Route:                 route,
+	match []*istio.HTTPMatchRequest,
+	route []*istio.HTTPRouteDestination,
+) *istio.HTTPRoute {
+	var retries *istio.HTTPRetry
+
+	http := port.Istio.HTTP
+
+	if http.Retries != nil {
+		retries = &istio.HTTPRetry{
+			Attempts: http.Retries.Attempts,
+		}
+		if http.Retries.PerTryTimeout != nil {
+			retries.PerTryTimeout = types.DurationProto(http.Retries.PerTryTimeout.Duration)
+		}
+	}
+	return &istio.HTTPRoute{
+		Retries: retries,
+		Match:   match,
+		Route:   route,
 	}
 }
 
-func (p *SyncApp) releaseRoutes(log logr.Logger) []istiov1alpha3.HTTPRoute {
-	routes := []istiov1alpha3.HTTPRoute{}
+func (p *SyncApp) releaseRoutes(log logr.Logger) []*istio.HTTPRoute {
+	routes := []*istio.HTTPRoute{}
 	for _, port := range p.Ports {
 		if len(p.releaseRoute(port)) == 0 {
 			continue
@@ -235,8 +241,8 @@ func (p *SyncApp) releaseRoutes(log logr.Logger) []istiov1alpha3.HTTPRoute {
 	return routes
 }
 
-func (p *SyncApp) taggedRoutes() []istiov1alpha3.HTTPRoute {
-	routes := []istiov1alpha3.HTTPRoute{}
+func (p *SyncApp) taggedRoutes() []*istio.HTTPRoute {
+	routes := []*istio.HTTPRoute{}
 	for _, revision := range p.DeployedRevisions {
 		if revision.TagRoutingHeader == "" {
 			continue
@@ -281,32 +287,31 @@ func (p *SyncApp) service() *corev1.Service {
 	}
 }
 
-func (p *SyncApp) destinationRule() *istiov1alpha3.DestinationRule {
+func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 	labelTag := "tag.picchu.medium.engineering"
-	subsets := []istiov1alpha3.Subset{}
+	subsets := []*istio.Subset{}
 	for _, revision := range p.DeployedRevisions {
-		subsets = append(subsets, istiov1alpha3.Subset{
+		subsets = append(subsets, &istio.Subset{
 			Name:   revision.Tag,
 			Labels: map[string]string{labelTag: revision.Tag},
 		})
 	}
-	return &istiov1alpha3.DestinationRule{
+	return &istioclient.DestinationRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.App,
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
-		Spec: istiov1alpha3.DestinationRuleSpec{
-			Host:          p.serviceHost(),
-			Subsets:       subsets,
-			TrafficPolicy: p.TrafficPolicy,
+		Spec: istio.DestinationRule{
+			Host:    p.serviceHost(),
+			Subsets: subsets,
 		},
 	}
 
 }
 
 // virtualService will return nil if there are not configured routes
-func (p *SyncApp) virtualService(log logr.Logger) *istiov1alpha3.VirtualService {
+func (p *SyncApp) virtualService(log logr.Logger) *istioclient.VirtualService {
 	http := append(p.taggedRoutes(), p.releaseRoutes(log)...)
 	if len(http) < 1 {
 		log.Info("Not syncing VirtualService, there are no available deployments")
@@ -318,10 +323,10 @@ func (p *SyncApp) virtualService(log logr.Logger) *istiov1alpha3.VirtualService 
 	}
 	for _, httpRoute := range http {
 		for _, httpMatch := range httpRoute.Match {
-			if httpMatch.Authority == nil || httpMatch.Authority.Prefix == "" {
-				continue
+			prefix := httpMatch.Authority.GetPrefix()
+			if prefix != "" {
+				hostsMap[prefix] = true
 			}
-			hostsMap[httpMatch.Authority.Prefix] = true
 		}
 	}
 	hosts := make([]string, 0, len(hostsMap))
@@ -338,13 +343,13 @@ func (p *SyncApp) virtualService(log logr.Logger) *istiov1alpha3.VirtualService 
 		gateways = append(gateways, p.PrivateGateway)
 	}
 
-	return &istiov1alpha3.VirtualService{
+	return &istioclient.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.App,
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
-		Spec: istiov1alpha3.VirtualServiceSpec{
+		Spec: istio.VirtualService{
 			Hosts:    hosts,
 			Gateways: gateways,
 			Http:     http,

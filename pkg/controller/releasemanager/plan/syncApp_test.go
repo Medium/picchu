@@ -12,9 +12,9 @@ import (
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
-	istiocommonv1alpha1 "github.com/knative/pkg/apis/istio/common/v1alpha1"
-	istiov1alpha3 "github.com/knative/pkg/apis/istio/v1alpha3"
 	"github.com/stretchr/testify/assert"
+	istio "istio.io/api/networking/v1alpha3"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,14 +32,18 @@ var (
 		DefaultDomain:  "doki-pen.org",
 		PublicGateway:  "public-gateway",
 		PrivateGateway: "private-gateway",
-		DeployedRevisions: []Revision{{
-			Tag:              "testtag",
-			Weight:           100,
-			TagRoutingHeader: "MEDIUM-TAG",
-		}},
-		AlertRules: []monitoringv1.Rule{{
-			Expr: intstr.FromString("hello world"),
-		}},
+		DeployedRevisions: []Revision{
+			{
+				Tag:              "testtag",
+				Weight:           100,
+				TagRoutingHeader: "MEDIUM-TAG",
+			},
+		},
+		AlertRules: []monitoringv1.Rule{
+			{
+				Expr: intstr.FromString("hello world"),
+			},
+		},
 		Ports: []picchuv1alpha1.PortInfo{
 			{
 				Name:          "http",
@@ -66,16 +70,9 @@ var (
 				Mode:          picchuv1alpha1.PortLocal,
 			},
 		},
-		TrafficPolicy: &istiov1alpha3.TrafficPolicy{
-			ConnectionPool: &istiov1alpha3.ConnectionPoolSettings{
-				Http: &istiov1alpha3.HTTPSettings{
-					MaxRequestsPerConnection: 1,
-				},
-			},
-		},
 	}
 
-	defaultExpectedVirtualService = &istiov1alpha3.VirtualService{
+	defaultExpectedVirtualService = &istioclient.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testapp",
 			Namespace: "testnamespace",
@@ -83,7 +80,7 @@ var (
 				"test": "label",
 			},
 		},
-		Spec: istiov1alpha3.VirtualServiceSpec{
+		Spec: istio.VirtualService{
 			Hosts: []string{
 				"testapp.testnamespace.svc.cluster.local",
 				"testnamespace-grpc.doki-pen.org",
@@ -95,31 +92,35 @@ var (
 				"public-gateway",
 				"private-gateway",
 			},
-			Http: []istiov1alpha3.HTTPRoute{
+			Http: []*istio.HTTPRoute{
 				{
-					Match: []istiov1alpha3.HTTPMatchRequest{
+					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
-							Headers: map[string]istiocommonv1alpha1.StringMatch{
-								"MEDIUM-TAG": {Exact: "testtag"},
+							Headers: map[string]*istio.StringMatch{
+								"MEDIUM-TAG": {
+									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
+								},
 							},
 							Port: uint32(80),
-							Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Uri:  &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 						},
 						{
 							Gateways: []string{"private-gateway"},
-							Headers: map[string]istiocommonv1alpha1.StringMatch{
-								"MEDIUM-TAG": {Exact: "testtag"},
+							Headers: map[string]*istio.StringMatch{
+								"MEDIUM-TAG": {
+									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
+								},
 							},
 							Port: uint32(443),
-							Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Uri:  &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 						},
 					},
-					Route: []istiov1alpha3.DestinationWeight{
+					Route: []*istio.HTTPRouteDestination{
 						{
-							Destination: istiov1alpha3.Destination{
+							Destination: &istio.Destination{
 								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   istiov1alpha3.PortSelector{Number: uint32(80)},
+								Port:   &istio.PortSelector{Number: uint32(80)},
 								Subset: "testtag",
 							},
 							Weight: 100,
@@ -127,29 +128,37 @@ var (
 					},
 				},
 				{
-					Match: []istiov1alpha3.HTTPMatchRequest{
+					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
-							Headers: map[string]istiocommonv1alpha1.StringMatch{
-								"MEDIUM-TAG": {Exact: "testtag"},
+							Headers: map[string]*istio.StringMatch{
+								"MEDIUM-TAG": {
+									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
+								},
 							},
 							Port: uint32(8080),
-							Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 						{
 							Gateways: []string{"private-gateway"},
-							Headers: map[string]istiocommonv1alpha1.StringMatch{
-								"MEDIUM-TAG": {Exact: "testtag"},
+							Headers: map[string]*istio.StringMatch{
+								"MEDIUM-TAG": {
+									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
+								},
 							},
 							Port: uint32(443),
-							Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 					},
-					Route: []istiov1alpha3.DestinationWeight{
+					Route: []*istio.HTTPRouteDestination{
 						{
-							Destination: istiov1alpha3.Destination{
+							Destination: &istio.Destination{
 								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   istiov1alpha3.PortSelector{Number: uint32(8080)},
+								Port:   &istio.PortSelector{Number: uint32(8080)},
 								Subset: "testtag",
 							},
 							Weight: 100,
@@ -157,21 +166,25 @@ var (
 					},
 				},
 				{
-					Match: []istiov1alpha3.HTTPMatchRequest{
+					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
-							Headers: map[string]istiocommonv1alpha1.StringMatch{
-								"MEDIUM-TAG": {Exact: "testtag"},
+							Headers: map[string]*istio.StringMatch{
+								"MEDIUM-TAG": {
+									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
+								},
 							},
 							Port: uint32(4242),
-							Uri:  &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 					},
-					Route: []istiov1alpha3.DestinationWeight{
+					Route: []*istio.HTTPRouteDestination{
 						{
-							Destination: istiov1alpha3.Destination{
+							Destination: &istio.Destination{
 								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   istiov1alpha3.PortSelector{Number: uint32(4242)},
+								Port:   &istio.PortSelector{Number: uint32(4242)},
 								Subset: "testtag",
 							},
 							Weight: 100,
@@ -179,30 +192,40 @@ var (
 					},
 				},
 				{
-					Match: []istiov1alpha3.HTTPMatchRequest{
+					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
 							Port:     uint32(80),
-							Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 						{
-							Authority: &istiocommonv1alpha1.StringMatch{Prefix: "testnamespace.doki-pen.org"},
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(443),
-							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 						{
-							Authority: &istiocommonv1alpha1.StringMatch{Prefix: "testnamespace-http.doki-pen.org"},
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(443),
-							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 					},
-					Route: []istiov1alpha3.DestinationWeight{
+					Route: []*istio.HTTPRouteDestination{
 						{
-							Destination: istiov1alpha3.Destination{
+							Destination: &istio.Destination{
 								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   istiov1alpha3.PortSelector{Number: uint32(80)},
+								Port:   &istio.PortSelector{Number: uint32(80)},
 								Subset: "testtag",
 							},
 							Weight: 100,
@@ -210,30 +233,40 @@ var (
 					},
 				},
 				{
-					Match: []istiov1alpha3.HTTPMatchRequest{
+					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
 							Port:     uint32(8080),
-							Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 						{
-							Authority: &istiocommonv1alpha1.StringMatch{Prefix: "testnamespace.doki-pen.org"},
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(443),
-							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 						{
-							Authority: &istiocommonv1alpha1.StringMatch{Prefix: "testnamespace-grpc.doki-pen.org"},
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(443),
-							Uri:       &istiocommonv1alpha1.StringMatch{Prefix: "/"},
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-grpc.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
 					},
-					Route: []istiov1alpha3.DestinationWeight{
+					Route: []*istio.HTTPRouteDestination{
 						{
-							Destination: istiov1alpha3.Destination{
+							Destination: &istio.Destination{
 								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   istiov1alpha3.PortSelector{Number: uint32(8080)},
+								Port:   &istio.PortSelector{Number: uint32(8080)},
 								Subset: "testtag",
 							},
 							Weight: 100,
@@ -241,20 +274,27 @@ var (
 					},
 				},
 				{
-					Match: []istiov1alpha3.HTTPMatchRequest{{
-						Gateways: []string{"mesh"},
-						Port:     uint32(4242),
-						Uri:      &istiocommonv1alpha1.StringMatch{Prefix: "/"},
-					}},
-					Route: []istiov1alpha3.DestinationWeight{{
-						Destination: istiov1alpha3.Destination{
-							Host:   "testapp.testnamespace.svc.cluster.local",
-							Port:   istiov1alpha3.PortSelector{Number: uint32(4242)},
-							Subset: "testtag",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(4242),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
 						},
-						Weight: 100,
-					}},
-				}},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "testapp.testnamespace.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(4242)},
+								Subset: "testtag",
+							},
+							Weight: 100,
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -294,7 +334,7 @@ var (
 		},
 	}
 
-	defaultExpectedDestinationRule = &istiov1alpha3.DestinationRule{
+	defaultExpectedDestinationRule = &istioclient.DestinationRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testapp",
 			Namespace: "testnamespace",
@@ -302,17 +342,12 @@ var (
 				"test": "label",
 			},
 		},
-		Spec: istiov1alpha3.DestinationRuleSpec{
+		Spec: istio.DestinationRule{
 			Host: "testapp.testnamespace.svc.cluster.local",
-			Subsets: []istiov1alpha3.Subset{{
-				Name:   "testtag",
-				Labels: map[string]string{"tag.picchu.medium.engineering": "testtag"},
-			}},
-			TrafficPolicy: &istiov1alpha3.TrafficPolicy{
-				ConnectionPool: &istiov1alpha3.ConnectionPoolSettings{
-					Http: &istiov1alpha3.HTTPSettings{
-						MaxRequestsPerConnection: 1,
-					},
+			Subsets: []*istio.Subset{
+				{
+					Name:   "testtag",
+					Labels: map[string]string{"tag.picchu.medium.engineering": "testtag"},
 				},
 			},
 		},

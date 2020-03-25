@@ -12,9 +12,9 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1
 	github.com/go-openapi/spec v0.19.2
+	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.3.1
 	github.com/google/uuid v1.1.1
-	github.com/knative/pkg v0.0.0-20190308001241-2b411285d2b9 // outdated
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/prometheus/client_golang v1.2.1
 	github.com/prometheus/common v0.7.0
@@ -23,8 +23,10 @@ require (
 	github.com/stretchr/testify v1.4.0
 	go.uber.org/zap v1.10.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	istio.io/api v0.0.0-20200323195549-6bfc9cb1f41e
+	istio.io/client-go v0.0.0-20200323200246-27d89de30cc3
+	k8s.io/api v0.17.0
+	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
 	sigs.k8s.io/controller-runtime v0.4.0
