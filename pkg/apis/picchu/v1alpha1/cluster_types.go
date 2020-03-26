@@ -47,7 +47,8 @@ type ClusterSpec struct {
 	AWS            *ClusterAWSInfo   `json:"aws,omitempty"`
 	DNS            []ClusterDNSGroup `json:"dns,omitempty"`
 	Ingresses      ClusterIngresses  `json:"ingresses"`
-	DefaultDomain  string            `json:"defaultDomain"`
+	DefaultDomain  string            `json:"defaultDomain,omitempty"`  // DEPRECATED - remove soon
+	DefaultDomains []string          `json:"defaultDomains,omitempty"` // TODO(mk) remove "omitempty" after removing above DefaultDomain field
 	UseNewTagStyle bool              `json:"useNewTagStyle,omitempty"`
 }
 

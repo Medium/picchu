@@ -220,7 +220,7 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		App:               r.instance.Spec.App,
 		Namespace:         r.instance.TargetNamespace(),
 		Labels:            r.defaultLabels(),
-		DefaultDomain:     r.clusterConfig.DefaultDomain,
+		DefaultDomains:    r.clusterConfig.DefaultDomains,
 		PublicGateway:     r.clusterConfig.PublicIngressGateway,
 		PrivateGateway:    r.clusterConfig.PrivateIngressGateway,
 		DeployedRevisions: revisions,

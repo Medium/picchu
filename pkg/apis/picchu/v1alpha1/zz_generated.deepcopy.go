@@ -385,6 +385,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		}
 	}
 	out.Ingresses = in.Ingresses
+	if in.DefaultDomains != nil {
+		in, out := &in.DefaultDomains, &out.DefaultDomains
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

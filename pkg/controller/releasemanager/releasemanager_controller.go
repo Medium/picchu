@@ -361,7 +361,7 @@ func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namesp
 
 // ClusterConfig is the cluster information needed to create cluster specific resources
 type ClusterConfig struct {
-	DefaultDomain         string
+	DefaultDomains        []string
 	PublicIngressGateway  string
 	PrivateIngressGateway string
 }
@@ -370,14 +370,19 @@ type ClusterConfig struct {
 func (r *ReconcileReleaseManager) getClusterConfig(clusters []picchuv1alpha1.Cluster) (ClusterConfig, error) {
 	spec := clusters[0].Spec
 	c := ClusterConfig{
-		DefaultDomain:         spec.DefaultDomain,
+		DefaultDomains:        spec.DefaultDomains,
 		PublicIngressGateway:  spec.Ingresses.Public.Gateway,
 		PrivateIngressGateway: spec.Ingresses.Private.Gateway,
 	}
 	for i := range clusters[1:] {
 		spec = clusters[i].Spec
-		if c.DefaultDomain != spec.DefaultDomain {
+		if len(c.DefaultDomains) != len(spec.DefaultDomains) {
 			return c, fmt.Errorf("Default domains in fleet don't match")
+		}
+		for i, domain := range c.DefaultDomains {
+			if domain != spec.DefaultDomains[i] { // require the same order
+				return c, fmt.Errorf("Default domains in fleet don't match")
+			}
 		}
 		if c.PublicIngressGateway != spec.Ingresses.Public.Gateway {
 			return c, fmt.Errorf("Public ingress gateways in fleet don't match")

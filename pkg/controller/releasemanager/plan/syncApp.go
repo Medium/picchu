@@ -36,7 +36,7 @@ type SyncApp struct {
 	App               string
 	Namespace         string
 	Labels            map[string]string
-	DefaultDomain     string
+	DefaultDomains    []string
 	PublicGateway     string
 	PrivateGateway    string
 	DeployedRevisions []Revision
@@ -122,10 +122,12 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 			return matches
 		}
 		gateway = []string{p.PrivateGateway}
-		hosts = append(hosts, fmt.Sprintf("%s.%s", p.Namespace, p.DefaultDomain)) // default host
 
-		if port.Name != "" {
-			hosts = append(hosts, fmt.Sprintf("%s-%s.%s", p.Namespace, port.Name, p.DefaultDomain))
+		for _, domain := range p.DefaultDomains {
+			hosts = append(hosts, fmt.Sprintf("%s.%s", p.Namespace, domain))
+			if port.Name != "" {
+				hosts = append(hosts, fmt.Sprintf("%s-%s.%s", p.Namespace, port.Name, domain))
+			}
 		}
 
 		portNumber = uint32(port.IngressPort)

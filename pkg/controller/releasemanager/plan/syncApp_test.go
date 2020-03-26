@@ -29,7 +29,7 @@ var (
 		Labels: map[string]string{
 			"test": "label",
 		},
-		DefaultDomain:  "doki-pen.org",
+		DefaultDomains: []string{"doki-pen.org"},
 		PublicGateway:  "public-gateway",
 		PrivateGateway: "private-gateway",
 		DeployedRevisions: []Revision{
