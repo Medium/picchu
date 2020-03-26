@@ -369,9 +369,6 @@ type ClusterConfig struct {
 // Ensure all clusters share the same config and return
 func (r *ReconcileReleaseManager) getClusterConfig(clusters []picchuv1alpha1.Cluster) (ClusterConfig, error) {
 	spec := clusters[0].Spec
-	if len(spec.DefaultDomains) == 0 && spec.DefaultDomain != "" { // TODO(mk) remove DefaultDomain
-		spec.DefaultDomains = []string{spec.DefaultDomain}
-	}
 	c := ClusterConfig{
 		DefaultDomains:        spec.DefaultDomains,
 		PublicIngressGateway:  spec.Ingresses.Public.Gateway,
@@ -379,9 +376,6 @@ func (r *ReconcileReleaseManager) getClusterConfig(clusters []picchuv1alpha1.Clu
 	}
 	for i := range clusters[1:] {
 		spec = clusters[i].Spec
-		if len(spec.DefaultDomains) == 0 && spec.DefaultDomain != "" { // TODO(mk) remove DefaultDomain
-			spec.DefaultDomains = []string{spec.DefaultDomain}
-		}
 		if len(c.DefaultDomains) != len(spec.DefaultDomains) {
 			return c, fmt.Errorf("Default domains in fleet don't match")
 		}
