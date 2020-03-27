@@ -32,6 +32,5 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, scalingF
 		},
 	}
 
-	ns := &corev1.Namespace{ObjectMeta: om}
-	return plan.CreateOrUpdate(ctx, log, cli, ns)
+	return plan.CreateOrUpdate(ctx, log, cli, &corev1.Namespace{ObjectMeta: om})
 }

@@ -37,7 +37,7 @@ func TestCreatesNamespace(t *testing.T) {
 	assert.NoError(t, en.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
 }
 
-func TestIngoreNamespace(t *testing.T) {
+func TestIgnoreNamespace(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockClient(ctrl)

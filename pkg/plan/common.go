@@ -73,7 +73,8 @@ func CreateOrUpdate(
 		typed := orig.DeepCopy()
 		namespace := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: typed.Name,
+				Name:   typed.Name,
+				Labels: typed.Labels,
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, namespace, func() error {
