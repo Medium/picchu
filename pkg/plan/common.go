@@ -69,6 +69,21 @@ func CreateOrUpdate(
 	obj runtime.Object,
 ) error {
 	switch orig := obj.(type) {
+	case *corev1.Namespace:
+		typed := orig.DeepCopy()
+		namespace := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: typed.Name,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, namespace, func() error {
+			namespace.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, namespace)
+		if err != nil {
+			return err
+		}
 	case *corev1.Service:
 		typed := orig.DeepCopy()
 		service := &corev1.Service{
@@ -123,18 +138,18 @@ func CreateOrUpdate(
 		}
 	case *istiov1alpha3.Gateway:
 		typed := orig.DeepCopy()
-		vs := &istiov1alpha3.Gateway{
+		gateway := &istiov1alpha3.Gateway{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      typed.Name,
 				Namespace: typed.Namespace,
 			},
 		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, vs, func() error {
-			vs.Spec = typed.Spec
-			vs.Labels = CopyStringMap(typed.Labels)
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, gateway, func() error {
+			gateway.Spec = typed.Spec
+			gateway.Labels = CopyStringMap(typed.Labels)
 			return nil
 		})
-		LogSync(log, op, err, vs)
+		LogSync(log, op, err, gateway)
 		if err != nil {
 			return err
 		}
