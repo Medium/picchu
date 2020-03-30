@@ -61,6 +61,7 @@ type PortInfo struct {
 	ContainerPort int32           `json:"containerPort,omitempty"`
 	Protocol      corev1.Protocol `json:"protocol,omitempty"`
 	Mode          PortMode        `json:"mode"`
+	HttpsRedirect bool            `json:"httpsRedirect,omitempty"`
 
 	Istio IstioPortConfig `json:"istio,omitempty"`
 }

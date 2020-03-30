@@ -52,6 +52,7 @@ var (
 				ContainerPort: 5000,
 				Protocol:      corev1.ProtocolTCP,
 				Mode:          picchuv1alpha1.PortPrivate,
+				HttpsRedirect: true,
 			},
 			{
 				Name:          "grpc",
@@ -212,10 +213,30 @@ var (
 						},
 						{
 							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.doki-pen.org"},
 							},
 							Gateways: []string{"private-gateway"},
 							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(80),
 							Uri: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
 							},

@@ -67,6 +67,9 @@ verify: crds
 
 ci: all verify test
 
+fix:
+	hack/fix-all.sh
+
 mocks:
 	@mkdir -p generators
 	go build -o ./generators/mockgen github.com/golang/mock/mockgen
