@@ -105,7 +105,7 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 	}}
 
 	portNumber := uint32(port.Port)
-	gateway := []string{"mesh"}
+	gateways := []string{"mesh"}
 	hosts := port.Hosts
 
 	switch port.Mode {
@@ -114,14 +114,14 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 			log.Info("publicGateway undefined in Cluster for port", "port", port)
 			return matches
 		}
-		gateway = []string{p.PublicGateway}
+		gateways = []string{p.PublicGateway}
 		portNumber = uint32(port.IngressPort)
 	case picchuv1alpha1.PortPrivate:
 		if p.PrivateGateway == "" {
 			log.Info("privateGateway undefined in Cluster for port", "port", port)
 			return matches
 		}
-		gateway = []string{p.PrivateGateway}
+		gateways = []string{p.PrivateGateway}
 
 		for _, domain := range p.DefaultDomains {
 			hosts = append(hosts, fmt.Sprintf("%s.%s", p.Namespace, domain))
@@ -137,9 +137,17 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 		matches = append(matches, &istio.HTTPMatchRequest{
 			Authority: &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: host}},
 			Port:      portNumber,
-			Gateways:  gateway,
+			Gateways:  gateways,
 			Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 		})
+		if port.IngressPort == 443 && port.HttpsRedirect {
+			matches = append(matches, &istio.HTTPMatchRequest{
+				Authority: &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: host}},
+				Port: uint32(80),
+				Gateways: gateways,
+				Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+			})
+		}
 	}
 	return matches
 }
