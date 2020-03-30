@@ -143,9 +143,9 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 		if port.IngressPort == 443 && port.HttpsRedirect {
 			matches = append(matches, &istio.HTTPMatchRequest{
 				Authority: &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: host}},
-				Port: uint32(80),
-				Gateways: gateways,
-				Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+				Port:      uint32(80),
+				Gateways:  gateways,
+				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 			})
 		}
 	}
