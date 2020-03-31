@@ -807,8 +807,9 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 		ic.itemSet[tag] = NewIncarnation(controller, tag, revision, l, live, config)
 	}
 
-	for _, r := range revisionList.Items {
-		add(r.Spec.App.Tag, &r)
+	for i := range revisionList.Items {
+		r := &revisionList.Items[i]
+		add(r.Spec.App.Tag, r)
 	}
 
 	// add any deleted revisions that still have status
