@@ -14,23 +14,18 @@ type Applier interface {
 }
 
 type ClusterApplier struct {
-	cli           client.Client
-	clusterName   string
-	scalingFactor float64
-	log           logr.Logger
+	cli     client.Client
+	options Options
+	log     logr.Logger
 }
 
-func NewClusterApplier(cli client.Client, clusterName string, scalingFactor float64, log logr.Logger) Applier {
-	return &ClusterApplier{cli, clusterName, scalingFactor, log}
+func NewClusterApplier(cli client.Client, options Options, log logr.Logger) Applier {
+	return &ClusterApplier{cli, options, log}
 }
 
 func (a *ClusterApplier) Apply(ctx context.Context, plan Plan) error {
 	planType := reflect.TypeOf(plan).Elem()
-	options := Options{
-		ClusterName:   a.clusterName,
-		ScalingFactor: a.scalingFactor,
-	}
-	return plan.Apply(ctx, a.cli, options, a.log.WithValues("Applier", planType.Name()))
+	return plan.Apply(ctx, a.cli, a.options, a.log.WithValues("Applier", planType.Name()))
 }
 
 type ConcurrentApplier struct {
