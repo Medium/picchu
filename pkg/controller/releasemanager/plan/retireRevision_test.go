@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"go.medium.engineering/picchu/pkg/plan"
 	"testing"
 
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -33,7 +34,7 @@ func TestRetireMissingRevision(t *testing.T) {
 		Return(common.NotFoundError).
 		Times(1)
 
-	assert.NoError(t, rr.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, rr.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
 }
 
 func TestRetireExistingRevision(t *testing.T) {
@@ -77,5 +78,5 @@ func TestRetireExistingRevision(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, rr.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, rr.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
 }

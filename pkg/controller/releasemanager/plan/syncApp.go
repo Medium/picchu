@@ -44,7 +44,7 @@ type SyncApp struct {
 	Ports             []picchuv1alpha1.PortInfo
 }
 
-func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+func (p *SyncApp) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
 	if len(p.Ports) == 0 {
 		log.Info("Not syncing app", "Reason", "there are no exposed ports")
 		return nil
@@ -63,7 +63,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, scalingFactor fl
 	}
 
 	destinationRule := p.destinationRule()
-	virtualService := p.virtualService(log)
+	virtualService := p.virtualService(options.ClusterName, log)
 	prometheusRule := p.prometheusRule()
 
 	if err := plan.CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
@@ -97,7 +97,7 @@ func (p *SyncApp) serviceHost() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", p.App, p.Namespace)
 }
 
-func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) []*istio.HTTPMatchRequest {
+func (p *SyncApp) releaseMatches(log logr.Logger, clusterName string, port picchuv1alpha1.PortInfo) []*istio.HTTPMatchRequest {
 	matches := []*istio.HTTPMatchRequest{{
 		Port:     uint32(port.Port),
 		Gateways: []string{"mesh"},
@@ -123,7 +123,15 @@ func (p *SyncApp) releaseMatches(log logr.Logger, port picchuv1alpha1.PortInfo) 
 		}
 		gateways = []string{p.PrivateGateway}
 
-		for _, domain := range p.DefaultDomains {
+		defaultDomainsMap := map[string]bool{}
+		for _, defaultDomain := range p.DefaultDomains {
+			defaultDomainsMap[defaultDomain] = true
+			if clusterName != "" {
+				clusterDomain := fmt.Sprintf("%s.cluster.%s", clusterName, defaultDomain)
+				defaultDomainsMap[clusterDomain] = true
+			}
+		}
+		for domain := range defaultDomainsMap {
 			hosts = append(hosts, fmt.Sprintf("%s.%s", p.Namespace, domain))
 			if port.Name != "" {
 				hosts = append(hosts, fmt.Sprintf("%s-%s.%s", p.Namespace, port.Name, domain))
@@ -240,13 +248,13 @@ func (p *SyncApp) makeRoute(
 	}
 }
 
-func (p *SyncApp) releaseRoutes(log logr.Logger) []*istio.HTTPRoute {
+func (p *SyncApp) releaseRoutes(clusterName string, log logr.Logger) []*istio.HTTPRoute {
 	routes := []*istio.HTTPRoute{}
 	for _, port := range p.Ports {
 		if len(p.releaseRoute(port)) == 0 {
 			continue
 		}
-		routes = append(routes, p.makeRoute(port, p.releaseMatches(log, port), p.releaseRoute(port)))
+		routes = append(routes, p.makeRoute(port, p.releaseMatches(log, clusterName, port), p.releaseRoute(port)))
 	}
 	return routes
 }
@@ -321,8 +329,8 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 }
 
 // virtualService will return nil if there are not configured routes
-func (p *SyncApp) virtualService(log logr.Logger) *istioclient.VirtualService {
-	http := append(p.taggedRoutes(), p.releaseRoutes(log)...)
+func (p *SyncApp) virtualService(clusterName string, log logr.Logger) *istioclient.VirtualService {
+	http := append(p.taggedRoutes(), p.releaseRoutes(clusterName, log)...)
 	if len(http) < 1 {
 		log.Info("Not syncing VirtualService, there are no available deployments")
 		return nil

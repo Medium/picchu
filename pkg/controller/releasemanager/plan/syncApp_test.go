@@ -7,6 +7,7 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/mocks"
+	pkgplan "go.medium.engineering/picchu/pkg/plan"
 	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
@@ -85,8 +86,11 @@ var (
 			Hosts: []string{
 				"testapp.testnamespace.svc.cluster.local",
 				"testnamespace-grpc.doki-pen.org",
+				"testnamespace-grpc.test-a.cluster.doki-pen.org",
 				"testnamespace-http.doki-pen.org",
+				"testnamespace-http.test-a.cluster.doki-pen.org",
 				"testnamespace.doki-pen.org",
+				"testnamespace.test-a.cluster.doki-pen.org",
 			},
 			Gateways: []string{
 				"mesh",
@@ -241,6 +245,46 @@ var (
 								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
 							},
 						},
+						{
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.test-a.cluster.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.test-a.cluster.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.test-a.cluster.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.test-a.cluster.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
 					},
 					Route: []*istio.HTTPRouteDestination{
 						{
@@ -275,6 +319,26 @@ var (
 						{
 							Authority: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-grpc.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.test-a.cluster.doki-pen.org"},
+							},
+							Gateways: []string{"private-gateway"},
+							Port:     uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-grpc.test-a.cluster.doki-pen.org"},
 							},
 							Gateways: []string{"private-gateway"},
 							Port:     uint32(443),
@@ -408,5 +472,9 @@ func TestSyncNewApp(t *testing.T) {
 			Times(1)
 	}
 
-	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	options := pkgplan.Options{
+		ScalingFactor: 0.5,
+		ClusterName:   "test-a",
+	}
+	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, options, log), "Shouldn't return error.")
 }

@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"go.medium.engineering/picchu/pkg/plan"
 	_ "runtime"
 	"testing"
 
@@ -60,5 +61,5 @@ func TestTaggedDeleteServiceLevels(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, deleteTaggedServiceLevels.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, deleteTaggedServiceLevels.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
 }

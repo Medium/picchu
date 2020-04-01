@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"go.medium.engineering/picchu/pkg/plan"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"k8s.io/apimachinery/pkg/labels"
@@ -15,7 +16,7 @@ type DeleteRevision struct {
 	Namespace string
 }
 
-func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
 	lists := []List{
 		NewSecretList(),
 		NewConfigMapList(),

@@ -8,6 +8,7 @@ import (
 	context "context"
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
+	plan "go.medium.engineering/picchu/pkg/plan"
 	reflect "reflect"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -36,7 +37,7 @@ func (m *MockPlan) EXPECT() *MockPlanMockRecorder {
 }
 
 // Apply mocks base method
-func (m *MockPlan) Apply(arg0 context.Context, arg1 client.Client, arg2 float64, arg3 logr.Logger) error {
+func (m *MockPlan) Apply(arg0 context.Context, arg1 client.Client, arg2 plan.Options, arg3 logr.Logger) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Apply", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)

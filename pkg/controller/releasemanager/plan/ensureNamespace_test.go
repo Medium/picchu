@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"go.medium.engineering/picchu/pkg/plan"
 	"testing"
 
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -34,7 +35,7 @@ func TestCreatesNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, en.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
 }
 
 func TestIgnoreNamespace(t *testing.T) {
@@ -54,7 +55,7 @@ func TestIgnoreNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, en.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
 }
 
 func TestUpdatesNamespace(t *testing.T) {
@@ -79,5 +80,5 @@ func TestUpdatesNamespace(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, en.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	assert.NoError(t, en.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
 }

@@ -72,7 +72,7 @@ type SyncRevision struct {
 	Tolerations        []corev1.Toleration
 }
 
-func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
 
 	// Clone passed in objects to prevent concurrency issues
 	configs := []runtime.Object{}
@@ -128,7 +128,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, scalingFact
 		labels[k] = v
 	}
 
-	return p.syncReplicaSet(ctx, cli, scalingFactor, labels, envs, log)
+	return p.syncReplicaSet(ctx, cli, options.ScalingFactor, labels, envs, log)
 }
 
 func (p *SyncRevision) syncReplicaSet(

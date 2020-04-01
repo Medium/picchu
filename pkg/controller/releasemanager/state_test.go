@@ -768,24 +768,6 @@ func expectDeleteCanaryRules(mock *MockDeployment) *MockDeployment {
 	return mock
 }
 
-func expectSyncServiceLevels(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		syncServiceLevels(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectDeleteServiceLevels(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		deleteServiceLevels(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
 func expectSyncTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
