@@ -410,7 +410,7 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 			if scalingFactor == nil || *scalingFactor < 0.1 {
 				panic("Refusing to scale lower than 0.1 on a cluster")
 			}
-			appliers[i] = plan.NewClusterApplier(remoteClient, *scalingFactor, log.WithValues("Cluster", cluster.Name))
+			appliers[i] = plan.NewClusterApplier(remoteClient, cluster.Name, *scalingFactor, log.WithValues("Cluster", cluster.Name))
 			return nil
 		})
 	}

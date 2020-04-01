@@ -1,7 +1,8 @@
-package plan
+package plan_test
 
 import (
 	"context"
+	"go.medium.engineering/picchu/pkg/plan"
 	"testing"
 
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -25,18 +26,18 @@ func TestCompositePlanFlat(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, 1.0, gomock.Any()).
+		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
 		Return(nil).
 		Times(1)
 
 	p2.
 		EXPECT().
-		Apply(ctx, cli, 1.0, gomock.Any()).
+		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
 		Return(nil).
 		Times(1)
 
-	composite := All(p1, p2)
-	assert.NoError(t, composite.Apply(ctx, cli, 1.0, log), "no error")
+	composite := plan.All(p1, p2)
+	assert.NoError(t, composite.Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, log), "no error")
 }
 
 func TestCompositePlanLevels(t *testing.T) {
@@ -53,21 +54,21 @@ func TestCompositePlanLevels(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, 1.0, gomock.Any()).
+		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
 		Return(nil).
 		Times(1)
 	p2.
 		EXPECT().
-		Apply(ctx, cli, 1.0, gomock.Any()).
+		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
 		Return(nil).
 		Times(1)
 	p3.
 		EXPECT().
-		Apply(ctx, cli, 1.0, gomock.Any()).
+		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
 		Return(nil).
 		Times(1)
 
-	composite := All(p1, p2)
-	composite = All(composite, p3)
-	assert.NoError(t, composite.Apply(ctx, cli, 1.0, log), "no error")
+	composite := plan.All(p1, p2)
+	composite = plan.All(composite, p3)
+	assert.NoError(t, composite.Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, log), "no error")
 }

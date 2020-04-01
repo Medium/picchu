@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"go.medium.engineering/picchu/pkg/mocks"
+	pkgplan "go.medium.engineering/picchu/pkg/plan"
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
@@ -61,7 +62,7 @@ func TestScaleRevisionByCPU(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, plan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func TestScaleRevisionByRequestsRate(t *testing.T) {
@@ -111,7 +112,7 @@ func TestScaleRevisionByRequestsRate(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, plan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func TestDontScaleRevision(t *testing.T) {
@@ -135,5 +136,5 @@ func TestDontScaleRevision(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, plan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }

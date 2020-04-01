@@ -7,6 +7,7 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/mocks"
+	pkgplan "go.medium.engineering/picchu/pkg/plan"
 	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
@@ -408,5 +409,9 @@ func TestSyncNewApp(t *testing.T) {
 			Times(1)
 	}
 
-	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, 1.0, log), "Shouldn't return error.")
+	options := pkgplan.Options{
+		ScalingFactor: 0.5,
+		//ClusterName: "test-a",
+	}
+	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, options, log), "Shouldn't return error.")
 }

@@ -18,7 +18,7 @@ type DeleteServiceLevels struct {
 	Namespace string
 }
 
-func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
 	sllist := &slov1alpha1.ServiceLevelList{}
 
 	opts := &client.ListOptions{

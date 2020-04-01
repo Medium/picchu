@@ -6,6 +6,7 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/mocks"
+	pkgplan "go.medium.engineering/picchu/pkg/plan"
 	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
@@ -326,7 +327,7 @@ func TestSyncRevisionNoChange(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithChange(t *testing.T) {
@@ -353,7 +354,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionExistingReplicasZero(t *testing.T) {
@@ -381,7 +382,7 @@ func TestSyncRevisionExistingReplicasZero(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionRetirement(t *testing.T) {
@@ -409,7 +410,7 @@ func TestSyncRevisionRetirement(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, retiredRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, retiredRevisionPlan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithCreate(t *testing.T) {
@@ -436,7 +437,7 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, defaultRevisionPlan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
@@ -508,7 +509,7 @@ func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, 0.5, log), "Shouldn't return error.")
+	assert.NoError(t, plan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 0.5}, log), "Shouldn't return error.")
 }
 
 func mustParseQuantity(val string) resource.Quantity {

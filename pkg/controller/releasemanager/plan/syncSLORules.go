@@ -32,7 +32,7 @@ type SyncSLORules struct {
 	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
 	sloRules, err := p.SLORules()
 	if err != nil {
 		return err

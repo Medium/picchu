@@ -22,7 +22,7 @@ type SyncServiceMonitors struct {
 	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, scalingFactor float64, log logr.Logger) error {
+func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
 	serviceMonitors, err := p.serviceMonitors()
 	if err != nil {
 		return err
