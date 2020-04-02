@@ -229,14 +229,12 @@ func (p *SyncApp) makeRoute(
 	match []*istio.HTTPMatchRequest,
 	route []*istio.HTTPRouteDestination,
 ) *istio.HTTPRoute {
-	var retries *istio.HTTPRetry
-
 	http := port.Istio.HTTP
+	retries := &istio.HTTPRetry{Attempts: 0}
 
 	if http.Retries != nil {
-		retries = &istio.HTTPRetry{
-			Attempts: http.Retries.Attempts,
-		}
+		retries.Attempts = http.Retries.Attempts
+
 		if http.Retries.PerTryTimeout != nil {
 			retries.PerTryTimeout = types.DurationProto(http.Retries.PerTryTimeout.Duration)
 		}

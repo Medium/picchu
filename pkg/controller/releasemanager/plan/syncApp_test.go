@@ -131,6 +131,7 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{Attempts: 0},
 				},
 				{
 					Match: []*istio.HTTPMatchRequest{
@@ -169,6 +170,7 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{Attempts: 0},
 				},
 				{
 					Match: []*istio.HTTPMatchRequest{
@@ -195,6 +197,7 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{Attempts: 0},
 				},
 				{
 					Match: []*istio.HTTPMatchRequest{
@@ -296,6 +299,7 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{Attempts: 0},
 				},
 				{
 					Match: []*istio.HTTPMatchRequest{
@@ -357,6 +361,7 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{Attempts: 0},
 				},
 				{
 					Match: []*istio.HTTPMatchRequest{
@@ -378,6 +383,7 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{Attempts: 0},
 				},
 			},
 		},
