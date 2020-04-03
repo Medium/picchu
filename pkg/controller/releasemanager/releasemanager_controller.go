@@ -185,7 +185,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return r.requeue(reqLog, err)
 	}
 	r.scheme.Default(rm)
 
@@ -209,11 +209,11 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		})
 	}
 	if clusterInfo.ClusterCount(true) == 0 {
-		return reconcile.Result{}, nil
+		return r.requeue(rmLog, err)
 	}
 	planApplier, err := r.newPlanApplier(ctx, rmLog, clusters)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.requeue(rmLog, err)
 	}
 
 	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.config.ServiceLevelsFleet)
@@ -235,27 +235,27 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	deliveryApplier, err := r.newPlanApplier(ctx, rmLog, deliveryClusters)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.requeue(rmLog, err)
 	}
 
 	observer, err := r.newObserver(ctx, rmLog, clusters)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.requeue(rmLog, err)
 	}
 
 	revisions, err := r.getRevisions(ctx, rmLog, request.Namespace, rm.Spec.Fleet, rm.Spec.App, rm.Spec.Target)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.requeue(rmLog, err)
 	}
 
 	observation, err := observer.Observe(ctx, rm.TargetNamespace())
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.requeue(rmLog, err)
 	}
 
 	clusterConfig, err := r.getClusterConfig(clusters)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.requeue(rmLog, err)
 	}
 
 	ic := &IncarnationController{
@@ -284,29 +284,28 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		rmLog.Info("Sync'ing releasemanager")
 		rs, err := syncer.sync(ctx)
 		if err != nil {
-			return reconcile.Result{}, err
+			return r.requeue(rmLog, err)
 		}
 		rm.Status.Revisions = rs
 		if err := utils.UpdateStatus(ctx, r.client, rm); err != nil {
-			rmLog.Error(err, "Failed to update releasemanager status")
-			return reconcile.Result{}, err
+			return r.requeue(rmLog, err)
 		}
 		rmLog.Info("Updated releasemanager status", "Content", rm.Status, "Type", "ReleaseManager.Status")
-		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
+		return r.requeue(rmLog, nil)
 	} else if !rm.IsFinalized() {
 		rmLog.Info("Deleting ServiceLevels")
 		if err := syncer.delServiceLevels(ctx); err != nil {
-			return reconcile.Result{}, err
+			return r.requeue(rmLog, err)
 		}
 
 		rmLog.Info("Deleting releasemanager")
 		if err := syncer.del(ctx); err != nil {
-			return reconcile.Result{}, err
+			return r.requeue(rmLog, err)
 		}
 
 		rm.Finalize()
 		err := r.client.Update(ctx, rm)
-		return reconcile.Result{}, err
+		return r.requeue(rmLog, err)
 	}
 
 	rmLog.Info("ReleaseManager is deleted and finalized")
@@ -336,6 +335,16 @@ func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Log
 		}
 	}
 	return withTargets, nil
+}
+
+// requeue gives us a chance to log the error with our trace-id and stacktrace to make debugging simpler
+func (r *ReconcileReleaseManager) requeue(log logr.Logger, err error) (reconcile.Result, error) {
+	if err != nil {
+		log.Error(err, "An error occurred during reconciliation")
+		return reconcile.Result{}, err
+	}
+	log.Info("Requeuing", "duration", r.config.RequeueAfter)
+	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 }
 
 func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namespace string, fleet string) ([]picchuv1alpha1.Cluster, error) {
