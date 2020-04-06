@@ -3,6 +3,8 @@ package releasemanager
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -25,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
@@ -107,6 +108,11 @@ var (
 		Help:    "track time a revision spends from releasing to released",
 		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
 	}, []string{"app", "target"})
+	reconcileInterval = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "picchu_release_manager_reconcile_internal",
+		Help:    "track time between last update and reconcile request",
+		Buckets: prometheus.ExponentialBuckets(10, 1.5, 7),
+	}, []string{"app", "target"})
 )
 
 // Add creates a new ReleaseManager Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -129,6 +135,7 @@ func Add(mgr manager.Manager, c utils.Config) error {
 		incarnationReleaseStateGauge,
 		incarnationRevisionOldestStateGauge,
 		revisionReleaseWeightGauge,
+		reconcileInterval,
 	)
 	return add(mgr, newReconciler(mgr, c))
 }
@@ -146,7 +153,7 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	_, err := builder.ControllerManagedBy(mgr).
-		ForType(&picchuv1alpha1.ReleaseManager{}).
+		For(&picchuv1alpha1.ReleaseManager{}).
 		WithEventFilter(predicate.Funcs{
 			UpdateFunc: func(_ event.UpdateEvent) bool { return false },
 		}).
@@ -191,6 +198,13 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	rmLog := reqLog.WithValues("App", rm.Spec.App, "Fleet", rm.Spec.Fleet, "Target", rm.Spec.Target)
 	rmLog.Info("Reconciling Existing ReleaseManager")
+
+	if lastUpdated := rm.Status.LastUpdated; lastUpdated != nil {
+		reconcileInterval.With(prometheus.Labels{
+			"app":    rm.Spec.App,
+			"target": rm.Spec.Target,
+		}).Observe(start.Sub(lastUpdated.Time).Seconds())
+	}
 
 	clusters, err := r.getClustersByFleet(ctx, rm.Namespace, rm.Spec.Fleet)
 	if err != nil {
@@ -287,6 +301,8 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 			return r.requeue(rmLog, err)
 		}
 		rm.Status.Revisions = rs
+		timeNow := metav1.NewTime(time.Now())
+		rm.Status.LastUpdated = &timeNow
 		if err := utils.UpdateStatus(ctx, r.client, rm); err != nil {
 			return r.requeue(rmLog, err)
 		}

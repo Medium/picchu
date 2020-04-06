@@ -318,11 +318,17 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref common.ReferenceCa
 							},
 						},
 					},
+					"lastUpdated": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
 				},
+				Required: []string{"lastUpdated"},
 			},
 		},
 		Dependencies: []string{
-			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerRevisionStatus"},
+			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerRevisionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
