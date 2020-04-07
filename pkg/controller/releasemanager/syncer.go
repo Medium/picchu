@@ -217,6 +217,8 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
 		App:               r.instance.Spec.App,
+		Target:            r.instance.Spec.Target,
+		Fleet:             r.instance.Spec.Fleet,
 		Namespace:         r.instance.TargetNamespace(),
 		Labels:            r.defaultLabels(),
 		PublicGateway:     r.clusterConfig.PublicIngressGateway,

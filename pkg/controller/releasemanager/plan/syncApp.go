@@ -35,6 +35,8 @@ type Revision struct {
 
 type SyncApp struct {
 	App               string
+	Target            string
+	Fleet             string
 	Namespace         string
 	Labels            map[string]string
 	PublicGateway     string
@@ -136,7 +138,11 @@ func (p *SyncApp) ingressHosts(
 		defaultDomainsMap[defaultDomain] = true
 	}
 	for domain := range defaultDomainsMap {
-		hostMap[fmt.Sprintf("%s.%s", p.Namespace, domain)] = true
+		name := p.Namespace
+		if p.Target == p.Fleet {
+			name = p.App
+		}
+		hostMap[fmt.Sprintf("%s.%s", name, domain)] = true
 	}
 
 	if port.Mode == mode {
