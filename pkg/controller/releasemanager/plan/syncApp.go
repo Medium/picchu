@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -105,8 +106,12 @@ func (p *SyncApp) privateHosts(port picchuv1alpha1.PortInfo, options plan.Option
 }
 
 func (p *SyncApp) authorityMatch(hosts []string) *istio.StringMatch {
-	sort.Strings(hosts)
-	regex := fmt.Sprintf("^(%s)", strings.Join(hosts, "|"))
+	hostPatterns := make([]string, 0, len(hosts))
+	for _, host := range hosts {
+		hostPatterns = append(hostPatterns, regexp.QuoteMeta(host))
+	}
+	sort.Strings(hostPatterns)
+	regex := fmt.Sprintf(`^(%s)(:[0-9]+)?$`, strings.Join(hostPatterns, "|"))
 	return &istio.StringMatch{
 		MatchType: &istio.StringMatch_Regex{Regex: regex},
 	}
