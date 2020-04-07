@@ -133,11 +133,8 @@ func (p *SyncApp) ingressHosts(
 	defaultDomains []string,
 ) []string {
 	hostMap := map[string]bool{}
-	defaultDomainsMap := map[string]bool{}
-	for _, defaultDomain := range defaultDomains {
-		defaultDomainsMap[defaultDomain] = true
-	}
-	for domain := range defaultDomainsMap {
+
+	for _, domain := range defaultDomains {
 		name := p.Namespace
 		if p.Target == p.Fleet {
 			name = p.App
