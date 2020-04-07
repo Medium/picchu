@@ -26,6 +26,11 @@ import (
 )
 
 var (
+	authorityRegex = &istio.StringMatch{
+		MatchType: &istio.StringMatch_Regex{
+			Regex: "^(testnamespace\\.doki-pen\\.org|testnamespace\\.test-a\\.cluster\\.doki-pen\\.org)(:[0-9]+)?$",
+		},
+	}
 	defaultSyncAppPlan = &SyncApp{
 		App:       "testapp",
 		Namespace: "testnamespace",
@@ -105,11 +110,9 @@ var (
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
-							},
-							Port: uint32(443),
-							Uri:  &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+							Authority: authorityRegex,
+							Port:      uint32(443),
+							Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 						},
 						{
 							Gateways: []string{"private-gateway"},
@@ -118,11 +121,9 @@ var (
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
-							},
-							Port: uint32(80),
-							Uri:  &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+							Authority: authorityRegex,
+							Port:      uint32(80),
+							Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 						},
 					},
 					Route: []*istio.HTTPRouteDestination{
@@ -172,21 +173,17 @@ var (
 							},
 						},
 						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
+							Authority: authorityRegex,
+							Gateways:  []string{"private-gateway"},
+							Port:      uint32(443),
 							Uri: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
 							},
 						},
 						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(80),
+							Authority: authorityRegex,
+							Gateways:  []string{"private-gateway"},
+							Port:      uint32(80),
 							Uri: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
 							},
