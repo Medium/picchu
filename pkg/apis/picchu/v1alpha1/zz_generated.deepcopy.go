@@ -934,6 +934,10 @@ func (in *ReleaseManagerStatus) DeepCopyInto(out *ReleaseManagerStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.LastUpdated != nil {
+		in, out := &in.LastUpdated, &out.LastUpdated
+		*out = (*in).DeepCopy()
+	}
 	return
 }
 

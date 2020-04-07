@@ -43,7 +43,8 @@ type ReleaseManagerSpec struct {
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
 	// +listType=set
-	Revisions []ReleaseManagerRevisionStatus `json:"revisions,omitempty"`
+	Revisions   []ReleaseManagerRevisionStatus `json:"revisions,omitempty"`
+	LastUpdated *metav1.Time                   `json:"lastUpdated"`
 }
 
 type ReleaseManagerRevisionStatus struct {
