@@ -25,9 +25,6 @@ func SetDefaults_ClusterSpec(spec *ClusterSpec) {
 		one := float64(1.0)
 		spec.ScalingFactor = &one
 	}
-	if len(spec.DefaultDomains) == 0 && spec.DefaultDomain != "" { // TODO(mk) remove DefaultDomain
-		spec.DefaultDomains = []string{spec.DefaultDomain}
-	}
 }
 
 func SetDefaults_RevisionSpec(spec *RevisionSpec) {

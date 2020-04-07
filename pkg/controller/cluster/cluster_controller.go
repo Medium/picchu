@@ -7,7 +7,6 @@ import (
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
-	"go.medium.engineering/picchu/pkg/dns/route53"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,7 +40,7 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	_, err := builder.ControllerManagedBy(mgr).
-		ForType(&picchuv1alpha1.Cluster{}).
+		For(&picchuv1alpha1.Cluster{}).
 		Build(r)
 	if err != nil {
 		return err
@@ -110,30 +109,18 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 					reqLogger.Error(err, "Failed to create kube config")
 					return reconcile.Result{}, err
 				}
-				ready := "True"
+				ready := true
 				version, err := ServerVersion(config)
 				if err != nil {
-					ready = "False"
+					ready = false
 				}
 
 				reqLogger.Info("Setting status")
-				awsStatus := instance.Status.AWS
-				if awsStatus == nil {
-					awsStatus = instance.Spec.AWS
-				}
-				if awsStatus == nil {
-					awsStatus = &picchuv1alpha1.ClusterAWSInfo{
-						AccountID: DiscoverAccountID(instance),
-						Region:    DiscoverRegion(instance),
-						AZ:        DiscoverAZ(instance),
-					}
-				}
 				instance.Status = picchuv1alpha1.ClusterStatus{
 					Kubernetes: picchuv1alpha1.ClusterKubernetesStatus{
 						Version: FormatVersion(version),
+						Ready:   ready,
 					},
-					Conditions: []picchuv1alpha1.ClusterConditionStatus{{"Ready", ready}},
-					AWS:        awsStatus,
 				}
 			}
 		}
@@ -142,17 +129,9 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 			reqLogger.Error(err, "Failed to update Cluster status")
 			return reconcile.Result{}, err
 		}
-		if r.config.ManageRoute53 {
-			if err := route53.Sync(instance); err != nil {
-				return reconcile.Result{}, err
-			}
-		}
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !instance.IsFinalized() {
-		if r.config.ManageRoute53 {
-			route53.Delete(instance)
-		}
 		instance.Finalize()
 		return reconcile.Result{}, r.client.Update(context.TODO(), instance)
 	}
@@ -173,30 +152,4 @@ func ServerVersion(config *rest.Config) (*version.Info, error) {
 		return nil, err
 	}
 	return disco.ServerVersion()
-}
-
-func DiscoverRegion(cluster *picchuv1alpha1.Cluster) string {
-	// TODO(bob) Better way...
-	if cluster.Spec.Config != nil {
-		matches := hostPattern.FindSubmatch([]byte(cluster.Spec.Config.Server))
-		if matches != nil {
-			return string(matches[1])
-		}
-	}
-	return ""
-}
-
-func DiscoverAZ(cluster *picchuv1alpha1.Cluster) string {
-	// TODO(bob) Using Spec might be the only way?
-	if cluster.Spec.AWS != nil {
-		return cluster.Spec.AWS.AZ
-	}
-	return ""
-}
-
-func DiscoverAccountID(cluster *picchuv1alpha1.Cluster) string {
-	if cluster.Spec.AWS != nil {
-		return cluster.Spec.AWS.AccountID
-	}
-	return ""
 }
