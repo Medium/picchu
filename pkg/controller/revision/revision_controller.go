@@ -183,9 +183,17 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	for i := range mirrors.Items {
 		mirror := mirrors.Items[i]
 		if instance.Spec.DisableMirroring {
-			log.Info("Mirroring disabled")
+			log.Info("Mirroring disabled", "app", instance.Spec.App.Name)
 			continue
 		}
+
+		for i := range status.Targets {
+			if status.Targets[i].Scale.Current == 0 && status.Targets[i].Scale.Desired == 0 {
+				log.Info("Revision not mirrored, no replicas for any target", "app", instance.Spec.App.Name, "tag", instance.Spec.App.Tag)
+				continue
+			}
+		}
+
 		err = r.mirrorRevision(ctx, log, &mirror, instance)
 		if err != nil {
 			log.Error(err, "Failed to mirror revision", "Mirror", mirror.Spec.ClusterName)
