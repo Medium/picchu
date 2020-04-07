@@ -414,9 +414,6 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 				return err
 			}
 			scalingFactor := cluster.Spec.ScalingFactor
-			if scalingFactor == nil || *scalingFactor < 0.1 {
-				panic("Refusing to scale lower than 0.1 on a cluster")
-			}
 
 			options := plan.Options{
 				ClusterName:   cluster.Name,
