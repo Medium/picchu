@@ -212,7 +212,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	clusterInfo := ClusterInfoList{}
 	for _, cluster := range clusters {
-		var scalingFactor float64 = 0.0
+		var scalingFactor = 0.0
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
 		}
@@ -236,7 +236,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
-		var scalingFactor float64 = 0.0
+		var scalingFactor = 0.0
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
 		}
@@ -372,7 +372,7 @@ func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namesp
 	err := r.client.List(ctx, clusterList, opts)
 	r.scheme.Default(clusterList)
 
-	clusters := []picchuv1alpha1.Cluster{}
+	var clusters []picchuv1alpha1.Cluster
 	for i := range clusterList.Items {
 		cluster := clusterList.Items[i]
 		if !cluster.Spec.Enabled {
@@ -395,26 +395,8 @@ type ClusterConfig struct {
 func (r *ReconcileReleaseManager) getClusterConfig(clusters []picchuv1alpha1.Cluster) (ClusterConfig, error) {
 	spec := clusters[0].Spec
 	c := ClusterConfig{
-		DefaultDomains:        spec.DefaultDomains,
 		PublicIngressGateway:  spec.Ingresses.Public.Gateway,
 		PrivateIngressGateway: spec.Ingresses.Private.Gateway,
-	}
-	for i := range clusters[1:] {
-		spec = clusters[i].Spec
-		if len(c.DefaultDomains) != len(spec.DefaultDomains) {
-			return c, fmt.Errorf("Default domains in fleet don't match")
-		}
-		for i, domain := range c.DefaultDomains {
-			if domain != spec.DefaultDomains[i] { // require the same order
-				return c, fmt.Errorf("Default domains in fleet don't match")
-			}
-		}
-		if c.PublicIngressGateway != spec.Ingresses.Public.Gateway {
-			return c, fmt.Errorf("Public ingress gateways in fleet don't match")
-		}
-		if c.PrivateIngressGateway != spec.Ingresses.Private.Gateway {
-			return c, fmt.Errorf("Private ingress gateways in fleet don't match")
-		}
 	}
 	return c, nil
 }
@@ -439,6 +421,10 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 			options := plan.Options{
 				ClusterName:   cluster.Name,
 				ScalingFactor: *scalingFactor,
+				DefaultDomains: plan.DefaultDomainOptions{
+					Public:  cluster.Spec.Ingresses.Public.DefaultDomains,
+					Private: cluster.Spec.Ingresses.Private.DefaultDomains,
+				},
 			}
 			appliers[i] = plan.NewClusterApplier(remoteClient, options, log.WithValues("Cluster", cluster.Name))
 			return nil
