@@ -3,8 +3,6 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -42,14 +40,9 @@ type ClusterSpec struct {
 	Enabled        bool              `json:"enabled"`
 	HotStandby     bool              `json:"hotStandby,omitempty"`
 	Config         *ClusterConfig    `json:"config,omitempty"`
-	Weight         float64           `json:"weight"`
 	ScalingFactor  *float64          `json:"scalingFactor,omitempty"`
-	AWS            *ClusterAWSInfo   `json:"aws,omitempty"`
-	DNS            []ClusterDNSGroup `json:"dns,omitempty"`
 	Ingresses      ClusterIngresses  `json:"ingresses"`
-	DefaultDomain  string            `json:"defaultDomain,omitempty"`  // DEPRECATED - remove soon
 	DefaultDomains []string          `json:"defaultDomains,omitempty"` // TODO(mk) remove "omitempty" after removing above DefaultDomain field
-	UseNewTagStyle bool              `json:"useNewTagStyle,omitempty"`
 }
 
 type ClusterConfig struct {
@@ -57,24 +50,10 @@ type ClusterConfig struct {
 	CertificateAuthorityData []byte `json:"certificate-authority-data"`
 }
 
-type ClusterAWSInfo struct {
-	AccountID string `json:"accountId,id"`
-	Region    string `json:"region"`
-	AZ        string `json:"az,omitempty"`
-}
-
 const (
-	Route53Provider    = "route53"
-	CloudflareProvider = "cloudflare"
 	PrivateIngressName = "private"
 	PublicIngressName  = "public"
 )
-
-type ClusterDNSGroup struct {
-	Hosts    []string `json:"hosts,omitempty"`
-	Provider string   `json:"provider,omitempty"`
-	Ingress  string   `json:"ingress,omitempty"`
-}
 
 type ClusterIngresses struct {
 	Public  IngressInfo `json:"public"`
@@ -82,25 +61,18 @@ type ClusterIngresses struct {
 }
 
 type IngressInfo struct {
-	HostedZoneId string `json:"hostedZoneId"`
-	DNSName      string `json:"dnsName"`
-	Gateway      string `json:"gateway,omitempty"`
+	DNSName        string   `json:"dnsName"`
+	Gateway        string   `json:"gateway,omitempty"`
 }
 
 // ClusterStatus defines the observed state of Cluster
 type ClusterStatus struct {
-	Kubernetes ClusterKubernetesStatus  `json:"kubernetes,omitempty"`
-	AWS        *ClusterAWSInfo          `json:"aws,omitempty"`
-	Conditions []ClusterConditionStatus `json:"conditions,omitempty"`
+	Kubernetes ClusterKubernetesStatus `json:"kubernetes,omitempty"`
 }
 
 type ClusterKubernetesStatus struct {
 	Version string `json:"version"`
-}
-
-type ClusterConditionStatus struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
+	Ready   bool   `json:"ready"`
 }
 
 func init() {
@@ -152,22 +124,6 @@ func (c *Cluster) Config(secret *corev1.Secret) (*rest.Config, error) {
 func (c *Cluster) Fleet() string {
 	fleet, _ := c.Labels[LabelFleet]
 	return fleet
-}
-
-// Region gets the region/az the cluster is in based on spec and status. This
-// shouldn't be used to *discover* the region/az of a InClusterConfig, but only
-// see what region was already discovered by some other process.
-func (c *Cluster) RegionAZ() string {
-	region, az := "", ""
-	if c.Spec.AWS != nil {
-		region = c.Spec.AWS.Region
-		az = c.Spec.AWS.AZ
-	}
-	if c.Status.AWS != nil {
-		region = c.Status.AWS.Region
-		az = c.Status.AWS.AZ
-	}
-	return fmt.Sprintf("%s%s", region, az)
 }
 
 func (c *Cluster) IsDeleted() bool {
