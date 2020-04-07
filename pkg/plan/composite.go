@@ -14,8 +14,14 @@ type Plan interface {
 
 // Options are optional parameters that may be used when applying a plan
 type Options struct {
-	ClusterName   string
-	ScalingFactor float64
+	ClusterName    string
+	ScalingFactor  float64
+	DefaultDomains DefaultDomainOptions
+}
+
+type DefaultDomainOptions struct {
+	Public  []string
+	Private []string
 }
 
 type compositePlan struct {

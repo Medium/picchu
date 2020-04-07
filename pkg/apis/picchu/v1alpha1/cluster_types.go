@@ -37,12 +37,11 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled        bool              `json:"enabled"`
-	HotStandby     bool              `json:"hotStandby,omitempty"`
-	Config         *ClusterConfig    `json:"config,omitempty"`
-	ScalingFactor  *float64          `json:"scalingFactor,omitempty"`
-	Ingresses      ClusterIngresses  `json:"ingresses"`
-	DefaultDomains []string          `json:"defaultDomains,omitempty"` // TODO(mk) remove "omitempty" after removing above DefaultDomain field
+	Enabled       bool             `json:"enabled"`
+	HotStandby    bool             `json:"hotStandby,omitempty"`
+	Config        *ClusterConfig   `json:"config,omitempty"`
+	ScalingFactor *float64         `json:"scalingFactor,omitempty"`
+	Ingresses     ClusterIngresses `json:"ingresses"`
 }
 
 type ClusterConfig struct {
@@ -63,6 +62,7 @@ type ClusterIngresses struct {
 type IngressInfo struct {
 	DNSName        string   `json:"dnsName"`
 	Gateway        string   `json:"gateway,omitempty"`
+	DefaultDomains []string `json:"defaultDomains"`
 }
 
 // ClusterStatus defines the observed state of Cluster

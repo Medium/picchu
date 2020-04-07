@@ -2,7 +2,9 @@ package plan
 
 import (
 	"context"
+	"go.medium.engineering/picchu/pkg/client/scheme"
 	_ "runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -30,7 +32,6 @@ var (
 		Labels: map[string]string{
 			"test": "label",
 		},
-		DefaultDomains: []string{"doki-pen.org"},
 		PublicGateway:  "public-gateway",
 		PrivateGateway: "private-gateway",
 		DeployedRevisions: []Revision{
@@ -56,14 +57,6 @@ var (
 				HttpsRedirect: true,
 			},
 			{
-				Name:          "grpc",
-				IngressPort:   443,
-				Port:          8080,
-				ContainerPort: 5001,
-				Protocol:      corev1.ProtocolTCP,
-				Mode:          picchuv1alpha1.PortPrivate,
-			},
-			{
 				Name:          "status",
 				IngressPort:   443,
 				Port:          4242,
@@ -85,20 +78,15 @@ var (
 		Spec: istio.VirtualService{
 			Hosts: []string{
 				"testapp.testnamespace.svc.cluster.local",
-				"testnamespace-grpc.doki-pen.org",
-				"testnamespace-grpc.test-a.cluster.doki-pen.org",
-				"testnamespace-http.doki-pen.org",
-				"testnamespace-http.test-a.cluster.doki-pen.org",
 				"testnamespace.doki-pen.org",
 				"testnamespace.test-a.cluster.doki-pen.org",
 			},
 			Gateways: []string{
 				"mesh",
-				"public-gateway",
 				"private-gateway",
 			},
 			Http: []*istio.HTTPRoute{
-				{
+				{ // Tagged http route
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -117,7 +105,23 @@ var (
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
+							},
 							Port: uint32(443),
+							Uri:  &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+						},
+						{
+							Gateways: []string{"private-gateway"},
+							Headers: map[string]*istio.StringMatch{
+								"MEDIUM-TAG": {
+									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
+								},
+							},
+							Authority: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
+							},
+							Port: uint32(80),
 							Uri:  &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 						},
 					},
@@ -132,45 +136,7 @@ var (
 						},
 					},
 				},
-				{
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
-									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
-								},
-							},
-							Port: uint32(8080),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Gateways: []string{"private-gateway"},
-							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
-									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
-								},
-							},
-							Port: uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(8080)},
-								Subset: "testtag",
-							},
-							Weight: 100,
-						},
-					},
-				},
-				{
+				{ // Tagged status route
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -196,7 +162,7 @@ var (
 						},
 					},
 				},
-				{
+				{ // Release http route
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -207,7 +173,7 @@ var (
 						},
 						{
 							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.doki-pen.org"},
+								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
 							},
 							Gateways: []string{"private-gateway"},
 							Port:     uint32(443),
@@ -217,67 +183,7 @@ var (
 						},
 						{
 							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.test-a.cluster.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.test-a.cluster.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.test-a.cluster.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-http.test-a.cluster.doki-pen.org"},
+								MatchType: &istio.StringMatch_Regex{"^(testnamespace.doki-pen.org|testnamespace.test-a.cluster.doki-pen.org)"},
 							},
 							Gateways: []string{"private-gateway"},
 							Port:     uint32(80),
@@ -297,68 +203,7 @@ var (
 						},
 					},
 				},
-				{
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Port:     uint32(8080),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-grpc.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace.test-a.cluster.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "testnamespace-grpc.test-a.cluster.doki-pen.org"},
-							},
-							Gateways: []string{"private-gateway"},
-							Port:     uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(8080)},
-								Subset: "testtag",
-							},
-							Weight: 100,
-						},
-					},
-				},
-				{
+				{ // release status route
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -399,12 +244,6 @@ var (
 					Port:       80,
 					Protocol:   "TCP",
 					TargetPort: intstr.FromString("http"),
-				},
-				{
-					Name:       "grpc",
-					Port:       8080,
-					Protocol:   "TCP",
-					TargetPort: intstr.FromString("grpc"),
 				},
 				{
 					Name:       "status",
@@ -475,6 +314,127 @@ func TestSyncNewApp(t *testing.T) {
 	options := pkgplan.Options{
 		ScalingFactor: 0.5,
 		ClusterName:   "test-a",
+		DefaultDomains: pkgplan.DefaultDomainOptions{
+			Public:  []string{""},
+			Private: []string{"test-a.cluster.doki-pen.org", "doki-pen.org"},
+		},
 	}
 	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, options, log), "Shouldn't return error.")
+}
+
+func TestDomains(t *testing.T) {
+	ctx := context.TODO()
+	log := test.MustNewLogger()
+	istioclient.AddToScheme(scheme.Scheme)
+	corev1.AddToScheme(scheme.Scheme)
+	monitoringv1.AddToScheme(scheme.Scheme)
+	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
+	options := pkgplan.Options{
+		ClusterName:   "",
+		ScalingFactor: 0,
+		DefaultDomains: pkgplan.DefaultDomainOptions{
+			Public:  []string{"doki-pen.org"},
+			Private: []string{"dkpn.io"},
+		},
+	}
+	plan := SyncApp{
+		App:            "website",
+		Namespace:      "website-production",
+		Labels:         map[string]string{"test": "label"},
+		PublicGateway:  "public-ingressgateway",
+		PrivateGateway: "private-ingressgateway",
+		DeployedRevisions: []Revision{
+			{
+				Tag:              "1",
+				Weight:           100,
+				TagRoutingHeader: "DOKI-TAG",
+			},
+		},
+		AlertRules: []monitoringv1.Rule{
+			{
+				Expr: intstr.FromString("hello world"),
+			},
+		},
+		Ports: []picchuv1alpha1.PortInfo{
+			{
+				Name:          "http",
+				IngressPort:   443,
+				Port:          80,
+				ContainerPort: 5000,
+				Protocol:      corev1.ProtocolTCP,
+				Mode:          picchuv1alpha1.PortPublic,
+				HttpsRedirect: true,
+				Hosts:         []string{"www.doki-pen.org"},
+			},
+			{
+				Name:          "grpc",
+				IngressPort:   443,
+				Port:          8080,
+				ContainerPort: 5001,
+				Protocol:      corev1.ProtocolTCP,
+				Mode:          picchuv1alpha1.PortPrivate,
+			},
+			{
+				Name:          "status",
+				IngressPort:   443,
+				Port:          4242,
+				ContainerPort: 4444,
+				Protocol:      corev1.ProtocolTCP,
+				Mode:          picchuv1alpha1.PortLocal,
+			},
+		},
+	}
+	assert.NoError(t, plan.Apply(ctx, cli, options, log))
+	vs := &istioclient.VirtualService{}
+	assert.NoError(t, cli.Get(ctx, client.ObjectKey{"website-production", "website"}, vs))
+	assert.Equal(t, map[string]string{
+		"test": "label",
+	}, vs.Labels)
+	assert.ElementsMatch(t, []string{
+		"public-ingressgateway",
+		"private-ingressgateway",
+		"mesh",
+	}, vs.Spec.Gateways)
+	assert.ElementsMatch(t, []string{
+		"www.doki-pen.org",
+		"website-production.doki-pen.org",
+		"website-production.dkpn.io",
+		"website.website-production.svc.cluster.local"}, vs.Spec.Hosts)
+}
+
+func TestHosts(t *testing.T) {
+	publicPort := picchuv1alpha1.PortInfo{
+		Hosts: []string{"www.doki-pen.org"},
+		Mode:  picchuv1alpha1.PortPublic,
+	}
+	privatePort := picchuv1alpha1.PortInfo{
+		Hosts: []string{"www.dkpn.io"},
+		Mode:  picchuv1alpha1.PortPrivate,
+	}
+	options := pkgplan.Options{
+		DefaultDomains: pkgplan.DefaultDomainOptions{
+			Public:  []string{"doki-pen.org"},
+			Private: []string{"dkpn.io"},
+		},
+	}
+	plan := SyncApp{
+		App:       "website",
+		Namespace: "website-production",
+	}
+
+	assert.Equal(t, "website.website-production.svc.cluster.local", plan.serviceHost())
+	assert.ElementsMatch(t, []string{
+		"www.doki-pen.org",
+		"website-production.doki-pen.org",
+	}, plan.publicHosts(publicPort, options))
+	assert.ElementsMatch(t, []string{
+		"website-production.dkpn.io",
+	}, plan.privateHosts(publicPort, options))
+	assert.ElementsMatch(t, []string{
+		"website-production.doki-pen.org",
+	}, plan.publicHosts(privatePort, options))
+	assert.ElementsMatch(t, []string{
+		"www.dkpn.io",
+		"website-production.dkpn.io",
+	}, plan.privateHosts(privatePort, options))
 }

@@ -45,10 +45,6 @@ spec:
               - certificate-authority-data
               - server
               type: object
-            defaultDomains:
-              items:
-                type: string
-              type: array
             enabled:
               type: boolean
             hotStandby:
@@ -57,20 +53,30 @@ spec:
               properties:
                 private:
                   properties:
+                    defaultDomains:
+                      items:
+                        type: string
+                      type: array
                     dnsName:
                       type: string
                     gateway:
                       type: string
                   required:
+                  - defaultDomains
                   - dnsName
                   type: object
                 public:
                   properties:
+                    defaultDomains:
+                      items:
+                        type: string
+                      type: array
                     dnsName:
                       type: string
                     gateway:
                       type: string
                   required:
+                  - defaultDomains
                   - dnsName
                   type: object
               required:
