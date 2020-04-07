@@ -28,11 +28,13 @@ import (
 var (
 	authorityRegex = &istio.StringMatch{
 		MatchType: &istio.StringMatch_Regex{
-			Regex: "^(testnamespace\\.doki-pen\\.org|testnamespace\\.test-a\\.cluster\\.doki-pen\\.org)(:[0-9]+)?$",
+			Regex: "^(testapp\\.doki-pen\\.org|testapp\\.test-a\\.cluster\\.doki-pen\\.org)(:[0-9]+)?$",
 		},
 	}
 	defaultSyncAppPlan = &SyncApp{
 		App:       "testapp",
+		Fleet:     "production",
+		Target:    "production",
 		Namespace: "testnamespace",
 		Labels: map[string]string{
 			"test": "label",
@@ -82,9 +84,9 @@ var (
 		},
 		Spec: istio.VirtualService{
 			Hosts: []string{
+				"testapp.doki-pen.org",
+				"testapp.test-a.cluster.doki-pen.org",
 				"testapp.testnamespace.svc.cluster.local",
-				"testnamespace.doki-pen.org",
-				"testnamespace.test-a.cluster.doki-pen.org",
 			},
 			Gateways: []string{
 				"mesh",
@@ -394,8 +396,8 @@ func TestDomains(t *testing.T) {
 	}, vs.Spec.Gateways)
 	assert.ElementsMatch(t, []string{
 		"www.doki-pen.org",
-		"website-production.doki-pen.org",
-		"website-production.dkpn.io",
+		"website.doki-pen.org",
+		"website.dkpn.io",
 		"website.website-production.svc.cluster.local"}, vs.Spec.Hosts)
 }
 
@@ -416,22 +418,24 @@ func TestHosts(t *testing.T) {
 	}
 	plan := SyncApp{
 		App:       "website",
-		Namespace: "website-production",
+		Target:    "staging",
+		Fleet:     "internal",
+		Namespace: "website-internal",
 	}
 
-	assert.Equal(t, "website.website-production.svc.cluster.local", plan.serviceHost())
+	assert.Equal(t, "website.website-internal.svc.cluster.local", plan.serviceHost())
 	assert.ElementsMatch(t, []string{
 		"www.doki-pen.org",
-		"website-production.doki-pen.org",
+		"website-internal.doki-pen.org",
 	}, plan.publicHosts(publicPort, options))
 	assert.ElementsMatch(t, []string{
-		"website-production.dkpn.io",
+		"website-internal.dkpn.io",
 	}, plan.privateHosts(publicPort, options))
 	assert.ElementsMatch(t, []string{
-		"website-production.doki-pen.org",
+		"website-internal.doki-pen.org",
 	}, plan.publicHosts(privatePort, options))
 	assert.ElementsMatch(t, []string{
 		"www.dkpn.io",
-		"website-production.dkpn.io",
+		"website-internal.dkpn.io",
 	}, plan.privateHosts(privatePort, options))
 }
