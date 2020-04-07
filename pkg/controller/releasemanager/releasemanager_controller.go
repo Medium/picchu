@@ -109,9 +109,9 @@ var (
 		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
 	}, []string{"app", "target"})
 	reconcileInterval = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "picchu_release_manager_reconcile_internal",
+		Name:    "picchu_release_manager_reconcile_interval",
 		Help:    "track time between last update and reconcile request",
-		Buckets: prometheus.ExponentialBuckets(10, 1.5, 7),
+		Buckets: []float64{10, 15, 20, 30, 45, 60, 90, 120},
 	}, []string{"app", "target"})
 )
 
