@@ -256,15 +256,27 @@ func (i *Incarnation) isCanaryPending() bool {
 }
 
 func (i *Incarnation) ports() []picchuv1alpha1.PortInfo {
-	ports := i.revision.Spec.Ports
+	portMap := map[string]*picchuv1alpha1.PortInfo{}
+	for j := range i.revision.Spec.Ports {
+		port := i.revision.Spec.Ports[j]
+		portMap[port.Name] = &port
+	}
 	target := i.target()
 
 	if target != nil {
-		if len(target.Ports) > 0 {
-			ports = target.Ports
-		} else {
-			i.log.Info("revision.spec.ports is deprecated")
+		for j := range target.Ports {
+			tport := target.Ports[j]
+			if rport, ok := portMap[tport.Name]; ok {
+				portMap[tport.Name] = rport.Merge(&tport)
+			} else {
+				portMap[tport.Name] = &tport
+			}
 		}
+	}
+
+	ports := make([]picchuv1alpha1.PortInfo, 0, len(portMap))
+	for _, port := range portMap {
+		ports = append(ports, *port)
 	}
 
 	return ports
