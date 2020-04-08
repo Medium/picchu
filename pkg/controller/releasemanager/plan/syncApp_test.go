@@ -2,14 +2,11 @@ package plan
 
 import (
 	"context"
-	"go.medium.engineering/picchu/pkg/client/scheme"
 	_ "runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/mocks"
-	pkgplan "go.medium.engineering/picchu/pkg/plan"
 	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
@@ -39,8 +36,6 @@ var (
 		Labels: map[string]string{
 			"test": "label",
 		},
-		PublicGateway:  "public-gateway",
-		PrivateGateway: "private-gateway",
 		DeployedRevisions: []Revision{
 			{
 				Tag:              "testtag",
@@ -310,38 +305,54 @@ func TestSyncNewApp(t *testing.T) {
 			Times(1)
 	}
 
-	options := pkgplan.Options{
-		ScalingFactor: 0.5,
-		ClusterName:   "test-a",
-		DefaultDomains: pkgplan.DefaultDomainOptions{
-			Public:  []string{""},
-			Private: []string{"test-a.cluster.doki-pen.org", "doki-pen.org"},
+	scalingFactor := 0.5
+	cluster := &picchuv1alpha1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-a",
+		},
+		Spec: picchuv1alpha1.ClusterSpec{
+			ScalingFactor: &scalingFactor,
+			Ingresses: picchuv1alpha1.ClusterIngresses{
+				Public: picchuv1alpha1.IngressInfo{
+					Gateway: "public-gateway",
+				},
+				Private: picchuv1alpha1.IngressInfo{
+					Gateway:        "private-gateway",
+					DefaultDomains: []string{"test-a.cluster.doki-pen.org", "doki-pen.org"},
+				},
+			},
 		},
 	}
-	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, options, log), "Shouldn't return error.")
+	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }
 
 func TestDomains(t *testing.T) {
 	ctx := context.TODO()
 	log := test.MustNewLogger()
-	istioclient.AddToScheme(scheme.Scheme)
-	corev1.AddToScheme(scheme.Scheme)
-	monitoringv1.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	options := pkgplan.Options{
-		ClusterName:   "",
-		ScalingFactor: 0,
-		DefaultDomains: pkgplan.DefaultDomainOptions{
-			Public:  []string{"doki-pen.org"},
-			Private: []string{"dkpn.io"},
+	cli := fakeClient()
+	scalingFactor := 1.0
+	cluster := &picchuv1alpha1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-a",
+		},
+		Spec: picchuv1alpha1.ClusterSpec{
+			ScalingFactor: &scalingFactor,
+			Ingresses: picchuv1alpha1.ClusterIngresses{
+				Public: picchuv1alpha1.IngressInfo{
+					Gateway:        "public-ingressgateway",
+					DefaultDomains: []string{"doki-pen.org"},
+				},
+				Private: picchuv1alpha1.IngressInfo{
+					Gateway:        "private-ingressgateway",
+					DefaultDomains: []string{"dkpn.io"},
+				},
+			},
 		},
 	}
 	plan := SyncApp{
-		App:            "website",
-		Namespace:      "website-production",
-		Labels:         map[string]string{"test": "label"},
-		PublicGateway:  "public-ingressgateway",
-		PrivateGateway: "private-ingressgateway",
+		App:       "website",
+		Namespace: "website-production",
+		Labels:    map[string]string{"test": "label"},
 		DeployedRevisions: []Revision{
 			{
 				Tag:              "1",
@@ -383,9 +394,13 @@ func TestDomains(t *testing.T) {
 			},
 		},
 	}
-	assert.NoError(t, plan.Apply(ctx, cli, options, log))
+	assert.NoError(t, plan.Apply(ctx, cli, cluster, log))
 	vs := &istioclient.VirtualService{}
-	assert.NoError(t, cli.Get(ctx, client.ObjectKey{"website-production", "website"}, vs))
+	key := client.ObjectKey{
+		Namespace: "website-production",
+		Name:      "website",
+	}
+	assert.NoError(t, cli.Get(ctx, key, vs))
 	assert.Equal(t, map[string]string{
 		"test": "label",
 	}, vs.Labels)
@@ -410,10 +425,23 @@ func TestHosts(t *testing.T) {
 		Hosts: []string{"www.dkpn.io"},
 		Mode:  picchuv1alpha1.PortPrivate,
 	}
-	options := pkgplan.Options{
-		DefaultDomains: pkgplan.DefaultDomainOptions{
-			Public:  []string{"doki-pen.org"},
-			Private: []string{"dkpn.io"},
+	scalingFactor := 1.0
+	cluster := &picchuv1alpha1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-a",
+		},
+		Spec: picchuv1alpha1.ClusterSpec{
+			ScalingFactor: &scalingFactor,
+			Ingresses: picchuv1alpha1.ClusterIngresses{
+				Public: picchuv1alpha1.IngressInfo{
+					Gateway:        "public-ingressgateway",
+					DefaultDomains: []string{"doki-pen.org"},
+				},
+				Private: picchuv1alpha1.IngressInfo{
+					Gateway:        "private-ingressgateway",
+					DefaultDomains: []string{"dkpn.io"},
+				},
+			},
 		},
 	}
 	plan := SyncApp{
@@ -427,15 +455,15 @@ func TestHosts(t *testing.T) {
 	assert.ElementsMatch(t, []string{
 		"www.doki-pen.org",
 		"website-internal.doki-pen.org",
-	}, plan.publicHosts(publicPort, options))
+	}, plan.publicHosts(publicPort, cluster))
 	assert.ElementsMatch(t, []string{
 		"website-internal.dkpn.io",
-	}, plan.privateHosts(publicPort, options))
+	}, plan.privateHosts(publicPort, cluster))
 	assert.ElementsMatch(t, []string{
 		"website-internal.doki-pen.org",
-	}, plan.publicHosts(privatePort, options))
+	}, plan.publicHosts(privatePort, cluster))
 	assert.ElementsMatch(t, []string{
 		"www.dkpn.io",
 		"website-internal.dkpn.io",
-	}, plan.privateHosts(privatePort, options))
+	}, plan.privateHosts(privatePort, cluster))
 }

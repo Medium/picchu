@@ -2,6 +2,7 @@ package plan_test
 
 import (
 	"context"
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	"testing"
 
@@ -11,6 +12,15 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	scalingFactor = 1.0
+	cluster       = &picchuv1alpha1.Cluster{
+		Spec: picchuv1alpha1.ClusterSpec{
+			ScalingFactor: &scalingFactor,
+		},
+	}
 )
 
 func TestCompositePlanFlat(t *testing.T) {
@@ -26,18 +36,18 @@ func TestCompositePlanFlat(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
+		Apply(ctx, cli, cluster, gomock.Any()).
 		Return(nil).
 		Times(1)
 
 	p2.
 		EXPECT().
-		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
+		Apply(ctx, cli, cluster, gomock.Any()).
 		Return(nil).
 		Times(1)
 
 	composite := plan.All(p1, p2)
-	assert.NoError(t, composite.Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, log), "no error")
+	assert.NoError(t, composite.Apply(ctx, cli, cluster, log), "no error")
 }
 
 func TestCompositePlanLevels(t *testing.T) {
@@ -54,21 +64,21 @@ func TestCompositePlanLevels(t *testing.T) {
 
 	p1.
 		EXPECT().
-		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
+		Apply(ctx, cli, cluster, gomock.Any()).
 		Return(nil).
 		Times(1)
 	p2.
 		EXPECT().
-		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
+		Apply(ctx, cli, cluster, gomock.Any()).
 		Return(nil).
 		Times(1)
 	p3.
 		EXPECT().
-		Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, gomock.Any()).
+		Apply(ctx, cli, cluster, gomock.Any()).
 		Return(nil).
 		Times(1)
 
 	composite := plan.All(p1, p2)
 	composite = plan.All(composite, p3)
-	assert.NoError(t, composite.Apply(ctx, cli, plan.Options{ScalingFactor: 1.0}, log), "no error")
+	assert.NoError(t, composite.Apply(ctx, cli, cluster, log), "no error")
 }

@@ -24,7 +24,7 @@ type SyncServiceLevels struct {
 	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	serviceLevels, err := p.serviceLevels()
 	if err != nil {
 		return err
@@ -41,8 +41,8 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, option
 }
 
 func (p *SyncServiceLevels) serviceLevels() ([]*slov1alpha1.ServiceLevel, error) {
-	sl := []*slov1alpha1.ServiceLevel{}
-	slos := []slov1alpha1.SLO{}
+	var sl []*slov1alpha1.ServiceLevel
+	var slos []slov1alpha1.SLO
 
 	for i := range p.ServiceLevelObjectives {
 		if p.ServiceLevelObjectives[i].Enabled {
@@ -74,10 +74,10 @@ func (p *SyncServiceLevels) serviceLevels() ([]*slov1alpha1.ServiceLevel, error)
 	return sl, nil
 }
 
-func (p *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
+func (s *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
 	source := &slov1alpha1.PrometheusSLISource{
-		ErrorQuery: p.serviceLevelErrorQuery(),
-		TotalQuery: p.serviceLevelTotalQuery(),
+		ErrorQuery: s.serviceLevelErrorQuery(),
+		TotalQuery: s.serviceLevelTotalQuery(),
 	}
 	return source
 }

@@ -32,7 +32,7 @@ type SyncSLORules struct {
 	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	sloRules, err := p.SLORules()
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, options pla
 
 // SLORules returns a PrometheusRuleList of recording rules to support tracking of the ServiceLevelObjectives
 func (p *SyncSLORules) SLORules() ([]monitoringv1.PrometheusRule, error) {
-	prs := []monitoringv1.PrometheusRule{}
+	var prs []monitoringv1.PrometheusRule
 
 	rule := p.prometheusRule()
 
@@ -93,7 +93,7 @@ func (p *SyncSLORules) prometheusRule() *monitoringv1.PrometheusRule {
 }
 
 func (s *SLOConfig) recordingRules() []*monitoringv1.RuleGroup {
-	ruleGroups := []*monitoringv1.RuleGroup{}
+	var ruleGroups []*monitoringv1.RuleGroup
 
 	ruleGroup := &monitoringv1.RuleGroup{
 		Name: s.recordingRuleName(),

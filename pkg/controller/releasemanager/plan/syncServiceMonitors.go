@@ -22,7 +22,7 @@ type SyncServiceMonitors struct {
 	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	serviceMonitors, err := p.serviceMonitors()
 	if err != nil {
 		return err
@@ -47,7 +47,7 @@ func (p *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorLis
 	metricNamesRegex := strings.Join(names, "|")
 
 	sml := &monitoringv1.ServiceMonitorList{}
-	sms := []*monitoringv1.ServiceMonitor{}
+	var sms []*monitoringv1.ServiceMonitor
 
 	for i := range p.ServiceMonitors {
 		sm := p.serviceMonitor(p.ServiceMonitors[i], metricNamesRegex)
@@ -121,7 +121,7 @@ func (p *SyncServiceMonitors) parseMetricNames() ([]string, error) {
 		}
 	}
 
-	m := []string{}
+	var m []string
 	for name := range n {
 		m = append(m, name)
 	}

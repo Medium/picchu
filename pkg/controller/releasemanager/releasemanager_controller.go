@@ -267,11 +267,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return r.requeue(rmLog, err)
 	}
 
-	clusterConfig, err := r.getClusterConfig(clusters)
-	if err != nil {
-		return r.requeue(rmLog, err)
-	}
-
 	ic := &IncarnationController{
 		deliveryClient:  r.client,
 		deliveryApplier: deliveryApplier,
@@ -290,7 +285,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		incarnations:    newIncarnationCollection(ic, revisions, observation, r.config),
 		reconciler:      r,
 		log:             rmLog,
-		clusterConfig:   clusterConfig,
 		picchuConfig:    r.config,
 	}
 
@@ -384,23 +378,6 @@ func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namesp
 	return clusters, err
 }
 
-// ClusterConfig is the cluster information needed to create cluster specific resources
-type ClusterConfig struct {
-	DefaultDomains        []string
-	PublicIngressGateway  string
-	PrivateIngressGateway string
-}
-
-// Ensure all clusters share the same config and return
-func (r *ReconcileReleaseManager) getClusterConfig(clusters []picchuv1alpha1.Cluster) (ClusterConfig, error) {
-	spec := clusters[0].Spec
-	c := ClusterConfig{
-		PublicIngressGateway:  spec.Ingresses.Public.Gateway,
-		PrivateIngressGateway: spec.Ingresses.Private.Gateway,
-	}
-	return c, nil
-}
-
 func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.Logger, clusters []picchuv1alpha1.Cluster) (plan.Applier, error) {
 	g, ctx := errgroup.WithContext(ctx)
 	appliers := make([]plan.Applier, len(clusters))
@@ -413,17 +390,8 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-			scalingFactor := cluster.Spec.ScalingFactor
 
-			options := plan.Options{
-				ClusterName:   cluster.Name,
-				ScalingFactor: *scalingFactor,
-				DefaultDomains: plan.DefaultDomainOptions{
-					Public:  cluster.Spec.Ingresses.Public.DefaultDomains,
-					Private: cluster.Spec.Ingresses.Private.DefaultDomains,
-				},
-			}
-			appliers[i] = plan.NewClusterApplier(remoteClient, options, log.WithValues("Cluster", cluster.Name))
+			appliers[i] = plan.NewClusterApplier(remoteClient, &cluster, log.WithValues("Cluster", cluster.Name))
 			return nil
 		})
 	}
