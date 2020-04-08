@@ -68,8 +68,6 @@ spec:
                     items:
                       type: string
                     type: array
-                  httpsRedirect:
-                    type: boolean
                   ingressPort:
                     format: int32
                     type: integer
@@ -974,8 +972,6 @@ spec:
                           items:
                             type: string
                           type: array
-                        httpsRedirect:
-                          type: boolean
                         ingressPort:
                           format: int32
                           type: integer

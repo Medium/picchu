@@ -56,7 +56,6 @@ var (
 				ContainerPort: 5000,
 				Protocol:      corev1.ProtocolTCP,
 				Mode:          picchuv1alpha1.PortPrivate,
-				HttpsRedirect: true,
 			},
 			{
 				Name:          "status",
@@ -373,7 +372,6 @@ func TestDomains(t *testing.T) {
 				ContainerPort: 5000,
 				Protocol:      corev1.ProtocolTCP,
 				Mode:          picchuv1alpha1.PortPublic,
-				HttpsRedirect: true,
 				Hosts:         []string{"www.doki-pen.org"},
 			},
 			{
