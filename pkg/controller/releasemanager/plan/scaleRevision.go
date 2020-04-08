@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"errors"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"math"
 
@@ -77,8 +78,15 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		p.Max = p.Min
 	}
 
-	scaledMin := int32(math.Ceil(float64(p.Min) * *cluster.Spec.ScalingFactor))
-	scaledMax := int32(math.Ceil(float64(p.Max) * *cluster.Spec.ScalingFactor))
+	scalingFactor := cluster.Spec.ScalingFactor
+	if scalingFactor == nil {
+		e := errors.New("cluster scalingFactor can't be nil")
+		log.Error(e, "Cluster scalingFactor nil")
+		return e
+	}
+
+	scaledMin := int32(math.Ceil(float64(p.Min) * *scalingFactor))
+	scaledMax := int32(math.Ceil(float64(p.Max) * *scalingFactor))
 
 	hpa := &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
