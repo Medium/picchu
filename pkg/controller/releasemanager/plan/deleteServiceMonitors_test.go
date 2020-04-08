@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"go.medium.engineering/picchu/pkg/plan"
 	_ "runtime"
 	"testing"
 
@@ -57,5 +56,5 @@ func TestDeleteServiceMonitors(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, deleteServiceMonitors.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
+	assert.NoError(t, deleteServiceMonitors.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }

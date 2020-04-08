@@ -17,7 +17,7 @@ type DeleteServiceMonitors struct {
 	Namespace string
 }
 
-func (p *DeleteServiceMonitors) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *DeleteServiceMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	smlist := &monitoringv1.ServiceMonitorList{}
 
 	opts := &client.ListOptions{

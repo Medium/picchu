@@ -23,7 +23,7 @@ type SyncTaggedServiceLevels struct {
 	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
 }
 
-func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	serviceLevels, err := p.serviceLevels()
 	if err != nil {
 		return err
@@ -41,8 +41,8 @@ func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, 
 
 func (p *SyncTaggedServiceLevels) serviceLevels() (*slov1alpha1.ServiceLevelList, error) {
 	sll := &slov1alpha1.ServiceLevelList{}
-	sl := []slov1alpha1.ServiceLevel{}
-	slos := []slov1alpha1.SLO{}
+	var sl []slov1alpha1.ServiceLevel
+	var slos []slov1alpha1.SLO
 
 	for i := range p.ServiceLevelObjectives {
 		if p.ServiceLevelObjectives[i].Enabled {

@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -72,11 +73,11 @@ type SyncRevision struct {
 	Tolerations        []corev1.Toleration
 }
 
-func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 
 	// Clone passed in objects to prevent concurrency issues
-	configs := []runtime.Object{}
-	envs := []corev1.EnvFromSource{}
+	var configs []runtime.Object
+	var envs []corev1.EnvFromSource
 	for i := range p.Configs {
 		configs = append(configs, p.Configs[i].DeepCopyObject())
 	}
@@ -107,7 +108,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, options pla
 				},
 			})
 		default:
-			e := errors.New("Unsupported config")
+			e := errors.New("unsupported config")
 			log.Error(e, "Unsupported config", "Config", config)
 			return e
 		}
@@ -128,7 +129,13 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, options pla
 		labels[k] = v
 	}
 
-	return p.syncReplicaSet(ctx, cli, options.ScalingFactor, labels, envs, log)
+	scalingFactor := cluster.Spec.ScalingFactor
+	if scalingFactor == nil {
+		e := fmt.Errorf("cluster scalingFactor is nil")
+		log.Error(e, "Failed to sync revision")
+		return e
+	}
+	return p.syncReplicaSet(ctx, cli, *scalingFactor, labels, envs, log)
 }
 
 func (p *SyncRevision) syncReplicaSet(
@@ -150,7 +157,7 @@ func (p *SyncRevision) syncReplicaSet(
 		readinessProbe = &probe
 	}
 
-	ports := []corev1.ContainerPort{}
+	var ports []corev1.ContainerPort
 	hasStatusPort := false
 	for _, port := range p.Ports {
 		ports = append(ports, corev1.ContainerPort{

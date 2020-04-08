@@ -22,7 +22,7 @@ type EnsureNamespace struct {
 	OwnerType string
 }
 
-func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	om := metav1.ObjectMeta{
 		Name: p.Name,
 		Labels: map[string]string{

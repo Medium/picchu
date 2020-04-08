@@ -2,6 +2,8 @@ package plan
 
 import (
 	"context"
+	"errors"
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"math"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
@@ -26,7 +28,7 @@ type ScaleRevision struct {
 
 const RequestsRateMetric = "istio_requests_rate"
 
-func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	var metrics = []autoscaling.MetricSpec{}
 
 	if p.CPUTarget != nil {
@@ -76,8 +78,15 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, options pl
 		p.Max = p.Min
 	}
 
-	scaledMin := int32(math.Ceil(float64(p.Min) * options.ScalingFactor))
-	scaledMax := int32(math.Ceil(float64(p.Max) * options.ScalingFactor))
+	scalingFactor := cluster.Spec.ScalingFactor
+	if scalingFactor == nil {
+		e := errors.New("cluster scalingFactor can't be nil")
+		log.Error(e, "Cluster scalingFactor nil")
+		return e
+	}
+
+	scaledMin := int32(math.Ceil(float64(p.Min) * *scalingFactor))
+	scaledMax := int32(math.Ceil(float64(p.Max) * *scalingFactor))
 
 	hpa := &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{

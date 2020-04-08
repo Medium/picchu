@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"go.medium.engineering/picchu/pkg/plan"
 	"reflect"
 	_ "runtime"
 	"testing"
@@ -122,7 +121,7 @@ func TestSLORules(t *testing.T) {
 		}
 	}
 
-	assert.NoError(t, slorplan.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
+	assert.NoError(t, slorplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }
 
 func TestSanitizeName(t *testing.T) {

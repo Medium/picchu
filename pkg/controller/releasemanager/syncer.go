@@ -41,7 +41,6 @@ type ResourceSyncer struct {
 	incarnations    Incarnations
 	reconciler      *ReconcileReleaseManager
 	log             logr.Logger
-	clusterConfig   ClusterConfig
 	picchuConfig    utils.Config
 }
 
@@ -221,8 +220,6 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		Fleet:             r.instance.Spec.Fleet,
 		Namespace:         r.instance.TargetNamespace(),
 		Labels:            r.defaultLabels(),
-		PublicGateway:     r.clusterConfig.PublicIngressGateway,
-		PrivateGateway:    r.clusterConfig.PrivateIngressGateway,
 		DeployedRevisions: revisions,
 		AlertRules:        alertRules,
 		Ports:             ports,
