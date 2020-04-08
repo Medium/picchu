@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"go.medium.engineering/picchu/pkg/plan"
 	_ "runtime"
 	"testing"
 
@@ -178,5 +177,5 @@ func TestSyncServiceMonitors(t *testing.T) {
 		}
 	}
 
-	assert.NoError(t, smplan.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
+	assert.NoError(t, smplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }

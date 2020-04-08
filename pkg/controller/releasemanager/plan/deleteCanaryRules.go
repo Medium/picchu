@@ -18,7 +18,7 @@ type DeleteCanaryRules struct {
 	Tag       string
 }
 
-func (p *DeleteCanaryRules) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *DeleteCanaryRules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	prlist := &monitoringv1.PrometheusRuleList{}
 
 	opts := &client.ListOptions{

@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"reflect"
 
 	"github.com/go-logr/logr"
@@ -15,17 +16,17 @@ type Applier interface {
 
 type ClusterApplier struct {
 	cli     client.Client
-	options Options
+	cluster *picchuv1alpha1.Cluster
 	log     logr.Logger
 }
 
-func NewClusterApplier(cli client.Client, options Options, log logr.Logger) Applier {
-	return &ClusterApplier{cli, options, log}
+func NewClusterApplier(cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) Applier {
+	return &ClusterApplier{cli, cluster, log}
 }
 
 func (a *ClusterApplier) Apply(ctx context.Context, plan Plan) error {
 	planType := reflect.TypeOf(plan).Elem()
-	return plan.Apply(ctx, a.cli, a.options, a.log.WithValues("Applier", planType.Name()))
+	return plan.Apply(ctx, a.cli, a.cluster, a.log.WithValues("Applier", planType.Name()))
 }
 
 type ConcurrentApplier struct {

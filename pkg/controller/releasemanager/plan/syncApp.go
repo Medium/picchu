@@ -39,14 +39,12 @@ type SyncApp struct {
 	Fleet             string
 	Namespace         string
 	Labels            map[string]string
-	PublicGateway     string
-	PrivateGateway    string
 	DeployedRevisions []Revision
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
 }
 
-func (p *SyncApp) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *SyncApp) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	if len(p.Ports) == 0 {
 		log.Info("Not syncing app", "Reason", "there are no exposed ports")
 		return nil
@@ -65,7 +63,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, options plan.Opt
 	}
 
 	destinationRule := p.destinationRule()
-	virtualService := p.virtualService(log, options)
+	virtualService := p.virtualService(log, cluster)
 	prometheusRule := p.prometheusRule()
 
 	if err := plan.CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
@@ -99,12 +97,12 @@ func (p *SyncApp) serviceHost() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", p.App, p.Namespace)
 }
 
-func (p *SyncApp) publicHosts(port picchuv1alpha1.PortInfo, options plan.Options) []string {
-	return p.ingressHosts(picchuv1alpha1.PortPublic, port, options.DefaultDomains.Public)
+func (p *SyncApp) publicHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
+	return p.ingressHosts(picchuv1alpha1.PortPublic, port, cluster.Spec.Ingresses.Public.DefaultDomains)
 }
 
-func (p *SyncApp) privateHosts(port picchuv1alpha1.PortInfo, options plan.Options) []string {
-	return p.ingressHosts(picchuv1alpha1.PortPrivate, port, options.DefaultDomains.Private)
+func (p *SyncApp) privateHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
+	return p.ingressHosts(picchuv1alpha1.PortPrivate, port, cluster.Spec.Ingresses.Private.DefaultDomains)
 }
 
 func (p *SyncApp) authorityMatch(hosts []string) *istio.StringMatch {
@@ -119,12 +117,12 @@ func (p *SyncApp) authorityMatch(hosts []string) *istio.StringMatch {
 	}
 }
 
-func (p *SyncApp) publicAuthorityMatch(port picchuv1alpha1.PortInfo, options plan.Options) *istio.StringMatch {
-	return p.authorityMatch(p.publicHosts(port, options))
+func (p *SyncApp) publicAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) *istio.StringMatch {
+	return p.authorityMatch(p.publicHosts(port, cluster))
 }
 
-func (p *SyncApp) privateAuthorityMatch(port picchuv1alpha1.PortInfo, options plan.Options) *istio.StringMatch {
-	return p.authorityMatch(p.privateHosts(port, options))
+func (p *SyncApp) privateAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) *istio.StringMatch {
+	return p.authorityMatch(p.privateHosts(port, cluster))
 }
 
 func (p *SyncApp) ingressHosts(
@@ -157,26 +155,26 @@ func (p *SyncApp) ingressHosts(
 
 func (p *SyncApp) releaseMatches(
 	port picchuv1alpha1.PortInfo,
-	options plan.Options,
+	cluster *picchuv1alpha1.Cluster,
 ) ([]*istio.HTTPMatchRequest, []string) {
-	return p.portHeaderMatches(port, nil, options)
+	return p.portHeaderMatches(port, nil, cluster)
 }
 
 func (p *SyncApp) taggedMatches(
 	port picchuv1alpha1.PortInfo,
 	revision Revision,
-	options plan.Options,
+	cluster *picchuv1alpha1.Cluster,
 ) ([]*istio.HTTPMatchRequest, []string) {
 	headers := map[string]*istio.StringMatch{
 		revision.TagRoutingHeader: {MatchType: &istio.StringMatch_Exact{Exact: revision.Tag}},
 	}
-	return p.portHeaderMatches(port, headers, options)
+	return p.portHeaderMatches(port, headers, cluster)
 }
 
 func (p *SyncApp) portHeaderMatches(
 	port picchuv1alpha1.PortInfo,
 	headers map[string]*istio.StringMatch,
-	options plan.Options,
+	cluster *picchuv1alpha1.Cluster,
 ) ([]*istio.HTTPMatchRequest, []string) {
 	portNumber := uint32(port.Port)
 	ingressPort := uint32(port.IngressPort)
@@ -192,7 +190,7 @@ func (p *SyncApp) portHeaderMatches(
 	}}
 
 	if port.Mode == picchuv1alpha1.PortPublic {
-		hosts := p.publicHosts(port, options)
+		hosts := p.publicHosts(port, cluster)
 		if len(hosts) > 0 {
 			for _, host := range hosts {
 				hostMap[host] = true
@@ -201,39 +199,39 @@ func (p *SyncApp) portHeaderMatches(
 				Headers:   headers,
 				Authority: p.authorityMatch(hosts),
 				Port:      ingressPort,
-				Gateways:  []string{p.PublicGateway},
+				Gateways:  []string{cluster.Spec.Ingresses.Public.Gateway},
 				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 			})
 			if port.IngressPort == 443 {
 				matches = append(matches, &istio.HTTPMatchRequest{
 					Headers:   headers,
-					Authority: p.publicAuthorityMatch(port, options),
+					Authority: p.publicAuthorityMatch(port, cluster),
 					Port:      uint32(80),
-					Gateways:  []string{p.PublicGateway},
+					Gateways:  []string{cluster.Spec.Ingresses.Public.Gateway},
 					Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 				})
 			}
 		}
 	}
 	if port.Mode == picchuv1alpha1.PortPublic || port.Mode == picchuv1alpha1.PortPrivate {
-		hosts := p.privateHosts(port, options)
+		hosts := p.privateHosts(port, cluster)
 		for _, host := range hosts {
 			hostMap[host] = true
 		}
 		if len(hosts) > 0 {
 			matches = append(matches, &istio.HTTPMatchRequest{
 				Headers:   headers,
-				Authority: p.privateAuthorityMatch(port, options),
+				Authority: p.privateAuthorityMatch(port, cluster),
 				Port:      ingressPort,
-				Gateways:  []string{p.PrivateGateway},
+				Gateways:  []string{cluster.Spec.Ingresses.Private.Gateway},
 				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 			})
 			if port.IngressPort == 443 {
 				matches = append(matches, &istio.HTTPMatchRequest{
 					Headers:   headers,
-					Authority: p.privateAuthorityMatch(port, options),
+					Authority: p.privateAuthorityMatch(port, cluster),
 					Port:      uint32(80),
-					Gateways:  []string{p.PrivateGateway},
+					Gateways:  []string{cluster.Spec.Ingresses.Private.Gateway},
 					Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 				})
 			}
@@ -301,7 +299,7 @@ func (p *SyncApp) makeRoute(
 	}
 }
 
-func (p *SyncApp) releaseRoutes(options plan.Options) ([]*istio.HTTPRoute, []string) {
+func (p *SyncApp) releaseRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRoute, []string) {
 	var routes []*istio.HTTPRoute
 	hostMap := map[string]bool{}
 
@@ -309,7 +307,7 @@ func (p *SyncApp) releaseRoutes(options plan.Options) ([]*istio.HTTPRoute, []str
 		if len(p.releaseRoute(port)) == 0 {
 			continue
 		}
-		releaseMatches, hosts := p.releaseMatches(port, options)
+		releaseMatches, hosts := p.releaseMatches(port, cluster)
 		for _, host := range hosts {
 			hostMap[host] = true
 		}
@@ -323,7 +321,7 @@ func (p *SyncApp) releaseRoutes(options plan.Options) ([]*istio.HTTPRoute, []str
 	return routes, hosts
 }
 
-func (p *SyncApp) taggedRoutes(options plan.Options) ([]*istio.HTTPRoute, []string) {
+func (p *SyncApp) taggedRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRoute, []string) {
 	var routes []*istio.HTTPRoute
 	hostMap := map[string]bool{}
 
@@ -332,7 +330,7 @@ func (p *SyncApp) taggedRoutes(options plan.Options) ([]*istio.HTTPRoute, []stri
 			continue
 		}
 		for _, port := range p.Ports {
-			taggedMatches, hosts := p.taggedMatches(port, revision, options)
+			taggedMatches, hosts := p.taggedMatches(port, revision, cluster)
 			for _, host := range hosts {
 				hostMap[host] = true
 			}
@@ -404,15 +402,15 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 }
 
 // virtualService will return nil if there are not configured routes
-func (p *SyncApp) virtualService(log logr.Logger, options plan.Options) *istioclient.VirtualService {
+func (p *SyncApp) virtualService(log logr.Logger, cluster *picchuv1alpha1.Cluster) *istioclient.VirtualService {
 	hostMap := map[string]bool{}
 
-	taggedRoutes, taggedHosts := p.taggedRoutes(options)
+	taggedRoutes, taggedHosts := p.taggedRoutes(cluster)
 	for _, host := range taggedHosts {
 		hostMap[host] = true
 	}
 
-	releaseRoutes, releaseHosts := p.releaseRoutes(options)
+	releaseRoutes, releaseHosts := p.releaseRoutes(cluster)
 	for _, host := range releaseHosts {
 		hostMap[host] = true
 	}

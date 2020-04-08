@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"go.medium.engineering/picchu/pkg/plan"
 	"reflect"
 	_ "runtime"
 	"testing"
@@ -137,7 +136,7 @@ func TestSyncCanaryRules(t *testing.T) {
 		}
 	}
 
-	assert.NoError(t, crplan.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
+	assert.NoError(t, crplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }
 
 func TestFormatAllowancePercent(t *testing.T) {

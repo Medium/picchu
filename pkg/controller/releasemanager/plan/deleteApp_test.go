@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"go.medium.engineering/picchu/pkg/plan"
 	"testing"
 
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -30,7 +29,7 @@ func TestDeleteApp(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, deleteapp.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
+	assert.NoError(t, deleteapp.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }
 
 func TestDeleteAlreadyDeletedApp(t *testing.T) {
@@ -50,5 +49,5 @@ func TestDeleteAlreadyDeletedApp(t *testing.T) {
 		Return(common.NotFoundError).
 		Times(1)
 
-	assert.NoError(t, deleteapp.Apply(ctx, m, plan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
+	assert.NoError(t, deleteapp.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }

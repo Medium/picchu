@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"go.medium.engineering/picchu/pkg/mocks"
-	pkgplan "go.medium.engineering/picchu/pkg/plan"
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
@@ -114,5 +113,5 @@ func TestDeleteRevision(t *testing.T) {
 		Return(nil).
 		Times(1)
 
-	assert.NoError(t, plan.Apply(ctx, m, pkgplan.Options{ScalingFactor: 1.0}, log), "Shouldn't return error.")
+	assert.NoError(t, plan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }
