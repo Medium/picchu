@@ -57,3 +57,37 @@ func TestCanaryTestPending(t *testing.T) {
 	lastSecond := metav1.Time{time.Now().Add(-time.Second)}
 	assert.False(t, target.IsCanaryPending(&lastSecond))
 }
+
+func TestPortInfoMerge(t *testing.T) {
+	a := &PortInfo{
+		Name:          "http",
+		Hosts:         nil,
+		IngressPort:   443,
+		Port:          80,
+		ContainerPort: 80,
+		Protocol:      "TCP",
+		Mode:          "private",
+		Istio:         IstioPortConfig{},
+	}
+	b := &PortInfo{
+		Name:          "http",
+		Hosts:         []string{"yahoo.com"},
+		IngressPort:   443,
+		Port:          80,
+		ContainerPort: 80,
+		Protocol:      "TCP",
+		Mode:          "public",
+		Istio:         IstioPortConfig{},
+	}
+	expected := &PortInfo{
+		Name:          "http",
+		Hosts:         []string{"yahoo.com"},
+		IngressPort:   443,
+		Port:          80,
+		ContainerPort: 80,
+		Protocol:      "TCP",
+		Mode:          "public",
+		Istio:         IstioPortConfig{},
+	}
+	assert.Equal(t, expected, a.Merge(b))
+}
