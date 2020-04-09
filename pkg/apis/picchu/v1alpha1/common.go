@@ -65,37 +65,6 @@ type PortInfo struct {
 	Istio IstioPortConfig `json:"istio,omitempty"`
 }
 
-func (p *PortInfo) Merge(other *PortInfo) *PortInfo {
-	merged := p.DeepCopy()
-	SetPortDefaults(merged)
-	SetPortDefaults(other)
-	if other.Name != "" {
-		merged.Name = other.Name
-	}
-	if len(other.Hosts) > 0 {
-		merged.Hosts = other.Hosts
-	}
-	if other.IngressPort != defaultPortIngressPort {
-		merged.IngressPort = other.IngressPort
-	}
-	if other.Port != defaultPortPort {
-		merged.Port = other.Port
-	}
-	if other.ContainerPort != defaultPortContainerPort {
-		merged.ContainerPort = other.ContainerPort
-	}
-	if other.Protocol != defaultPortProtocol {
-		merged.Protocol = other.Protocol
-	}
-	if other.Mode != defaultPortMode {
-		merged.Mode = other.Mode
-	}
-	if other.Istio.HTTP.Retries != nil {
-		merged.Istio.HTTP.Retries = other.Istio.HTTP.Retries
-	}
-	return merged
-}
-
 type IstioPortConfig struct {
 	HTTP IstioHTTPPortConfig `json:"http,omitempty"`
 }
