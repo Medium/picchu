@@ -42,6 +42,7 @@ type SyncApp struct {
 	DeployedRevisions []Revision
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
+	RegexAuthority    bool
 }
 
 func (p *SyncApp) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -117,14 +118,6 @@ func (p *SyncApp) authorityMatch(hosts []string) *istio.StringMatch {
 	}
 }
 
-func (p *SyncApp) publicAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) *istio.StringMatch {
-	return p.authorityMatch(p.publicHosts(port, cluster))
-}
-
-func (p *SyncApp) privateAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) *istio.StringMatch {
-	return p.authorityMatch(p.privateHosts(port, cluster))
-}
-
 func (p *SyncApp) ingressHosts(
 	mode picchuv1alpha1.PortMode,
 	port picchuv1alpha1.PortInfo,
@@ -171,6 +164,40 @@ func (p *SyncApp) taggedMatches(
 	return p.portHeaderMatches(port, headers, cluster)
 }
 
+func (p *SyncApp) genMatches(
+	hosts []string,
+	gateways []string,
+	port uint32,
+	headers map[string]*istio.StringMatch,
+) []*istio.HTTPMatchRequest {
+	sort.Strings(hosts)
+	var matches []*istio.HTTPMatchRequest
+	if p.RegexAuthority {
+		matches = append(matches, &istio.HTTPMatchRequest{
+			Headers:   headers,
+			Authority: p.authorityMatch(hosts),
+			Port:      port,
+			Gateways:  gateways,
+			Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+		})
+	} else {
+		for _, host := range hosts {
+			matches = append(matches, &istio.HTTPMatchRequest{
+				Headers: headers,
+				Authority: &istio.StringMatch{
+					MatchType: &istio.StringMatch_Prefix{
+						Prefix: host,
+					},
+				},
+				Port:     port,
+				Gateways: gateways,
+				Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+			})
+		}
+	}
+	return matches
+}
+
 func (p *SyncApp) portHeaderMatches(
 	port picchuv1alpha1.PortInfo,
 	headers map[string]*istio.StringMatch,
@@ -195,21 +222,10 @@ func (p *SyncApp) portHeaderMatches(
 			for _, host := range hosts {
 				hostMap[host] = true
 			}
-			matches = append(matches, &istio.HTTPMatchRequest{
-				Headers:   headers,
-				Authority: p.authorityMatch(hosts),
-				Port:      ingressPort,
-				Gateways:  []string{cluster.Spec.Ingresses.Public.Gateway},
-				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-			})
+			gateways := []string{cluster.Spec.Ingresses.Public.Gateway}
+			matches = append(matches, p.genMatches(hosts, gateways, ingressPort, headers)...)
 			if port.IngressPort == 443 {
-				matches = append(matches, &istio.HTTPMatchRequest{
-					Headers:   headers,
-					Authority: p.publicAuthorityMatch(port, cluster),
-					Port:      uint32(80),
-					Gateways:  []string{cluster.Spec.Ingresses.Public.Gateway},
-					Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-				})
+				matches = append(matches, p.genMatches(hosts, gateways, 80, headers)...)
 			}
 		}
 	}
@@ -219,21 +235,10 @@ func (p *SyncApp) portHeaderMatches(
 			hostMap[host] = true
 		}
 		if len(hosts) > 0 {
-			matches = append(matches, &istio.HTTPMatchRequest{
-				Headers:   headers,
-				Authority: p.privateAuthorityMatch(port, cluster),
-				Port:      ingressPort,
-				Gateways:  []string{cluster.Spec.Ingresses.Private.Gateway},
-				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-			})
+			gateways := []string{cluster.Spec.Ingresses.Private.Gateway}
+			matches = append(matches, p.genMatches(hosts, gateways, ingressPort, headers)...)
 			if port.IngressPort == 443 {
-				matches = append(matches, &istio.HTTPMatchRequest{
-					Headers:   headers,
-					Authority: p.privateAuthorityMatch(port, cluster),
-					Port:      uint32(80),
-					Gateways:  []string{cluster.Spec.Ingresses.Private.Gateway},
-					Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-				})
+				matches = append(matches, p.genMatches(hosts, gateways, 80, headers)...)
 			}
 		}
 	}
@@ -276,6 +281,7 @@ func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, revision Revision) [
 }
 
 func (p *SyncApp) makeRoute(
+	name string,
 	port picchuv1alpha1.PortInfo,
 	match []*istio.HTTPMatchRequest,
 	route []*istio.HTTPRouteDestination,
@@ -293,6 +299,7 @@ func (p *SyncApp) makeRoute(
 		}
 	}
 	return &istio.HTTPRoute{
+		Name:    name,
 		Retries: retries,
 		Match:   match,
 		Route:   route,
@@ -311,7 +318,8 @@ func (p *SyncApp) releaseRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPR
 		for _, host := range hosts {
 			hostMap[host] = true
 		}
-		routes = append(routes, p.makeRoute(port, releaseMatches, p.releaseRoute(port)))
+		name := fmt.Sprintf("release-%s", port.Name)
+		routes = append(routes, p.makeRoute(name, port, releaseMatches, p.releaseRoute(port)))
 	}
 
 	hosts := make([]string, 0, len(hostMap))
@@ -334,7 +342,8 @@ func (p *SyncApp) taggedRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRo
 			for _, host := range hosts {
 				hostMap[host] = true
 			}
-			routes = append(routes, p.makeRoute(port, taggedMatches, p.taggedRoute(port, revision)))
+			name := fmt.Sprintf("tagged-%s-%s", port.Name, revision.Tag)
+			routes = append(routes, p.makeRoute(name, port, taggedMatches, p.taggedRoute(port, revision)))
 		}
 	}
 
