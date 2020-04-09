@@ -134,10 +134,10 @@ func (p *SyncApp) ingressHosts(
 
 	for _, domain := range defaultDomains {
 		name := p.Namespace
-		if p.Target == p.Fleet {
-			name = p.App
-		}
 		hostMap[fmt.Sprintf("%s.%s", name, domain)] = true
+		if p.Target == p.Fleet {
+			hostMap[fmt.Sprintf("%s.%s", p.App, domain)] = true
+		}
 	}
 
 	if port.Mode == mode {
