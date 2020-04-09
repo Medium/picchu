@@ -1038,13 +1038,6 @@ func (in *RevisionScaleStatus) DeepCopy() *RevisionScaleStatus {
 func (in *RevisionSpec) DeepCopyInto(out *RevisionSpec) {
 	*out = *in
 	out.App = in.App
-	if in.Ports != nil {
-		in, out := &in.Ports, &out.Ports
-		*out = make([]PortInfo, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
 	if in.Targets != nil {
 		in, out := &in.Targets, &out.Targets
 		*out = make([]RevisionTarget, len(*in))

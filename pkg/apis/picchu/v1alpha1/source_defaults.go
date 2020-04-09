@@ -32,9 +32,6 @@ func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 		SetReleaseDefaults(&spec.Targets[i].Release)
 		SetScaleDefaults(&spec.Targets[i].Scale)
 	}
-	for i := range spec.Ports {
-		SetPortDefaults(&spec.Ports[i])
-	}
 	for i := range spec.Targets {
 		for j := range spec.Targets[i].Ports {
 			SetPortDefaults(&spec.Targets[i].Ports[j])
