@@ -256,30 +256,11 @@ func (i *Incarnation) isCanaryPending() bool {
 }
 
 func (i *Incarnation) ports() []picchuv1alpha1.PortInfo {
-	portMap := map[string]*picchuv1alpha1.PortInfo{}
-	for j := range i.revision.Spec.Ports {
-		port := i.revision.Spec.Ports[j]
-		portMap[port.Name] = &port
-	}
 	target := i.target()
-
-	if target != nil {
-		for j := range target.Ports {
-			tport := target.Ports[j]
-			if rport, ok := portMap[tport.Name]; ok {
-				portMap[tport.Name] = rport.Merge(&tport)
-			} else {
-				portMap[tport.Name] = &tport
-			}
-		}
+	if target == nil {
+		return nil
 	}
-
-	ports := make([]picchuv1alpha1.PortInfo, 0, len(portMap))
-	for _, port := range portMap {
-		ports = append(ports, *port)
-	}
-
-	return ports
+	return target.Ports
 }
 
 func (i *Incarnation) currentPercent() uint32 {
