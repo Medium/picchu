@@ -25,7 +25,7 @@ import (
 var (
 	authorityRegex = &istio.StringMatch{
 		MatchType: &istio.StringMatch_Regex{
-			Regex: "^(testapp\\.doki-pen\\.org|testapp\\.test-a\\.cluster\\.doki-pen\\.org)(:[0-9]+)?$",
+			Regex: "^(testapp\\.doki-pen\\.org|testapp\\.test-a\\.cluster\\.doki-pen\\.org|testnamespace\\.doki-pen\\.org|testnamespace\\.test-a\\.cluster\\.doki-pen\\.org)(:[0-9]+)?$",
 		},
 	}
 	defaultSyncAppPlan = &SyncApp{
@@ -81,6 +81,8 @@ var (
 				"testapp.doki-pen.org",
 				"testapp.test-a.cluster.doki-pen.org",
 				"testapp.testnamespace.svc.cluster.local",
+				"testnamespace.doki-pen.org",
+				"testnamespace.test-a.cluster.doki-pen.org",
 			},
 			Gateways: []string{
 				"mesh",
@@ -410,7 +412,9 @@ func TestDomains(t *testing.T) {
 	assert.ElementsMatch(t, []string{
 		"www.doki-pen.org",
 		"website.doki-pen.org",
+		"website-production.doki-pen.org",
 		"website.dkpn.io",
+		"website-production.dkpn.io",
 		"website.website-production.svc.cluster.local"}, vs.Spec.Hosts)
 }
 
