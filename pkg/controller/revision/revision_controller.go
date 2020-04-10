@@ -490,6 +490,7 @@ func (r *ReconcileRevision) mirrorRevision(
 		log.Info("Syncing target config", "Target", target)
 		selector, err := metav1.LabelSelectorAsSelector(target.ConfigSelector)
 		if err != nil {
+			log.Error(err, "Failed to sync target config")
 			return err
 		}
 		opts := &client.ListOptions{
@@ -498,16 +499,20 @@ func (r *ReconcileRevision) mirrorRevision(
 		}
 		configMapList := &corev1.ConfigMapList{}
 		if err := r.client.List(ctx, configMapList, opts); err != nil {
+			log.Error(err, "Failed to list target configMaps")
 			return err
 		}
 		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
+			log.Error(err, "Failed to copy target configMaps")
 			return err
 		}
 		secretList := &corev1.SecretList{}
 		if err := r.client.List(ctx, secretList, opts); err != nil {
+			log.Error(err, "Failed to list target secrets")
 			return err
 		}
 		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
+			log.Error(err, "Failed to copy target secrets")
 			return err
 		}
 	}
