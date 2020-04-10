@@ -29,7 +29,15 @@ type MirrorList struct {
 
 // MirrorSpec defines the desired state of Mirror
 type MirrorSpec struct {
-	ClusterName string `json:"clusterName"`
+	ClusterName               string           `json:"clusterName"`
+	AdditionalConfigSelectors []ConfigSelector `json:"additionalConfigSelectors,omitempty"`
+}
+
+type ConfigSelector struct {
+	Namespace     string                `json:"namespace,omitempty"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+	AppLabelName  string                `json:"appLabelName"`
+	TagLabelName  string                `json:"tagLabelName"`
 }
 
 // MirrorStatus defines the observed state of Mirror

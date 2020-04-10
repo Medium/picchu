@@ -508,23 +508,48 @@ func (r *ReconcileRevision) mirrorRevision(
 		}
 	}
 
-	// TODO(bob): this is bad because it makes picchu aware of kbfd and should be generalized, probably in the Mirror spec.
-	opts := &client.ListOptions{
-		LabelSelector: labels.Set(map[string]string{
-			"config.kbfd.medium.build/type": "inputs",
-			"medium.build/app":              revision.Spec.App.Name,
-			"medium.build/tag":              revision.Spec.App.Tag,
-		}).AsSelector(),
-		Namespace: "build",
+	for i := range mirror.Spec.AdditionalConfigSelectors {
+		configSelector := mirror.Spec.AdditionalConfigSelectors[i]
+		labelSelector := configSelector.LabelSelector
+		if labelSelector == nil {
+			labelSelector = &metav1.LabelSelector{
+				MatchLabels:      map[string]string{},
+				MatchExpressions: nil,
+			}
+		} else if labelSelector.MatchLabels == nil {
+			labelSelector.MatchLabels = map[string]string{}
+		}
+		labelSelector.MatchLabels[configSelector.AppLabelName] = revision.Spec.App.Name
+		labelSelector.MatchLabels[configSelector.TagLabelName] = revision.Spec.App.Tag
+		selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+		if err != nil {
+			log.Error(err, "Failed to create Selector for additionalConfig")
+			return err
+		}
+		opts := &client.ListOptions{
+			LabelSelector: selector,
+			Namespace:     configSelector.Namespace,
+		}
+		configMapList := &corev1.ConfigMapList{}
+		if err := r.client.List(ctx, configMapList, opts); err != nil {
+			log.Error(err, "Failed to list additionalConfigSelector configMaps")
+			return err
+		}
+		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
+			log.Error(err, "Failed to copy additionalConfigSelector configMaps")
+			return err
+		}
+
+		secretList := &corev1.SecretList{}
+		if err := r.client.List(ctx, secretList, opts); err != nil {
+			log.Error(err, "Failed to list additionalConfigSelector secrets")
+			return err
+		}
+		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
+			log.Error(err, "Failed to copy additionalConfigSelector secrets")
+			return err
+		}
 	}
-	configMapList := &corev1.ConfigMapList{}
-	if err := r.client.List(ctx, configMapList, opts); err != nil {
-		return err
-	}
-	if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
-		return err
-	}
-	// end badness
 
 	revCopy := &picchuv1alpha1.Revision{
 		ObjectMeta: metav1.ObjectMeta{
@@ -548,6 +573,9 @@ func (r *ReconcileRevision) copyConfigMapList(
 	remoteClient client.Client,
 	configMapList *corev1.ConfigMapList,
 ) error {
+	if len(configMapList.Items) <= 0 {
+		log.Info("Copying empty ConfigMapList")
+	}
 	for i := range configMapList.Items {
 		orig := configMapList.Items[i]
 		configMap := &corev1.ConfigMap{
@@ -576,6 +604,9 @@ func (r *ReconcileRevision) copySecretList(
 	remoteClient client.Client,
 	secretList *corev1.SecretList,
 ) error {
+	if len(secretList.Items) <= 0 {
+		log.Info("Copying empty Secret")
+	}
 	for i := range secretList.Items {
 		orig := secretList.Items[i]
 		secret := &corev1.Secret{
