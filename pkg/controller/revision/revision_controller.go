@@ -180,28 +180,30 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	for i := range mirrors.Items {
-		mirror := mirrors.Items[i]
+	isDeployed := false
+	for i := range status.Targets {
+		if status.Targets[i].Scale.Current+status.Targets[i].Scale.Desired > 0 {
+			isDeployed = true
+		}
+	}
+	if isDeployed && !instance.Spec.DisableMirroring {
+		for i := range mirrors.Items {
+			mirror := mirrors.Items[i]
+			err = r.mirrorRevision(ctx, log, &mirror, instance)
+			if err != nil {
+				log.Error(err, "Failed to mirror revision", "Mirror", mirror.Spec.ClusterName)
+				mLabels := prometheus.Labels{
+					"app":    instance.Spec.App.Name,
+					"mirror": mirror.Spec.ClusterName,
+				}
+				mirrorFailureCounter.With(mLabels).Inc()
+			}
+		}
+	} else {
 		if instance.Spec.DisableMirroring {
-			log.Info("Mirroring disabled", "app", instance.Spec.App.Name)
-			continue
-		}
-
-		for i := range status.Targets {
-			if status.Targets[i].Scale.Current == 0 && status.Targets[i].Scale.Desired == 0 {
-				log.Info("Revision not mirrored, no replicas for any target", "app", instance.Spec.App.Name, "tag", instance.Spec.App.Tag)
-				continue
-			}
-		}
-
-		err = r.mirrorRevision(ctx, log, &mirror, instance)
-		if err != nil {
-			log.Error(err, "Failed to mirror revision", "Mirror", mirror.Spec.ClusterName)
-			mLabels := prometheus.Labels{
-				"app":    instance.Spec.App.Name,
-				"mirror": mirror.Spec.ClusterName,
-			}
-			mirrorFailureCounter.With(mLabels).Inc()
+			log.Info("Mirroring disabled")
+		} else {
+			log.Info("Skipping mirroring because revision isn't deployed to any target")
 		}
 	}
 
@@ -480,12 +482,15 @@ func (r *ReconcileRevision) mirrorRevision(
 	}
 	remoteClient, err := utils.RemoteClient(ctx, log, r.client, cluster)
 	if err != nil {
+		log.Error(err, "Failed to initialize remote client")
 		return err
 	}
 	for i := range revision.Spec.Targets {
 		target := revision.Spec.Targets[i]
+		log.Info("Syncing target config", "Target", target.Name)
 		selector, err := metav1.LabelSelectorAsSelector(target.ConfigSelector)
 		if err != nil {
+			log.Error(err, "Failed to sync target config")
 			return err
 		}
 		opts := &client.ListOptions{
@@ -493,38 +498,72 @@ func (r *ReconcileRevision) mirrorRevision(
 			Namespace:     revision.Namespace,
 		}
 		configMapList := &corev1.ConfigMapList{}
+		log.Info("Listing configMaps")
 		if err := r.client.List(ctx, configMapList, opts); err != nil {
+			log.Error(err, "Failed to list target configMaps")
 			return err
 		}
 		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
+			log.Error(err, "Failed to sync target configMaps")
 			return err
 		}
 		secretList := &corev1.SecretList{}
+		log.Info("Listing secrets")
 		if err := r.client.List(ctx, secretList, opts); err != nil {
+			log.Error(err, "Failed to list target secrets")
 			return err
 		}
 		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
+			log.Error(err, "Failed to sync target secrets")
 			return err
 		}
 	}
 
-	// TODO(bob): this is bad because it makes picchu aware of kbfd and should be generalized, probably in the Mirror spec.
-	opts := &client.ListOptions{
-		LabelSelector: labels.Set(map[string]string{
-			"config.kbfd.medium.build/type": "inputs",
-			"medium.build/app":              revision.Spec.App.Name,
-			"medium.build/tag":              revision.Spec.App.Tag,
-		}).AsSelector(),
-		Namespace: "build",
+	log.Info("Copying additional configs", "Count", len(mirror.Spec.AdditionalConfigSelectors))
+
+	for i := range mirror.Spec.AdditionalConfigSelectors {
+		configSelector := mirror.Spec.AdditionalConfigSelectors[i]
+		log.Info("Syncing additional configs", "AdditionalConfigSelector", configSelector)
+		labelSelector := configSelector.LabelSelector
+		if labelSelector == nil {
+			labelSelector = &metav1.LabelSelector{
+				MatchLabels:      map[string]string{},
+				MatchExpressions: nil,
+			}
+		} else if labelSelector.MatchLabels == nil {
+			labelSelector.MatchLabels = map[string]string{}
+		}
+		labelSelector.MatchLabels[configSelector.AppLabelName] = revision.Spec.App.Name
+		labelSelector.MatchLabels[configSelector.TagLabelName] = revision.Spec.App.Tag
+		selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+		if err != nil {
+			log.Error(err, "Failed to create Selector for additionalConfig")
+			return err
+		}
+		opts := &client.ListOptions{
+			LabelSelector: selector,
+			Namespace:     configSelector.Namespace,
+		}
+		configMapList := &corev1.ConfigMapList{}
+		if err := r.client.List(ctx, configMapList, opts); err != nil {
+			log.Error(err, "Failed to list additionalConfigSelector configMaps")
+			return err
+		}
+		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
+			log.Error(err, "Failed to sycn additionalConfigSelector configMaps")
+			return err
+		}
+
+		secretList := &corev1.SecretList{}
+		if err := r.client.List(ctx, secretList, opts); err != nil {
+			log.Error(err, "Failed to list additionalConfigSelector secrets")
+			return err
+		}
+		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
+			log.Error(err, "Failed to sync additionalConfigSelector secrets")
+			return err
+		}
 	}
-	configMapList := &corev1.ConfigMapList{}
-	if err := r.client.List(ctx, configMapList, opts); err != nil {
-		return err
-	}
-	if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
-		return err
-	}
-	// end badness
 
 	revCopy := &picchuv1alpha1.Revision{
 		ObjectMeta: metav1.ObjectMeta{
@@ -535,10 +574,14 @@ func (r *ReconcileRevision) mirrorRevision(
 		},
 		Spec: revision.DeepCopy().Spec,
 	}
+	log.Info("Syncing revision", revCopy)
 	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func() error {
 		revCopy.Spec = revision.Spec
 		return nil
 	})
+	if err != nil {
+		log.Error(err, "Failed to sync revision")
+	}
 	return err
 }
 
@@ -548,6 +591,7 @@ func (r *ReconcileRevision) copyConfigMapList(
 	remoteClient client.Client,
 	configMapList *corev1.ConfigMapList,
 ) error {
+	log.Info("Syncing ConfigMaps", "ConfigMap", configMapList.Items)
 	for i := range configMapList.Items {
 		orig := configMapList.Items[i]
 		configMap := &corev1.ConfigMap{
@@ -576,6 +620,7 @@ func (r *ReconcileRevision) copySecretList(
 	remoteClient client.Client,
 	secretList *corev1.SecretList,
 ) error {
+	log.Info("Syncing Secrets", "Secrets", secretList.Items)
 	for i := range secretList.Items {
 		orig := secretList.Items[i]
 		secret := &corev1.Secret{
