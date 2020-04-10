@@ -487,7 +487,7 @@ func (r *ReconcileRevision) mirrorRevision(
 	}
 	for i := range revision.Spec.Targets {
 		target := revision.Spec.Targets[i]
-		log.Info("Syncing target config", "Target", target)
+		log.Info("Syncing target config", "Target", target.Name)
 		selector, err := metav1.LabelSelectorAsSelector(target.ConfigSelector)
 		if err != nil {
 			log.Error(err, "Failed to sync target config")
@@ -498,6 +498,7 @@ func (r *ReconcileRevision) mirrorRevision(
 			Namespace:     revision.Namespace,
 		}
 		configMapList := &corev1.ConfigMapList{}
+		log.Info("Listing configMaps")
 		if err := r.client.List(ctx, configMapList, opts); err != nil {
 			log.Error(err, "Failed to list target configMaps")
 			return err
@@ -507,6 +508,7 @@ func (r *ReconcileRevision) mirrorRevision(
 			return err
 		}
 		secretList := &corev1.SecretList{}
+		log.Info("Listing secrets")
 		if err := r.client.List(ctx, secretList, opts); err != nil {
 			log.Error(err, "Failed to list target secrets")
 			return err
@@ -589,7 +591,7 @@ func (r *ReconcileRevision) copyConfigMapList(
 	remoteClient client.Client,
 	configMapList *corev1.ConfigMapList,
 ) error {
-	log.Info("Copying ConfigMaps", "ConfigMapList", configMapList)
+	log.Info("Syncing ConfigMaps", "ConfigMap", configMapList.Items)
 	for i := range configMapList.Items {
 		orig := configMapList.Items[i]
 		configMap := &corev1.ConfigMap{
@@ -618,7 +620,7 @@ func (r *ReconcileRevision) copySecretList(
 	remoteClient client.Client,
 	secretList *corev1.SecretList,
 ) error {
-	log.Info("Copying Secrets", "SecretList", secretList)
+	log.Info("Syncing Secrets", "Secrets", secretList.Items)
 	for i := range secretList.Items {
 		orig := secretList.Items[i]
 		secret := &corev1.Secret{
