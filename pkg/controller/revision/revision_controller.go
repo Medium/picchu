@@ -503,7 +503,7 @@ func (r *ReconcileRevision) mirrorRevision(
 			return err
 		}
 		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
-			log.Error(err, "Failed to copy target configMaps")
+			log.Error(err, "Failed to sync target configMaps")
 			return err
 		}
 		secretList := &corev1.SecretList{}
@@ -512,10 +512,12 @@ func (r *ReconcileRevision) mirrorRevision(
 			return err
 		}
 		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
-			log.Error(err, "Failed to copy target secrets")
+			log.Error(err, "Failed to sync target secrets")
 			return err
 		}
 	}
+
+	log.Info("Copying additional configs", "Count", len(mirror.Spec.AdditionalConfigSelectors))
 
 	for i := range mirror.Spec.AdditionalConfigSelectors {
 		configSelector := mirror.Spec.AdditionalConfigSelectors[i]
@@ -546,7 +548,7 @@ func (r *ReconcileRevision) mirrorRevision(
 			return err
 		}
 		if err := r.copyConfigMapList(ctx, log, remoteClient, configMapList); err != nil {
-			log.Error(err, "Failed to copy additionalConfigSelector configMaps")
+			log.Error(err, "Failed to sycn additionalConfigSelector configMaps")
 			return err
 		}
 
@@ -556,7 +558,7 @@ func (r *ReconcileRevision) mirrorRevision(
 			return err
 		}
 		if err := r.copySecretList(ctx, log, remoteClient, secretList); err != nil {
-			log.Error(err, "Failed to copy additionalConfigSelector secrets")
+			log.Error(err, "Failed to sync additionalConfigSelector secrets")
 			return err
 		}
 	}
@@ -570,10 +572,14 @@ func (r *ReconcileRevision) mirrorRevision(
 		},
 		Spec: revision.DeepCopy().Spec,
 	}
+	log.Info("Syncing revision", revCopy)
 	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func() error {
 		revCopy.Spec = revision.Spec
 		return nil
 	})
+	if err != nil {
+		log.Error(err, "Failed to sync revision")
+	}
 	return err
 }
 
