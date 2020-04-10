@@ -182,7 +182,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	isDeployed := false
 	for i := range status.Targets {
-		if status.Targets[i].Scale.Current >= 0 || status.Targets[i].Scale.Desired >= 0 {
+		if status.Targets[i].Scale.Current+status.Targets[i].Scale.Desired > 0 {
 			isDeployed = true
 		}
 	}
