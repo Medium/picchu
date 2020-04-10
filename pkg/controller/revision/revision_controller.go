@@ -482,10 +482,12 @@ func (r *ReconcileRevision) mirrorRevision(
 	}
 	remoteClient, err := utils.RemoteClient(ctx, log, r.client, cluster)
 	if err != nil {
+		log.Error(err, "Failed to initialize remote client")
 		return err
 	}
 	for i := range revision.Spec.Targets {
 		target := revision.Spec.Targets[i]
+		log.Info("Syncing target config", "Target", target)
 		selector, err := metav1.LabelSelectorAsSelector(target.ConfigSelector)
 		if err != nil {
 			return err
@@ -512,7 +514,7 @@ func (r *ReconcileRevision) mirrorRevision(
 
 	for i := range mirror.Spec.AdditionalConfigSelectors {
 		configSelector := mirror.Spec.AdditionalConfigSelectors[i]
-		log.Info("Copying additional configs", "AdditionalConfigSelector", configSelector)
+		log.Info("Syncing additional configs", "AdditionalConfigSelector", configSelector)
 		labelSelector := configSelector.LabelSelector
 		if labelSelector == nil {
 			labelSelector = &metav1.LabelSelector{
@@ -576,9 +578,7 @@ func (r *ReconcileRevision) copyConfigMapList(
 	remoteClient client.Client,
 	configMapList *corev1.ConfigMapList,
 ) error {
-	if len(configMapList.Items) <= 0 {
-		log.Info("Copying empty ConfigMapList")
-	}
+	log.Info("Copying ConfigMaps", "ConfigMapList", configMapList)
 	for i := range configMapList.Items {
 		orig := configMapList.Items[i]
 		configMap := &corev1.ConfigMap{
@@ -607,9 +607,7 @@ func (r *ReconcileRevision) copySecretList(
 	remoteClient client.Client,
 	secretList *corev1.SecretList,
 ) error {
-	if len(secretList.Items) <= 0 {
-		log.Info("Copying empty Secret")
-	}
+	log.Info("Copying Secrets", "SecretList", secretList)
 	for i := range secretList.Items {
 		orig := secretList.Items[i]
 		secret := &corev1.Secret{
