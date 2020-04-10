@@ -31,7 +31,7 @@ spec:
         spec:
           description: MirrorSpec defines the desired state of Mirror
           properties:
-            additionalConfigSelector:
+            additionalConfigSelectors:
               items:
                 properties:
                   appLabelName:
