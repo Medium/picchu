@@ -180,28 +180,30 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	for i := range mirrors.Items {
-		mirror := mirrors.Items[i]
+	isDeployed := false
+	for i := range status.Targets {
+		if status.Targets[i].Scale.Current >= 0 || status.Targets[i].Scale.Desired >= 0 {
+			isDeployed = true
+		}
+	}
+	if isDeployed && !instance.Spec.DisableMirroring {
+		for i := range mirrors.Items {
+			mirror := mirrors.Items[i]
+			err = r.mirrorRevision(ctx, log, &mirror, instance)
+			if err != nil {
+				log.Error(err, "Failed to mirror revision", "Mirror", mirror.Spec.ClusterName)
+				mLabels := prometheus.Labels{
+					"app":    instance.Spec.App.Name,
+					"mirror": mirror.Spec.ClusterName,
+				}
+				mirrorFailureCounter.With(mLabels).Inc()
+			}
+		}
+	} else {
 		if instance.Spec.DisableMirroring {
-			log.Info("Mirroring disabled", "app", instance.Spec.App.Name)
-			continue
-		}
-
-		for i := range status.Targets {
-			if status.Targets[i].Scale.Current == 0 && status.Targets[i].Scale.Desired == 0 {
-				log.Info("Revision not mirrored, no replicas for any target", "app", instance.Spec.App.Name, "tag", instance.Spec.App.Tag)
-				continue
-			}
-		}
-
-		err = r.mirrorRevision(ctx, log, &mirror, instance)
-		if err != nil {
-			log.Error(err, "Failed to mirror revision", "Mirror", mirror.Spec.ClusterName)
-			mLabels := prometheus.Labels{
-				"app":    instance.Spec.App.Name,
-				"mirror": mirror.Spec.ClusterName,
-			}
-			mirrorFailureCounter.With(mLabels).Inc()
+			log.Info("Mirroring disabled")
+		} else {
+			log.Info("Skipping mirroring because revision isn't deployed to any target")
 		}
 	}
 
@@ -510,6 +512,7 @@ func (r *ReconcileRevision) mirrorRevision(
 
 	for i := range mirror.Spec.AdditionalConfigSelectors {
 		configSelector := mirror.Spec.AdditionalConfigSelectors[i]
+		log.Info("Copying additional configs", "AdditionalConfigSelector", configSelector)
 		labelSelector := configSelector.LabelSelector
 		if labelSelector == nil {
 			labelSelector = &metav1.LabelSelector{
