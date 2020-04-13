@@ -34,18 +34,6 @@ spec:
         spec:
           description: ClusterSpec defines the desired state of Cluster
           properties:
-            aws:
-              properties:
-                accountId:
-                  type: string
-                az:
-                  type: string
-                region:
-                  type: string
-              required:
-              - accountId
-              - region
-              type: object
             config:
               properties:
                 certificate-authority-data:
@@ -57,25 +45,6 @@ spec:
               - certificate-authority-data
               - server
               type: object
-            defaultDomain:
-              type: string
-            defaultDomains:
-              items:
-                type: string
-              type: array
-            dns:
-              items:
-                properties:
-                  hosts:
-                    items:
-                      type: string
-                    type: array
-                  ingress:
-                    type: string
-                  provider:
-                    type: string
-                type: object
-              type: array
             enabled:
               type: boolean
             hotStandby:
@@ -84,73 +53,52 @@ spec:
               properties:
                 private:
                   properties:
+                    defaultDomains:
+                      items:
+                        type: string
+                      type: array
                     dnsName:
                       type: string
                     gateway:
                       type: string
-                    hostedZoneId:
-                      type: string
                   required:
+                  - defaultDomains
                   - dnsName
-                  - hostedZoneId
                   type: object
                 public:
                   properties:
+                    defaultDomains:
+                      items:
+                        type: string
+                      type: array
                     dnsName:
                       type: string
                     gateway:
                       type: string
-                    hostedZoneId:
-                      type: string
                   required:
+                  - defaultDomains
                   - dnsName
-                  - hostedZoneId
                   type: object
               required:
               - private
               - public
               type: object
             scalingFactor: {}
-            useNewTagStyle:
-              type: boolean
-            weight: {}
           required:
           - enabled
           - ingresses
-          - weight
           type: object
         status:
           description: ClusterStatus defines the observed state of Cluster
           properties:
-            aws:
-              properties:
-                accountId:
-                  type: string
-                az:
-                  type: string
-                region:
-                  type: string
-              required:
-              - accountId
-              - region
-              type: object
-            conditions:
-              items:
-                properties:
-                  name:
-                    type: string
-                  status:
-                    type: string
-                required:
-                - name
-                - status
-                type: object
-              type: array
             kubernetes:
               properties:
+                ready:
+                  type: boolean
                 version:
                   type: string
               required:
+              - ready
               - version
               type: object
           type: object

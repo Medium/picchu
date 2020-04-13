@@ -25,18 +25,12 @@ func SetDefaults_ClusterSpec(spec *ClusterSpec) {
 		one := float64(1.0)
 		spec.ScalingFactor = &one
 	}
-	if len(spec.DefaultDomains) == 0 && spec.DefaultDomain != "" { // TODO(mk) remove DefaultDomain
-		spec.DefaultDomains = []string{spec.DefaultDomain}
-	}
 }
 
 func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 	for i := range spec.Targets {
 		SetReleaseDefaults(&spec.Targets[i].Release)
 		SetScaleDefaults(&spec.Targets[i].Scale)
-	}
-	for i := range spec.Ports {
-		SetPortDefaults(&spec.Ports[i])
 	}
 	for i := range spec.Targets {
 		for j := range spec.Targets[i].Ports {

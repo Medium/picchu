@@ -3,7 +3,9 @@ package plan
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
+	"strings"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -21,7 +23,6 @@ import (
 )
 
 const (
-	StatusPort                 = "status"
 	PrometheusScrapeLabel      = "prometheus.io/scrape"
 	PrometheusScrapeLabelValue = "true"
 )
@@ -34,17 +35,16 @@ type Revision struct {
 
 type SyncApp struct {
 	App               string
+	Target            string
+	Fleet             string
 	Namespace         string
 	Labels            map[string]string
-	DefaultDomains    []string
-	PublicGateway     string
-	PrivateGateway    string
 	DeployedRevisions []Revision
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
 }
 
-func (p *SyncApp) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *SyncApp) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	if len(p.Ports) == 0 {
 		log.Info("Not syncing app", "Reason", "there are no exposed ports")
 		return nil
@@ -63,7 +63,7 @@ func (p *SyncApp) Apply(ctx context.Context, cli client.Client, options plan.Opt
 	}
 
 	destinationRule := p.destinationRule()
-	virtualService := p.virtualService(options.ClusterName, log)
+	virtualService := p.virtualService(log, cluster)
 	prometheusRule := p.prometheusRule()
 
 	if err := plan.CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
@@ -97,106 +97,157 @@ func (p *SyncApp) serviceHost() string {
 	return fmt.Sprintf("%s.%s.svc.cluster.local", p.App, p.Namespace)
 }
 
-func (p *SyncApp) releaseMatches(log logr.Logger, clusterName string, port picchuv1alpha1.PortInfo) []*istio.HTTPMatchRequest {
-	matches := []*istio.HTTPMatchRequest{{
-		Port:     uint32(port.Port),
-		Gateways: []string{"mesh"},
-		Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-	}}
-
-	portNumber := uint32(port.Port)
-	gateways := []string{"mesh"}
-	hosts := port.Hosts
-
-	switch port.Mode {
-	case picchuv1alpha1.PortPublic:
-		if p.PublicGateway == "" {
-			log.Info("publicGateway undefined in Cluster for port", "port", port)
-			return matches
-		}
-		gateways = []string{p.PublicGateway}
-		portNumber = uint32(port.IngressPort)
-	case picchuv1alpha1.PortPrivate:
-		if p.PrivateGateway == "" {
-			log.Info("privateGateway undefined in Cluster for port", "port", port)
-			return matches
-		}
-		gateways = []string{p.PrivateGateway}
-
-		defaultDomainsMap := map[string]bool{}
-		for _, defaultDomain := range p.DefaultDomains {
-			defaultDomainsMap[defaultDomain] = true
-			if clusterName != "" {
-				clusterDomain := fmt.Sprintf("%s.cluster.%s", clusterName, defaultDomain)
-				defaultDomainsMap[clusterDomain] = true
-			}
-		}
-		for domain := range defaultDomainsMap {
-			hosts = append(hosts, fmt.Sprintf("%s.%s", p.Namespace, domain))
-			if port.Name != "" {
-				hosts = append(hosts, fmt.Sprintf("%s-%s.%s", p.Namespace, port.Name, domain))
-			}
-		}
-
-		portNumber = uint32(port.IngressPort)
-	}
-
-	for _, host := range hosts {
-		matches = append(matches, &istio.HTTPMatchRequest{
-			Authority: &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: host}},
-			Port:      portNumber,
-			Gateways:  gateways,
-			Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-		})
-		if port.IngressPort == 443 && port.HttpsRedirect {
-			matches = append(matches, &istio.HTTPMatchRequest{
-				Authority: &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: host}},
-				Port:      uint32(80),
-				Gateways:  gateways,
-				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-			})
-		}
-	}
-	return matches
+func (p *SyncApp) publicHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
+	return p.ingressHosts(picchuv1alpha1.PortPublic, port, cluster.Spec.Ingresses.Public.DefaultDomains)
 }
 
-func (p *SyncApp) taggedMatches(port picchuv1alpha1.PortInfo, revision Revision) []*istio.HTTPMatchRequest {
+func (p *SyncApp) privateHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
+	return p.ingressHosts(picchuv1alpha1.PortPrivate, port, cluster.Spec.Ingresses.Private.DefaultDomains)
+}
+
+func (p *SyncApp) authorityMatch(hosts []string) *istio.StringMatch {
+	hostPatterns := make([]string, 0, len(hosts))
+	for _, host := range hosts {
+		hostPatterns = append(hostPatterns, regexp.QuoteMeta(host))
+	}
+	sort.Strings(hostPatterns)
+	regex := fmt.Sprintf(`^(%s)(:[0-9]+)?$`, strings.Join(hostPatterns, "|"))
+	return &istio.StringMatch{
+		MatchType: &istio.StringMatch_Regex{Regex: regex},
+	}
+}
+
+func (p *SyncApp) publicAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) *istio.StringMatch {
+	return p.authorityMatch(p.publicHosts(port, cluster))
+}
+
+func (p *SyncApp) privateAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) *istio.StringMatch {
+	return p.authorityMatch(p.privateHosts(port, cluster))
+}
+
+func (p *SyncApp) ingressHosts(
+	mode picchuv1alpha1.PortMode,
+	port picchuv1alpha1.PortInfo,
+	defaultDomains []string,
+) []string {
+	hostMap := map[string]bool{}
+
+	for _, domain := range defaultDomains {
+		name := p.Namespace
+		hostMap[fmt.Sprintf("%s.%s", name, domain)] = true
+		if p.Target == p.Fleet {
+			hostMap[fmt.Sprintf("%s.%s", p.App, domain)] = true
+		}
+	}
+
+	if port.Mode == mode {
+		for _, host := range port.Hosts {
+			hostMap[host] = true
+		}
+	}
+
+	hosts := make([]string, 0, len(hostMap))
+	for host := range hostMap {
+		hosts = append(hosts, host)
+	}
+	return hosts
+}
+
+func (p *SyncApp) releaseMatches(
+	port picchuv1alpha1.PortInfo,
+	cluster *picchuv1alpha1.Cluster,
+) ([]*istio.HTTPMatchRequest, []string) {
+	return p.portHeaderMatches(port, nil, cluster)
+}
+
+func (p *SyncApp) taggedMatches(
+	port picchuv1alpha1.PortInfo,
+	revision Revision,
+	cluster *picchuv1alpha1.Cluster,
+) ([]*istio.HTTPMatchRequest, []string) {
 	headers := map[string]*istio.StringMatch{
 		revision.TagRoutingHeader: {MatchType: &istio.StringMatch_Exact{Exact: revision.Tag}},
 	}
+	return p.portHeaderMatches(port, headers, cluster)
+}
+
+func (p *SyncApp) portHeaderMatches(
+	port picchuv1alpha1.PortInfo,
+	headers map[string]*istio.StringMatch,
+	cluster *picchuv1alpha1.Cluster,
+) ([]*istio.HTTPMatchRequest, []string) {
+	portNumber := uint32(port.Port)
+	ingressPort := uint32(port.IngressPort)
+	hostMap := map[string]bool{
+		p.serviceHost(): true,
+	}
+
 	matches := []*istio.HTTPMatchRequest{{
 		Headers:  headers,
-		Port:     uint32(port.Port),
+		Port:     portNumber,
 		Gateways: []string{"mesh"},
 		Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 	}}
 
-	gateways := []string{}
-
-	switch port.Mode {
-	case picchuv1alpha1.PortPublic:
-		if p.PublicGateway != "" {
-			gateways = append(gateways, p.PublicGateway)
+	if port.Mode == picchuv1alpha1.PortPublic {
+		hosts := p.publicHosts(port, cluster)
+		if len(hosts) > 0 {
+			for _, host := range hosts {
+				hostMap[host] = true
+			}
+			matches = append(matches, &istio.HTTPMatchRequest{
+				Headers:   headers,
+				Authority: p.authorityMatch(hosts),
+				Port:      ingressPort,
+				Gateways:  []string{cluster.Spec.Ingresses.Public.Gateway},
+				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+			})
+			if port.IngressPort == 443 {
+				matches = append(matches, &istio.HTTPMatchRequest{
+					Headers:   headers,
+					Authority: p.publicAuthorityMatch(port, cluster),
+					Port:      uint32(80),
+					Gateways:  []string{cluster.Spec.Ingresses.Public.Gateway},
+					Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+				})
+			}
 		}
-	case picchuv1alpha1.PortPrivate:
-		if p.PrivateGateway != "" {
-			gateways = append(gateways, p.PrivateGateway)
+	}
+	if port.Mode == picchuv1alpha1.PortPublic || port.Mode == picchuv1alpha1.PortPrivate {
+		hosts := p.privateHosts(port, cluster)
+		for _, host := range hosts {
+			hostMap[host] = true
+		}
+		if len(hosts) > 0 {
+			matches = append(matches, &istio.HTTPMatchRequest{
+				Headers:   headers,
+				Authority: p.privateAuthorityMatch(port, cluster),
+				Port:      ingressPort,
+				Gateways:  []string{cluster.Spec.Ingresses.Private.Gateway},
+				Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+			})
+			if port.IngressPort == 443 {
+				matches = append(matches, &istio.HTTPMatchRequest{
+					Headers:   headers,
+					Authority: p.privateAuthorityMatch(port, cluster),
+					Port:      uint32(80),
+					Gateways:  []string{cluster.Spec.Ingresses.Private.Gateway},
+					Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+				})
+			}
 		}
 	}
 
-	if len(gateways) > 0 {
-		matches = append(matches, &istio.HTTPMatchRequest{
-			Headers:  headers,
-			Port:     uint32(port.IngressPort),
-			Gateways: gateways,
-			Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
-		})
+	hosts := make([]string, 0, len(hostMap))
+	for host := range hostMap {
+		hosts = append(hosts, host)
 	}
-	return matches
+
+	return matches, hosts
 }
 
 func (p *SyncApp) releaseRoute(port picchuv1alpha1.PortInfo) []*istio.HTTPRouteDestination {
-	weights := []*istio.HTTPRouteDestination{}
+	var weights []*istio.HTTPRouteDestination
 	for _, revision := range p.DeployedRevisions {
 		if revision.Weight == 0 {
 			continue
@@ -248,32 +299,54 @@ func (p *SyncApp) makeRoute(
 	}
 }
 
-func (p *SyncApp) releaseRoutes(clusterName string, log logr.Logger) []*istio.HTTPRoute {
-	routes := []*istio.HTTPRoute{}
+func (p *SyncApp) releaseRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRoute, []string) {
+	var routes []*istio.HTTPRoute
+	hostMap := map[string]bool{}
+
 	for _, port := range p.Ports {
 		if len(p.releaseRoute(port)) == 0 {
 			continue
 		}
-		routes = append(routes, p.makeRoute(port, p.releaseMatches(log, clusterName, port), p.releaseRoute(port)))
+		releaseMatches, hosts := p.releaseMatches(port, cluster)
+		for _, host := range hosts {
+			hostMap[host] = true
+		}
+		routes = append(routes, p.makeRoute(port, releaseMatches, p.releaseRoute(port)))
 	}
-	return routes
+
+	hosts := make([]string, 0, len(hostMap))
+	for host := range hostMap {
+		hosts = append(hosts, host)
+	}
+	return routes, hosts
 }
 
-func (p *SyncApp) taggedRoutes() []*istio.HTTPRoute {
-	routes := []*istio.HTTPRoute{}
+func (p *SyncApp) taggedRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRoute, []string) {
+	var routes []*istio.HTTPRoute
+	hostMap := map[string]bool{}
+
 	for _, revision := range p.DeployedRevisions {
 		if revision.TagRoutingHeader == "" {
 			continue
 		}
 		for _, port := range p.Ports {
-			routes = append(routes, p.makeRoute(port, p.taggedMatches(port, revision), p.taggedRoute(port, revision)))
+			taggedMatches, hosts := p.taggedMatches(port, revision, cluster)
+			for _, host := range hosts {
+				hostMap[host] = true
+			}
+			routes = append(routes, p.makeRoute(port, taggedMatches, p.taggedRoute(port, revision)))
 		}
 	}
-	return routes
+
+	hosts := make([]string, 0, len(hostMap))
+	for host := range hostMap {
+		hosts = append(hosts, host)
+	}
+	return routes, hosts
 }
 
 func (p *SyncApp) service() *corev1.Service {
-	ports := []corev1.ServicePort{}
+	var ports []corev1.ServicePort
 	for _, port := range p.Ports {
 		ports = append(ports, corev1.ServicePort{
 			Name:       port.Name,
@@ -307,7 +380,7 @@ func (p *SyncApp) service() *corev1.Service {
 
 func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 	labelTag := "tag.picchu.medium.engineering"
-	subsets := []*istio.Subset{}
+	var subsets []*istio.Subset
 	for _, revision := range p.DeployedRevisions {
 		subsets = append(subsets, &istio.Subset{
 			Name:   revision.Tag,
@@ -329,37 +402,47 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 }
 
 // virtualService will return nil if there are not configured routes
-func (p *SyncApp) virtualService(clusterName string, log logr.Logger) *istioclient.VirtualService {
-	http := append(p.taggedRoutes(), p.releaseRoutes(clusterName, log)...)
+func (p *SyncApp) virtualService(log logr.Logger, cluster *picchuv1alpha1.Cluster) *istioclient.VirtualService {
+	hostMap := map[string]bool{}
+
+	taggedRoutes, taggedHosts := p.taggedRoutes(cluster)
+	for _, host := range taggedHosts {
+		hostMap[host] = true
+	}
+
+	releaseRoutes, releaseHosts := p.releaseRoutes(cluster)
+	for _, host := range releaseHosts {
+		hostMap[host] = true
+	}
+
+	http := append(taggedRoutes, releaseRoutes...)
 	if len(http) < 1 {
 		log.Info("Not syncing VirtualService, there are no available deployments")
 		return nil
 	}
 
-	hostsMap := map[string]bool{
-		p.serviceHost(): true,
+	gatewayMap := map[string]bool{
+		"mesh": true,
 	}
 	for _, httpRoute := range http {
 		for _, httpMatch := range httpRoute.Match {
-			prefix := httpMatch.Authority.GetPrefix()
-			if prefix != "" {
-				hostsMap[prefix] = true
+			for _, gateway := range httpMatch.Gateways {
+				gatewayMap[gateway] = true
 			}
 		}
 	}
-	hosts := make([]string, 0, len(hostsMap))
-	for host := range hostsMap {
+	gateways := make([]string, 0, len(gatewayMap))
+	for gateway := range gatewayMap {
+		gateways = append(gateways, gateway)
+	}
+	sort.Strings(gateways)
+
+	hosts := make([]string, 0, len(hostMap))
+	for host := range hostMap {
 		hosts = append(hosts, host)
 	}
-	sort.Strings(hosts)
 
-	gateways := []string{"mesh"}
-	if p.PublicGateway != "" {
-		gateways = append(gateways, p.PublicGateway)
-	}
-	if p.PrivateGateway != "" {
-		gateways = append(gateways, p.PrivateGateway)
-	}
+	sort.Strings(hosts)
 
 	return &istioclient.VirtualService{
 		ObjectMeta: metav1.ObjectMeta{

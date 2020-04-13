@@ -3,7 +3,9 @@ package plan
 import (
 	"bytes"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"reflect"
+	"testing"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -49,6 +51,14 @@ func encodeResource(o runtime.Object) (string, error) {
 	return buf.String(), nil
 }
 
+func ResourcesEqual(t *testing.T, expected, actual runtime.Object, msgAndArgs ...interface{}) {
+	eYaml, err := encodeResource(expected)
+	assert.NoError(t, err)
+	aYaml, err := encodeResource(actual)
+	assert.NoError(t, err)
+	assert.Equal(t, eYaml, aYaml, msgAndArgs...)
+}
+
 func resourceDiff(expected, actual runtime.Object) (string, error) {
 	eYaml, err := encodeResource(expected)
 	if err != nil {
@@ -62,6 +72,15 @@ func resourceDiff(expected, actual runtime.Object) (string, error) {
 }
 
 func K8sEqual(expected runtime.Object) gomock.Matcher {
+	description := "nil"
+	if expected != nil {
+		yaml, err := encodeResource(expected)
+		if err == nil {
+			description = fmt.Sprintf("matches %v", yaml)
+		} else {
+			description = "error printing object"
+		}
+	}
 	return mocks.Callback(func(x interface{}) bool {
 		switch o := x.(type) {
 		case runtime.Object:
@@ -78,5 +97,5 @@ func K8sEqual(expected runtime.Object) gomock.Matcher {
 		default:
 			return false
 		}
-	}, fmt.Sprintf("matches %v", expected))
+	}, description)
 }

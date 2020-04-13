@@ -19,7 +19,7 @@ type DeleteTaggedServiceLevels struct {
 	Tag       string
 }
 
-func (p *DeleteTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *DeleteTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	sllist := &slov1alpha1.ServiceLevelList{}
 
 	opts := &client.ListOptions{

@@ -256,18 +256,11 @@ func (i *Incarnation) isCanaryPending() bool {
 }
 
 func (i *Incarnation) ports() []picchuv1alpha1.PortInfo {
-	ports := i.revision.Spec.Ports
 	target := i.target()
-
-	if target != nil {
-		if len(target.Ports) > 0 {
-			ports = target.Ports
-		} else {
-			i.log.Info("revision.spec.ports is deprecated")
-		}
+	if target == nil {
+		return nil
 	}
-
-	return ports
+	return target.Ports
 }
 
 func (i *Incarnation) currentPercent() uint32 {

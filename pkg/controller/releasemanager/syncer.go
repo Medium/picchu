@@ -41,7 +41,6 @@ type ResourceSyncer struct {
 	incarnations    Incarnations
 	reconciler      *ReconcileReleaseManager
 	log             logr.Logger
-	clusterConfig   ClusterConfig
 	picchuConfig    utils.Config
 }
 
@@ -64,7 +63,7 @@ func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOpt
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseManagerRevisionStatus, error) {
-	rs := []picchuv1alpha1.ReleaseManagerRevisionStatus{}
+	var rs []picchuv1alpha1.ReleaseManagerRevisionStatus
 
 	// No more incarnations, delete myself
 	if len(r.incarnations.revisioned()) == 0 {
@@ -75,7 +74,7 @@ func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseMana
 	if err := r.syncNamespace(ctx); err != nil {
 		return rs, err
 	}
-	if err := r.reportMetrics(ctx); err != nil {
+	if err := r.reportMetrics(); err != nil {
 		return rs, err
 	}
 	if err := r.tickIncarnations(ctx); err != nil {
@@ -134,7 +133,7 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 	})
 }
 
-func (r *ResourceSyncer) reportMetrics(ctx context.Context) error {
+func (r *ResourceSyncer) reportMetrics() error {
 	incarnationsInState := map[string]int{}
 	oldestIncarnationsInState := map[string]float64{}
 
@@ -215,14 +214,12 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	revisions := r.prepareRevisions()
 	alertRules := r.prepareAlertRules()
 
-	// TODO(bob): figure out defaultDomain and gateway names
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
 		App:               r.instance.Spec.App,
+		Target:            r.instance.Spec.Target,
+		Fleet:             r.instance.Spec.Fleet,
 		Namespace:         r.instance.TargetNamespace(),
 		Labels:            r.defaultLabels(),
-		DefaultDomains:    r.clusterConfig.DefaultDomains,
-		PublicGateway:     r.clusterConfig.PublicIngressGateway,
-		PrivateGateway:    r.clusterConfig.PrivateIngressGateway,
 		DeployedRevisions: revisions,
 		AlertRules:        alertRules,
 		Ports:             ports,
@@ -349,7 +346,7 @@ func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {
 
 // returns the AlertRules from the latest deployed revision
 func (r *ResourceSyncer) prepareAlertRules() []monitoringv1.Rule {
-	alertRules := []monitoringv1.Rule{}
+	var alertRules []monitoringv1.Rule
 
 	if len(r.incarnations.deployed()) > 0 {
 		alertable := r.incarnations.alertable()
@@ -366,7 +363,7 @@ func (r *ResourceSyncer) prepareAlertRules() []monitoringv1.Rule {
 
 // returns the ServiceMonitors from the latest deployed revision
 func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonitor {
-	sm := []*picchuv1alpha1.ServiceMonitor{}
+	var sm []*picchuv1alpha1.ServiceMonitor
 
 	if len(r.incarnations.deployed()) > 0 {
 		alertable := r.incarnations.alertable()
@@ -383,7 +380,7 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 
 // returns the PrometheusRules to support SLOs from the latest released revision
 func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.ServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
-	slos := []*picchuv1alpha1.ServiceLevelObjective{}
+	var slos []*picchuv1alpha1.ServiceLevelObjective
 
 	if len(r.incarnations.deployed()) > 0 {
 		releasable := r.incarnations.releasable()

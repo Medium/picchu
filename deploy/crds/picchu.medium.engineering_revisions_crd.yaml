@@ -58,51 +58,6 @@ spec:
               type: boolean
             ignoreSLOs:
               type: boolean
-            ports:
-              items:
-                properties:
-                  containerPort:
-                    format: int32
-                    type: integer
-                  hosts:
-                    items:
-                      type: string
-                    type: array
-                  httpsRedirect:
-                    type: boolean
-                  ingressPort:
-                    format: int32
-                    type: integer
-                  istio:
-                    properties:
-                      http:
-                        properties:
-                          retries:
-                            properties:
-                              attempts:
-                                format: int32
-                                type: integer
-                              perTryTimeout:
-                                type: string
-                            type: object
-                        type: object
-                    type: object
-                  mode:
-                    type: string
-                  name:
-                    type: string
-                  port:
-                    format: int32
-                    type: integer
-                  protocol:
-                    description: Protocol defines network protocols supported for
-                      things like container ports.
-                    type: string
-                required:
-                - mode
-                - name
-                type: object
-              type: array
             sentry:
               properties:
                 release:
@@ -974,8 +929,6 @@ spec:
                           items:
                             type: string
                           type: array
-                        httpsRedirect:
-                          type: boolean
                         ingressPort:
                           format: int32
                           type: integer

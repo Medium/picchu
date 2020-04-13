@@ -7,7 +7,6 @@ replace github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.
 require (
 	github.com/Medium/service-level-operator v0.3.1-0.20200128160720-77476ad50a61
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
-	github.com/aws/aws-sdk-go-v2 v0.18.0
 	github.com/coreos/prometheus-operator v0.34.0
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1

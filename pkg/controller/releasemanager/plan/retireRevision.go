@@ -2,9 +2,8 @@ package plan
 
 import (
 	"context"
-	"go.medium.engineering/picchu/pkg/plan"
-
 	"github.com/go-logr/logr"
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,7 +15,7 @@ type RetireRevision struct {
 	Namespace string
 }
 
-func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, options plan.Options, log logr.Logger) error {
+func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	rs := &appsv1.ReplicaSet{}
 	s := types.NamespacedName{p.Namespace, p.Tag}
 	err := cli.Get(ctx, s, rs)

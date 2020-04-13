@@ -109,9 +109,9 @@ var (
 		Buckets: prometheus.ExponentialBuckets(30, 3, 7),
 	}, []string{"app", "target"})
 	reconcileInterval = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "picchu_release_manager_reconcile_internal",
+		Name:    "picchu_release_manager_reconcile_interval",
 		Help:    "track time between last update and reconcile request",
-		Buckets: prometheus.ExponentialBuckets(10, 1.5, 7),
+		Buckets: []float64{10, 15, 20, 30, 45, 60, 90, 120},
 	}, []string{"app", "target"})
 )
 
@@ -212,7 +212,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	clusterInfo := ClusterInfoList{}
 	for _, cluster := range clusters {
-		var scalingFactor float64 = 0.0
+		var scalingFactor = 0.0
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
 		}
@@ -236,7 +236,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
-		var scalingFactor float64 = 0.0
+		var scalingFactor = 0.0
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
 		}
@@ -267,11 +267,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return r.requeue(rmLog, err)
 	}
 
-	clusterConfig, err := r.getClusterConfig(clusters)
-	if err != nil {
-		return r.requeue(rmLog, err)
-	}
-
 	ic := &IncarnationController{
 		deliveryClient:  r.client,
 		deliveryApplier: deliveryApplier,
@@ -290,7 +285,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		incarnations:    newIncarnationCollection(ic, revisions, observation, r.config),
 		reconciler:      r,
 		log:             rmLog,
-		clusterConfig:   clusterConfig,
 		picchuConfig:    r.config,
 	}
 
@@ -372,7 +366,7 @@ func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namesp
 	err := r.client.List(ctx, clusterList, opts)
 	r.scheme.Default(clusterList)
 
-	clusters := []picchuv1alpha1.Cluster{}
+	var clusters []picchuv1alpha1.Cluster
 	for i := range clusterList.Items {
 		cluster := clusterList.Items[i]
 		if !cluster.Spec.Enabled {
@@ -382,41 +376,6 @@ func (r *ReconcileReleaseManager) getClustersByFleet(ctx context.Context, namesp
 	}
 
 	return clusters, err
-}
-
-// ClusterConfig is the cluster information needed to create cluster specific resources
-type ClusterConfig struct {
-	DefaultDomains        []string
-	PublicIngressGateway  string
-	PrivateIngressGateway string
-}
-
-// Ensure all clusters share the same config and return
-func (r *ReconcileReleaseManager) getClusterConfig(clusters []picchuv1alpha1.Cluster) (ClusterConfig, error) {
-	spec := clusters[0].Spec
-	c := ClusterConfig{
-		DefaultDomains:        spec.DefaultDomains,
-		PublicIngressGateway:  spec.Ingresses.Public.Gateway,
-		PrivateIngressGateway: spec.Ingresses.Private.Gateway,
-	}
-	for i := range clusters[1:] {
-		spec = clusters[i].Spec
-		if len(c.DefaultDomains) != len(spec.DefaultDomains) {
-			return c, fmt.Errorf("Default domains in fleet don't match")
-		}
-		for i, domain := range c.DefaultDomains {
-			if domain != spec.DefaultDomains[i] { // require the same order
-				return c, fmt.Errorf("Default domains in fleet don't match")
-			}
-		}
-		if c.PublicIngressGateway != spec.Ingresses.Public.Gateway {
-			return c, fmt.Errorf("Public ingress gateways in fleet don't match")
-		}
-		if c.PrivateIngressGateway != spec.Ingresses.Private.Gateway {
-			return c, fmt.Errorf("Private ingress gateways in fleet don't match")
-		}
-	}
-	return c, nil
 }
 
 func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.Logger, clusters []picchuv1alpha1.Cluster) (plan.Applier, error) {
@@ -431,16 +390,8 @@ func (r *ReconcileReleaseManager) newPlanApplier(ctx context.Context, log logr.L
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-			scalingFactor := cluster.Spec.ScalingFactor
-			if scalingFactor == nil || *scalingFactor < 0.1 {
-				panic("Refusing to scale lower than 0.1 on a cluster")
-			}
 
-			options := plan.Options{
-				ClusterName:   cluster.Name,
-				ScalingFactor: *scalingFactor,
-			}
-			appliers[i] = plan.NewClusterApplier(remoteClient, options, log.WithValues("Cluster", cluster.Name))
+			appliers[i] = plan.NewClusterApplier(remoteClient, &cluster, log.WithValues("Cluster", cluster.Name))
 			return nil
 		})
 	}
