@@ -170,8 +170,20 @@ func (p *SyncRevision) syncReplicaSet(
 		}
 	}
 
+	envVars := []corev1.EnvVar{
+		{
+			Name: "NODE_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+	}
+
 	appContainer := corev1.Container{
 		EnvFrom:        envs,
+		Env:            envVars,
 		Image:          p.Image,
 		Name:           p.App,
 		Ports:          ports,
