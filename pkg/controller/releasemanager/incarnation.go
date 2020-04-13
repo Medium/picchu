@@ -368,6 +368,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		MinReadySeconds:    i.target().Scale.MinReadySeconds,
 		Affinity:           i.target().Affinity,
 		Tolerations:        i.target().Tolerations,
+		EnvVars:            i.target().Env,
 	}
 
 	if !i.isRoutable() {

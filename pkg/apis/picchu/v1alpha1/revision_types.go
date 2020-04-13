@@ -110,6 +110,7 @@ type RevisionTarget struct {
 	ExternalTest ExternalTest `json:"externalTest,omitempty"`
 	Canary       Canary       `json:"canary,omitempty"`
 	Ports        []PortInfo   `json:"ports,omitempty"`
+	Env          []corev1.EnvVar `json:"env,omitempty"`
 }
 
 type ExternalTest struct {

@@ -71,6 +71,7 @@ type SyncRevision struct {
 	MinReadySeconds    int32
 	Affinity           *corev1.Affinity
 	Tolerations        []corev1.Toleration
+	EnvVars            []corev1.EnvVar
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -170,20 +171,9 @@ func (p *SyncRevision) syncReplicaSet(
 		}
 	}
 
-	envVars := []corev1.EnvVar{
-		{
-			Name: "NODE_IP",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: "status.hostIP",
-				},
-			},
-		},
-	}
-
 	appContainer := corev1.Container{
 		EnvFrom:        envs,
-		Env:            envVars,
+		Env:            p.EnvVars,
 		Image:          p.Image,
 		Name:           p.App,
 		Ports:          ports,

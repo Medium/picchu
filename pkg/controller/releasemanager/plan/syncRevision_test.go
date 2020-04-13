@@ -68,6 +68,14 @@ var (
 		},
 		IAMRole:            "testrole",
 		ServiceAccountName: "testaccount",
+		EnvVars: []corev1.EnvVar{{
+			Name: "NODE_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		}},
 	}
 	retiredRevisionPlan = &SyncRevision{
 		App:       "testapp",
@@ -258,14 +266,6 @@ var (
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "testaccount",
 					Containers: []corev1.Container{{
-						Env: []corev1.EnvVar{{
-							Name: "NODE_IP",
-							ValueFrom: &corev1.EnvVarSource{
-								FieldRef: &corev1.ObjectFieldSelector{
-									FieldPath: "status.hostIP",
-								},
-							},
-						}},
 						EnvFrom: []corev1.EnvFromSource{},
 						Image:   "docker.medium.sh/test:testtag",
 						Name:    "testapp",
