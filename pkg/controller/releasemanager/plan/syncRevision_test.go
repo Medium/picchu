@@ -156,8 +156,8 @@ var (
 							},
 						}},
 						EnvFrom: []corev1.EnvFromSource{},
-						Image: "docker.medium.sh/test:testtag",
-						Name:  "testapp",
+						Image:   "docker.medium.sh/test:testtag",
+						Name:    "testapp",
 						Ports: []corev1.ContainerPort{{
 							Name:          "http",
 							Protocol:      "TCP",
