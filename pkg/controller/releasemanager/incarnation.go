@@ -914,7 +914,11 @@ func (i *IncarnationCollection) unretirable() (r []*Incarnation) {
 	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		cur := i.status.State.Current
-		elig := i.isReleaseEligible()
+		target := i.target()
+		elig := false
+		if target != nil {
+			elig = target.Release.Eligible
+		}
 		triggered := i.markedAsFailed()
 		if cur == "retired" || ((cur == "released" || cur == "releasing") && !elig && !triggered) {
 			r = append(r, i)
