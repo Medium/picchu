@@ -459,9 +459,11 @@ func TestHosts(t *testing.T) {
 		"website-internal.doki-pen.org",
 	}, plan.publicHosts(publicPort, cluster))
 	assert.ElementsMatch(t, []string{
+		"www.doki-pen.org",
 		"website-internal.dkpn.io",
 	}, plan.privateHosts(publicPort, cluster))
 	assert.ElementsMatch(t, []string{
+		"www.dkpn.io",
 		"website-internal.doki-pen.org",
 	}, plan.publicHosts(privatePort, cluster))
 	assert.ElementsMatch(t, []string{

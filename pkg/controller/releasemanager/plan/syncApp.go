@@ -140,10 +140,8 @@ func (p *SyncApp) ingressHosts(
 		}
 	}
 
-	if port.Mode == mode {
-		for _, host := range port.Hosts {
-			hostMap[host] = true
-		}
+	for _, host := range port.Hosts {
+		hostMap[host] = true
 	}
 
 	hosts := make([]string, 0, len(hostMap))
