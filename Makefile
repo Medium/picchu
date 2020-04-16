@@ -16,6 +16,8 @@ export GOROOT = $(shell go env GOROOT)
 .PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
 all: deps generate build
+ci: all verify test
+generate: deepcopy defaulter openapi clientset
 
 build:
 	@mkdir -p build/_output/bin
@@ -28,8 +30,6 @@ docker:
 deps:
 	go mod tidy
 	go mod vendor
-
-generate: deepcopy defaulter openapi clientset
 
 deepcopy:
 	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
@@ -64,8 +64,6 @@ test: generate build-dirs
 
 verify: crds
 	hack/verify-all.sh
-
-ci: all verify test
 
 fix:
 	hack/fix-all.sh
