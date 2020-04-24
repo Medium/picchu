@@ -362,6 +362,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Image:              i.image(),
 		Resources:          i.target().Resources,
 		IAMRole:            i.target().AWS.IAM.RoleARN,
+		PodAnnotations:     i.target().PodAnnotations,
 		ServiceAccountName: i.target().ServiceAccountName,
 		ReadinessProbe:     i.target().ReadinessProbe,
 		LivenessProbe:      i.target().LivenessProbe,
