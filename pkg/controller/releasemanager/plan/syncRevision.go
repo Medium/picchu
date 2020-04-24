@@ -64,8 +64,9 @@ type SyncRevision struct {
 	Replicas           int32
 	Image              string
 	Resources          corev1.ResourceRequirements
-	IAMRole            string // AWS iam role
-	ServiceAccountName string // k8s ServiceAccount
+	IAMRole            string            // AWS iam role
+	PodAnnotations     map[string]string // metadata.annotations in the Pod template
+	ServiceAccountName string            // k8s ServiceAccount
 	LivenessProbe      *corev1.Probe
 	ReadinessProbe     *corev1.Probe
 	MinReadySeconds    int32
@@ -209,6 +210,9 @@ func (p *SyncRevision) syncReplicaSet(
 		},
 	}
 
+	for ann, value := range p.PodAnnotations {
+		template.Annotations[ann] = value
+	}
 	if p.IAMRole != "" {
 		template.Annotations[picchuv1alpha1.AnnotationIAMRole] = p.IAMRole
 	}

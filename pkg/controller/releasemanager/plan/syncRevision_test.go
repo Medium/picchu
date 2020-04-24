@@ -66,7 +66,10 @@ var (
 				Effect: corev1.TaintEffectNoExecute,
 			},
 		},
-		IAMRole:            "testrole",
+		IAMRole: "testrole",
+		PodAnnotations: map[string]string{
+			"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
+		},
 		ServiceAccountName: "testaccount",
 		EnvVars: []corev1.EnvVar{{
 			Name: "NODE_IP",
@@ -137,7 +140,8 @@ var (
 					Name:      "testtag",
 					Namespace: "testnamespace",
 					Annotations: map[string]string{
-						picchuv1alpha1.AnnotationIAMRole: "testrole",
+						"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
+						picchuv1alpha1.AnnotationIAMRole:          "testrole",
 					},
 					Labels: map[string]string{
 						"test":                          "label",
