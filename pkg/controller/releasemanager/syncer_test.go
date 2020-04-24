@@ -316,3 +316,41 @@ func TestPrepareRevisionsAndRulesIncompleteScaleUp(t *tt.T) {
 	revisions = testResourceSyncer.prepareRevisions()
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{60, 40})
 }
+
+func TestFailingReleasedRevision(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := createTestIncarnations(ctrl)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          test.MustNewLogger(),
+	}
+
+	releasedIncarnations := []*Incarnation{
+		createTestIncarnation("latest-good", retired, 0),
+		createTestIncarnation("latest-failing", failing, 100),
+		createTestIncarnation("old", retired, 0),
+	}
+	releasedIncarnations[0].fastRelease()
+	m.
+		EXPECT().
+		releasable().
+		Return(releasedIncarnations).
+		AnyTimes()
+
+	revisions := testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasedIncarnations, revisions, []int{100, 0, 0})
+
+	//revisions = testResourceSyncer.prepareRevisions()
+	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 40, 60})
+	//
+	//revisions = testResourceSyncer.prepareRevisions()
+	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 60, 40})
+	//
+	//revisions = testResourceSyncer.prepareRevisions()
+	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 80, 20})
+	//
+	//revisions = testResourceSyncer.prepareRevisions()
+	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 100, 0})
+}

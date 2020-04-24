@@ -284,7 +284,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 }
 
 func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *picchuv1alpha1.Revision) error {
-	fleetLabels := []string{}
+	var fleetLabels []string
 	updated := false
 	for _, target := range revision.Spec.Targets {
 		name := fmt.Sprintf("%s%s", picchuv1alpha1.LabelFleetPrefix, target.Fleet)
