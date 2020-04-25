@@ -655,8 +655,7 @@ func (i *Incarnation) update(di *observe.DeploymentInfo) {
 	}
 }
 
-func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []*istiov1alpha3.HTTPRoute {
-	http := []*istiov1alpha3.HTTPRoute{}
+func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) (http []*istiov1alpha3.HTTPRoute) {
 	if i.revision == nil {
 		return http
 	}
@@ -697,7 +696,7 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 			},
 		})
 	}
-	return http
+	return
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
@@ -860,7 +859,11 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 		i.controller.getLog().Info("no viable releases. looking for releases to take out of retirement")
 		candidates := i.unretirable()
 		if len(candidates) > 0 {
-			candidates[0].fastRelease()
+			firstUnretireable := candidates[0]
+			firstUnretireable.fastRelease()
+			if candidates[0].status.State.Current == "retired" {
+				r = append(r, firstUnretireable)
+			}
 		}
 	}
 	// Add incarnations transitioned out of released/releasing

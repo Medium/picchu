@@ -329,10 +329,11 @@ func TestFailingReleasedRevision(t *tt.T) {
 
 	releasedIncarnations := []*Incarnation{
 		createTestIncarnation("latest-good", retired, 0),
-		createTestIncarnation("latest-failing", failing, 100),
+		//createTestIncarnation("latest-failing", failing, 100), // failing incarnations do not get returned by releasable()
 		createTestIncarnation("old", retired, 0),
 	}
 	releasedIncarnations[0].fastRelease()
+	releasedIncarnations[0].status.Scale.Current = 1
 	m.
 		EXPECT().
 		releasable().
@@ -340,17 +341,5 @@ func TestFailingReleasedRevision(t *tt.T) {
 		AnyTimes()
 
 	revisions := testResourceSyncer.prepareRevisions()
-	assertIncarnationPercent(t, releasedIncarnations, revisions, []int{100, 0, 0})
-
-	//revisions = testResourceSyncer.prepareRevisions()
-	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 40, 60})
-	//
-	//revisions = testResourceSyncer.prepareRevisions()
-	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 60, 40})
-	//
-	//revisions = testResourceSyncer.prepareRevisions()
-	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 80, 20})
-	//
-	//revisions = testResourceSyncer.prepareRevisions()
-	//assertIncarnationPercent(t, releasedIncarnations, revisions, []int{0, 100, 0})
+	assertIncarnationPercent(t, releasedIncarnations, revisions, []int{100, 0})
 }
