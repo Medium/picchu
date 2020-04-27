@@ -57,6 +57,10 @@ func (r *Revision) SinceFailed() time.Duration {
 	return time.Since(t)
 }
 
+func (r *Revision) Failed() bool {
+	return r.Annotations == nil || r.Annotations[AnnotationFailedAt] == ""
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // RevisionList contains a list of Revision

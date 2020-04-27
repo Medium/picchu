@@ -859,11 +859,7 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 		i.controller.getLog().Info("no viable releases. looking for releases to take out of retirement")
 		candidates := i.unretirable()
 		if len(candidates) > 0 {
-			firstUnretireable := candidates[0]
-			firstUnretireable.fastRelease()
-			if candidates[0].status.State.Current == "retired" {
-				r = append(r, firstUnretireable)
-			}
+			candidates[0].fastRelease()
 		}
 	}
 	// Add incarnations transitioned out of released/releasing
