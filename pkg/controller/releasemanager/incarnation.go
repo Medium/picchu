@@ -855,13 +855,6 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 			r = append(r, i)
 		}
 	}
-	if len(r) == 0 && len(i.willRelease()) == 0 {
-		i.controller.getLog().Info("no viable releases. looking for releases to take out of retirement")
-		candidates := i.unretirable()
-		if len(candidates) > 0 {
-			candidates[0].fastRelease()
-		}
-	}
 	// Add incarnations transitioned out of released/releasing
 	for _, i := range i.sorted() {
 		if i.currentPercent() > 0 {
