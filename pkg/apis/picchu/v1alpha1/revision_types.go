@@ -58,7 +58,7 @@ func (r *Revision) SinceFailed() time.Duration {
 }
 
 func (r *Revision) Failed() bool {
-	return r.Annotations == nil || r.Annotations[AnnotationFailedAt] == ""
+	return r.Annotations != nil && r.Annotations[AnnotationFailedAt] != ""
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

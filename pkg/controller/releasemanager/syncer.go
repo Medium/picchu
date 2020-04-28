@@ -110,9 +110,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 			if revision == nil {
 				continue
 			}
-		case retired:
+		case retired, retiring:
 			latestRetiredStatus = len(rs)
-		case deploying, deployed, releasing, released:
+		case deploying, deployed, pendingrelease, releasing, released:
 			if !revision.Failed() && status.PeakPercent > 0 {
 				foundGoodRelease = true
 			}
@@ -121,6 +121,7 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 		rs = append(rs, *status)
 	}
 	if !foundGoodRelease && rs != nil && latestRetiredStatus > -1 && latestRetiredStatus < len(rs) {
+		r.log.Info("recommissioning retired release", "tag", rs[latestRetiredStatus].Tag)
 		rs[latestRetiredStatus].ReleaseEligible = true
 		rs[latestRetiredStatus].PeakPercent = 100 // fast release
 	}
