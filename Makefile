@@ -16,7 +16,7 @@ export GOROOT = $(shell go env GOROOT)
 .PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
 all: deps generate build
-ci: all verify test
+ci: all verify generate test
 generate: deepcopy defaulter openapi clientset
 
 build:
@@ -59,7 +59,7 @@ build-dirs:
 	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)
 	@mkdir -p .go/src/$(PKG) .go/pkg .go/bin .go/std/$(GOOS)/$(GOARCH) .go/go-build
 
-test: generate build-dirs
+test: build-dirs
 	hack/test.sh
 
 verify: crds

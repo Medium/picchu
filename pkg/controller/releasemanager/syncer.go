@@ -62,51 +62,71 @@ func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOpt
 	return utils.MustExtractList(configMaps), err
 }
 
-func (r *ResourceSyncer) sync(ctx context.Context) ([]picchuv1alpha1.ReleaseManagerRevisionStatus, error) {
-	var rs []picchuv1alpha1.ReleaseManagerRevisionStatus
-
+func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {
 	// No more incarnations, delete myself
 	if len(r.incarnations.revisioned()) == 0 {
 		r.log.Info("No revisions found for releasemanager, deleting")
 		return rs, r.deliveryClient.Delete(ctx, r.instance)
 	}
 
-	if err := r.syncNamespace(ctx); err != nil {
-		return rs, err
+	if err = r.syncNamespace(ctx); err != nil {
+		return
 	}
-	if err := r.reportMetrics(); err != nil {
-		return rs, err
+	if err = r.reportMetrics(); err != nil {
+		return
 	}
-	if err := r.tickIncarnations(ctx); err != nil {
-		return rs, err
+	if err = r.tickIncarnations(ctx); err != nil {
+		return
 	}
-	if err := r.observe(ctx); err != nil {
-		return rs, err
+	if err = r.observe(ctx); err != nil {
+		return
 	}
-	if err := r.syncApp(ctx); err != nil {
-		return rs, err
+	if err = r.syncApp(ctx); err != nil {
+		return
 	}
-	if err := r.syncServiceMonitors(ctx); err != nil {
-		return rs, err
+	if err = r.syncServiceMonitors(ctx); err != nil {
+		return
 	}
-	if err := r.syncServiceLevels(ctx); err != nil {
-		return rs, err
+	if err = r.syncServiceLevels(ctx); err != nil {
+		return
 	}
-	if err := r.syncSLORules(ctx); err != nil {
-		return rs, err
+	if err = r.syncSLORules(ctx); err != nil {
+		return
 	}
-	if err := r.garbageCollection(ctx); err != nil {
-		return rs, err
+	if err = r.garbageCollection(ctx); err != nil {
+		return
 	}
 
-	sorted := r.incarnations.sorted()
-	for i := len(sorted) - 1; i >= 0; i-- {
+	var foundGoodRelease bool
+	latestRetiredStatus := -1
+	sorted := r.incarnations.sorted()       // sorted by latest to oldest
+	for i := len(sorted) - 1; i >= 0; i-- { // reverse sort
 		status := sorted[i].status
-		if !(status.State.Current == "deleted" && sorted[i].revision == nil) {
-			rs = append(rs, *status)
+		revision := sorted[i].revision
+		state := State(status.State.Current)
+
+		switch state {
+		case deleted:
+			if revision == nil {
+				continue
+			}
+		case retired, retiring:
+			latestRetiredStatus = len(rs)
+		case deploying, deployed, pendingrelease, releasing, released:
+			if !revision.Failed() && status.PeakPercent > 0 {
+				foundGoodRelease = true
+			}
 		}
+
+		rs = append(rs, *status)
 	}
-	return rs, nil
+	if !foundGoodRelease && rs != nil && latestRetiredStatus > -1 && latestRetiredStatus < len(rs) {
+		r.log.Info("recommissioning retired release", "tag", rs[latestRetiredStatus].Tag)
+		rs[latestRetiredStatus].ReleaseEligible = true
+		rs[latestRetiredStatus].PeakPercent = 100 // fast release
+	}
+
+	return
 }
 
 func (r *ResourceSyncer) del(ctx context.Context) error {

@@ -656,8 +656,7 @@ func (i *Incarnation) update(di *observe.DeploymentInfo) {
 	}
 }
 
-func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []*istiov1alpha3.HTTPRoute {
-	http := []*istiov1alpha3.HTTPRoute{}
+func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) (http []*istiov1alpha3.HTTPRoute) {
 	if i.revision == nil {
 		return http
 	}
@@ -698,7 +697,7 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) []
 			},
 		})
 	}
-	return http
+	return
 }
 
 func (i *Incarnation) divideReplicas(count int32) int32 {
@@ -726,7 +725,7 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 // targetScale is used to scale HPA targets to prepare for next
 // level of traffic. 10% -> 20% would be 1/2, 20% -> 30% would be 2/3. We
 // prepare the revision for the next level by scaling it's target so it's
-// not underprovisioned when it recieves more traffic.
+// not under-provisioned when it receives more traffic.
 func (i *Incarnation) targetScale() float64 {
 	status := i.getStatus()
 	current := i.status.CurrentPercent
@@ -746,7 +745,7 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		return 0
 	}
 
-	if status.State.Current == "canarying" {
+	if State(status.State.Current) == canarying {
 		if max > i.target().Canary.Percent {
 			max = i.target().Canary.Percent
 		}
@@ -855,13 +854,6 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 		switch i.status.State.Current {
 		case "releasing", "released":
 			r = append(r, i)
-		}
-	}
-	if len(r) == 0 && len(i.willRelease()) == 0 {
-		i.controller.getLog().Info("there are no releases, looking for retired release to unretire")
-		candidates := i.unretirable()
-		if len(candidates) > 0 {
-			candidates[0].fastRelease()
 		}
 	}
 	// Add incarnations transitioned out of released/releasing
