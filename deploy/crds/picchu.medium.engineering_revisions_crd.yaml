@@ -1238,6 +1238,8 @@ spec:
                       minReadySeconds:
                         format: int32
                         type: integer
+                      requestsRateMetric:
+                        type: string
                       targetCPUUtilizationPercentage:
                         format: int32
                         type: integer

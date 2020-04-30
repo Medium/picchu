@@ -3,8 +3,9 @@ package plan
 import (
 	"context"
 	"errors"
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"math"
+
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -23,10 +24,11 @@ type ScaleRevision struct {
 	Max                int32
 	Labels             map[string]string
 	CPUTarget          *int32
+	RequestsRateMetric string
 	RequestsRateTarget *resource.Quantity
 }
 
-const RequestsRateMetric = "istio_requests_rate"
+const DefaultRequestsRateMetric = "istio_requests_rate"
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	var metrics = []autoscaling.MetricSpec{}
@@ -47,11 +49,16 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 
 	if p.RequestsRateTarget != nil {
 		rateTarget := *p.RequestsRateTarget
+		requestsRateMetric := p.RequestsRateMetric
+		if requestsRateMetric == "" {
+			requestsRateMetric = DefaultRequestsRateMetric
+		}
+
 		metrics = append(metrics, autoscaling.MetricSpec{
 			Type: autoscaling.PodsMetricSourceType,
 			Pods: &autoscaling.PodsMetricSource{
 				Metric: autoscaling.MetricIdentifier{
-					Name: RequestsRateMetric,
+					Name: requestsRateMetric,
 				},
 				Target: autoscaling.MetricTarget{
 					AverageValue: &rateTarget,

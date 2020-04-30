@@ -462,6 +462,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		Max:                max,
 		Labels:             i.defaultLabels(),
 		CPUTarget:          cpuTarget,
+		RequestsRateMetric: i.target().Scale.RequestsRateMetric,
 		RequestsRateTarget: requestsRateTarget,
 	}
 }

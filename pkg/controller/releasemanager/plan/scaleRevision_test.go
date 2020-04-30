@@ -76,6 +76,7 @@ func TestScaleRevisionByRequestsRate(t *testing.T) {
 		Namespace:          "testnamespace",
 		Min:                4,
 		Max:                10,
+		RequestsRateMetric: "request_rate",
 		RequestsRateTarget: quantity,
 		Labels:             map[string]string{},
 	}
@@ -93,6 +94,7 @@ func TestScaleRevisionByRequestsRate(t *testing.T) {
 		case *autoscaling.HorizontalPodAutoscaler:
 			return o.Spec.MaxReplicas == 5 &&
 				o.Spec.Metrics[0].Pods.Target.AverageValue.String() == "5" &&
+				o.Spec.Metrics[0].Pods.Metric.Name == "request_rate" &&
 				len(o.Spec.Metrics) == 1
 		default:
 			return false

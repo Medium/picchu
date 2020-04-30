@@ -83,6 +83,7 @@ type ScaleInfo struct {
 	Default                        int32   `json:"default,omitempty"`
 	Max                            int32   `json:"max,omitempty"`
 	TargetCPUUtilizationPercentage *int32  `json:"targetCPUUtilizationPercentage,omitempty"`
+	RequestsRateMetric             string  `json:"requestsRateMetric,omitempty"`
 	TargetRequestsRate             *string `json:"targetRequestsRate,omitempty"`
 	MinReadySeconds                int32   `json:"minReadySeconds,omitempty"`
 }
