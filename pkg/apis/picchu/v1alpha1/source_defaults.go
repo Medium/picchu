@@ -12,6 +12,7 @@ const (
 	defaultReleaseGcTTLSeconds     = int64(5 * 24 * 60 * 60)
 	defaultScaleDefault            = int32(1)
 	defaultScaleMax                = int32(1)
+	defaultRequestsRateMetric      = "istio_requests_rate"
 
 	defaultPortIngressPort   = int32(443)
 	defaultPortContainerPort = int32(80)
@@ -82,5 +83,8 @@ func SetScaleDefaults(scale *ScaleInfo) {
 	}
 	if scale.Max == 0 {
 		scale.Max = defaultScaleMax
+	}
+	if scale.RequestsRateMetric == "" {
+		scale.RequestsRateMetric = defaultRequestsRateMetric
 	}
 }

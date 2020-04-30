@@ -28,8 +28,6 @@ type ScaleRevision struct {
 	RequestsRateTarget *resource.Quantity
 }
 
-const DefaultRequestsRateMetric = "istio_requests_rate"
-
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	var metrics = []autoscaling.MetricSpec{}
 
@@ -49,16 +47,11 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 
 	if p.RequestsRateTarget != nil {
 		rateTarget := *p.RequestsRateTarget
-		requestsRateMetric := p.RequestsRateMetric
-		if requestsRateMetric == "" {
-			requestsRateMetric = DefaultRequestsRateMetric
-		}
-
 		metrics = append(metrics, autoscaling.MetricSpec{
 			Type: autoscaling.PodsMetricSourceType,
 			Pods: &autoscaling.PodsMetricSource{
 				Metric: autoscaling.MetricIdentifier{
-					Name: requestsRateMetric,
+					Name: p.RequestsRateMetric,
 				},
 				Target: autoscaling.MetricTarget{
 					AverageValue: &rateTarget,
