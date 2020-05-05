@@ -14,9 +14,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,24 +39,6 @@ type ResourceSyncer struct {
 	reconciler      *ReconcileReleaseManager
 	log             logr.Logger
 	picchuConfig    utils.Config
-}
-
-func (r *ResourceSyncer) getSecrets(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
-	secrets := &corev1.SecretList{}
-	err := r.deliveryClient.List(ctx, secrets, opts)
-	if errors.IsNotFound(err) {
-		return []runtime.Object{}, nil
-	}
-	return utils.MustExtractList(secrets), err
-}
-
-func (r *ResourceSyncer) getConfigMaps(ctx context.Context, opts *client.ListOptions) ([]runtime.Object, error) {
-	configMaps := &corev1.ConfigMapList{}
-	err := r.deliveryClient.List(ctx, configMaps, opts)
-	if errors.IsNotFound(err) {
-		return []runtime.Object{}, nil
-	}
-	return utils.MustExtractList(configMaps), err
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {

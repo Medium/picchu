@@ -3,9 +3,10 @@ package releasemanager
 import (
 	"context"
 	"fmt"
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
@@ -208,7 +209,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	clusters, err := r.getClustersByFleet(ctx, rm.Namespace, rm.Spec.Fleet)
 	if err != nil {
-		rmLog.Error(err, "Failed to get clusters for fleet", "Fleet.Name", rm.Spec.Fleet)
+		return r.requeue(rmLog, fmt.Errorf("Failed to get clusters for fleet %s: %w", rm.Spec.Fleet, err))
 	}
 	clusterInfo := ClusterInfoList{}
 	for _, cluster := range clusters {
@@ -232,7 +233,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.config.ServiceLevelsFleet)
 	if err != nil {
-		rmLog.Error(err, "Failed to get delivery clusters for fleet", "Fleet.Name", r.config.ServiceLevelsFleet)
+		return r.requeue(rmLog, fmt.Errorf("Failed to get delivery clusters for fleet %s: %w", r.config.ServiceLevelsFleet, err))
 	}
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
