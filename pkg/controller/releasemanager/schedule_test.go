@@ -30,6 +30,8 @@ func TestSchedulePermitsRelease(t *tt.T) {
 		{parse("2019-04-21T18:00:00Z"), false},
 		{parse("2019-04-22T13:59:00Z"), false},
 		{parse("2019-04-22T14:00:00Z"), true},
+		{parse("2020-07-05T15:00:00Z"), false},
+		{parse("2020-09-06T15:00:00Z"), false},
 	}
 	for _, c := range cases {
 		permitted := schedulePermitsRelease(c.Time, "humane")
