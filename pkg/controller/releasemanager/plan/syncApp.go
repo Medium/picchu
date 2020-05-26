@@ -131,12 +131,16 @@ func (p *SyncApp) ingressHosts(
 	defaultDomains []string,
 ) []string {
 	hostMap := map[string]bool{}
+	fleetSuffix := fmt.Sprintf("-%s", p.Fleet)
 
 	for _, domain := range defaultDomains {
-		name := p.Namespace
-		hostMap[fmt.Sprintf("%s.%s", name, domain)] = true
+		hostMap[fmt.Sprintf("%s.%s", p.Namespace, domain)] = true
+
 		if p.Target == p.Fleet {
 			hostMap[fmt.Sprintf("%s.%s", p.App, domain)] = true
+		} else if strings.HasSuffix(p.Namespace, fleetSuffix) {
+			basename := strings.TrimSuffix(p.Namespace, fleetSuffix)
+			hostMap[fmt.Sprintf("%s.%s", basename, domain)] = true
 		}
 	}
 
