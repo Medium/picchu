@@ -41,6 +41,13 @@ var (
 				Tag:              "testtag",
 				Weight:           100,
 				TagRoutingHeader: "MEDIUM-TAG",
+				TrafficPolicy: &istio.TrafficPolicy{
+					ConnectionPool: &istio.ConnectionPoolSettings{
+						Tcp: &istio.ConnectionPoolSettings_TCPSettings{
+							MaxConnections: 100,
+						},
+					},
+				},
 			},
 		},
 		AlertRules: []monitoringv1.Rule{
@@ -267,6 +274,13 @@ var (
 				{
 					Name:   "testtag",
 					Labels: map[string]string{"tag.picchu.medium.engineering": "testtag"},
+					TrafficPolicy: &istio.TrafficPolicy{
+						ConnectionPool: &istio.ConnectionPoolSettings{
+							Tcp: &istio.ConnectionPoolSettings_TCPSettings{
+								MaxConnections: 100,
+							},
+						},
+					},
 				},
 			},
 		},
@@ -359,6 +373,13 @@ func TestDomains(t *testing.T) {
 				Tag:              "1",
 				Weight:           100,
 				TagRoutingHeader: "DOKI-TAG",
+				TrafficPolicy: &istio.TrafficPolicy{
+					ConnectionPool: &istio.ConnectionPoolSettings{
+						Tcp: &istio.ConnectionPoolSettings_TCPSettings{
+							MaxConnections: 100,
+						},
+					},
+				},
 			},
 		},
 		AlertRules: []monitoringv1.Rule{

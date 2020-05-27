@@ -31,6 +31,7 @@ type Revision struct {
 	Tag              string
 	Weight           uint32
 	TagRoutingHeader string
+	TrafficPolicy    *istio.TrafficPolicy
 }
 
 type SyncApp struct {
@@ -98,11 +99,11 @@ func (p *SyncApp) serviceHost() string {
 }
 
 func (p *SyncApp) publicHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
-	return p.ingressHosts(picchuv1alpha1.PortPublic, port, cluster.Spec.Ingresses.Public.DefaultDomains)
+	return p.ingressHosts(port, cluster.Spec.Ingresses.Public.DefaultDomains)
 }
 
 func (p *SyncApp) privateHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
-	return p.ingressHosts(picchuv1alpha1.PortPrivate, port, cluster.Spec.Ingresses.Private.DefaultDomains)
+	return p.ingressHosts(port, cluster.Spec.Ingresses.Private.DefaultDomains)
 }
 
 func (p *SyncApp) authorityMatch(hosts []string) *istio.StringMatch {
@@ -126,7 +127,6 @@ func (p *SyncApp) privateAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *p
 }
 
 func (p *SyncApp) ingressHosts(
-	mode picchuv1alpha1.PortMode,
 	port picchuv1alpha1.PortInfo,
 	defaultDomains []string,
 ) []string {
@@ -385,8 +385,9 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 	var subsets []*istio.Subset
 	for _, revision := range p.DeployedRevisions {
 		subsets = append(subsets, &istio.Subset{
-			Name:   revision.Tag,
-			Labels: map[string]string{labelTag: revision.Tag},
+			Name:          revision.Tag,
+			Labels:        map[string]string{labelTag: revision.Tag},
+			TrafficPolicy: revision.TrafficPolicy,
 		})
 	}
 	return &istioclient.DestinationRule{

@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	istio "istio.io/api/networking/v1alpha3"
 	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -8,12 +9,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Reference imports to suppress errors if they are not otherwise used.
+
 var (
 	// TODO(bob): I don't like this. maybe configurable?
 	// Which targets need to reach 100% to consider the rollout complete and
 	// stop slo failures from rolling back.
 	rolloutTargets = []string{"production"}
 )
+
+// +k8s:deepcopy-gen=false
+type Istio struct {
+	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
+}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -116,6 +124,8 @@ type RevisionTarget struct {
 	Canary       Canary          `json:"canary,omitempty"`
 	Ports        []PortInfo      `json:"ports,omitempty"`
 	Env          []corev1.EnvVar `json:"env,omitempty"`
+
+	Istio *Istio `json:"istio,omitempty"`
 }
 
 type ExternalTest struct {

@@ -1168,6 +1168,10 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Istio != nil {
+		in, out := &in.Istio, &out.Istio
+		*out = (*in).DeepCopy()
+	}
 	return
 }
 
