@@ -2,6 +2,7 @@ package releasemanager
 
 import (
 	"context"
+	istio "istio.io/api/networking/v1alpha3"
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -400,6 +401,10 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 
 	revisionsMap := map[string]*rmplan.Revision{}
 	for _, i := range r.incarnations.deployed() {
+		var trafficPolicy *istio.TrafficPolicy
+		if i.target() != nil && i.target().Istio != nil {
+			trafficPolicy = i.target().Istio.TrafficPolicy
+		}
 		tagRoutingHeader := ""
 		if i.revision != nil && i.isRoutable() {
 			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
@@ -408,6 +413,7 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 			Tag:              i.tag,
 			Weight:           0,
 			TagRoutingHeader: tagRoutingHeader,
+			TrafficPolicy:    trafficPolicy,
 		}
 	}
 
@@ -490,10 +496,15 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 		if incarnation.revision != nil && incarnation.isRoutable() {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
 		}
+		var trafficPolicy *istio.TrafficPolicy
+		if incarnation.target() != nil && incarnation.target().Istio != nil {
+			trafficPolicy = incarnation.target().Istio.TrafficPolicy
+		}
 		revisionsMap[incarnation.tag] = &rmplan.Revision{
 			Tag:              incarnation.tag,
 			Weight:           currentPercent,
 			TagRoutingHeader: tagRoutingHeader,
+			TrafficPolicy:    trafficPolicy,
 		}
 		if i == count-1 && percRemaining > 0 && firstNonCanary != -1 {
 			revisionsMap[incarnations[firstNonCanary].tag].Weight += percRemaining
