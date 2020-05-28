@@ -2,7 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
-	proto "github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	_ "github.com/gogo/protobuf/types"
 	istio "istio.io/api/networking/v1alpha3"
 	"math"
@@ -26,6 +26,8 @@ func (in *Istio) DeepCopy() *Istio {
 }
 
 func (in *Istio) DeepCopyInto(out *Istio) {
-	p := proto.Clone(in.TrafficPolicy).(*istio.TrafficPolicy)
-	*out.TrafficPolicy = *p
+	if in.TrafficPolicy != nil {
+		p := proto.Clone(in.TrafficPolicy).(*istio.TrafficPolicy)
+		*out.TrafficPolicy = *p
+	}
 }
