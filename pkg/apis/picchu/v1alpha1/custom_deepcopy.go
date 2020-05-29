@@ -28,6 +28,6 @@ func (in *Istio) DeepCopy() *Istio {
 func (in *Istio) DeepCopyInto(out *Istio) {
 	if in.TrafficPolicy != nil {
 		p := proto.Clone(in.TrafficPolicy).(*istio.TrafficPolicy)
-		*out.TrafficPolicy = *p
+		out.TrafficPolicy = p
 	}
 }

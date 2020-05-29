@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	istio "istio.io/api/networking/v1alpha3"
 	"testing"
 	"time"
 
@@ -56,4 +57,32 @@ func TestCanaryTestPending(t *testing.T) {
 
 	lastSecond := metav1.Time{time.Now().Add(-time.Second)}
 	assert.False(t, target.IsCanaryPending(&lastSecond))
+}
+
+func TestTrafficPolicyDeepCopy(t *testing.T) {
+	assert := assert.New(t)
+	r := &Revision{
+		Spec: RevisionSpec{
+			Targets: []RevisionTarget{
+				{
+					Istio: &Istio{TrafficPolicy: &istio.TrafficPolicy{
+						PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
+							{
+								Port: &istio.PortSelector{Number: 8282},
+								ConnectionPool: &istio.ConnectionPoolSettings{
+									Http: &istio.ConnectionPoolSettings_HTTPSettings{
+										Http2MaxRequests: 10,
+									},
+								},
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+	o := r.DeepCopy()
+	portPolicy := o.Spec.Targets[0].Istio.TrafficPolicy.PortLevelSettings[0]
+	assert.EqualValues(8282, portPolicy.Port.Number)
+	assert.EqualValues(10, portPolicy.ConnectionPool.Http.Http2MaxRequests)
 }
