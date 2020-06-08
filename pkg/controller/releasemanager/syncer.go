@@ -40,6 +40,7 @@ type ResourceSyncer struct {
 	reconciler      *ReconcileReleaseManager
 	log             logr.Logger
 	picchuConfig    utils.Config
+	faults          []picchuv1alpha1.HTTPPortFault
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {
@@ -223,6 +224,7 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		DeployedRevisions: revisions,
 		AlertRules:        alertRules,
 		Ports:             ports,
+		HTTPPortFaults:    r.faults,
 	})
 	if err != nil {
 		return err

@@ -3,6 +3,7 @@ package releasemanager
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/selection"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -263,6 +264,11 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		return r.requeue(rmLog, err)
 	}
 
+	faults, err := r.getFaults(ctx, rmLog, request.Namespace, rm.Spec.App, rm.Spec.Target)
+	if err != nil {
+		return r.requeue(rmLog, err)
+	}
+
 	observation, err := observer.Observe(ctx, rm.TargetNamespace())
 	if err != nil {
 		return r.requeue(rmLog, err)
@@ -287,6 +293,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		reconciler:      r,
 		log:             rmLog,
 		picchuConfig:    r.config,
+		faults:          faults,
 	}
 
 	if !rm.IsDeleted() {
@@ -346,6 +353,44 @@ func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Log
 		}
 	}
 	return withTargets, nil
+}
+
+func (r *ReconcileReleaseManager) getFaults(ctx context.Context, log logr.Logger, namespace, app, target string) ([]picchuv1alpha1.HTTPPortFault, error) {
+	var reqs []labels.Requirement
+
+	log.Info("Looking for faultInjectors")
+	labelsSelector := labels.NewSelector()
+	req, err := labels.NewRequirement(picchuv1alpha1.LabelApp, selection.Equals, []string{app})
+	if err != nil {
+		log.Error(err, "Failed to parse app requirement")
+		return nil, err
+	}
+	reqs = append(reqs, *req)
+	if req, err = labels.NewRequirement(picchuv1alpha1.LabelTarget, selection.In, []string{"", target}); err != nil {
+		log.Error(err, "Failed to parse targets requirement")
+		return nil, err
+	}
+	reqs = append(reqs, *req)
+	labelsSelector.Add(reqs...)
+	listOptions := []client.ListOption{
+		&client.ListOptions{Namespace: namespace},
+		&client.ListOptions{LabelSelector: labelsSelector},
+	}
+
+	list := &picchuv1alpha1.FaultInjectorList{}
+	err = r.client.List(ctx, list, listOptions...)
+	if err != nil {
+		log.Error(err, "Failed to list faultInjectors")
+		return nil, err
+	}
+	r.scheme.Default(list)
+
+	var faults []picchuv1alpha1.HTTPPortFault
+	for _, item := range list.Items {
+		faults = append(faults, item.Spec.HTTPPortFaults...)
+	}
+
+	return faults, nil
 }
 
 // requeue gives us a chance to log the error with our trace-id and stacktrace to make debugging simpler

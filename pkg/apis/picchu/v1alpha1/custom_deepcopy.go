@@ -15,7 +15,7 @@ var (
 )
 
 // Istio uses proto.Clone, and therefore doesn't implement recursive deepCopy. If we want to use a subtype of istio's
-// api, we'll need a deepcopy impl.
+// nested apis, we'll need to wrap the structs and create our own deepcopy impl.
 func (in *Istio) DeepCopy() *Istio {
 	if in == nil {
 		return nil
@@ -29,5 +29,25 @@ func (in *Istio) DeepCopyInto(out *Istio) {
 	if in.TrafficPolicy != nil {
 		p := proto.Clone(in.TrafficPolicy).(*istio.TrafficPolicy)
 		out.TrafficPolicy = p
+	}
+}
+
+func (in *HTTPPortFault) DeepCopy() *HTTPPortFault {
+	if in == nil {
+		return nil
+	}
+	out := new(HTTPPortFault)
+	in.DeepCopyInto(out)
+	return out
+}
+
+func (in *HTTPPortFault) DeepCopyInto(out *HTTPPortFault) {
+	if in.PortSelector != nil {
+		p := proto.Clone(in.PortSelector).(*istio.PortSelector)
+		out.PortSelector = p
+	}
+	if in.HTTPFault != nil {
+		p := proto.Clone(in.HTTPFault).(*istio.HTTPFaultInjection)
+		out.HTTPFault = p
 	}
 }

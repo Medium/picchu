@@ -43,6 +43,7 @@ type SyncApp struct {
 	DeployedRevisions []Revision
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
+	HTTPPortFaults    []picchuv1alpha1.HTTPPortFault
 }
 
 func (p *SyncApp) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -283,8 +284,15 @@ func (p *SyncApp) makeRoute(
 	route []*istio.HTTPRouteDestination,
 ) *istio.HTTPRoute {
 	var retries *istio.HTTPRetry
+	var fault *istio.HTTPFaultInjection
 
 	http := port.Istio.HTTP
+
+	for _, f := range p.HTTPPortFaults {
+		if int32(f.PortSelector.Number) == port.Port {
+			fault = f.HTTPFault
+		}
+	}
 
 	if http.Retries != nil {
 		retries = &istio.HTTPRetry{
@@ -298,6 +306,7 @@ func (p *SyncApp) makeRoute(
 		Retries: retries,
 		Match:   match,
 		Route:   route,
+		Fault:   fault,
 	}
 }
 
