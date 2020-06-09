@@ -41,12 +41,12 @@ func TestDivideReplicas(t *T.T) {
 	}
 	// 5 are required, so each cluster should get 2 for a total of 8
 	// since 1 would be 4 and 4 < 5
-	assert.Equal(int32(2), out.divideReplicas(5, 100))
-	assert.Equal(int32(1), out.divideReplicas(5, 80))
-	assert.Equal(int32(2), out.divideReplicas(5, 81))
-	assert.Equal(int32(8), out.expectedTotalReplicas(5, 81))
-	assert.Equal(int32(8), out.expectedTotalReplicas(5, 81))
-	assert.Equal(int32(8), out.expectedTotalReplicas(5, 81))
+	assert.EqualValues(2, out.divideReplicas(5, 100))
+	assert.EqualValues(1, out.divideReplicas(5, 80))
+	assert.EqualValues(2, out.divideReplicas(5, 81))
+	assert.EqualValues(8, out.expectedTotalReplicas(5, 81))
+	assert.EqualValues(8, out.expectedTotalReplicas(5, 81))
+	assert.EqualValues(8, out.expectedTotalReplicas(5, 81))
 }
 
 func TestDivideReplicasWithScaling(t *T.T) {
@@ -75,11 +75,11 @@ func TestDivideReplicasWithScaling(t *T.T) {
 	// 5 are required, so each cluster should get 2 for a total of 8
 	// since 1 would be 4 and 4 < 5
 	assert.EqualValues(2, out.divideReplicas(5, 100))
-	assert.Equal(int32(1), out.divideReplicas(5, 80))
-	assert.Equal(int32(2), out.divideReplicas(5, 81))
-	assert.Equal(int32(16), out.expectedTotalReplicas(5, 81))
-	assert.Equal(int32(16), out.expectedTotalReplicas(5, 81))
-	assert.Equal(int32(16), out.expectedTotalReplicas(5, 81))
+	assert.EqualValues(1, out.divideReplicas(5, 80))
+	assert.EqualValues(2, out.divideReplicas(5, 81))
+	assert.EqualValues(16, out.expectedTotalReplicas(5, 81))
+	assert.EqualValues(16, out.expectedTotalReplicas(5, 81))
+	assert.EqualValues(16, out.expectedTotalReplicas(5, 81))
 }
 
 func TestGetFaults(t *T.T) {
