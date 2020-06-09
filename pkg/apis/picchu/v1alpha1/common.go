@@ -48,9 +48,10 @@ const (
 	AnnotationGitCommitterTimestamp     = "git-scm.com/committer-timestamp"
 	AnnotationRevisionCreationTimestamp = "revisionCreationTimestamp"
 	AnnotationIAMRole                   = "iam.amazonaws.com/role"
-	AnnotationFailedAt                  = "picchu.medium.engineering/failed-at-timestamp"
-	AnnotationRepo                      = "picchu.medium.engineering/repo"
-	AnnotationCanaryStartedTimestamp    = "picchu.medium.engineering/canaryStartedTimestamp"
+	// TODO(bob): camelCase
+	AnnotationFailedAt               = "picchu.medium.engineering/failed-at-timestamp"
+	AnnotationRepo                   = "picchu.medium.engineering/repo"
+	AnnotationCanaryStartedTimestamp = "picchu.medium.engineering/canaryStartedTimestamp"
 )
 
 type PortInfo struct {

@@ -10,3 +10,15 @@ rules:
   - '*'
   verbs:
   - '*'
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
