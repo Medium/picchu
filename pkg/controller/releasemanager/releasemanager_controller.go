@@ -3,7 +3,6 @@ package releasemanager
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/selection"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -356,25 +355,16 @@ func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Log
 }
 
 func (r *ReconcileReleaseManager) getFaults(ctx context.Context, log logr.Logger, namespace, app, target string) ([]picchuv1alpha1.HTTPPortFault, error) {
-	var reqs []labels.Requirement
-
 	log.Info("Looking for faultInjectors")
-	labelsSelector := labels.NewSelector()
-	req, err := labels.NewRequirement(picchuv1alpha1.LabelApp, selection.Equals, []string{app})
+
+	selector, err := labels.Parse(fmt.Sprintf("%s=%s,%s in (,%s)", picchuv1alpha1.LabelApp, app, picchuv1alpha1.LabelTarget, target))
 	if err != nil {
-		log.Error(err, "Failed to parse app requirement")
+		log.Error(err, "Failed to parse label requirement")
 		return nil, err
 	}
-	reqs = append(reqs, *req)
-	if req, err = labels.NewRequirement(picchuv1alpha1.LabelTarget, selection.In, []string{"", target}); err != nil {
-		log.Error(err, "Failed to parse targets requirement")
-		return nil, err
-	}
-	reqs = append(reqs, *req)
-	labelsSelector.Add(reqs...)
 	listOptions := []client.ListOption{
-		&client.ListOptions{Namespace: namespace},
-		&client.ListOptions{LabelSelector: labelsSelector},
+		client.InNamespace(namespace),
+		&client.MatchingLabelsSelector{Selector: selector},
 	}
 
 	list := &picchuv1alpha1.FaultInjectorList{}
