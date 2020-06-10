@@ -9,6 +9,8 @@ type ClusterExpansion interface{}
 
 type ClusterSecretsExpansion interface{}
 
+type FaultInjectorExpansion interface{}
+
 type MirrorExpansion interface{}
 
 type ReleaseManagerExpansion interface{}
