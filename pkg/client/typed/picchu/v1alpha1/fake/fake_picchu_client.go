@@ -23,6 +23,10 @@ func (c *FakePicchuV1alpha1) ClusterSecretses(namespace string) v1alpha1.Cluster
 	return &FakeClusterSecretses{c, namespace}
 }
 
+func (c *FakePicchuV1alpha1) FaultInjectors(namespace string) v1alpha1.FaultInjectorInterface {
+	return &FakeFaultInjectors{c, namespace}
+}
+
 func (c *FakePicchuV1alpha1) Mirrors(namespace string) v1alpha1.MirrorInterface {
 	return &FakeMirrors{c, namespace}
 }

@@ -21,6 +21,7 @@ type FaultInjectorSpec struct {
 type FaultInjectorStatus struct {
 }
 
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // FaultInjector is the Schema for the faultinjectors API
