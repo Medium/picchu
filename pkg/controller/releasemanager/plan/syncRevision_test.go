@@ -79,6 +79,12 @@ var (
 				},
 			},
 		}},
+		Sidecars: []corev1.Container{
+			{
+				Name:  "test-1",
+				Image: "test-1:latest",
+			},
+		},
 	}
 	retiredRevisionPlan = &SyncRevision{
 		App:       "testapp",
@@ -207,7 +213,12 @@ var (
 							SuccessThreshold:    1,
 							FailureThreshold:    3,
 						},
-					}},
+					},
+						{
+							Image: "test-1:latest",
+							Name:  "test-1",
+						},
+					},
 					DNSConfig: &corev1.PodDNSConfig{
 						Options: []corev1.PodDNSConfigOption{{
 							Name:  "ndots",
