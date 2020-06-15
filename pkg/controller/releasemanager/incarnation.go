@@ -17,6 +17,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -360,6 +361,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Ports:              i.ports(),
 		Replicas:           i.divideReplicas(i.target().Scale.Default),
 		Image:              i.image(),
+		Sidecars:           i.sidecars(),
 		Resources:          i.target().Resources,
 		IAMRole:            i.target().AWS.IAM.RoleARN,
 		PodAnnotations:     i.target().PodAnnotations,
@@ -599,6 +601,10 @@ func (i *Incarnation) targetNamespace() string {
 
 func (i *Incarnation) image() string {
 	return i.revision.Spec.App.Image
+}
+
+func (i *Incarnation) sidecars() []corev1.Container {
+	return i.revision.Spec.Sidecars
 }
 
 func (i *Incarnation) listOptions() (*client.ListOptions, error) {

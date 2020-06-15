@@ -1,8 +1,9 @@
 package v1alpha1
 
 import (
-	istio "istio.io/api/networking/v1alpha3"
 	"time"
+
+	istio "istio.io/api/networking/v1alpha3"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -80,14 +81,15 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                RevisionApp      `json:"app"`
-	Targets            []RevisionTarget `json:"targets"`
-	Failed             bool             `json:"failed"`
-	IgnoreSLOs         bool             `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules bool             `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo       `json:"sentry,omitempty"`
-	TagRoutingHeader   string           `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring   bool             `json:"disableMirroring,omitempty"`
+	App                RevisionApp        `json:"app"`
+	Targets            []RevisionTarget   `json:"targets"`
+	Failed             bool               `json:"failed"`
+	IgnoreSLOs         bool               `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules bool               `json:"canaryWithSLIRules,omitempty"`
+	Sentry             SentryInfo         `json:"sentry,omitempty"`
+	TagRoutingHeader   string             `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring   bool               `json:"disableMirroring,omitempty"`
+	Sidecars           []corev1.Container `json:"sidecars,omitempty"`
 }
 
 type RevisionApp struct {
