@@ -73,6 +73,7 @@ type SyncRevision struct {
 	Affinity           *corev1.Affinity
 	Tolerations        []corev1.Toleration
 	EnvVars            []corev1.EnvVar
+	Sidecars           []corev1.Container // Additional sidecar containers.
 }
 
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -194,6 +195,10 @@ func (p *SyncRevision) syncReplicaSet(
 		}
 	}
 
+	var containers []corev1.Container
+	containers = append(containers, appContainer)
+	containers = append(containers, p.Sidecars...)
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        p.Tag,
@@ -203,7 +208,7 @@ func (p *SyncRevision) syncReplicaSet(
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: p.ServiceAccountName,
-			Containers:         []corev1.Container{appContainer},
+			Containers:         containers,
 			DNSConfig:          DefaultDNSConfig(),
 			Affinity:           p.Affinity,
 			Tolerations:        p.Tolerations,
