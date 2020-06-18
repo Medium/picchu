@@ -25,6 +25,7 @@ func init() {
 
 	// TODO(bob): Make configurable
 	holidays = []time.Time{
+		date(2020, time.June, 19),     // Juneteenth
 		date(2020, time.July, 3),      // Day before Independence day
 		date(2020, time.July, 4),      // Saturday, Independence day
 		date(2020, time.July, 5),      // Sunday, Day after Independence day
@@ -45,6 +46,7 @@ func init() {
 		date(2021, time.January, 1),   // New year's day
 		date(2021, time.January, 18),  // MLK day
 		date(2021, time.May, 31),      // Memorial day
+		date(2021, time.June, 19),     // Juneteenth
 		date(2021, time.July, 4),      // Sunday, Independence day
 		date(2021, time.July, 5),      // Day after Independence day
 		date(2021, time.September, 6), // Labor day
