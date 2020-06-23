@@ -74,7 +74,7 @@ func CreateOrUpdate(
 		namespace := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   typed.Name,
-				Labels: typed.Labels,
+				Labels: CopyStringMap(typed.Labels),
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, namespace, func() error {

@@ -7,7 +7,7 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	api "github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	model "github.com/prometheus/common/model"
 	reflect "reflect"
 	time "time"
@@ -37,11 +37,11 @@ func (m *MockPromAPI) EXPECT() *MockPromAPIMockRecorder {
 }
 
 // Query mocks base method
-func (m *MockPromAPI) Query(arg0 context.Context, arg1 string, arg2 time.Time) (model.Value, api.Warnings, error) {
+func (m *MockPromAPI) Query(arg0 context.Context, arg1 string, arg2 time.Time) (model.Value, v1.Warnings, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1, arg2)
 	ret0, _ := ret[0].(model.Value)
-	ret1, _ := ret[1].(api.Warnings)
+	ret1, _ := ret[1].(v1.Warnings)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }

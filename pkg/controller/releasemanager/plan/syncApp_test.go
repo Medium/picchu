@@ -2,16 +2,14 @@ package plan
 
 import (
 	"context"
+	ktest "go.medium.engineering/kubernetes/pkg/test"
 	_ "runtime"
 	"testing"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/mocks"
-	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	istio "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -285,39 +283,42 @@ var (
 			},
 		},
 	}
+	defaultPrometheusRule = &monitoringv1.PrometheusRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testapp",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				picchuv1alpha1.LabelApp: "testapp",
+				"test":                  "label",
+			},
+		},
+		Spec: monitoringv1.PrometheusRuleSpec{Groups: []monitoringv1.RuleGroup{
+			{
+				Name: "picchu.rules",
+				Rules: []monitoringv1.Rule{
+					{
+						Expr: intstr.IntOrString{
+							Type:   intstr.String,
+							StrVal: "hello world",
+						},
+					},
+				},
+				PartialResponseStrategy: "",
+			},
+		}},
+	}
 )
 
 func TestSyncNewApp(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	log := test.MustNewLogger()
-	ctrl := gomock.NewController(t)
-	m := mocks.NewMockClient(ctrl)
-	defer ctrl.Finish()
-
-	ok := client.ObjectKey{Name: "testapp", Namespace: "testnamespace"}
-	ctx := context.TODO()
-
-	m.
-		EXPECT().
-		Get(ctx, mocks.ObjectKey(ok), gomock.Any()).
-		Return(common.NotFoundError).
-		Times(4)
-
-	m.
-		EXPECT().
-		Create(ctx, mocks.Kind("PrometheusRule")).
-		Return(nil).
-		Times(1)
-
-	for _, obj := range []runtime.Object{
+	cli := fakeClient()
+	expected := []runtime.Object{
+		defaultPrometheusRule,
 		defaultExpectedService,
 		defaultExpectedDestinationRule,
 		defaultExpectedVirtualService,
-	} {
-		m.
-			EXPECT().
-			Create(ctx, common.K8sEqual(obj)).
-			Return(nil).
-			Times(1)
 	}
 
 	scalingFactor := 0.5
@@ -338,7 +339,11 @@ func TestSyncNewApp(t *testing.T) {
 			},
 		},
 	}
-	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+	assert.NoError(t, defaultSyncAppPlan.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
+
+	for _, e := range expected {
+		ktest.AssertMatch(ctx, t, cli, e)
+	}
 }
 
 func TestDomains(t *testing.T) {

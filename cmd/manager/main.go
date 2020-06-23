@@ -4,13 +4,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"go.medium.engineering/picchu/pkg/client/scheme"
+	apps "k8s.io/api/apps/v1"
+	"k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
 	"os"
 	"runtime"
 	"runtime/debug"
 	"time"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	slo "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
+	monitoring "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
@@ -18,11 +21,12 @@ import (
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
 	"go.medium.engineering/picchu/pkg/apis"
-	"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller"
 	"go.medium.engineering/picchu/pkg/controller/utils"
-	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	v1 "k8s.io/api/core/v1"
+	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	autoscaling "k8s.io/api/autoscaling/v2beta2"
+	core "k8s.io/api/core/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -135,11 +139,14 @@ func main() {
 	}
 
 	schemes := k8sruntime.SchemeBuilder{
+		apps.AddToScheme,
+		core.AddToScheme,
 		apis.AddToScheme,
-		v1alpha1.AddToScheme,
-		istiov1alpha3.AddToScheme,
-		monitoringv1.AddToScheme,
-		slov1alpha1.AddToScheme,
+		autoscaling.AddToScheme,
+		picchu.AddToScheme,
+		istio.AddToScheme,
+		monitoring.AddToScheme,
+		slo.AddToScheme,
 	}
 
 	for _, addToScheme := range schemes {
@@ -147,9 +154,13 @@ func main() {
 			log.Error(err, "")
 			os.Exit(1)
 		}
+		if err := addToScheme(scheme.Scheme); err != nil {
+			log.Error(err, "")
+			os.Exit(1)
+		}
 	}
 
-	config := utils.Config{
+	cconfig := utils.Config{
 		ManageRoute53:          *manageRoute53,
 		HumaneReleasesEnabled:  *humaneReleasesEnabled,
 		RequeueAfter:           requeuePeriod,
@@ -162,14 +173,14 @@ func main() {
 	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr, config); err != nil {
+	if err := controller.AddToManager(mgr, cconfig); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
 
 	// Create Service object to expose the metrics port.
-	servicePorts := []v1.ServicePort{
-		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
+	servicePorts := []core.ServicePort{
+		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: core.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
 	}
 	_, err = metrics.CreateMetricsService(ctx, nil, servicePorts)
 	if err != nil {

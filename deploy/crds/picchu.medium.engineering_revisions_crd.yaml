@@ -139,7 +139,7 @@ spec:
                               description: 'Selects a field of the pod: supports metadata.name,
                                 metadata.namespace, metadata.labels, metadata.annotations,
                                 spec.nodeName, spec.serviceAccountName, status.hostIP,
-                                status.podIP.'
+                                status.podIP, status.podIPs.'
                               properties:
                                 apiVersion:
                                   description: Version of the schema the FieldPath
@@ -836,15 +836,11 @@ spec:
                             description: GMSACredentialSpec is where the GMSA admission
                               webhook (https://github.com/kubernetes-sigs/windows-gmsa)
                               inlines the contents of the GMSA credential spec named
-                              by the GMSACredentialSpecName field. This field is alpha-level
-                              and is only honored by servers that enable the WindowsGMSA
-                              feature flag.
+                              by the GMSACredentialSpecName field.
                             type: string
                           gmsaCredentialSpecName:
                             description: GMSACredentialSpecName is the name of the
-                              GMSA credential spec to use. This field is alpha-level
-                              and is only honored by servers that enable the WindowsGMSA
-                              feature flag.
+                              GMSA credential spec to use.
                             type: string
                           runAsUserName:
                             description: The UserName in Windows to run the entrypoint
@@ -852,9 +848,7 @@ spec:
                               in image metadata if unspecified. May also be set in
                               PodSecurityContext. If set in both SecurityContext and
                               PodSecurityContext, the value specified in SecurityContext
-                              takes precedence. This field is alpha-level and it is
-                              only honored by servers that enable the WindowsRunAsUserName
-                              feature flag.
+                              takes precedence.
                             type: string
                         type: object
                     type: object
@@ -866,7 +860,7 @@ spec:
                       be used to provide different probe parameters at the beginning
                       of a Pod''s lifecycle, when it might take a long time to load
                       data or warm a cache, than during steady-state operation. This
-                      cannot be updated. This is an alpha feature enabled by the StartupProbe
+                      cannot be updated. This is a beta feature enabled by the StartupProbe
                       feature flag. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes'
                     properties:
                       exec:
@@ -1019,7 +1013,7 @@ spec:
                     type: boolean
                   volumeDevices:
                     description: volumeDevices is the list of block devices to be
-                      used by the container. This is a beta feature.
+                      used by the container.
                     items:
                       description: volumeDevice describes a mapping of a raw block
                         device within a container.
@@ -1071,7 +1065,7 @@ spec:
                             to SubPath but environment variable references $(VAR_NAME)
                             are expanded using the container's environment. Defaults
                             to "" (volume's root). SubPathExpr and SubPath are mutually
-                            exclusive. This field is beta in 1.15.
+                            exclusive.
                           type: string
                       required:
                       - mountPath
@@ -1850,7 +1844,7 @@ spec:
                               description: 'Selects a field of the pod: supports metadata.name,
                                 metadata.namespace, metadata.labels, metadata.annotations,
                                 spec.nodeName, spec.serviceAccountName, status.hostIP,
-                                status.podIP.'
+                                status.podIP, status.podIPs.'
                               properties:
                                 apiVersion:
                                   description: Version of the schema the FieldPath
@@ -2799,6 +2793,21 @@ spec:
                                         certificate to use. Should be empty if mode
                                         is `ISTIO_MUTUAL`.
                                       type: string
+                                    credential_name:
+                                      description: 'The name of the secret that holds
+                                        the TLS certs for the client including the
+                                        CA certificates. Applicable only on Kubernetes.
+                                        Secret must exist in the same namespace with
+                                        the proxy using the certificates. The secret
+                                        (of type `generic`)should contain the following
+                                        keys and values: `key: <privateKey>`, `cert:
+                                        <serverCert>`, `cacert: <CACertificate>`.
+                                        Secret of type tls for client certificates
+                                        along with ca.crt key for CA certificates
+                                        is also supported. Only one of client certificates
+                                        and CA certificate or credentialName can be
+                                        specified.'
+                                      type: string
                                     mode:
                                       description: Indicates whether connections to
                                         this port should be secured using TLS. The
@@ -2844,6 +2853,19 @@ spec:
                                 description: REQUIRED if mode is `MUTUAL`. The path
                                   to the file holding the client-side TLS certificate
                                   to use. Should be empty if mode is `ISTIO_MUTUAL`.
+                                type: string
+                              credential_name:
+                                description: 'The name of the secret that holds the
+                                  TLS certs for the client including the CA certificates.
+                                  Applicable only on Kubernetes. Secret must exist
+                                  in the same namespace with the proxy using the certificates.
+                                  The secret (of type `generic`)should contain the
+                                  following keys and values: `key: <privateKey>`,
+                                  `cert: <serverCert>`, `cacert: <CACertificate>`.
+                                  Secret of type tls for client certificates along
+                                  with ca.crt key for CA certificates is also supported.
+                                  Only one of client certificates and CA certificate
+                                  or credentialName can be specified.'
                                 type: string
                               mode:
                                 description: Indicates whether connections to this
@@ -3425,7 +3447,7 @@ spec:
                                         regex:
                                           description: Regular expression against
                                             which the extracted value is matched.
-                                            defailt is '(.*)'
+                                            Default is '(.*)'
                                           type: string
                                         replacement:
                                           description: Replacement value against which
@@ -3494,7 +3516,7 @@ spec:
                                         regex:
                                           description: Regular expression against
                                             which the extracted value is matched.
-                                            defailt is '(.*)'
+                                            Default is '(.*)'
                                           type: string
                                         replacement:
                                           description: Replacement value against which
@@ -3535,8 +3557,9 @@ spec:
                                     anyOf:
                                     - type: string
                                     - type: integer
-                                    description: Name or number of the target port
-                                      of the endpoint. Mutually exclusive with port.
+                                    description: Name or number of the pod port this
+                                      endpoint refers to. Mutually exclusive with
+                                      port.
                                   tlsConfig:
                                     description: TLS configuration to use when scraping
                                       the endpoint

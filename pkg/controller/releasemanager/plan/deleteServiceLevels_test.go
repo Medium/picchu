@@ -2,61 +2,39 @@ package plan
 
 import (
 	"context"
+	ktest "go.medium.engineering/kubernetes/pkg/test"
 	_ "runtime"
 	"testing"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/mocks"
+	slo "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
+	testify "github.com/stretchr/testify/assert"
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/test"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestDeleteServiceLevels(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	assert := testify.New(t)
 	log := test.MustNewLogger()
-	ctrl := gomock.NewController(t)
-	m := mocks.NewMockClient(ctrl)
-	defer ctrl.Finish()
-
 	deleteServiceLevels := &DeleteServiceLevels{
 		App:       "testapp",
 		Namespace: "testnamespace",
 		Target:    "target",
 	}
-	ctx := context.TODO()
-
-	opts := &client.ListOptions{
-		Namespace: deleteServiceLevels.Namespace,
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp:    deleteServiceLevels.App,
-			picchuv1alpha1.LabelTarget: deleteServiceLevels.Target,
-		}),
-	}
-
-	sl := []slov1alpha1.ServiceLevel{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "testnamespace",
+	sl := &slo.ServiceLevel{
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "test",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				picchu.LabelApp:    deleteServiceLevels.App,
+				picchu.LabelTarget: deleteServiceLevels.Target,
 			},
 		},
 	}
+	cli := fakeClient(sl)
 
-	m.
-		EXPECT().
-		List(ctx, mocks.InjectServiceLevels(sl), mocks.ListOptions(opts)).
-		Return(nil).
-		Times(1)
-
-	m.
-		EXPECT().
-		Delete(ctx, mocks.And(mocks.NamespacedName("testnamespace", "test"), mocks.Kind("ServiceLevel"))).
-		Return(nil).
-		Times(1)
-
-	assert.NoError(t, deleteServiceLevels.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+	assert.NoError(deleteServiceLevels.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
+	ktest.AssertNotFound(ctx, t, cli, sl)
 }
