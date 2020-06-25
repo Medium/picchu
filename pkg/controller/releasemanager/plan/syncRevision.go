@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -213,6 +214,14 @@ func (p *SyncRevision) syncReplicaSet(
 			Affinity:           p.Affinity,
 			Tolerations:        p.Tolerations,
 		},
+	}
+
+	if termGraceStr := p.PodAnnotations["go.medium.engineering/PodTerminationGracePeriodSeconds"]; termGraceStr != "" {
+		terminationGracePeriodSeconds, err := strconv.Atoi(termGraceStr)
+		if err == nil {
+			termGraceInt64 := int64(terminationGracePeriodSeconds)
+			template.Spec.TerminationGracePeriodSeconds = &termGraceInt64
+		}
 	}
 
 	for ann, value := range p.PodAnnotations {
