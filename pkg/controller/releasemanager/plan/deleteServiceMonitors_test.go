@@ -2,59 +2,37 @@ package plan
 
 import (
 	"context"
+	monitoring "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	ktest "go.medium.engineering/kubernetes/pkg/test"
 	_ "runtime"
 	"testing"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/mocks"
+	testify "github.com/stretchr/testify/assert"
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/test"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestDeleteServiceMonitors(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	assert := testify.New(t)
 	log := test.MustNewLogger()
-	ctrl := gomock.NewController(t)
-	m := mocks.NewMockClient(ctrl)
-	defer ctrl.Finish()
-
 	deleteServiceMonitors := &DeleteServiceMonitors{
 		App:       "testapp",
 		Namespace: "testnamespace",
 	}
-	ctx := context.TODO()
-
-	opts := &client.ListOptions{
-		Namespace: deleteServiceMonitors.Namespace,
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp: deleteServiceMonitors.App,
-		}),
-	}
-
-	sm := []monitoringv1.ServiceMonitor{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: "testnamespace",
+	sl := &monitoring.ServiceMonitor{
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "test",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				picchu.LabelApp: deleteServiceMonitors.App,
 			},
 		},
 	}
+	cli := fakeClient(sl)
 
-	m.
-		EXPECT().
-		List(ctx, mocks.InjectServiceMonitors(sm), mocks.ListOptions(opts)).
-		Return(nil).
-		Times(1)
-
-	m.
-		EXPECT().
-		Delete(ctx, mocks.And(mocks.NamespacedName("testnamespace", "test"), mocks.Kind("ServiceMonitor"))).
-		Return(nil).
-		Times(1)
-
-	assert.NoError(t, deleteServiceMonitors.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+	assert.NoError(deleteServiceMonitors.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
+	ktest.AssertNotFound(ctx, t, cli, sl)
 }

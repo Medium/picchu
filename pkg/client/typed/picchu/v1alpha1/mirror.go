@@ -6,6 +6,7 @@
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -24,15 +25,15 @@ type MirrorsGetter interface {
 
 // MirrorInterface has methods to work with Mirror resources.
 type MirrorInterface interface {
-	Create(*v1alpha1.Mirror) (*v1alpha1.Mirror, error)
-	Update(*v1alpha1.Mirror) (*v1alpha1.Mirror, error)
-	UpdateStatus(*v1alpha1.Mirror) (*v1alpha1.Mirror, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.Mirror, error)
-	List(opts v1.ListOptions) (*v1alpha1.MirrorList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Mirror, err error)
+	Create(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.CreateOptions) (*v1alpha1.Mirror, error)
+	Update(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.UpdateOptions) (*v1alpha1.Mirror, error)
+	UpdateStatus(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.UpdateOptions) (*v1alpha1.Mirror, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.Mirror, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.MirrorList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Mirror, err error)
 	MirrorExpansion
 }
 
@@ -51,20 +52,20 @@ func newMirrors(c *PicchuV1alpha1Client, namespace string) *mirrors {
 }
 
 // Get takes name of the mirror, and returns the corresponding mirror object, and an error if there is any.
-func (c *mirrors) Get(name string, options v1.GetOptions) (result *v1alpha1.Mirror, err error) {
+func (c *mirrors) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Mirror, err error) {
 	result = &v1alpha1.Mirror{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("mirrors").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Mirrors that match those selectors.
-func (c *mirrors) List(opts v1.ListOptions) (result *v1alpha1.MirrorList, err error) {
+func (c *mirrors) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.MirrorList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -75,13 +76,13 @@ func (c *mirrors) List(opts v1.ListOptions) (result *v1alpha1.MirrorList, err er
 		Resource("mirrors").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested mirrors.
-func (c *mirrors) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *mirrors) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -92,87 +93,90 @@ func (c *mirrors) Watch(opts v1.ListOptions) (watch.Interface, error) {
 		Resource("mirrors").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a mirror and creates it.  Returns the server's representation of the mirror, and an error, if there is any.
-func (c *mirrors) Create(mirror *v1alpha1.Mirror) (result *v1alpha1.Mirror, err error) {
+func (c *mirrors) Create(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.CreateOptions) (result *v1alpha1.Mirror, err error) {
 	result = &v1alpha1.Mirror{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("mirrors").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(mirror).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a mirror and updates it. Returns the server's representation of the mirror, and an error, if there is any.
-func (c *mirrors) Update(mirror *v1alpha1.Mirror) (result *v1alpha1.Mirror, err error) {
+func (c *mirrors) Update(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.UpdateOptions) (result *v1alpha1.Mirror, err error) {
 	result = &v1alpha1.Mirror{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("mirrors").
 		Name(mirror.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(mirror).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *mirrors) UpdateStatus(mirror *v1alpha1.Mirror) (result *v1alpha1.Mirror, err error) {
+func (c *mirrors) UpdateStatus(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.UpdateOptions) (result *v1alpha1.Mirror, err error) {
 	result = &v1alpha1.Mirror{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("mirrors").
 		Name(mirror.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(mirror).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the mirror and deletes it. Returns an error if one occurs.
-func (c *mirrors) Delete(name string, options *v1.DeleteOptions) error {
+func (c *mirrors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("mirrors").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *mirrors) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *mirrors) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("mirrors").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched mirror.
-func (c *mirrors) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Mirror, err error) {
+func (c *mirrors) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Mirror, err error) {
 	result = &v1alpha1.Mirror{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("mirrors").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }

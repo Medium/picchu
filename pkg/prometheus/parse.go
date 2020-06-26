@@ -54,7 +54,7 @@ func metricNames(m map[string]bool, node promql.Node) error {
 		m[n.Name] = true
 
 	case *promql.MatrixSelector:
-		m[n.Name] = true
+		metricNames(m, n.VectorSelector)
 
 	case *promql.NumberLiteral, *promql.StringLiteral:
 	// nothing to do
