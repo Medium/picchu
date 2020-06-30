@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go.medium.engineering/picchu/pkg/client/scheme"
 	apps "k8s.io/api/apps/v1"
-	"k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -133,12 +132,7 @@ func main() {
 
 	log.Info("Registering Components.")
 
-	if err := v1alpha1.RegisterDefaults(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-
-	schemes := k8sruntime.SchemeBuilder{
+	schemeBuilders := k8sruntime.SchemeBuilder{
 		apps.AddToScheme,
 		core.AddToScheme,
 		apis.AddToScheme,
@@ -149,14 +143,17 @@ func main() {
 		slo.AddToScheme,
 	}
 
-	for _, addToScheme := range schemes {
-		if err := addToScheme(mgr.GetScheme()); err != nil {
+	for _, sch := range []*k8sruntime.Scheme{mgr.GetScheme(), scheme.Scheme} {
+		if err := picchu.RegisterDefaults(sch); err != nil {
 			log.Error(err, "")
 			os.Exit(1)
 		}
-		if err := addToScheme(scheme.Scheme); err != nil {
-			log.Error(err, "")
-			os.Exit(1)
+
+		for _, addToScheme := range schemeBuilders {
+			if err := addToScheme(sch); err != nil {
+				log.Error(err, "")
+				os.Exit(1)
+			}
 		}
 	}
 

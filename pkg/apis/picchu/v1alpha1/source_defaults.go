@@ -32,8 +32,6 @@ func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 	for i := range spec.Targets {
 		SetReleaseDefaults(&spec.Targets[i].Release)
 		SetScaleDefaults(&spec.Targets[i].Scale)
-	}
-	for i := range spec.Targets {
 		for j := range spec.Targets[i].Ports {
 			SetPortDefaults(&spec.Targets[i].Ports[j])
 		}
@@ -45,7 +43,7 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 		release.Max = defaultReleaseMax
 	}
 	if release.Schedule == "" {
-		release.Schedule = HumaneSchedule
+		release.Schedule = defaultReleaseSchedule
 	}
 	if release.Rate.Increment == 0 {
 		release.Rate.Increment = defaultReleaseRateIncrement

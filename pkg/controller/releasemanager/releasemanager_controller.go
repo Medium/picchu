@@ -346,6 +346,11 @@ func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Log
 	r.scheme.Default(rl)
 	withTargets := &picchuv1alpha1.RevisionList{}
 	for i := range rl.Items {
+		for j := range rl.Items[i].Spec.Targets {
+			if rl.Items[i].Spec.Targets[j].Release.TTL == 0 {
+				panic("Defaults weren't set")
+			}
+		}
 		rev := rl.Items[i]
 		if rev.HasTarget(target) {
 			withTargets.Items = append(withTargets.Items, rev)

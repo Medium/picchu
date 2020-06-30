@@ -44,8 +44,12 @@ func markDeletable(ctx context.Context, log logr.Logger, cli client.Client, inca
 		return nil
 	}
 	label := fmt.Sprintf("%s%s", picchu.LabelTargetDeletablePrefix, incarnation.targetName())
-	revision.Labels[label] = "true"
-	return cli.Update(ctx, revision)
+	if revision.Labels[label] != "true" {
+		log.Info("Marking revision for deletion", "revision", revision, "randomTarget", revision.Spec.Targets[0])
+		revision.Labels[label] = "true"
+		return cli.Update(ctx, revision)
+	}
+	return nil
 }
 
 func markGarbage(ctx context.Context, log logr.Logger, cli client.Client, incarnations []*Incarnation) error {
