@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	istio "istio.io/api/networking/v1alpha3"
+	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 	"time"
 
@@ -85,4 +86,18 @@ func TestTrafficPolicyDeepCopy(t *testing.T) {
 	portPolicy := o.Spec.Targets[0].Istio.TrafficPolicy.PortLevelSettings[0]
 	assert.EqualValues(8282, portPolicy.Port.Number)
 	assert.EqualValues(10, portPolicy.ConnectionPool.Http.Http2MaxRequests)
+}
+
+func TestRevisionDefaults(t *testing.T) {
+	assert := assert.New(t)
+	r := &Revision{
+		Spec: RevisionSpec{
+			Targets: []RevisionTarget{{}},
+		},
+	}
+	scheme := runtime.NewScheme()
+	AddToScheme(scheme)
+	RegisterDefaults(scheme)
+	scheme.Default(r)
+	assert.EqualValues(defaultReleaseGcTTLSeconds, r.Spec.Targets[0].Release.TTL)
 }
