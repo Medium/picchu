@@ -43,6 +43,7 @@ func markDeletable(ctx context.Context, log logr.Logger, cli client.Client, inca
 	if revision == nil {
 		return nil
 	}
+	log.Info("Marking revision for deletion", "revision", revision)
 	label := fmt.Sprintf("%s%s", picchu.LabelTargetDeletablePrefix, incarnation.targetName())
 	revision.Labels[label] = "true"
 	return cli.Update(ctx, revision)
