@@ -3039,7 +3039,11 @@ spec:
                                       type: integer
                                     perTryTimeout:
                                       type: string
+                                    retryOn:
+                                      type: string
                                   type: object
+                                timeout:
+                                  type: string
                               type: object
                           type: object
                         mode:
