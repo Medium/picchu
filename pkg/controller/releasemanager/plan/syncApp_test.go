@@ -2,14 +2,17 @@ package plan
 
 import (
 	"context"
-	ktest "go.medium.engineering/kubernetes/pkg/test"
 	_ "runtime"
 	"testing"
+	"time"
+
+	ktest "go.medium.engineering/kubernetes/pkg/test"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/test"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/gogo/protobuf/types"
 	"github.com/stretchr/testify/assert"
 	istio "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -61,6 +64,20 @@ var (
 				ContainerPort: 5000,
 				Protocol:      corev1.ProtocolTCP,
 				Mode:          picchuv1alpha1.PortPrivate,
+				Istio: picchuv1alpha1.IstioPortConfig{
+					HTTP: picchuv1alpha1.IstioHTTPPortConfig{
+						Retries: &picchuv1alpha1.Retries{
+							RetryOn: &defaultRetryOn,
+							PerTryTimeout: &metav1.Duration{
+								Duration: time.Duration(3) * time.Millisecond,
+							},
+							Attempts: 2,
+						},
+						Timeout: &metav1.Duration{
+							Duration: time.Duration(3) * time.Millisecond,
+						},
+					},
+				},
 			},
 			{
 				Name:          "status",
@@ -139,6 +156,12 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{
+						Attempts:      2,
+						RetryOn:       defaultRetryOn,
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+					},
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // Tagged status route
 					Match: []*istio.HTTPMatchRequest{
@@ -202,6 +225,12 @@ var (
 							Weight: 100,
 						},
 					},
+					Retries: &istio.HTTPRetry{
+						Attempts:      2,
+						RetryOn:       defaultRetryOn,
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+					},
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // release status route
 					Match: []*istio.HTTPMatchRequest{
@@ -307,6 +336,8 @@ var (
 			},
 		}},
 	}
+
+	defaultRetryOn = "5xx"
 )
 
 func TestSyncNewApp(t *testing.T) {
