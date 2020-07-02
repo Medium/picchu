@@ -12,6 +12,7 @@ platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))
 GOARCH = $(word 2, $(platform_temp))
 export GOROOT = $(shell go env GOROOT)
+export GO111MODULE = on
 
 .PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 

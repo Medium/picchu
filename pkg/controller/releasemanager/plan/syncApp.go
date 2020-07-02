@@ -301,8 +301,16 @@ func (p *SyncApp) makeRoute(
 		if http.Retries.PerTryTimeout != nil {
 			retries.PerTryTimeout = types.DurationProto(http.Retries.PerTryTimeout.Duration)
 		}
+		if http.Retries.RetryOn != nil {
+			retries.RetryOn = *http.Retries.RetryOn
+		}
+	}
+	var timeout *types.Duration
+	if http.Timeout != nil {
+		timeout = types.DurationProto(http.Timeout.Duration)
 	}
 	return &istio.HTTPRoute{
+		Timeout: timeout,
 		Retries: retries,
 		Match:   match,
 		Route:   route,

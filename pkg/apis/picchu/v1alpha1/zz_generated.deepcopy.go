@@ -541,6 +541,11 @@ func (in *IstioHTTPPortConfig) DeepCopyInto(out *IstioHTTPPortConfig) {
 		*out = new(Retries)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Timeout != nil {
+		in, out := &in.Timeout, &out.Timeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	return
 }
 
@@ -1010,6 +1015,11 @@ func (in *Retries) DeepCopyInto(out *Retries) {
 	if in.PerTryTimeout != nil {
 		in, out := &in.PerTryTimeout, &out.PerTryTimeout
 		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.RetryOn != nil {
+		in, out := &in.RetryOn, &out.RetryOn
+		*out = new(string)
 		**out = **in
 	}
 	return

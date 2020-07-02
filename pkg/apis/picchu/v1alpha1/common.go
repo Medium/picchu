@@ -73,10 +73,12 @@ type IstioPortConfig struct {
 type Retries struct {
 	Attempts      int32            `json:"attempts,omitempty"`
 	PerTryTimeout *metav1.Duration `json:"perTryTimeout,omitempty"`
+	RetryOn       *string          `json:"retryOn,omitempty"`
 }
 
 type IstioHTTPPortConfig struct {
-	Retries *Retries `json:"retries,omitempty"`
+	Retries *Retries         `json:"retries,omitempty"`
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
 type ScaleInfo struct {
