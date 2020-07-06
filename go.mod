@@ -21,6 +21,7 @@ require (
 	go.medium.engineering/kubernetes v0.0.0-20200625160729-4b40d46f5d68
 	go.uber.org/zap v1.15.0
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	gomodules.xyz/jsonpatch/v2 v2.0.1
 	istio.io/api v0.0.0-20200617184712-fb83ff2d8228
 	istio.io/client-go v0.0.0-20200615164228-d77b0b53b6a0
 	k8s.io/api v0.18.3
