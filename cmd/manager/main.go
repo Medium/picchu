@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"go.medium.engineering/picchu/pkg/client/scheme"
+	"go.medium.engineering/picchu/pkg/webhook"
 	apps "k8s.io/api/apps/v1"
 	"os"
 	"runtime"
@@ -33,6 +34,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -68,6 +71,7 @@ func main() {
 	sentryEnabled := pflag.Bool("sentry-enabled", true, "Sentry integration is enabled")
 	serviceLevelsNamespace := pflag.String("service-levels-namespace", "service-levels", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
 	serviceLevelsFleet := pflag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
+	webhookPort := pflag.Int("webhook-port", 8443, "The port to listen for admission webhooks on")
 
 	pflag.Parse()
 
@@ -108,6 +112,12 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+
+	cli, err := client.New(cfg, client.Options{})
+	if err != nil {
+		panic(err)
+	}
+	webhook.Init(cli, int32(*webhookPort), namespace)
 
 	ctx := context.TODO()
 
@@ -174,6 +184,10 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+
+	mgr.GetWebhookServer().Port = *webhookPort
+
+	webhook.Register(mgr)
 
 	// Create Service object to expose the metrics port.
 	servicePorts := []core.ServicePort{
