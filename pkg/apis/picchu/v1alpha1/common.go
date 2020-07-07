@@ -62,6 +62,14 @@ type PortInfo struct {
 	ContainerPort int32           `json:"containerPort,omitempty"`
 	Protocol      corev1.Protocol `json:"protocol,omitempty"`
 	Mode          PortMode        `json:"mode"`
+	// Default denotes that this port will receive the default hostnames for the service. This is only useful if a
+	// service exposes multiple ports over the same ingress gateway (mode: public or private). If only one port is
+	// exposed, it will be the default port. If multiple ports are exposed and no default is specified and a port with
+	// the `http` name is present, it will become the default port. If multiple ports are specified and the `http` port
+	// is not present, validation will fail. Only Mode == (private|public) use the default flag, as they are trafficked
+	// through the same external port. Internal ports can have the same hostnames since they can be selected by port
+	// number.
+	Default bool `json:"default,omitempty"`
 
 	Istio IstioPortConfig `json:"istio,omitempty"`
 }

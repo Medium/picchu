@@ -13,5 +13,5 @@ var (
 func Register(mgr manager.Manager) {
 	clog.Info("Registering revision webhook")
 	mgr.GetWebhookServer().Register("/validate-revisions", &webhook.Admission{Handler: &revisionValidator{}})
-	mgr.GetWebhookServer().Register("/mutate-revisions", &webhook.Admission{Handler: &revisionValidator{}})
+	mgr.GetWebhookServer().Register("/mutate-revisions", &webhook.Admission{Handler: &revisionMutator{}})
 }
