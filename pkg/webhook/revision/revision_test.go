@@ -5,6 +5,7 @@ import (
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sort"
 	"testing"
 )
 
@@ -180,7 +181,7 @@ func TestMutate(t *testing.T) {
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
 			patches := mutator.getPatches(tc.rev)
-			assert.EqualValues(tc.expected, patches)
+			assert.EqualValues(sortPatches(tc.expected), sortPatches(patches))
 		})
 	}
 }
@@ -237,12 +238,33 @@ func TestValidate(t *testing.T) {
 				build(),
 			expected: []string{"production"},
 		},
+		{
+			name: "MultiTargetFailures",
+			rev: newRevisionBuilder().
+				addPort("staging", "http", picchu.PortPrivate, false).
+				addPort("staging", "grpc", picchu.PortPublic, false).
+				addPort("staging", "status", picchu.PortLocal, false).
+				addPort("production", "http", picchu.PortPrivate, false).
+				addPort("production", "grpc", picchu.PortPrivate, false).
+				addPort("production", "status", picchu.PortLocal, false).
+				build(),
+			expected: []string{"production", "staging"},
+		},
 	}
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
 			failures := validator.invalidTargets(tc.rev)
+			sort.Strings(tc.expected)
+			sort.Strings(failures)
 			assert.EqualValues(tc.expected, failures)
 		})
 	}
+}
+
+func sortPatches(patches []jsonpatch.JsonPatchOperation) []jsonpatch.JsonPatchOperation {
+	sort.Slice(patches, func(i, j int) bool {
+		return patches[i].Path < patches[j].Path
+	})
+	return patches
 }

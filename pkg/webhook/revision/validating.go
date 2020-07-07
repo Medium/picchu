@@ -42,9 +42,11 @@ func (r *revisionValidator) invalidTargets(rev *picchu.Revision) []string {
 			}
 			if mode != picchu.PortLocal && hasPorts && defaultCount != 1 {
 				badTargets = append(badTargets, target.Name)
+				break
 			}
 			if mode == picchu.PortLocal && defaultCount > 0 {
 				badTargets = append(badTargets, target.Name)
+				break
 			}
 		}
 	}
