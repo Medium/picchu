@@ -22,42 +22,50 @@ func (r *revisionMutator) Handle(ctx context.Context, req admission.Request) adm
 		clog.Error(err, "Failed to decode revision")
 		return admission.Denied("internal error")
 	}
-	var patches []jsonpatch.JsonPatchOperation
-	for i := range rev.Spec.Targets {
-		target := rev.Spec.Targets[i]
-		// if there's only one port, it will be defaulted
-		if len(target.Ports) == 1 && !target.Ports[0].Default {
-			patches = append(patches, jsonpatch.JsonPatchOperation{
-				Operation: "add",
-				Path:      fmt.Sprintf("/spec/targets/%d/ports/0/default", i),
-				Value:     true,
-			})
-			break
-		}
-		var httpIndex *int
-		var defaultFound bool
-		// if there's multiple ports and no default is specified, the 'http' port will be defaulted
-		for j := range target.Ports {
-			port := rev.Spec.Targets[i].Ports[j]
-			if port.Name == "http" {
-				found := j
-				httpIndex = &found
-			}
-			defaultFound = defaultFound || port.Default
-		}
-		if !defaultFound && httpIndex != nil {
-			patches = append(patches, jsonpatch.JsonPatchOperation{
-				Operation: "add",
-				Path:      fmt.Sprintf("/spec/targets/%d/ports/%d/default", i, *httpIndex),
-				Value:     true,
-			})
-		}
-	}
+	patches := r.getPatches(rev)
 	if len(patches) > 0 {
 		log.Info("Setting default port", "patches", patches)
 		return admission.Patched("setting default port", patches...)
 	}
 	return admission.Allowed("ok")
+}
+
+func (r *revisionMutator) getPatches(rev *picchu.Revision) []jsonpatch.JsonPatchOperation {
+	var patches []jsonpatch.JsonPatchOperation
+	for i := range rev.Spec.Targets {
+		buckets := bucketIngressPorts(rev.Spec.Targets[i])
+		for mode, ports := range buckets {
+			if mode == picchu.PortLocal {
+				continue
+			}
+
+			if len(ports) == 1 && !ports[0].Default {
+				patches = append(patches, jsonpatch.JsonPatchOperation{
+					Operation: "add",
+					Path:      fmt.Sprintf("/spec/targets/%d/ports/%d/default", i, ports[0].index),
+					Value:     true,
+				})
+			}
+
+			var httpIndex *int
+			var defaultFound bool
+			for j := range ports {
+				port := ports[j]
+				defaultFound = defaultFound || port.Default
+				if port.Name == "http" {
+					httpIndex = &port.index
+				}
+			}
+			if !defaultFound && httpIndex != nil {
+				patches = append(patches, jsonpatch.JsonPatchOperation{
+					Operation: "add",
+					Path:      fmt.Sprintf("/spec/targets/%d/ports/%d/default", i, *httpIndex),
+					Value:     true,
+				})
+			}
+		}
+	}
+	return patches
 }
 
 func (r *revisionMutator) InjectClient(c client.Client) error {

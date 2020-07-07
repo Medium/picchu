@@ -20,24 +20,35 @@ func (r *revisionValidator) Handle(ctx context.Context, req admission.Request) a
 		clog.Error(err, "Failed to decode revision")
 		return admission.Denied("internal error")
 	}
-	var badTargets []string
-	for _, target := range rev.Spec.Targets {
-		var hasPorts bool
-		var defaultCount int
-		for _, port := range target.Ports {
-			hasPorts = true
-			if port.Default {
-				defaultCount++
-			}
-		}
-		if hasPorts && defaultCount != 1 {
-			badTargets = append(badTargets, target.Name)
-		}
-	}
-	if len(badTargets) > 0 {
-		return admission.Denied(fmt.Sprintf("Must specify exactly one port as default for targets %s", badTargets))
+	invalidTargets := r.invalidTargets(rev)
+	if len(invalidTargets) > 0 {
+		msg := "Must specify exactly one port per ingress as default for targets %s, local ports shouldn't be defaulted"
+		return admission.Denied(fmt.Sprintf(msg, invalidTargets))
 	}
 	return admission.Allowed("")
+}
+
+func (r *revisionValidator) invalidTargets(rev *picchu.Revision) []string {
+	var badTargets []string
+	for _, target := range rev.Spec.Targets {
+		for mode, ports := range bucketIngressPorts(target) {
+			var hasPorts bool
+			var defaultCount int
+			for _, port := range ports {
+				hasPorts = true
+				if port.Default {
+					defaultCount++
+				}
+			}
+			if mode != picchu.PortLocal && hasPorts && defaultCount != 1 {
+				badTargets = append(badTargets, target.Name)
+			}
+			if mode == picchu.PortLocal && defaultCount > 0 {
+				badTargets = append(badTargets, target.Name)
+			}
+		}
+	}
+	return badTargets
 }
 
 func (r *revisionValidator) InjectClient(c client.Client) error {
