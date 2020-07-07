@@ -31,6 +31,11 @@ func (r *revisionMutator) Handle(ctx context.Context, req admission.Request) adm
 }
 
 func (r *revisionMutator) getPatches(rev *picchu.Revision) []jsonpatch.JsonPatchOperation {
+	// if a single public or private ingress port is defined in a target and it's not set to default, it will be set as
+	// the default.
+	// if multiple ingress ports are defined and none are set to default and there is a port called 'http', it will be
+	// set to default
+	// internal ports will never be set as default
 	var patches []jsonpatch.JsonPatchOperation
 	for i := range rev.Spec.Targets {
 		buckets := bucketIngressPorts(rev.Spec.Targets[i])

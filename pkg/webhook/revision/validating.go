@@ -29,6 +29,7 @@ func (r *revisionValidator) Handle(ctx context.Context, req admission.Request) a
 }
 
 func (r *revisionValidator) invalidTargets(rev *picchu.Revision) []string {
+	// exactly one port per target ingress should be set as default.
 	var badTargets []string
 	for _, target := range rev.Spec.Targets {
 		for mode, ports := range bucketIngressPorts(target) {
