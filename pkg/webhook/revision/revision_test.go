@@ -5,7 +5,6 @@ import (
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sort"
 	"testing"
 )
 
@@ -180,8 +179,7 @@ func TestMutate(t *testing.T) {
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
-			patches := mutator.getPatches(tc.rev)
-			assert.EqualValues(sortPatches(tc.expected), sortPatches(patches))
+			assert.ElementsMatch(tc.expected, mutator.getPatches(tc.rev))
 		})
 	}
 }
@@ -254,17 +252,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
-			failures := validator.invalidTargets(tc.rev)
-			sort.Strings(tc.expected)
-			sort.Strings(failures)
-			assert.EqualValues(tc.expected, failures)
+			assert.ElementsMatch(tc.expected, validator.invalidTargets(tc.rev))
 		})
 	}
-}
-
-func sortPatches(patches []jsonpatch.JsonPatchOperation) []jsonpatch.JsonPatchOperation {
-	sort.Slice(patches, func(i, j int) bool {
-		return patches[i].Path < patches[j].Path
-	})
-	return patches
 }
