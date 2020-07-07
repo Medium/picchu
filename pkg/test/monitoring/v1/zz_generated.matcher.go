@@ -26,21 +26,12 @@ func RegisterAsserts(comparator *test.Comparator) {
 		},
 	})
 
-	comparator.RegisterForType(&v1.PodMonitor{}, test.TypedAsserts{
+	comparator.RegisterForType(&v1.PrometheusRule{}, test.TypedAsserts{
 		Match: func(t *testing.T, a, b runtime.Object) {
-			Match_PodMonitor(t, a.(*v1.PodMonitor), b.(*v1.PodMonitor))
+			Match_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
 		},
 		NoMatch: func(t *testing.T, a, b runtime.Object) {
-			NoMatch_PodMonitor(t, a.(*v1.PodMonitor), b.(*v1.PodMonitor))
-		},
-	})
-
-	comparator.RegisterForType(&v1.Prometheus{}, test.TypedAsserts{
-		Match: func(t *testing.T, a, b runtime.Object) {
-			Match_Prometheus(t, a.(*v1.Prometheus), b.(*v1.Prometheus))
-		},
-		NoMatch: func(t *testing.T, a, b runtime.Object) {
-			NoMatch_Prometheus(t, a.(*v1.Prometheus), b.(*v1.Prometheus))
+			NoMatch_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
 		},
 	})
 
@@ -53,6 +44,15 @@ func RegisterAsserts(comparator *test.Comparator) {
 		},
 	})
 
+	comparator.RegisterForType(&v1.PodMonitor{}, test.TypedAsserts{
+		Match: func(t *testing.T, a, b runtime.Object) {
+			Match_PodMonitor(t, a.(*v1.PodMonitor), b.(*v1.PodMonitor))
+		},
+		NoMatch: func(t *testing.T, a, b runtime.Object) {
+			NoMatch_PodMonitor(t, a.(*v1.PodMonitor), b.(*v1.PodMonitor))
+		},
+	})
+
 	comparator.RegisterForType(&v1.ServiceMonitor{}, test.TypedAsserts{
 		Match: func(t *testing.T, a, b runtime.Object) {
 			Match_ServiceMonitor(t, a.(*v1.ServiceMonitor), b.(*v1.ServiceMonitor))
@@ -62,12 +62,12 @@ func RegisterAsserts(comparator *test.Comparator) {
 		},
 	})
 
-	comparator.RegisterForType(&v1.PrometheusRule{}, test.TypedAsserts{
+	comparator.RegisterForType(&v1.Prometheus{}, test.TypedAsserts{
 		Match: func(t *testing.T, a, b runtime.Object) {
-			Match_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
+			Match_Prometheus(t, a.(*v1.Prometheus), b.(*v1.Prometheus))
 		},
 		NoMatch: func(t *testing.T, a, b runtime.Object) {
-			NoMatch_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
+			NoMatch_Prometheus(t, a.(*v1.Prometheus), b.(*v1.Prometheus))
 		},
 	})
 
@@ -76,6 +76,7 @@ func RegisterAsserts(comparator *test.Comparator) {
 func Assimilate_Alertmanager(expected, actual *v1.Alertmanager) *v1.Alertmanager {
 	e := expected.DeepCopyObject().(*v1.Alertmanager)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
@@ -91,45 +92,29 @@ func NoMatch_Alertmanager(t *testing.T, expected, actual *v1.Alertmanager) {
 	assert.NotEqualValues(e, actual)
 }
 
-func Assimilate_PodMonitor(expected, actual *v1.PodMonitor) *v1.PodMonitor {
-	e := expected.DeepCopyObject().(*v1.PodMonitor)
+func Assimilate_PrometheusRule(expected, actual *v1.PrometheusRule) *v1.PrometheusRule {
+	e := expected.DeepCopyObject().(*v1.PrometheusRule)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
-func Match_PodMonitor(t *testing.T, expected, actual *v1.PodMonitor) {
+func Match_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
 	assert := assert.New(t)
-	e := Assimilate_PodMonitor(expected, actual)
+	e := Assimilate_PrometheusRule(expected, actual)
 	assert.EqualValues(e, actual)
 }
 
-func NoMatch_PodMonitor(t *testing.T, expected, actual *v1.PodMonitor) {
+func NoMatch_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
 	assert := assert.New(t)
-	e := Assimilate_PodMonitor(expected, actual)
-	assert.NotEqualValues(e, actual)
-}
-
-func Assimilate_Prometheus(expected, actual *v1.Prometheus) *v1.Prometheus {
-	e := expected.DeepCopyObject().(*v1.Prometheus)
-	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
-	return e
-}
-
-func Match_Prometheus(t *testing.T, expected, actual *v1.Prometheus) {
-	assert := assert.New(t)
-	e := Assimilate_Prometheus(expected, actual)
-	assert.EqualValues(e, actual)
-}
-
-func NoMatch_Prometheus(t *testing.T, expected, actual *v1.Prometheus) {
-	assert := assert.New(t)
-	e := Assimilate_Prometheus(expected, actual)
+	e := Assimilate_PrometheusRule(expected, actual)
 	assert.NotEqualValues(e, actual)
 }
 
 func Assimilate_ThanosRuler(expected, actual *v1.ThanosRuler) *v1.ThanosRuler {
 	e := expected.DeepCopyObject().(*v1.ThanosRuler)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
@@ -145,9 +130,29 @@ func NoMatch_ThanosRuler(t *testing.T, expected, actual *v1.ThanosRuler) {
 	assert.NotEqualValues(e, actual)
 }
 
+func Assimilate_PodMonitor(expected, actual *v1.PodMonitor) *v1.PodMonitor {
+	e := expected.DeepCopyObject().(*v1.PodMonitor)
+	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
+	return e
+}
+
+func Match_PodMonitor(t *testing.T, expected, actual *v1.PodMonitor) {
+	assert := assert.New(t)
+	e := Assimilate_PodMonitor(expected, actual)
+	assert.EqualValues(e, actual)
+}
+
+func NoMatch_PodMonitor(t *testing.T, expected, actual *v1.PodMonitor) {
+	assert := assert.New(t)
+	e := Assimilate_PodMonitor(expected, actual)
+	assert.NotEqualValues(e, actual)
+}
+
 func Assimilate_ServiceMonitor(expected, actual *v1.ServiceMonitor) *v1.ServiceMonitor {
 	e := expected.DeepCopyObject().(*v1.ServiceMonitor)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
@@ -163,20 +168,21 @@ func NoMatch_ServiceMonitor(t *testing.T, expected, actual *v1.ServiceMonitor) {
 	assert.NotEqualValues(e, actual)
 }
 
-func Assimilate_PrometheusRule(expected, actual *v1.PrometheusRule) *v1.PrometheusRule {
-	e := expected.DeepCopyObject().(*v1.PrometheusRule)
+func Assimilate_Prometheus(expected, actual *v1.Prometheus) *v1.Prometheus {
+	e := expected.DeepCopyObject().(*v1.Prometheus)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
-func Match_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
+func Match_Prometheus(t *testing.T, expected, actual *v1.Prometheus) {
 	assert := assert.New(t)
-	e := Assimilate_PrometheusRule(expected, actual)
+	e := Assimilate_Prometheus(expected, actual)
 	assert.EqualValues(e, actual)
 }
 
-func NoMatch_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
+func NoMatch_Prometheus(t *testing.T, expected, actual *v1.Prometheus) {
 	assert := assert.New(t)
-	e := Assimilate_PrometheusRule(expected, actual)
+	e := Assimilate_Prometheus(expected, actual)
 	assert.NotEqualValues(e, actual)
 }

@@ -6,8 +6,6 @@
 package fake
 
 import (
-	"context"
-
 	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -28,7 +26,7 @@ var mirrorsResource = schema.GroupVersionResource{Group: "picchu.medium.engineer
 var mirrorsKind = schema.GroupVersionKind{Group: "picchu.medium.engineering", Version: "v1alpha1", Kind: "Mirror"}
 
 // Get takes name of the mirror, and returns the corresponding mirror object, and an error if there is any.
-func (c *FakeMirrors) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Mirror, err error) {
+func (c *FakeMirrors) Get(name string, options v1.GetOptions) (result *v1alpha1.Mirror, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(mirrorsResource, c.ns, name), &v1alpha1.Mirror{})
 
@@ -39,7 +37,7 @@ func (c *FakeMirrors) Get(ctx context.Context, name string, options v1.GetOption
 }
 
 // List takes label and field selectors, and returns the list of Mirrors that match those selectors.
-func (c *FakeMirrors) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.MirrorList, err error) {
+func (c *FakeMirrors) List(opts v1.ListOptions) (result *v1alpha1.MirrorList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(mirrorsResource, mirrorsKind, c.ns, opts), &v1alpha1.MirrorList{})
 
@@ -61,14 +59,14 @@ func (c *FakeMirrors) List(ctx context.Context, opts v1.ListOptions) (result *v1
 }
 
 // Watch returns a watch.Interface that watches the requested mirrors.
-func (c *FakeMirrors) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeMirrors) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(mirrorsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a mirror and creates it.  Returns the server's representation of the mirror, and an error, if there is any.
-func (c *FakeMirrors) Create(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.CreateOptions) (result *v1alpha1.Mirror, err error) {
+func (c *FakeMirrors) Create(mirror *v1alpha1.Mirror) (result *v1alpha1.Mirror, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(mirrorsResource, c.ns, mirror), &v1alpha1.Mirror{})
 
@@ -79,7 +77,7 @@ func (c *FakeMirrors) Create(ctx context.Context, mirror *v1alpha1.Mirror, opts 
 }
 
 // Update takes the representation of a mirror and updates it. Returns the server's representation of the mirror, and an error, if there is any.
-func (c *FakeMirrors) Update(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.UpdateOptions) (result *v1alpha1.Mirror, err error) {
+func (c *FakeMirrors) Update(mirror *v1alpha1.Mirror) (result *v1alpha1.Mirror, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(mirrorsResource, c.ns, mirror), &v1alpha1.Mirror{})
 
@@ -91,7 +89,7 @@ func (c *FakeMirrors) Update(ctx context.Context, mirror *v1alpha1.Mirror, opts 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeMirrors) UpdateStatus(ctx context.Context, mirror *v1alpha1.Mirror, opts v1.UpdateOptions) (*v1alpha1.Mirror, error) {
+func (c *FakeMirrors) UpdateStatus(mirror *v1alpha1.Mirror) (*v1alpha1.Mirror, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(mirrorsResource, "status", c.ns, mirror), &v1alpha1.Mirror{})
 
@@ -102,7 +100,7 @@ func (c *FakeMirrors) UpdateStatus(ctx context.Context, mirror *v1alpha1.Mirror,
 }
 
 // Delete takes name of the mirror and deletes it. Returns an error if one occurs.
-func (c *FakeMirrors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+func (c *FakeMirrors) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(mirrorsResource, c.ns, name), &v1alpha1.Mirror{})
 
@@ -110,15 +108,15 @@ func (c *FakeMirrors) Delete(ctx context.Context, name string, opts v1.DeleteOpt
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeMirrors) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(mirrorsResource, c.ns, listOpts)
+func (c *FakeMirrors) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(mirrorsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.MirrorList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched mirror.
-func (c *FakeMirrors) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Mirror, err error) {
+func (c *FakeMirrors) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Mirror, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(mirrorsResource, c.ns, name, pt, data, subresources...), &v1alpha1.Mirror{})
 

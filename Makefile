@@ -18,7 +18,7 @@ export GO111MODULE = on
 
 all: deps generate build
 ci: all verify generate test
-generate: deepcopy defaulter openapi clientset
+generate: deepcopy defaulter openapi clientset matcher
 
 build:
 	@mkdir -p build/_output/bin
@@ -45,12 +45,19 @@ openapi: generators/openapi-gen
 clientset: generators/client
 	$< -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
 
+matcher: generators/matcher-gen
+	$< -i github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1 -p go.medium.engineering/picchu/pkg/test/monitoring/v1
+
 crds:
 	operator-sdk generate crds
 
 generators/%:
 	@mkdir -p generators
 	go build -o $@ k8s.io/code-generator/cmd/$*-gen
+
+generators/matcher-gen:
+	@mkdir -p generators
+	go build -o $@ go.medium.engineering/kubernetes/cmd/matcher-gen
 
 generators/openapi-gen:
 	@mkdir -p generators

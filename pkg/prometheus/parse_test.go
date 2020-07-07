@@ -10,9 +10,9 @@ func TestMetricNames(t *testing.T) {
 		query    string
 		expected map[string]bool
 	}{
+		{"max_over_time(deriv(rate(metrics_test[1m])[5m:1m])[10m:])", map[string]bool{"metrics_test": true}},
 		{"1", map[string]bool{}},
 		{"sum(metrics_test)by(le)", map[string]bool{"metrics_test": true}},
-		{"max_over_time( deriv( rate(metrics_test[1m])[5m:1m] )[10m:] )", map[string]bool{"metrics_test": true}},
 		{"sum(metrics_test{service_name!~\"\"}) by (label1, test)", map[string]bool{"metrics_test": true}},
 		{"metrics_test", map[string]bool{"metrics_test": true}},
 		{"sum(rate(metrics_test{service_name!~\"\"}[5m])) by (label1, test)", map[string]bool{"metrics_test": true}},
@@ -37,15 +37,17 @@ func TestMetricNames(t *testing.T) {
 	}
 
 	for _, query := range queries {
-		actual, err := MetricNames(query.query)
-		if err != nil {
-			t.Error(err)
-			t.Fail()
-		} else {
-			if !reflect.DeepEqual(query.expected, actual) {
-				t.Errorf("Expected did not match actual. Expected: %v. Actual: %v", query.expected, actual)
+		t.Run(query.query, func(t *testing.T) {
+			actual, err := MetricNames(query.query)
+			if err != nil {
+				t.Error(err)
 				t.Fail()
+			} else {
+				if !reflect.DeepEqual(query.expected, actual) {
+					t.Errorf("Expected did not match actual. Expected: %v. Actual: %v", query.expected, actual)
+					t.Fail()
+				}
 			}
-		}
+		})
 	}
 }
