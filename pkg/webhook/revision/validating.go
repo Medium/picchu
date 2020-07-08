@@ -2,7 +2,6 @@ package revision
 
 import (
 	"context"
-	"fmt"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -23,7 +22,9 @@ func (r *revisionValidator) Handle(ctx context.Context, req admission.Request) a
 	invalidTargets := r.invalidTargets(rev)
 	if len(invalidTargets) > 0 {
 		msg := "Must specify exactly one port per ingress as default for targets %s, local ports shouldn't be defaulted"
-		return admission.Denied(fmt.Sprintf(msg, invalidTargets))
+		clog.Error(nil, msg, "revision", rev)
+		// don't reject yet
+		//return admission.Denied(fmt.Sprintf(msg, invalidTargets))
 	}
 	return admission.Allowed("")
 }
