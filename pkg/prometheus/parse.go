@@ -2,8 +2,7 @@ package prometheus
 
 import (
 	"errors"
-
-	"github.com/prometheus/prometheus/promql"
+	promql "github.com/prometheus/prometheus/promql"
 )
 
 // MetricNames returns a map (set of keys) of unique metric names included in PromQL query string
@@ -34,6 +33,9 @@ func metricNames(m map[string]bool, node promql.Node) error {
 	case *promql.AggregateExpr:
 		metricNames(m, n.Expr)
 
+	case *promql.SubqueryExpr:
+		metricNames(m, n.Expr)
+
 	case *promql.BinaryExpr:
 		metricNames(m, n.LHS)
 		metricNames(m, n.RHS)
@@ -47,14 +49,12 @@ func metricNames(m map[string]bool, node promql.Node) error {
 	case *promql.UnaryExpr:
 		metricNames(m, n.Expr)
 
-	case *promql.SubqueryExpr:
-		metricNames(m, n.Expr)
-
 	case *promql.VectorSelector:
 		m[n.Name] = true
 
 	case *promql.MatrixSelector:
-		metricNames(m, n.VectorSelector)
+		// metricNames(m, n.VectorSelector)
+		m[n.Name] = true
 
 	case *promql.NumberLiteral, *promql.StringLiteral:
 	// nothing to do

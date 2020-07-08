@@ -332,7 +332,6 @@ var (
 						},
 					},
 				},
-				PartialResponseStrategy: "",
 			},
 		}},
 	}

@@ -44,12 +44,12 @@ func RegisterAsserts(comparator *test.Comparator) {
 		},
 	})
 
-	comparator.RegisterForType(&v1.ThanosRuler{}, test.TypedAsserts{
+	comparator.RegisterForType(&v1.PrometheusRule{}, test.TypedAsserts{
 		Match: func(t *testing.T, a, b runtime.Object) {
-			Match_ThanosRuler(t, a.(*v1.ThanosRuler), b.(*v1.ThanosRuler))
+			Match_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
 		},
 		NoMatch: func(t *testing.T, a, b runtime.Object) {
-			NoMatch_ThanosRuler(t, a.(*v1.ThanosRuler), b.(*v1.ThanosRuler))
+			NoMatch_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
 		},
 	})
 
@@ -62,12 +62,12 @@ func RegisterAsserts(comparator *test.Comparator) {
 		},
 	})
 
-	comparator.RegisterForType(&v1.PrometheusRule{}, test.TypedAsserts{
+	comparator.RegisterForType(&v1.ThanosRuler{}, test.TypedAsserts{
 		Match: func(t *testing.T, a, b runtime.Object) {
-			Match_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
+			Match_ThanosRuler(t, a.(*v1.ThanosRuler), b.(*v1.ThanosRuler))
 		},
 		NoMatch: func(t *testing.T, a, b runtime.Object) {
-			NoMatch_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
+			NoMatch_ThanosRuler(t, a.(*v1.ThanosRuler), b.(*v1.ThanosRuler))
 		},
 	})
 
@@ -76,6 +76,7 @@ func RegisterAsserts(comparator *test.Comparator) {
 func Assimilate_Alertmanager(expected, actual *v1.Alertmanager) *v1.Alertmanager {
 	e := expected.DeepCopyObject().(*v1.Alertmanager)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
@@ -94,6 +95,7 @@ func NoMatch_Alertmanager(t *testing.T, expected, actual *v1.Alertmanager) {
 func Assimilate_PodMonitor(expected, actual *v1.PodMonitor) *v1.PodMonitor {
 	e := expected.DeepCopyObject().(*v1.PodMonitor)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
@@ -112,6 +114,7 @@ func NoMatch_PodMonitor(t *testing.T, expected, actual *v1.PodMonitor) {
 func Assimilate_Prometheus(expected, actual *v1.Prometheus) *v1.Prometheus {
 	e := expected.DeepCopyObject().(*v1.Prometheus)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
@@ -127,27 +130,29 @@ func NoMatch_Prometheus(t *testing.T, expected, actual *v1.Prometheus) {
 	assert.NotEqualValues(e, actual)
 }
 
-func Assimilate_ThanosRuler(expected, actual *v1.ThanosRuler) *v1.ThanosRuler {
-	e := expected.DeepCopyObject().(*v1.ThanosRuler)
+func Assimilate_PrometheusRule(expected, actual *v1.PrometheusRule) *v1.PrometheusRule {
+	e := expected.DeepCopyObject().(*v1.PrometheusRule)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
-func Match_ThanosRuler(t *testing.T, expected, actual *v1.ThanosRuler) {
+func Match_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
 	assert := assert.New(t)
-	e := Assimilate_ThanosRuler(expected, actual)
+	e := Assimilate_PrometheusRule(expected, actual)
 	assert.EqualValues(e, actual)
 }
 
-func NoMatch_ThanosRuler(t *testing.T, expected, actual *v1.ThanosRuler) {
+func NoMatch_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
 	assert := assert.New(t)
-	e := Assimilate_ThanosRuler(expected, actual)
+	e := Assimilate_PrometheusRule(expected, actual)
 	assert.NotEqualValues(e, actual)
 }
 
 func Assimilate_ServiceMonitor(expected, actual *v1.ServiceMonitor) *v1.ServiceMonitor {
 	e := expected.DeepCopyObject().(*v1.ServiceMonitor)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
@@ -163,20 +168,21 @@ func NoMatch_ServiceMonitor(t *testing.T, expected, actual *v1.ServiceMonitor) {
 	assert.NotEqualValues(e, actual)
 }
 
-func Assimilate_PrometheusRule(expected, actual *v1.PrometheusRule) *v1.PrometheusRule {
-	e := expected.DeepCopyObject().(*v1.PrometheusRule)
+func Assimilate_ThanosRuler(expected, actual *v1.ThanosRuler) *v1.ThanosRuler {
+	e := expected.DeepCopyObject().(*v1.ThanosRuler)
 	e.ObjectMeta = test.Assimilate_ObjectMeta(e.ObjectMeta, actual.ObjectMeta)
+	e.TypeMeta = test.Assimilate_TypeMeta(e.TypeMeta, actual.TypeMeta)
 	return e
 }
 
-func Match_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
+func Match_ThanosRuler(t *testing.T, expected, actual *v1.ThanosRuler) {
 	assert := assert.New(t)
-	e := Assimilate_PrometheusRule(expected, actual)
+	e := Assimilate_ThanosRuler(expected, actual)
 	assert.EqualValues(e, actual)
 }
 
-func NoMatch_PrometheusRule(t *testing.T, expected, actual *v1.PrometheusRule) {
+func NoMatch_ThanosRuler(t *testing.T, expected, actual *v1.ThanosRuler) {
 	assert := assert.New(t)
-	e := Assimilate_PrometheusRule(expected, actual)
+	e := Assimilate_ThanosRuler(expected, actual)
 	assert.NotEqualValues(e, actual)
 }
