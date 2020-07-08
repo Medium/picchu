@@ -81,15 +81,14 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                RevisionApp        `json:"app"`
-	Targets            []RevisionTarget   `json:"targets"`
-	Failed             bool               `json:"failed"`
-	IgnoreSLOs         bool               `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules bool               `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo         `json:"sentry,omitempty"`
-	TagRoutingHeader   string             `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring   bool               `json:"disableMirroring,omitempty"`
-	Sidecars           []corev1.Container `json:"sidecars,omitempty"`
+	App                RevisionApp      `json:"app"`
+	Targets            []RevisionTarget `json:"targets"`
+	Failed             bool             `json:"failed"`
+	IgnoreSLOs         bool             `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules bool             `json:"canaryWithSLIRules,omitempty"`
+	Sentry             SentryInfo       `json:"sentry,omitempty"`
+	TagRoutingHeader   string           `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring   bool             `json:"disableMirroring,omitempty"`
 }
 
 type RevisionApp struct {
@@ -111,6 +110,7 @@ type RevisionTarget struct {
 	ConfigSelector              *metav1.LabelSelector       `json:"configSelector,omitempty"`
 	AWS                         AWSInfo                     `json:"aws,omitempty"`
 	AlertRules                  []monitoringv1.Rule         `json:"alertRules,omitempty"`
+	Sidecars                    []corev1.Container          `json:"sidecars,omitempty"`
 
 	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
 	ServiceAccountName string            `json:"serviceAccountName,omitempty"`

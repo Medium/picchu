@@ -1156,13 +1156,6 @@ func (in *RevisionSpec) DeepCopyInto(out *RevisionSpec) {
 		}
 	}
 	out.Sentry = in.Sentry
-	if in.Sidecars != nil {
-		in, out := &in.Sidecars, &out.Sidecars
-		*out = make([]corev1.Container, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
 	return
 }
 
@@ -1235,6 +1228,13 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 	if in.AlertRules != nil {
 		in, out := &in.AlertRules, &out.AlertRules
 		*out = make([]monitoringv1.Rule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.Sidecars != nil {
+		in, out := &in.Sidecars, &out.Sidecars
+		*out = make([]corev1.Container, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
