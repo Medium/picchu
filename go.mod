@@ -18,7 +18,7 @@ require (
 	github.com/prometheus/prometheus v2.3.2+incompatible
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.0
-	go.medium.engineering/kubernetes v0.0.0-20200625212305-40d489812b74
+	go.medium.engineering/kubernetes v0.0.0-20200708143024-6f9f0aae51b2
 	go.uber.org/zap v1.13.0
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	gomodules.xyz/jsonpatch/v2 v2.0.1
