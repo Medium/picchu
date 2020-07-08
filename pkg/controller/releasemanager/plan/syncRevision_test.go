@@ -217,6 +217,14 @@ var (
 						{
 							Image: "test-1:latest",
 							Name:  "test-1",
+							Env: []corev1.EnvVar{{
+								Name: "NODE_IP",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "status.hostIP",
+									},
+								},
+							}},
 						},
 					},
 					DNSConfig: &corev1.PodDNSConfig{
