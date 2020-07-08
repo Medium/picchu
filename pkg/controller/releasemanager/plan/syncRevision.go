@@ -200,6 +200,10 @@ func (p *SyncRevision) syncReplicaSet(
 	containers = append(containers, appContainer)
 	containers = append(containers, p.Sidecars...)
 
+	for i := range containers {
+		containers[i].Env = p.EnvVars
+	}
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        p.Tag,
