@@ -434,11 +434,13 @@ func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
 
 	expectedRs := defaultExpectedReplicaSet.DeepCopy()
 	expectedRs.TypeMeta = metav1.TypeMeta{}
-	expectedRs.Spec.Template.Spec.Containers[0].EnvFrom = []corev1.EnvFromSource{{
-		ConfigMapRef: &corev1.ConfigMapEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{Name: "testconfigmap"},
-		},
-	}}
+	for i := range expectedRs.Spec.Template.Spec.Containers {
+		expectedRs.Spec.Template.Spec.Containers[i].EnvFrom = []corev1.EnvFromSource{{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "testconfigmap"},
+			},
+		}}
+	}
 
 	copy := *defaultRevisionPlan
 	plan := &copy
