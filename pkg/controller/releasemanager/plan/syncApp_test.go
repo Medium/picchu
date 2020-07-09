@@ -476,7 +476,7 @@ func TestDomains(t *testing.T) {
 
 func TestHosts(t *testing.T) {
 	publicPort := picchuv1alpha1.PortInfo{
-		Hosts: []string{"www.doki-pen.org"},
+		Hosts: []string{"www.doki-pen.org", "website.doki-pen.org"},
 		Mode:  picchuv1alpha1.PortPublic,
 	}
 	privatePort := picchuv1alpha1.PortInfo{
@@ -507,6 +507,7 @@ func TestHosts(t *testing.T) {
 		Target:    "staging",
 		Fleet:     "internal",
 		Namespace: "website-internal",
+		Ports:     []picchuv1alpha1.PortInfo{publicPort, privatePort},
 	}
 
 	assert.Equal(t, "website.website-internal.svc.cluster.local", plan.serviceHost())
@@ -519,11 +520,11 @@ func TestHosts(t *testing.T) {
 		"www.doki-pen.org",
 		"website-internal.dkpn.io",
 		"website.dkpn.io",
+		"website.doki-pen.org",
 	}, plan.privateHosts(publicPort, cluster))
 	assert.ElementsMatch(t, []string{
 		"www.dkpn.io",
 		"website-internal.doki-pen.org",
-		"website.doki-pen.org",
 	}, plan.publicHosts(privatePort, cluster))
 	assert.ElementsMatch(t, []string{
 		"www.dkpn.io",

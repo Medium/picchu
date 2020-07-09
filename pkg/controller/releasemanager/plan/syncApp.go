@@ -44,6 +44,7 @@ type SyncApp struct {
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
 	HTTPPortFaults    []picchuv1alpha1.HTTPPortFault
+	userDefinedHosts  map[string]bool // internal cache
 }
 
 func (p *SyncApp) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -127,6 +128,18 @@ func (p *SyncApp) privateAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *p
 	return p.authorityMatch(p.privateHosts(port, cluster))
 }
 
+func (p *SyncApp) isUserDefined(host string) bool {
+	if p.userDefinedHosts == nil {
+		p.userDefinedHosts = map[string]bool{}
+		for _, port := range p.Ports {
+			for _, host := range port.Hosts {
+				p.userDefinedHosts[host] = true
+			}
+		}
+	}
+	return p.userDefinedHosts[host]
+}
+
 func (p *SyncApp) ingressHosts(
 	port picchuv1alpha1.PortInfo,
 	defaultDomains []string,
@@ -134,14 +147,20 @@ func (p *SyncApp) ingressHosts(
 	hostMap := map[string]bool{}
 	fleetSuffix := fmt.Sprintf("-%s", p.Fleet)
 
+	addDefaultHost := func(host string) {
+		if !p.isUserDefined(host) {
+			hostMap[host] = true
+		}
+	}
+
 	for _, domain := range defaultDomains {
-		hostMap[fmt.Sprintf("%s.%s", p.Namespace, domain)] = true
+		addDefaultHost(fmt.Sprintf("%s.%s", p.Namespace, domain))
 
 		if p.Target == p.Fleet {
-			hostMap[fmt.Sprintf("%s.%s", p.App, domain)] = true
+			addDefaultHost(fmt.Sprintf("%s.%s", p.App, domain))
 		} else if strings.HasSuffix(p.Namespace, fleetSuffix) {
 			basename := strings.TrimSuffix(p.Namespace, fleetSuffix)
-			hostMap[fmt.Sprintf("%s.%s", basename, domain)] = true
+			addDefaultHost(fmt.Sprintf("%s.%s", basename, domain))
 		}
 	}
 
