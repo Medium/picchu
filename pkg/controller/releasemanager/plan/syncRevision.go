@@ -201,6 +201,7 @@ func (p *SyncRevision) syncReplicaSet(
 	containers = append(containers, p.Sidecars...)
 
 	for i := range containers {
+		containers[i].EnvFrom = envs
 		containers[i].Env = p.EnvVars
 	}
 
