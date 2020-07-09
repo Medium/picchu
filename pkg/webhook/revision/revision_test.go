@@ -13,7 +13,7 @@ type revisionBuilder struct {
 	portCounter int32
 }
 
-func (r *revisionBuilder) addPort(target string, name string, mode picchu.PortMode, dflt bool) *revisionBuilder {
+func (r *revisionBuilder) internalAddPort(target string, name string, mode picchu.PortMode, ingresses ...string) *revisionBuilder {
 	r.portCounter += 1
 	r.ensureTarget(target)
 	for i := range r.Spec.Targets {
@@ -25,12 +25,33 @@ func (r *revisionBuilder) addPort(target string, name string, mode picchu.PortMo
 				ContainerPort: r.portCounter,
 				Protocol:      "TCP",
 				Mode:          mode,
-				Default:       dflt,
+				Ingresses:     ingresses,
 			})
 			return r
 		}
 	}
 	panic("Bug")
+}
+
+func (r *revisionBuilder) addPortWithMode(target, name string, mode picchu.PortMode) *revisionBuilder {
+	return r.internalAddPort(target, name, mode)
+}
+
+func (r *revisionBuilder) addPort(target, name string, ingresses ...string) *revisionBuilder {
+	return r.internalAddPort(target, name, "", ingresses...)
+}
+
+func (r *revisionBuilder) addIngressDefaultPort(target, ingress, port string) *revisionBuilder {
+	for i := range r.Spec.Targets {
+		if r.Spec.Targets[i].Name == target {
+			if r.Spec.Targets[i].DefaultIngressPorts == nil {
+				r.Spec.Targets[i].DefaultIngressPorts = map[string]string{}
+			}
+			r.Spec.Targets[i].DefaultIngressPorts[ingress] = port
+			break
+		}
+	}
+	return r
 }
 
 func (r *revisionBuilder) ensureTarget(name string) *revisionBuilder {
@@ -80,98 +101,96 @@ func TestMutate(t *testing.T) {
 		{
 			name: "SetHTTPAsDefaultPort",
 			rev: newRevisionBuilder().
-				addPort("production", "http", picchu.PortPrivate, false).
-				addPort("production", "grpc", picchu.PortPrivate, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPortWithMode("production", "http", picchu.PortPrivate).
+				addPortWithMode("production", "grpc", picchu.PortPublic).
+				addPortWithMode("production", "status", picchu.PortLocal).
 				build(),
-			expected: []jsonpatch.JsonPatchOperation{{
-				Operation: "add",
-				Path:      "/spec/targets/0/ports/0/default",
-				Value:     true,
-			}},
+			expected: []jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/targets/0/ports/0/ingresses",
+					Value:     []string{"private"},
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/targets/0/ports/1/ingresses",
+					Value:     []string{"private", "public"},
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/targets/0/defaultIngressPorts",
+					Value:     map[string]string{"private": "http", "public": "grpc"},
+				},
+			},
 		},
 		{
 			name: "DontSetHTTPAsDefaultPort",
 			rev: newRevisionBuilder().
-				addPort("production", "http", picchu.PortPrivate, false).
-				addPort("production", "grpc", picchu.PortPrivate, true).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "http", "private").
+				addPort("production", "grpc", "private").
+				addPort("production", "status").
+				addIngressDefaultPort("production", "private", "grpc").
 				build(),
 			expected: nil,
 		},
 		{
 			name: "SpitModes",
 			rev: newRevisionBuilder().
-				addPort("production", "grpc", picchu.PortPublic, false).
-				addPort("production", "http", picchu.PortPublic, false).
-				addPort("production", "http", picchu.PortPrivate, false).
-				addPort("production", "grpc", picchu.PortPrivate, true).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "grpc", "private").
+				addPort("production", "http", "public", "private").
+				addPort("production", "status").
+				addIngressDefaultPort("production", "private", "grpc").
 				build(),
 			expected: []jsonpatch.JsonPatchOperation{{
 				Operation: "add",
-				Path:      "/spec/targets/0/ports/1/default",
-				Value:     true,
+				Path:      "/spec/targets/0/defaultIngressPorts[public]",
+				Value:     "http",
 			}},
 		},
 		{
 			name: "NoHTTP",
 			rev: newRevisionBuilder().
-				addPort("production", "grpc", picchu.PortPublic, false).
-				addPort("production", "blah", picchu.PortPublic, false).
-				addPort("production", "blah", picchu.PortPrivate, false).
-				addPort("production", "grpc", picchu.PortPrivate, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "grpc", "public", "private").
+				addPort("production", "blah", "public", "private").
+				addPort("production", "status").
 				build(),
 			expected: nil,
 		},
 		{
 			name: "SinglePort",
 			rev: newRevisionBuilder().
-				addPort("production", "grpc", picchu.PortPublic, false).
-				addPort("production", "grpc", picchu.PortPrivate, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "grpc", "public", "private").
+				addPort("production", "status").
 				build(),
 			expected: []jsonpatch.JsonPatchOperation{
 				{
 					Operation: "add",
-					Path:      "/spec/targets/0/ports/0/default",
-					Value:     true,
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/ports/1/default",
-					Value:     true,
+					Path:      "/spec/targets/0/defaultIngressPorts",
+					Value:     map[string]string{"public": "grpc", "private": "grpc"},
 				},
 			},
 		},
 		{
 			name: "SingleAndHTTP",
 			rev: newRevisionBuilder().
-				addPort("production", "grpc", picchu.PortPublic, false).
-				addPort("production", "grpc", picchu.PortPrivate, false).
-				addPort("production", "http", picchu.PortPrivate, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "grpc", "public", "private").
+				addPort("production", "http", "private").
+				addPort("production", "status").
 				build(),
 			expected: []jsonpatch.JsonPatchOperation{
 				{
 					Operation: "add",
-					Path:      "/spec/targets/0/ports/0/default",
-					Value:     true,
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/ports/2/default",
-					Value:     true,
+					Path:      "/spec/targets/0/defaultIngressPorts",
+					Value:     map[string]string{"public": "grpc", "private": "http"},
 				},
 			},
 		},
 		{
 			name: "NoDefaultOnLocal",
 			rev: newRevisionBuilder().
-				addPort("production", "grpc", picchu.PortLocal, false).
-				addPort("production", "http", picchu.PortLocal, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "grpc").
+				addPort("production", "http").
+				addPort("production", "status").
 				build(),
 			expected: nil,
 		},
@@ -196,25 +215,28 @@ func TestValidate(t *testing.T) {
 		{
 			name: "DefaultsSet",
 			rev: newRevisionBuilder().
-				addPort("production", "http", picchu.PortPrivate, true).
-				addPort("production", "grpc", picchu.PortPublic, true).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "http", "private").
+				addPort("production", "grpc", "public", "private").
+				addPort("production", "status").
+				addIngressDefaultPort("production", "private", "http").
+				addIngressDefaultPort("production", "public", "grpc").
 				build(),
 			expected: nil,
 		},
 		{
 			name: "NoDefault",
 			rev: newRevisionBuilder().
-				addPort("production", "http", picchu.PortPrivate, false).
-				addPort("production", "grpc", picchu.PortPrivate, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("production", "http", "private").
+				addPort("production", "grpc", "private").
+				addPort("production", "status").
 				build(),
 			expected: []string{"production"},
 		},
 		{
 			name: "DefaultLocal",
 			rev: newRevisionBuilder().
-				addPort("production", "status", picchu.PortLocal, true).
+				addPort("production", "status").
+				addIngressDefaultPort("production", "local", "status").
 				build(),
 			expected: []string{"production"},
 		},
@@ -227,24 +249,27 @@ func TestValidate(t *testing.T) {
 		{
 			name: "MultiTargets",
 			rev: newRevisionBuilder().
-				addPort("staging", "http", picchu.PortPrivate, true).
-				addPort("staging", "grpc", picchu.PortPublic, true).
-				addPort("staging", "status", picchu.PortLocal, false).
-				addPort("production", "http", picchu.PortPrivate, false).
-				addPort("production", "grpc", picchu.PortPrivate, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("staging", "http", "private").
+				addPort("staging", "grpc", "public", "private").
+				addPort("staging", "status").
+				addIngressDefaultPort("staging", "private", "grpc").
+				addIngressDefaultPort("staging", "public", "grpc").
+				addPort("production", "http", "private").
+				addPort("production", "grpc", "private").
+				addPort("production", "status").
+				addIngressDefaultPort("production", "private", "httpz").
 				build(),
 			expected: []string{"production"},
 		},
 		{
 			name: "MultiTargetFailures",
 			rev: newRevisionBuilder().
-				addPort("staging", "http", picchu.PortPrivate, false).
-				addPort("staging", "grpc", picchu.PortPublic, false).
-				addPort("staging", "status", picchu.PortLocal, false).
-				addPort("production", "http", picchu.PortPrivate, false).
-				addPort("production", "grpc", picchu.PortPrivate, false).
-				addPort("production", "status", picchu.PortLocal, false).
+				addPort("staging", "http", "private").
+				addPort("staging", "grpc", "public", "private").
+				addPort("staging", "status").
+				addPort("production", "http", "private").
+				addPort("production", "grpc", "private").
+				addPort("production", "status").
 				build(),
 			expected: []string{"production", "staging"},
 		},
@@ -252,7 +277,17 @@ func TestValidate(t *testing.T) {
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(tc.expected, validator.invalidTargets(tc.rev))
+			failures := validator.failures(tc.rev)
+			failedTargetsMap := map[string]bool{}
+			for _, failure := range failures {
+				failedTargetsMap[failure.target] = true
+			}
+			var failedTargets []string
+			for target := range failedTargetsMap {
+				failedTargets = append(failedTargets, target)
+			}
+
+			assert.ElementsMatch(tc.expected, failedTargets, failures)
 		})
 	}
 }

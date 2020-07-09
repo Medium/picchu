@@ -69,7 +69,8 @@ type PortInfo struct {
 	// is not present, validation will fail. Only Mode == (private|public) use the default flag, as they are trafficked
 	// through the same external port. Internal ports can have the same hostnames since they can be selected by port
 	// number.
-	Default bool `json:"default,omitempty"`
+	Default   bool     `json:"default,omitempty"`
+	Ingresses []string `json:"ingresses,omitempty"`
 
 	Istio IstioPortConfig `json:"istio,omitempty"`
 }

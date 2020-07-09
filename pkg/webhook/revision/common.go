@@ -7,15 +7,29 @@ type portInfo struct {
 	index int
 }
 
-func bucketIngressPorts(target picchu.RevisionTarget) map[picchu.PortMode][]portInfo {
+// returns a map of ingresses and ports mapped to ingresses
+func bucketIngressPorts(target picchu.RevisionTarget) map[string][]portInfo {
 	// bucket ports by mode
-	track := map[picchu.PortMode][]portInfo{}
-	for j := range target.Ports {
-		port := target.Ports[j]
-		track[port.Mode] = append(track[port.Mode], portInfo{
-			PortInfo: port,
-			index:    j,
-		})
+	track := map[string][]portInfo{}
+	for i := range target.Ports {
+		pi := portInfo{
+			PortInfo: target.Ports[i],
+			index:    i,
+		}
+		if pi.Ingresses != nil {
+			for _, ingress := range pi.Ingresses {
+				track[ingress] = append(track[ingress], pi)
+			}
+			continue
+		}
+
+		switch pi.Mode {
+		case picchu.PortPublic:
+			track["public"] = append(track["public"], pi)
+			track["private"] = append(track["private"], pi)
+		case picchu.PortPrivate:
+			track["private"] = append(track["private"], pi)
+		}
 	}
 	return track
 }

@@ -684,6 +684,11 @@ func (in *PortInfo) DeepCopyInto(out *PortInfo) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Ingresses != nil {
+		in, out := &in.Ingresses, &out.Ingresses
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	in.Istio.DeepCopyInto(&out.Istio)
 	return
 }
@@ -1271,6 +1276,13 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 	}
 	in.ExternalTest.DeepCopyInto(&out.ExternalTest)
 	out.Canary = in.Canary
+	if in.DefaultIngressPorts != nil {
+		in, out := &in.DefaultIngressPorts, &out.DefaultIngressPorts
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.Ports != nil {
 		in, out := &in.Ports, &out.Ports
 		*out = make([]PortInfo, len(*in))
