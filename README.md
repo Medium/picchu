@@ -2,7 +2,7 @@
 
 ---
 
-Picchu [![Build Status](https://travis-ci.org/Medium/picchu.svg?branch=master)](https://travis-ci.org/Medium/picchu)
+Picchu [![Build Status](https://travis-ci.org/Medium/picchu.svg?branch=main)](https://travis-ci.org/Medium/picchu)
 ------
 
 Picchu is a deployment and release operator for Kubernetes + Istio.
