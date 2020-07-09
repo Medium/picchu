@@ -498,6 +498,9 @@ func (r *ReconcileRevision) mirrorRevision(
 		},
 		Spec: revision.DeepCopy().Spec,
 	}
+	for i := range revCopy.Spec.Targets {
+		revCopy.Spec.Targets[i].ExternalTest.Enabled = false
+	}
 	log.Info("Syncing revision", revCopy)
 	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func() error {
 		revCopy.Spec = revision.Spec
