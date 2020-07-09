@@ -122,10 +122,11 @@ type RevisionTarget struct {
 	Affinity    *corev1.Affinity    `json:"affinity,omitempty"`
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
-	ExternalTest ExternalTest    `json:"externalTest,omitempty"`
-	Canary       Canary          `json:"canary,omitempty"`
-	Ports        []PortInfo      `json:"ports,omitempty"`
-	Env          []corev1.EnvVar `json:"env,omitempty"`
+	ExternalTest        ExternalTest      `json:"externalTest,omitempty"`
+	Canary              Canary            `json:"canary,omitempty"`
+	DefaultIngressPorts map[string]string `json:"defaultIngressPorts,omitempty"`
+	Ports               []PortInfo        `json:"ports,omitempty"`
+	Env                 []corev1.EnvVar   `json:"env,omitempty"`
 
 	Istio *Istio `json:"istio,omitempty"`
 }

@@ -24,13 +24,45 @@ func (r *revisionMutator) Handle(ctx context.Context, req admission.Request) adm
 	}
 	patches := r.getPatches(rev)
 	if len(patches) > 0 {
-		log.Info("Setting default port", "patches", patches)
-		return admission.Patched("setting default port", patches...)
+		log.Info("Patching revision", "patches", patches)
+		return admission.Patched("patching revision", patches...)
 	}
 	return admission.Allowed("ok")
 }
 
 func (r *revisionMutator) getPatches(rev *picchu.Revision) []jsonpatch.JsonPatchOperation {
+	return append(r.getIngressesPatches(rev), r.getIngressDefaultPortPatches(rev)...)
+}
+
+func (r *revisionMutator) getIngressesPatches(rev *picchu.Revision) []jsonpatch.JsonPatchOperation {
+	var patches []jsonpatch.JsonPatchOperation
+	for i := range rev.Spec.Targets {
+		for j := range rev.Spec.Targets[i].Ports {
+			port := rev.Spec.Targets[i].Ports[j]
+			var ingresses []string
+			if port.Ingresses != nil {
+				continue
+			}
+			if port.Mode == picchu.PortPrivate || port.Mode == picchu.PortPublic {
+				ingresses = append(ingresses, "private")
+			}
+			if port.Mode == picchu.PortPublic {
+				ingresses = append(ingresses, "public")
+			}
+			if ingresses != nil {
+				patches = append(patches, jsonpatch.JsonPatchOperation{
+					Operation: "add",
+					Path:      fmt.Sprintf("/spec/targets/%d/ports/%d/ingresses", i, j),
+					Value:     ingresses,
+				})
+			}
+		}
+
+	}
+	return patches
+}
+
+func (r *revisionMutator) getIngressDefaultPortPatches(rev *picchu.Revision) []jsonpatch.JsonPatchOperation {
 	// if a single public or private ingress port is defined in a target and it's not set to default, it will be set as
 	// the default.
 	// if multiple ingress ports are defined and none are set to default and there is a port called 'http', it will be
@@ -38,34 +70,40 @@ func (r *revisionMutator) getPatches(rev *picchu.Revision) []jsonpatch.JsonPatch
 	// internal ports will never be set as default
 	var patches []jsonpatch.JsonPatchOperation
 	for i := range rev.Spec.Targets {
-		buckets := bucketIngressPorts(rev.Spec.Targets[i])
-		for mode, ports := range buckets {
-			if mode == picchu.PortLocal {
-				continue
-			}
-
+		ingressDefaultPorts := map[string]string{}
+		for ingress, ports := range bucketIngressPorts(rev.Spec.Targets[i]) {
 			if len(ports) == 1 && !ports[0].Default {
-				patches = append(patches, jsonpatch.JsonPatchOperation{
-					Operation: "add",
-					Path:      fmt.Sprintf("/spec/targets/%d/ports/%d/default", i, ports[0].index),
-					Value:     true,
-				})
+				ingressDefaultPorts[ingress] = ports[0].Name
 			}
 
-			var httpIndex *int
+			var httpFound bool
 			var defaultFound bool
 			for j := range ports {
 				port := ports[j]
 				defaultFound = defaultFound || port.Default
 				if port.Name == "http" {
-					httpIndex = &port.index
+					httpFound = true
 				}
 			}
-			if !defaultFound && httpIndex != nil {
+			if !defaultFound && httpFound {
+				ingressDefaultPorts[ingress] = "http"
+			}
+		}
+		existing := rev.Spec.Targets[i].DefaultIngressPorts
+		if existing == nil && len(ingressDefaultPorts) > 0 {
+			patches = append(patches, jsonpatch.JsonPatchOperation{
+				Operation: "add",
+				Path:      fmt.Sprintf("/spec/targets/%d/defaultIngressPorts", i),
+				Value:     ingressDefaultPorts,
+			})
+			continue
+		}
+		for ingress, def := range ingressDefaultPorts {
+			if _, ok := existing[ingress]; !ok {
 				patches = append(patches, jsonpatch.JsonPatchOperation{
 					Operation: "add",
-					Path:      fmt.Sprintf("/spec/targets/%d/ports/%d/default", i, *httpIndex),
-					Value:     true,
+					Path:      fmt.Sprintf("/spec/targets/%d/defaultIngressPorts[%s]", i, ingress),
+					Value:     def,
 				})
 			}
 		}
