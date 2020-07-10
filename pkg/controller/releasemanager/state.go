@@ -198,10 +198,10 @@ func Deployed(ctx context.Context, deployment Deployment) (State, error) {
 	case ExternalTestPending:
 		return pendingtest, nil
 	}
-	if deployment.isCanaryPending() {
-		return canarying, nil
-	}
 	if deployment.isReleaseEligible() {
+		if deployment.isCanaryPending() {
+			return canarying, nil
+		}
 		return pendingrelease, nil
 	}
 	return deployed, nil
@@ -270,10 +270,10 @@ func Tested(ctx context.Context, deployment Deployment) (State, error) {
 	if !externalTestStatus.Finished() {
 		return testing, nil
 	}
-	if deployment.isCanaryPending() {
-		return canarying, nil
-	}
 	if deployment.isReleaseEligible() {
+		if deployment.isCanaryPending() {
+			return canarying, nil
+		}
 		return pendingrelease, nil
 	}
 	return tested, nil
