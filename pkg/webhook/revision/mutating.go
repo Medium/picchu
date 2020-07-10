@@ -27,6 +27,7 @@ func (r *revisionMutator) Handle(ctx context.Context, req admission.Request) adm
 		log.Info("Patching revision", "patches", patches)
 		return admission.Patched("patching revision", patches...)
 	}
+	log.Info("No patches needed")
 	return admission.Allowed("ok")
 }
 
@@ -40,7 +41,7 @@ func (r *revisionMutator) getIngressesPatches(rev *picchu.Revision) []jsonpatch.
 		for j := range rev.Spec.Targets[i].Ports {
 			port := rev.Spec.Targets[i].Ports[j]
 			var ingresses []string
-			if port.Ingresses != nil {
+			if len(port.Ingresses) > 0 {
 				continue
 			}
 			if port.Mode == picchu.PortPrivate || port.Mode == picchu.PortPublic {
@@ -49,7 +50,7 @@ func (r *revisionMutator) getIngressesPatches(rev *picchu.Revision) []jsonpatch.
 			if port.Mode == picchu.PortPublic {
 				ingresses = append(ingresses, "public")
 			}
-			if ingresses != nil {
+			if len(ingresses) > 0 {
 				patches = append(patches, jsonpatch.JsonPatchOperation{
 					Operation: "add",
 					Path:      fmt.Sprintf("/spec/targets/%d/ports/%d/ingresses", i, j),
@@ -72,7 +73,7 @@ func (r *revisionMutator) getIngressDefaultPortPatches(rev *picchu.Revision) []j
 	for i := range rev.Spec.Targets {
 		ingressDefaultPorts := map[string]string{}
 		for ingress, ports := range bucketIngressPorts(rev.Spec.Targets[i]) {
-			if len(ports) == 1 && !ports[0].Default {
+			if len(ports) == 1 {
 				ingressDefaultPorts[ingress] = ports[0].Name
 			}
 
@@ -90,7 +91,7 @@ func (r *revisionMutator) getIngressDefaultPortPatches(rev *picchu.Revision) []j
 			}
 		}
 		existing := rev.Spec.Targets[i].DefaultIngressPorts
-		if existing == nil && len(ingressDefaultPorts) > 0 {
+		if (existing == nil || len(existing) <= 0) && len(ingressDefaultPorts) > 0 {
 			patches = append(patches, jsonpatch.JsonPatchOperation{
 				Operation: "add",
 				Path:      fmt.Sprintf("/spec/targets/%d/defaultIngressPorts", i),
