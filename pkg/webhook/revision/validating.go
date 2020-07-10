@@ -48,9 +48,6 @@ func (r *revisionValidator) failures(rev *picchu.Revision) (failures []failure) 
 	for _, target := range rev.Spec.Targets {
 		buckets := bucketIngressPorts(target)
 		for ingress, ports := range buckets {
-			if len(ports) == 0 {
-				continue
-			}
 			if target.DefaultIngressPorts == nil {
 				msg := fmt.Sprintf("Default ingress ports not specified for %s", ingress)
 				failures = append(failures, failure{target.Name, msg})
