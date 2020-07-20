@@ -225,6 +225,8 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		AlertRules:        alertRules,
 		Ports:             ports,
 		HTTPPortFaults:    r.faults,
+		DefaultVariant:    utils.VariantEnabled(r.instance, picchuv1alpha1.VariantPortDefault),
+		IngressesVariant:  utils.VariantEnabled(r.instance, picchuv1alpha1.VariantIngresses),
 	})
 	if err != nil {
 		return err

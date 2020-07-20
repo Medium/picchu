@@ -287,10 +287,24 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 							Format: "",
 						},
 					},
+					"variants": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Variant"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"fleet", "app", "target"},
 			},
 		},
+		Dependencies: []string{
+			"go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Variant"},
 	}
 }
 

@@ -40,6 +40,18 @@ spec:
               type: string
             target:
               type: string
+            variants:
+              items:
+                properties:
+                  enabled:
+                    type: boolean
+                  name:
+                    type: string
+                required:
+                - enabled
+                - name
+                type: object
+              type: array
           required:
           - app
           - fleet
