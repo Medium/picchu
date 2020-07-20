@@ -6,6 +6,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	VariantPortDefault = "PORT_DEFAULT"
+	VariantIngresses   = "PORT_INGRESSES"
+)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -34,9 +39,15 @@ type ReleaseManagerList struct {
 // ReleaseManagerSpec defines the desired state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerSpec struct {
-	Fleet  string `json:"fleet"`
-	App    string `json:"app"`
-	Target string `json:"target"`
+	Fleet    string    `json:"fleet"`
+	App      string    `json:"app"`
+	Target   string    `json:"target"`
+	Variants []Variant `json:"variants,omitempty"`
+}
+
+type Variant struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
 }
 
 // ReleaseManagerStatus defines the observed state of ReleaseManager

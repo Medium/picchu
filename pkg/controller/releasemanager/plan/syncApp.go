@@ -44,10 +44,17 @@ type SyncApp struct {
 	AlertRules        []monitoringv1.Rule
 	Ports             []picchuv1alpha1.PortInfo
 	HTTPPortFaults    []picchuv1alpha1.HTTPPortFault
+	DefaultVariant    bool
+	IngressesVariant  bool
 	userDefinedHosts  map[string]bool // internal cache
 }
 
-func (p *SyncApp) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+func (p *SyncApp) Apply(
+	ctx context.Context,
+	cli client.Client,
+	cluster *picchuv1alpha1.Cluster,
+	log logr.Logger,
+) error {
 	if len(p.Ports) == 0 {
 		log.Info("Not syncing app", "Reason", "there are no exposed ports")
 		return nil
@@ -148,9 +155,13 @@ func (p *SyncApp) ingressHosts(
 	fleetSuffix := fmt.Sprintf("-%s", p.Fleet)
 
 	addDefaultHost := func(host string) {
-		if !p.isUserDefined(host) {
-			hostMap[host] = true
+		if p.isUserDefined(host) {
+			return
 		}
+		if p.DefaultVariant && !port.Default {
+			return
+		}
+		hostMap[host] = true
 	}
 
 	for _, domain := range defaultDomains {
@@ -211,7 +222,28 @@ func (p *SyncApp) portHeaderMatches(
 		Uri:      &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
 	}}
 
-	if port.Mode == picchuv1alpha1.PortPublic {
+	publicEnabled, privateEnabled := false, false
+	if p.IngressesVariant {
+		for _, ingress := range port.Ingresses {
+			switch ingress {
+			case "public":
+				publicEnabled = true
+			case "private":
+				privateEnabled = true
+			}
+		}
+
+	} else {
+		switch port.Mode {
+		case picchuv1alpha1.PortPublic:
+			publicEnabled = true
+			privateEnabled = true
+		case picchuv1alpha1.PortPrivate:
+			privateEnabled = true
+		}
+	}
+
+	if publicEnabled {
 		hosts := p.publicHosts(port, cluster)
 		if len(hosts) > 0 {
 			for _, host := range hosts {
@@ -235,7 +267,7 @@ func (p *SyncApp) portHeaderMatches(
 			}
 		}
 	}
-	if port.Mode == picchuv1alpha1.PortPublic || port.Mode == picchuv1alpha1.PortPrivate {
+	if privateEnabled {
 		hosts := p.privateHosts(port, cluster)
 		for _, host := range hosts {
 			hostMap[host] = true
