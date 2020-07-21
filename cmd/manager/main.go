@@ -4,9 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"go.medium.engineering/picchu/pkg/client/scheme"
-	"go.medium.engineering/picchu/pkg/webhook"
-	apps "k8s.io/api/apps/v1"
 	"os"
 	"runtime"
 	"runtime/debug"
@@ -19,12 +16,16 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
+	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/spf13/pflag"
 	"go.medium.engineering/picchu/pkg/apis"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/client/scheme"
 	"go.medium.engineering/picchu/pkg/controller"
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	"go.medium.engineering/picchu/pkg/webhook"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	apps "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	core "k8s.io/api/core/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
@@ -151,6 +152,7 @@ func main() {
 		istio.AddToScheme,
 		monitoring.AddToScheme,
 		slo.AddToScheme,
+		wpav1.AddToScheme,
 	}
 
 	for _, sch := range []*k8sruntime.Scheme{mgr.GetScheme(), scheme.Scheme} {

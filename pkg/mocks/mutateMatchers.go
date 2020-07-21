@@ -4,6 +4,7 @@ import (
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
+	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -153,4 +154,18 @@ func UpdateHPASpec(hpa *autoscaling.HorizontalPodAutoscaler) gomock.Matcher {
 		}
 	}
 	return Callback(fn, "update hpa spec")
+}
+
+// UpdateHPASpec sets the spec on a *HorizontalPodAutoscaler
+func UpdateWPASpec(wpa *wpav1.WorkerPodAutoScaler) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *wpav1.WorkerPodAutoScaler:
+			o.Spec = wpa.Spec
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "update wpa spec")
 }
