@@ -62,3 +62,6 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.17.8
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.5.7
 )
+
+// Override dependancy from k8s-worker-pod-autoscaler
+replace github.com/go-logr/logr => github.com/go-logr/logr v0.1.0
