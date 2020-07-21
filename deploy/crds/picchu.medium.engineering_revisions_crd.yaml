@@ -2236,12 +2236,35 @@ spec:
                         format: int32
                         type: integer
                       requestsRateMetric:
+                        description: 'RequestsRateMetric refers to a Prometheus Adapter
+                          metric. See: https://github.com/DirectXMan12/k8s-prometheus-adapter'
                         type: string
                       targetCPUUtilizationPercentage:
+                        description: TargetCPUUtilizationPercentage scales based on
+                          CPU percentage
                         format: int32
                         type: integer
                       targetRequestsRate:
+                        description: TargetRequestsRate scales based on the specified
+                          RequestsRateMetric
                         type: string
+                      worker:
+                        description: Worker specifies parameters for Worker Pod Autoscaler.
+                          See https://github.com/practo/k8s-worker-pod-autoscaler
+                        properties:
+                          maxDisruption:
+                            type: string
+                          queueUri:
+                            type: string
+                          secondsToProcessOneJob: {}
+                          targetMessagesPerWorker:
+                            format: int32
+                            type: integer
+                        required:
+                        - maxDisruption
+                        - queueUri
+                        - targetMessagesPerWorker
+                        type: object
                     type: object
                   serviceAccountName:
                     type: string

@@ -6,15 +6,16 @@ require (
 	github.com/Medium/service-level-operator v0.3.1-0.20200128160720-77476ad50a61
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/coreos/prometheus-operator v0.38.1
-	github.com/go-logr/logr v0.1.0
+	github.com/go-logr/logr v0.2.0
 	github.com/go-logr/zapr v0.1.1
 	github.com/go-openapi/spec v0.19.7
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.4.3
 	github.com/google/uuid v1.1.1
 	github.com/operator-framework/operator-sdk v0.13.0
-	github.com/prometheus/client_golang v1.6.0
-	github.com/prometheus/common v0.9.1
+	github.com/practo/k8s-worker-pod-autoscaler v1.0.1-0.20200714064616-7a81cf1a4cb8
+	github.com/prometheus/client_golang v1.7.0
+	github.com/prometheus/common v0.10.0
 	github.com/prometheus/prometheus v2.3.2+incompatible
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.0

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
@@ -278,6 +280,23 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, hpa)
+		if err != nil {
+			return err
+		}
+	case *wpav1.WorkerPodAutoScaler:
+		typed := orig.DeepCopy()
+		wpa := &wpav1.WorkerPodAutoScaler{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+				Labels:    typed.Labels,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, wpa, func() error {
+			wpa.Spec = typed.Spec
+			return nil
+		})
+		LogSync(log, op, err, wpa)
 		if err != nil {
 			return err
 		}

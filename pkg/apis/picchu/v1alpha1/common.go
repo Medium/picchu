@@ -90,14 +90,29 @@ type IstioHTTPPortConfig struct {
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 }
 
+type WorkerScaleInfo struct {
+	QueueURI                string   `json:"queueUri"`
+	TargetMessagesPerWorker *int32   `json:"targetMessagesPerWorker"`
+	SecondsToProcessOneJob  *float64 `json:"secondsToProcessOneJob,omitempty"` // optional
+	MaxDisruption           *string  `json:"maxDisruption"`                    // optional
+}
+
 type ScaleInfo struct {
-	Min                            *int32  `json:"min,omitempty"`
-	Default                        int32   `json:"default,omitempty"`
-	Max                            int32   `json:"max,omitempty"`
-	TargetCPUUtilizationPercentage *int32  `json:"targetCPUUtilizationPercentage,omitempty"`
-	RequestsRateMetric             string  `json:"requestsRateMetric,omitempty"`
-	TargetRequestsRate             *string `json:"targetRequestsRate,omitempty"`
-	MinReadySeconds                int32   `json:"minReadySeconds,omitempty"`
+	Min             *int32 `json:"min,omitempty"`
+	Default         int32  `json:"default,omitempty"`
+	Max             int32  `json:"max,omitempty"`
+	MinReadySeconds int32  `json:"minReadySeconds,omitempty"`
+
+	// TargetCPUUtilizationPercentage scales based on CPU percentage
+	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
+
+	// TargetRequestsRate scales based on the specified RequestsRateMetric
+	TargetRequestsRate *string `json:"targetRequestsRate,omitempty"`
+	// RequestsRateMetric refers to a Prometheus Adapter metric. See: https://github.com/DirectXMan12/k8s-prometheus-adapter
+	RequestsRateMetric string `json:"requestsRateMetric,omitempty"`
+
+	// Worker specifies parameters for Worker Pod Autoscaler. See https://github.com/practo/k8s-worker-pod-autoscaler
+	Worker *WorkerScaleInfo `json:"worker,omitempty"`
 }
 
 func (s *ScaleInfo) TargetReqeustsRateQuantity() (*resource.Quantity, error) {
