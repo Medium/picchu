@@ -1,8 +1,11 @@
 package plan
 
 import (
+	"time"
+
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	ktest "go.medium.engineering/kubernetes/pkg/test"
 	coreAsserts "go.medium.engineering/kubernetes/pkg/test/core/v1"
 	istioAsserts "go.medium.engineering/kubernetes/pkg/test/istio/networking/v1alpha3"
@@ -17,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"time"
 )
 
 var (
@@ -63,6 +65,9 @@ func init() {
 			panic(err)
 		}
 		if err := slov1alpha1.AddToScheme(s); err != nil {
+			panic(err)
+		}
+		if err := wpav1.AddToScheme(s); err != nil {
 			panic(err)
 		}
 	}

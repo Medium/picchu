@@ -465,6 +465,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		CPUTarget:          cpuTarget,
 		RequestsRateMetric: i.target().Scale.RequestsRateMetric,
 		RequestsRateTarget: requestsRateTarget,
+		Worker:             i.target().Scale.Worker,
 	}
 }
 
