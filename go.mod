@@ -13,7 +13,7 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/google/uuid v1.1.1
 	github.com/operator-framework/operator-sdk v0.13.0
-	github.com/practo/k8s-worker-pod-autoscaler v1.0.1-0.20200714064616-7a81cf1a4cb8
+	github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9
 	github.com/prometheus/client_golang v1.7.0
 	github.com/prometheus/common v0.10.0
 	github.com/prometheus/prometheus v2.3.2+incompatible
@@ -33,6 +33,9 @@ require (
 	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
 	sigs.k8s.io/controller-runtime v0.6.0
 )
+
+// Override dependancy from k8s-worker-pod-autoscaler
+replace github.com/go-logr/logr => github.com/go-logr/logr v0.1.0
 
 // Pinned to kubernetes-1.17
 replace (
@@ -62,6 +65,3 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.17.8
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.5.7
 )
-
-// Override dependancy from k8s-worker-pod-autoscaler
-replace github.com/go-logr/logr => github.com/go-logr/logr v0.1.0

@@ -748,8 +748,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndrE9hABlRI=
 github.com/pquerna/cachecontrol v0.0.0-20171018203845-0dec1b30a021/go.mod h1:prYjPmNq4d1NPVmpShWobRqXY3q7Vp+80DqgxxUrUIA=
 github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20/go.mod h1:YARuvh7BUWHNhzDq2OM5tzR2RiCcN2D7sapiKyCel/M=
-github.com/practo/k8s-worker-pod-autoscaler v1.0.1-0.20200714064616-7a81cf1a4cb8 h1:uAO0O9buCw/dWuiE6xzJYkw1Wkg7I75nBF2IhcfeQJs=
-github.com/practo/k8s-worker-pod-autoscaler v1.0.1-0.20200714064616-7a81cf1a4cb8/go.mod h1:jh1Tx7J3/BZwfbR1gv3G5dRRYfognxOyUnFN264eGqs=
+github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9 h1:FZfqpzIdRRMjdodpMB8nXH15sTT9BBgUwHkAhjDtdyY=
+github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9/go.mod h1:jh1Tx7J3/BZwfbR1gv3G5dRRYfognxOyUnFN264eGqs=
 github.com/practo/klog/v2 v2.2.1/go.mod h1:WMkpfPwTxLgSLookpI4UUv2zL7tMltKACK/FHB1zLV0=
 github.com/practo/promlog v1.0.0/go.mod h1:gNtTwdRfC4UHAqBDWZ8xrSSFtACV689gWvpgGobYHXM=
 github.com/prometheus/alertmanager v0.18.0/go.mod h1:WcxHBl40VSPuOaqWae6l6HpnEOVRIycEJ7i9iYkadEE=
