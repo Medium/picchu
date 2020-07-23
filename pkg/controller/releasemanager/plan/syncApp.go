@@ -35,18 +35,19 @@ type Revision struct {
 }
 
 type SyncApp struct {
-	App               string
-	Target            string
-	Fleet             string
-	Namespace         string
-	Labels            map[string]string
-	DeployedRevisions []Revision
-	AlertRules        []monitoringv1.Rule
-	Ports             []picchuv1alpha1.PortInfo
-	HTTPPortFaults    []picchuv1alpha1.HTTPPortFault
-	DefaultVariant    bool
-	IngressesVariant  bool
-	userDefinedHosts  map[string]bool // internal cache
+	App                 string
+	Target              string
+	Fleet               string
+	Namespace           string
+	Labels              map[string]string
+	DeployedRevisions   []Revision
+	AlertRules          []monitoringv1.Rule
+	Ports               []picchuv1alpha1.PortInfo
+	HTTPPortFaults      []picchuv1alpha1.HTTPPortFault
+	DefaultVariant      bool
+	IngressesVariant    bool
+	DefaultIngressPorts map[string]string
+	userDefinedHosts    map[string]bool // internal cache
 }
 
 func (p *SyncApp) Apply(
@@ -108,11 +109,11 @@ func (p *SyncApp) serviceHost() string {
 }
 
 func (p *SyncApp) publicHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
-	return p.ingressHosts(port, cluster.Spec.Ingresses.Public.DefaultDomains)
+	return p.ingressHosts(port, cluster.Spec.Ingresses.Public.DefaultDomains, "public")
 }
 
 func (p *SyncApp) privateHosts(port picchuv1alpha1.PortInfo, cluster *picchuv1alpha1.Cluster) []string {
-	return p.ingressHosts(port, cluster.Spec.Ingresses.Private.DefaultDomains)
+	return p.ingressHosts(port, cluster.Spec.Ingresses.Private.DefaultDomains, "private")
 }
 
 func (p *SyncApp) authorityMatch(hosts []string) *istio.StringMatch {
@@ -150,6 +151,7 @@ func (p *SyncApp) isUserDefined(host string) bool {
 func (p *SyncApp) ingressHosts(
 	port picchuv1alpha1.PortInfo,
 	defaultDomains []string,
+	ingressName string,
 ) []string {
 	hostMap := map[string]bool{}
 	fleetSuffix := fmt.Sprintf("-%s", p.Fleet)
@@ -158,8 +160,14 @@ func (p *SyncApp) ingressHosts(
 		if p.isUserDefined(host) {
 			return
 		}
-		if p.DefaultVariant && !port.Default {
-			return
+		if p.DefaultVariant {
+			defaultPort, ok := p.DefaultIngressPorts[ingressName]
+			if !ok {
+				return
+			}
+			if defaultPort != port.Name {
+				return
+			}
 		}
 		hostMap[host] = true
 	}

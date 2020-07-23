@@ -587,6 +587,10 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 				Expr: intstr.FromString("hello world"),
 			},
 		},
+		DefaultIngressPorts: map[string]string{
+			"public":  "http",
+			"private": "http",
+		},
 		Ports: []picchuv1alpha1.PortInfo{
 			{
 				Name:          "http",
@@ -594,7 +598,6 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 				Port:          80,
 				ContainerPort: 5000,
 				Protocol:      corev1.ProtocolTCP,
-				Default:       true,
 				Ingresses:     []string{"private"},
 				Istio: picchuv1alpha1.IstioPortConfig{
 					HTTP: picchuv1alpha1.IstioHTTPPortConfig{
@@ -872,7 +875,6 @@ func TestProductionEcho(t *testing.T) {
 				Port:          80,
 				ContainerPort: 8080,
 				Protocol:      corev1.ProtocolTCP,
-				Default:       true,
 				Ingresses:     []string{"private", "public"},
 				Mode:          picchuv1alpha1.PortPublic,
 			},
@@ -891,6 +893,10 @@ func TestProductionEcho(t *testing.T) {
 					},
 				},
 			},
+		},
+		DefaultIngressPorts: map[string]string{
+			"public":  "http",
+			"private": "http",
 		},
 		DefaultVariant:   true,
 		IngressesVariant: true,
