@@ -269,10 +269,10 @@ func (p *SyncApp) portHeaderMatches(
 	}
 	if privateEnabled {
 		hosts := p.privateHosts(port, cluster)
-		for _, host := range hosts {
-			hostMap[host] = true
-		}
 		if len(hosts) > 0 {
+			for _, host := range hosts {
+				hostMap[host] = true
+			}
 			matches = append(matches, &istio.HTTPMatchRequest{
 				Headers:   headers,
 				Authority: p.privateAuthorityMatch(port, cluster),
