@@ -214,19 +214,21 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 
 	revisions := r.prepareRevisions()
 	alertRules := r.prepareAlertRules()
+	defaultIngressPorts := incarnations[len(incarnations)-1].target().DefaultIngressPorts
 
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
-		App:               r.instance.Spec.App,
-		Target:            r.instance.Spec.Target,
-		Fleet:             r.instance.Spec.Fleet,
-		Namespace:         r.instance.TargetNamespace(),
-		Labels:            r.defaultLabels(),
-		DeployedRevisions: revisions,
-		AlertRules:        alertRules,
-		Ports:             ports,
-		HTTPPortFaults:    r.faults,
-		DefaultVariant:    utils.VariantEnabled(r.instance, picchuv1alpha1.VariantPortDefault),
-		IngressesVariant:  utils.VariantEnabled(r.instance, picchuv1alpha1.VariantIngresses),
+		App:                 r.instance.Spec.App,
+		Target:              r.instance.Spec.Target,
+		Fleet:               r.instance.Spec.Fleet,
+		Namespace:           r.instance.TargetNamespace(),
+		Labels:              r.defaultLabels(),
+		DeployedRevisions:   revisions,
+		AlertRules:          alertRules,
+		Ports:               ports,
+		HTTPPortFaults:      r.faults,
+		DefaultVariant:      utils.VariantEnabled(r.instance, picchuv1alpha1.VariantPortDefault),
+		IngressesVariant:    utils.VariantEnabled(r.instance, picchuv1alpha1.VariantIngresses),
+		DefaultIngressPorts: defaultIngressPorts,
 	})
 	if err != nil {
 		return err
