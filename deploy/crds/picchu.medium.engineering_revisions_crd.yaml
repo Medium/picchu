@@ -2184,10 +2184,30 @@ spec:
                     properties:
                       eligible:
                         type: boolean
+                      geometricScaling:
+                        properties:
+                          delay:
+                            type: string
+                          factor:
+                            format: int32
+                            type: integer
+                          start:
+                            format: int32
+                            type: integer
+                        type: object
+                      linearScaling:
+                        properties:
+                          delay:
+                            type: string
+                          increment:
+                            format: int32
+                            type: integer
+                        type: object
                       max:
                         format: int32
                         type: integer
                       rate:
+                        description: Deprecated
                         properties:
                           delay:
                             format: int64
@@ -2196,6 +2216,8 @@ spec:
                             format: int32
                             type: integer
                         type: object
+                      scalingStrategy:
+                        type: string
                       schedule:
                         type: string
                       ttl:

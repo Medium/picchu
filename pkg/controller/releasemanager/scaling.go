@@ -1,6 +1,7 @@
 package releasemanager
 
 import (
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"math"
 	"time"
 
@@ -54,16 +55,8 @@ func (s *ScalableTargetAdapter) PeakPercent() uint32 {
 	return s.Incarnation.status.PeakPercent
 }
 
-func (s *ScalableTargetAdapter) Delay() time.Duration {
-	return time.Duration(*s.Incarnation.target().Release.Rate.DelaySeconds) * time.Second
-}
-
-func (s *ScalableTargetAdapter) Increment() uint32 {
-	return s.Incarnation.target().Release.Rate.Increment
-}
-
-func (s *ScalableTargetAdapter) Max() uint32 {
-	return s.Incarnation.target().Release.Max
+func (s *ScalableTargetAdapter) ReleaseInfo() picchu.ReleaseInfo {
+	return s.Incarnation.target().Release
 }
 
 func (s *ScalableTargetAdapter) LastUpdated() time.Time {
@@ -74,7 +67,13 @@ func (s *ScalableTargetAdapter) LastUpdated() time.Time {
 	return time.Time{}
 }
 
-func LinearScale(i Incarnation, max uint32, t time.Time) uint32 {
+func Scale(i Incarnation, max uint32, t time.Time) uint32 {
 	sta := ScalableTargetAdapter{i}
-	return scaling.LinearScale(&sta, max, t)
+	switch sta.ReleaseInfo().ScalingStrategy {
+	case picchu.ScalingStrategyLinear:
+		return scaling.LinearScale(&sta, max, t)
+	case picchu.ScalingStrategyGeometric:
+		return scaling.GeometricScale(&sta, max, t)
+	}
+	return sta.CurrentPercent()
 }

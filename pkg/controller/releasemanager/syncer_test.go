@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	testCanaryIncrement  uint32 = 10
-	testReleaseIncrement uint32 = 20
+	testCanaryIncrement        uint32 = 10
+	testReleaseIncrement       uint32 = 20
+	testReleaseScalingStrategy        = picchuv1alpha1.ScalingStrategyLinear
 )
 
 type testIncarnationOption interface {
@@ -46,7 +47,8 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 							Percent: testCanaryIncrement,
 						},
 						Release: picchuv1alpha1.ReleaseInfo{
-							Max: 100,
+							ScalingStrategy: testReleaseScalingStrategy,
+							Max:             100,
 							Rate: picchuv1alpha1.RateInfo{
 								Increment:    testReleaseIncrement,
 								DelaySeconds: &delaySeconds,

@@ -5,7 +5,9 @@ import (
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"testing"
+	"time"
 )
 
 type revisionBuilder struct {
@@ -34,20 +36,34 @@ func (r *revisionBuilder) internalAddPort(target string, name string, mode picch
 }
 
 func (r *revisionBuilder) addPortWithMode(target, name string, mode picchu.PortMode) *revisionBuilder {
+	r.ensureTarget(target)
 	return r.internalAddPort(target, name, mode)
 }
 
 func (r *revisionBuilder) addPort(target, name string, ingresses ...string) *revisionBuilder {
+	r.ensureTarget(target)
 	return r.internalAddPort(target, name, "", ingresses...)
 }
 
 func (r *revisionBuilder) addIngressDefaultPort(target, ingress, port string) *revisionBuilder {
+	r.ensureTarget(target)
 	for i := range r.Spec.Targets {
 		if r.Spec.Targets[i].Name == target {
 			if r.Spec.Targets[i].DefaultIngressPorts == nil {
 				r.Spec.Targets[i].DefaultIngressPorts = map[string]string{}
 			}
 			r.Spec.Targets[i].DefaultIngressPorts[ingress] = port
+			break
+		}
+	}
+	return r
+}
+
+func (r *revisionBuilder) setRate(target string, rate picchu.RateInfo) *revisionBuilder {
+	r.ensureTarget(target)
+	for i := range r.Spec.Targets {
+		if r.Spec.Targets[i].Name == target {
+			r.Spec.Targets[i].Release.Rate = rate
 			break
 		}
 	}
@@ -62,6 +78,16 @@ func (r *revisionBuilder) ensureTarget(name string) *revisionBuilder {
 	}
 	r.Spec.Targets = append(r.Spec.Targets, picchu.RevisionTarget{
 		Name: name,
+		Release: picchu.ReleaseInfo{
+			Eligible:         false,
+			Max:              0,
+			ScalingStrategy:  picchu.ScalingStrategyLinear,
+			GeometricScaling: picchu.GeometricScaling{},
+			LinearScaling:    picchu.LinearScaling{},
+			Rate:             picchu.RateInfo{},
+			Schedule:         "",
+			TTL:              0,
+		},
 	})
 	return r
 }
@@ -120,6 +146,37 @@ func TestMutate(t *testing.T) {
 					Operation: "add",
 					Path:      "/spec/targets/0/defaultIngressPorts",
 					Value:     map[string]string{"private": "http", "public": "grpc"},
+				},
+			},
+		},
+		{
+			name: "DontSetHTTPAsDefaultPort",
+			rev: newRevisionBuilder().
+				addPort("production", "http", "private").
+				addPort("production", "grpc", "private").
+				addPort("production", "status").
+				addIngressDefaultPort("production", "private", "grpc").
+				build(),
+			expected: nil,
+		},
+		{
+			name: "SetLinearScalingProperties",
+			rev: newRevisionBuilder().
+				setRate("production", picchu.RateInfo{
+					Increment:    10,
+					DelaySeconds: pointer.Int64Ptr(20),
+				}).
+				build(),
+			expected: []jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/targets/0/release/linearScaling/increment",
+					Value:     uint32(10),
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/targets/0/release/linearScaling/delay",
+					Value:     &meta.Duration{Duration: time.Duration(20) * time.Second},
 				},
 			},
 		},

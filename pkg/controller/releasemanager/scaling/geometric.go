@@ -1,11 +1,8 @@
 package scaling
 
-import (
-	"time"
-)
+import "time"
 
-// LinearScale scales a ScalableTarget linearly
-func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
+func GeometricScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	current := st.CurrentPercent()
 	release := st.ReleaseInfo()
 
@@ -23,13 +20,15 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	}
 
 	// Wait longer to scale
-	deadline := st.LastUpdated().Add(time.Duration(*release.Rate.DelaySeconds) * time.Second)
+	deadline := st.LastUpdated().Add(release.GeometricScaling.Delay.Duration)
 	if deadline.After(t) {
 		return current
 	}
 
-	increment := release.Rate.Increment
-	desired := current + increment
+	desired := current * release.GeometricScaling.Factor
+	if current < release.GeometricScaling.Start {
+		desired = release.GeometricScaling.Start
+	}
 
 	if desired > max {
 		desired = max

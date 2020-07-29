@@ -6,8 +6,10 @@ import (
 	"github.com/prometheus/common/log"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"time"
 )
 
 type revisionMutator struct {
@@ -38,6 +40,23 @@ func (r *revisionMutator) getPatches(rev *picchu.Revision) []jsonpatch.JsonPatch
 func (r *revisionMutator) getIngressesPatches(rev *picchu.Revision) []jsonpatch.JsonPatchOperation {
 	var patches []jsonpatch.JsonPatchOperation
 	for i := range rev.Spec.Targets {
+		// Patch for deprecated rate field
+		release := rev.Spec.Targets[i].Release
+		if release.LinearScaling.Increment == 0 && release.Rate.Increment != 0 {
+			patches = append(patches, jsonpatch.JsonPatchOperation{
+				Operation: "add",
+				Path:      fmt.Sprintf("/spec/targets/%d/release/linearScaling/increment", i),
+				Value:     release.Rate.Increment,
+			})
+		}
+		if release.LinearScaling.Delay == nil && release.Rate.DelaySeconds != nil {
+			patches = append(patches, jsonpatch.JsonPatchOperation{
+				Operation: "add",
+				Path:      fmt.Sprintf("/spec/targets/%d/release/linearScaling/delay", i),
+				Value:     &metav1.Duration{Duration: time.Duration(*release.Rate.DelaySeconds) * time.Second},
+			})
+		}
+		// end patch
 		for j := range rev.Spec.Targets[i].Ports {
 			port := rev.Spec.Targets[i].Ports[j]
 			var ingresses []string

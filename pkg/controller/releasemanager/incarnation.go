@@ -754,7 +754,7 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		}
 	}
 
-	return LinearScale(*i, max, time.Now())
+	return Scale(*i, max, time.Now())
 }
 
 func (i *Incarnation) updateCurrentPercent(current uint32) {

@@ -6,6 +6,7 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	reflect "reflect"
 	time "time"
 )
@@ -47,34 +48,6 @@ func (mr *MockScalableTargetMockRecorder) CurrentPercent() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPercent", reflect.TypeOf((*MockScalableTarget)(nil).CurrentPercent))
 }
 
-// Delay mocks base method
-func (m *MockScalableTarget) Delay() time.Duration {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delay")
-	ret0, _ := ret[0].(time.Duration)
-	return ret0
-}
-
-// Delay indicates an expected call of Delay
-func (mr *MockScalableTargetMockRecorder) Delay() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delay", reflect.TypeOf((*MockScalableTarget)(nil).Delay))
-}
-
-// Increment mocks base method
-func (m *MockScalableTarget) Increment() uint32 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Increment")
-	ret0, _ := ret[0].(uint32)
-	return ret0
-}
-
-// Increment indicates an expected call of Increment
-func (mr *MockScalableTargetMockRecorder) Increment() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Increment", reflect.TypeOf((*MockScalableTarget)(nil).Increment))
-}
-
 // IsReconciled mocks base method
 func (m *MockScalableTarget) IsReconciled(arg0 uint32) bool {
 	m.ctrl.T.Helper()
@@ -103,20 +76,6 @@ func (mr *MockScalableTargetMockRecorder) LastUpdated() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastUpdated", reflect.TypeOf((*MockScalableTarget)(nil).LastUpdated))
 }
 
-// Max mocks base method
-func (m *MockScalableTarget) Max() uint32 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Max")
-	ret0, _ := ret[0].(uint32)
-	return ret0
-}
-
-// Max indicates an expected call of Max
-func (mr *MockScalableTargetMockRecorder) Max() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Max", reflect.TypeOf((*MockScalableTarget)(nil).Max))
-}
-
 // PeakPercent mocks base method
 func (m *MockScalableTarget) PeakPercent() uint32 {
 	m.ctrl.T.Helper()
@@ -129,4 +88,18 @@ func (m *MockScalableTarget) PeakPercent() uint32 {
 func (mr *MockScalableTargetMockRecorder) PeakPercent() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PeakPercent", reflect.TypeOf((*MockScalableTarget)(nil).PeakPercent))
+}
+
+// ReleaseInfo mocks base method
+func (m *MockScalableTarget) ReleaseInfo() v1alpha1.ReleaseInfo {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseInfo")
+	ret0, _ := ret[0].(v1alpha1.ReleaseInfo)
+	return ret0
+}
+
+// ReleaseInfo indicates an expected call of ReleaseInfo
+func (mr *MockScalableTargetMockRecorder) ReleaseInfo() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseInfo", reflect.TypeOf((*MockScalableTarget)(nil).ReleaseInfo))
 }
