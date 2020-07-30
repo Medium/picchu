@@ -1,10 +1,11 @@
 package scaling
 
 import (
+	"github.com/go-logr/logr"
 	"time"
 )
 
-func GeometricNextIncrement(st ScalableTarget, max uint32, t time.Time) uint32 {
+func GeometricNextIncrement(st ScalableTarget, max uint32, t time.Time, log logr.Logger) uint32 {
 	current := st.CurrentPercent()
 	release := st.ReleaseInfo()
 
@@ -39,8 +40,8 @@ func GeometricNextIncrement(st ScalableTarget, max uint32, t time.Time) uint32 {
 	return next
 }
 
-func GeometricScale(st ScalableTarget, max uint32, t time.Time) uint32 {
-	desired := GeometricNextIncrement(st, max, t)
+func GeometricScale(st ScalableTarget, max uint32, t time.Time, log logr.Logger) uint32 {
+	desired := GeometricNextIncrement(st, max, t, log)
 
 	if desired <= st.CurrentPercent() {
 		return desired

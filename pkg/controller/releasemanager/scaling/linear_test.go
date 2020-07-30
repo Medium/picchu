@@ -3,6 +3,7 @@ package scaling
 import (
 	testify "github.com/stretchr/testify/assert"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/test"
 	"k8s.io/utils/pointer"
 	"testing"
 	"time"
@@ -12,6 +13,8 @@ import (
 )
 
 func TestLinearScaling(t *testing.T) {
+	log := test.MustNewLogger()
+
 	for _, test := range []struct {
 		Name             string
 		CanRamp          bool
@@ -167,7 +170,7 @@ func TestLinearScaling(t *testing.T) {
 				Return(test.LastUpdated).
 				AnyTimes()
 
-			assert.Equal(test.Expected, LinearScale(m, test.RemainingPercent, time.Now()))
+			assert.Equal(test.Expected, LinearScale(m, test.RemainingPercent, time.Now(), log))
 		})
 	}
 }

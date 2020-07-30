@@ -1,12 +1,13 @@
 package scaling
 
 import (
+	"github.com/go-logr/logr"
 	"time"
 )
 
 // LinearScale scales a ScalableTarget linearly
-func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
-	desired := LinearNextIncrement(st, max, t)
+func LinearScale(st ScalableTarget, max uint32, t time.Time, log logr.Logger) uint32 {
+	desired := LinearNextIncrement(st, max, t, log)
 
 	if desired <= st.CurrentPercent() {
 		return desired
@@ -19,7 +20,7 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	return st.CurrentPercent()
 }
 
-func LinearNextIncrement(st ScalableTarget, max uint32, t time.Time) uint32 {
+func LinearNextIncrement(st ScalableTarget, max uint32, t time.Time, log logr.Logger) uint32 {
 	current := st.CurrentPercent()
 	release := st.ReleaseInfo()
 

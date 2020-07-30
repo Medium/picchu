@@ -5,12 +5,15 @@ import (
 	testify "github.com/stretchr/testify/assert"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling/mocks"
+	"go.medium.engineering/picchu/pkg/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
 )
 
 func TestGeometricScaling(t *testing.T) {
+	log := test.MustNewLogger()
+
 	for _, test := range []struct {
 		Name             string
 		CanRamp          bool
@@ -187,7 +190,7 @@ func TestGeometricScaling(t *testing.T) {
 				Return(test.LastUpdated).
 				AnyTimes()
 
-			assert.Equal(test.Expected, GeometricScale(m, test.RemainingPercent, time.Now()))
+			assert.Equal(test.Expected, GeometricScale(m, test.RemainingPercent, time.Now(), log))
 		})
 	}
 }

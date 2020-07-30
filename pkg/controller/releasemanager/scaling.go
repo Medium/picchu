@@ -71,10 +71,11 @@ func Scale(i Incarnation, max uint32, t time.Time) uint32 {
 	sta := ScalableTargetAdapter{i}
 	switch sta.ReleaseInfo().ScalingStrategy {
 	case picchu.ScalingStrategyLinear:
-		return scaling.LinearScale(&sta, max, t)
+		return scaling.LinearScale(&sta, max, t, i.log)
 	case picchu.ScalingStrategyGeometric:
-		return scaling.GeometricScale(&sta, max, t)
+		return scaling.GeometricScale(&sta, max, t, i.log)
 	}
+	i.log.Info("Not Scaling, no scalingStrategySelected")
 	return sta.CurrentPercent()
 }
 
@@ -82,9 +83,10 @@ func NextIncrement(i Incarnation, max uint32, t time.Time) uint32 {
 	sta := ScalableTargetAdapter{i}
 	switch sta.ReleaseInfo().ScalingStrategy {
 	case picchu.ScalingStrategyLinear:
-		return scaling.LinearNextIncrement(&sta, max, t)
+		return scaling.LinearNextIncrement(&sta, max, t, i.log)
 	case picchu.ScalingStrategyGeometric:
-		return scaling.GeometricNextIncrement(&sta, max, t)
+		return scaling.GeometricNextIncrement(&sta, max, t, i.log)
 	}
+	i.log.Info("Not Scaling, no scalingStrategySelected")
 	return sta.CurrentPercent()
 }
