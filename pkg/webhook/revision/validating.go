@@ -46,6 +46,16 @@ func (r *revisionValidator) Handle(ctx context.Context, req admission.Request) a
 func (r *revisionValidator) failures(rev *picchu.Revision) (failures []failure) {
 	// exactly one port per target ingress should be set as default.
 	for _, target := range rev.Spec.Targets {
+		found := target.Release.ScalingStrategy == ""
+		for _, s := range picchu.ScalingStrategies {
+			if target.Release.ScalingStrategy == s {
+				found = true
+			}
+		}
+		if !found {
+			msg := fmt.Sprintf("Invalid scaling strategy %s found", target.Release.ScalingStrategy)
+			failures = append(failures, failure{target.Name, msg})
+		}
 		buckets := bucketIngressPorts(target)
 		for ingress, ports := range buckets {
 			if target.DefaultIngressPorts == nil {

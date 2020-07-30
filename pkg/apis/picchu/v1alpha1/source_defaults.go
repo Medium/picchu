@@ -2,23 +2,34 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 const (
-	defaultReleaseMax              = 100
-	defaultReleaseSchedule         = HumaneSchedule
-	defaultReleaseRateIncrement    = 5
-	defaultReleaseRateDelaySeconds = int64(10)
-	defaultReleaseGcTTLSeconds     = int64(5 * 24 * 60 * 60)
-	defaultScaleDefault            = int32(1)
-	defaultScaleMax                = int32(1)
-	defaultRequestsRateMetric      = "istio_requests_rate"
+	defaultReleaseMax                    = 100
+	defaultReleaseSchedule               = HumaneSchedule
+	defaultReleaseRateIncrement          = 5
+	defaultReleaseRateDelaySeconds       = int64(10)
+	defaultReleaseGcTTLSeconds           = int64(5 * 24 * 60 * 60)
+	defaultScaleDefault                  = int32(1)
+	defaultScaleMax                      = int32(1)
+	defaultRequestsRateMetric            = "istio_requests_rate"
+	defaultReleaseScalingStrategy        = ScalingStrategyLinear
+	defaultReleaseGeometricScalingStart  = 10
+	defaultReleaseGeometricScalingFactor = 2
+	defaultReleaseLinearScalingIncrement = 5
 
 	defaultPortIngressPort   = int32(443)
 	defaultPortContainerPort = int32(80)
 	defaultPortPort          = int32(80)
 	defaultPortProtocol      = corev1.ProtocolTCP
 	defaultPortMode          = PortPrivate
+)
+
+var (
+	defaultReleaseGeometricScalingDelay = &metav1.Duration{Duration: time.Duration(10) * time.Second}
+	defaultReleaseLinearScalingDelay    = &metav1.Duration{Duration: time.Duration(10) * time.Second}
 )
 
 func SetDefaults_ClusterSpec(spec *ClusterSpec) {
@@ -45,6 +56,9 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 	if release.Schedule == "" {
 		release.Schedule = defaultReleaseSchedule
 	}
+	if release.ScalingStrategy == "" {
+		release.ScalingStrategy = defaultReleaseScalingStrategy
+	}
 	if release.Rate.Increment == 0 {
 		release.Rate.Increment = defaultReleaseRateIncrement
 	}
@@ -54,6 +68,21 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 	}
 	if release.TTL == 0 {
 		release.TTL = defaultReleaseGcTTLSeconds
+	}
+	if release.GeometricScaling.Factor == 0 {
+		release.GeometricScaling.Factor = defaultReleaseGeometricScalingFactor
+	}
+	if release.GeometricScaling.Start == 0 {
+		release.GeometricScaling.Start = defaultReleaseGeometricScalingStart
+	}
+	if release.GeometricScaling.Delay == nil {
+		release.GeometricScaling.Delay = defaultReleaseGeometricScalingDelay.DeepCopy()
+	}
+	if release.LinearScaling.Increment == 0 {
+		release.LinearScaling.Increment = defaultReleaseLinearScalingIncrement
+	}
+	if release.LinearScaling.Delay == nil {
+		release.LinearScaling.Delay = defaultReleaseLinearScalingDelay.DeepCopy()
 	}
 }
 

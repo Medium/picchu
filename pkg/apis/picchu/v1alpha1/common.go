@@ -19,6 +19,17 @@ const (
 	// PortInternal sets the port to not be published to any gateway, making it only available within
 	// the local Kubernetes cluster.
 	PortLocal PortMode = "local"
+
+	ScalingStrategyNone      = "none"
+	ScalingStrategyLinear    = "linear"
+	ScalingStrategyGeometric = "geometric"
+)
+
+var (
+	ScalingStrategies = []string{
+		ScalingStrategyLinear,
+		ScalingStrategyGeometric,
+	}
 )
 
 const (
@@ -127,13 +138,28 @@ func (s *ScaleInfo) TargetReqeustsRateQuantity() (*resource.Quantity, error) {
 }
 
 type ReleaseInfo struct {
-	Eligible bool     `json:"eligible,omitempty"`
-	Max      uint32   `json:"max,omitempty"`
-	Rate     RateInfo `json:"rate,omitempty"`
-	Schedule string   `json:"schedule,omitempty"`
-	TTL      int64    `json:"ttl,omitempty"`
+	Eligible         bool             `json:"eligible,omitempty"`
+	Max              uint32           `json:"max,omitempty"`
+	ScalingStrategy  string           `json:"scalingStrategy,omitempty"`
+	GeometricScaling GeometricScaling `json:"geometricScaling,omitempty"`
+	LinearScaling    LinearScaling    `json:"linearScaling,omitempty"`
+	Rate             RateInfo         `json:"rate,omitempty"`
+	Schedule         string           `json:"schedule,omitempty"`
+	TTL              int64            `json:"ttl,omitempty"`
 }
 
+type GeometricScaling struct {
+	Start  uint32           `json:"start,omitempty"`
+	Factor uint32           `json:"factor,omitempty"`
+	Delay  *metav1.Duration `json:"delay,omitempty"`
+}
+
+type LinearScaling struct {
+	Increment uint32           `json:"increment,omitempty"`
+	Delay     *metav1.Duration `json:"delay,omitempty"`
+}
+
+// Deprecated
 type RateInfo struct {
 	Increment    uint32 `json:"increment,omitempty"`
 	DelaySeconds *int64 `json:"delay,omitempty"`

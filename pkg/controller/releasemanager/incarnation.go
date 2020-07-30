@@ -731,8 +731,8 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 // not under-provisioned when it receives more traffic.
 func (i *Incarnation) targetScale() float64 {
 	status := i.getStatus()
-	current := i.status.CurrentPercent
-	next := math.Min(float64(current+i.target().Release.Rate.Increment), 100.0)
+	next := float64(NextIncrement(*i, 100, time.Time{}))
+	current := i.currentPercent()
 
 	if status.State.Current != "releasing" || current <= 0 || current >= 100 {
 		return 1.0
@@ -754,7 +754,7 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		}
 	}
 
-	return LinearScale(*i, max, time.Now())
+	return Scale(*i, max, time.Now())
 }
 
 func (i *Incarnation) updateCurrentPercent(current uint32) {
