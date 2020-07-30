@@ -7,7 +7,6 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	"testing"
-	"time"
 )
 
 type revisionBuilder struct {
@@ -160,25 +159,14 @@ func TestMutate(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "SetLinearScalingProperties",
+			name: "DontSetLinearScalingProperties",
 			rev: newRevisionBuilder().
 				setRate("production", picchu.RateInfo{
 					Increment:    10,
 					DelaySeconds: pointer.Int64Ptr(20),
 				}).
 				build(),
-			expected: []jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/release/linearScaling/increment",
-					Value:     uint32(10),
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/release/linearScaling/delay",
-					Value:     &meta.Duration{Duration: time.Duration(20) * time.Second},
-				},
-			},
+			expected: []jsonpatch.JsonPatchOperation{},
 		},
 		{
 			name: "DontSetHTTPAsDefaultPort",
