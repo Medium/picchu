@@ -6,6 +6,20 @@ import (
 
 // LinearScale scales a ScalableTarget linearly
 func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
+	desired := LinearNextIncrement(st, max, t)
+
+	if desired <= st.CurrentPercent() {
+		return desired
+	}
+
+	if st.CanRampTo(desired) {
+		return desired
+	}
+
+	return st.CurrentPercent()
+}
+
+func LinearNextIncrement(st ScalableTarget, max uint32, t time.Time) uint32 {
 	current := st.CurrentPercent()
 	release := st.ReleaseInfo()
 
@@ -29,15 +43,11 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 	}
 
 	increment := release.Rate.Increment
-	desired := current + increment
+	next := current + increment
 
-	if desired > max {
-		desired = max
+	if next > max {
+		next = max
 	}
 
-	if st.CanRampTo(desired) {
-		return desired
-	}
-
-	return current
+	return next
 }

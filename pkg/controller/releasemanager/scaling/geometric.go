@@ -1,8 +1,10 @@
 package scaling
 
-import "time"
+import (
+	"time"
+)
 
-func GeometricScale(st ScalableTarget, max uint32, t time.Time) uint32 {
+func GeometricNextIncrement(st ScalableTarget, max uint32, t time.Time) uint32 {
 	current := st.CurrentPercent()
 	release := st.ReleaseInfo()
 
@@ -25,18 +27,28 @@ func GeometricScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 		return current
 	}
 
-	desired := current * release.GeometricScaling.Factor
+	next := current * release.GeometricScaling.Factor
 	if current < release.GeometricScaling.Start {
-		desired = release.GeometricScaling.Start
+		next = release.GeometricScaling.Start
 	}
 
-	if desired > max {
-		desired = max
+	if next > max {
+		next = max
+	}
+
+	return next
+}
+
+func GeometricScale(st ScalableTarget, max uint32, t time.Time) uint32 {
+	desired := GeometricNextIncrement(st, max, t)
+
+	if desired <= st.CurrentPercent() {
+		return desired
 	}
 
 	if st.CanRampTo(desired) {
 		return desired
 	}
 
-	return current
+	return st.CurrentPercent()
 }

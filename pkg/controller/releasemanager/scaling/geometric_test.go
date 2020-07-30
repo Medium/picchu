@@ -13,7 +13,7 @@ import (
 func TestGeometricScaling(t *testing.T) {
 	for _, test := range []struct {
 		Name             string
-		IsReconciled     bool
+		CanRamp          bool
 		CurrentPercent   uint32
 		PeakPercent      uint32
 		Factor           uint32
@@ -26,7 +26,7 @@ func TestGeometricScaling(t *testing.T) {
 	}{
 		{
 			Name:             "StartAt5",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   0,
 			PeakPercent:      0,
 			Factor:           2,
@@ -39,7 +39,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncAboveMax",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   100,
 			PeakPercent:      100,
 			Factor:           2,
@@ -52,7 +52,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncAboveRemaining",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   50,
 			PeakPercent:      100,
 			Factor:           2,
@@ -65,7 +65,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncAboveMax50",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   50,
 			PeakPercent:      100,
 			Factor:           2,
@@ -78,7 +78,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "IncMyFactor25",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   25,
 			PeakPercent:      25,
 			Factor:           2,
@@ -91,7 +91,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "IncMyFactor50",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   50,
 			PeakPercent:      50,
 			Factor:           2,
@@ -104,7 +104,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncIfUnreconciled",
-			IsReconciled:     false,
+			CanRamp:          false,
 			CurrentPercent:   50,
 			PeakPercent:      50,
 			Factor:           2,
@@ -117,7 +117,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontSkipToPeak",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   0,
 			PeakPercent:      99,
 			Factor:           2,
@@ -130,7 +130,7 @@ func TestGeometricScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontSkipToMaxRemaining",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   0,
 			PeakPercent:      99,
 			Factor:           2,
@@ -168,8 +168,8 @@ func TestGeometricScaling(t *testing.T) {
 				AnyTimes()
 			m.
 				EXPECT().
-				IsReconciled(gomock.Any()).
-				Return(test.IsReconciled).
+				CanRampTo(gomock.Any()).
+				Return(test.CanRamp).
 				AnyTimes()
 			m.
 				EXPECT().
