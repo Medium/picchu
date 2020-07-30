@@ -1,101 +1,193 @@
 package scaling
 
 import (
+	"github.com/golang/mock/gomock"
+	testify "github.com/stretchr/testify/assert"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
-
-	"github.com/golang/mock/gomock"
-	testify "github.com/stretchr/testify/assert"
-	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling/mocks"
 )
 
-func prepareGeometricMock(ctrl *gomock.Controller, isReconciled bool, currentPercent, peakPercent, factor, max, start int, delay time.Duration, lastUpdated time.Time) ScalableTarget {
-	m := mocks.NewMockScalableTarget(ctrl)
-	releaseInfo := picchu.ReleaseInfo{
-		Eligible:        false,
-		Max:             uint32(max),
-		ScalingStrategy: picchu.ScalingStrategyGeometric,
-		GeometricScaling: picchu.GeometricScaling{
-			Start:  uint32(start),
-			Factor: uint32(factor),
-			Delay:  &metav1.Duration{Duration: delay},
-		},
-		LinearScaling: picchu.LinearScaling{},
-		Rate:          picchu.RateInfo{},
-		Schedule:      "",
-		TTL:           0,
-	}
-
-	m.
-		EXPECT().
-		CurrentPercent().
-		Return(uint32(currentPercent)).
-		AnyTimes()
-	m.
-		EXPECT().
-		IsReconciled(gomock.Any()).
-		Return(isReconciled).
-		AnyTimes()
-	m.
-		EXPECT().
-		PeakPercent().
-		Return(uint32(peakPercent)).
-		AnyTimes()
-	m.
-		EXPECT().
-		ReleaseInfo().
-		Return(releaseInfo).
-		AnyTimes()
-	m.
-		EXPECT().
-		LastUpdated().
-		Return(lastUpdated).
-		AnyTimes()
-
-	return m
-}
-
 func TestGeometricScaling(t *testing.T) {
-	assert := testify.New(t)
-	ctrl := gomock.NewController(t)
+	for _, test := range []struct {
+		Name             string
+		IsReconciled     bool
+		CurrentPercent   uint32
+		PeakPercent      uint32
+		Factor           uint32
+		Max              uint32
+		Start            uint32
+		Delay            time.Duration
+		LastUpdated      time.Time
+		RemainingPercent uint32
+		Expected         uint32
+	}{
+		{
+			Name:             "StartAt5",
+			IsReconciled:     true,
+			CurrentPercent:   0,
+			PeakPercent:      0,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         5,
+		},
+		{
+			Name:             "DontIncAboveMax",
+			IsReconciled:     true,
+			CurrentPercent:   100,
+			PeakPercent:      100,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         100,
+		},
+		{
+			Name:             "DontIncAboveRemaining",
+			IsReconciled:     true,
+			CurrentPercent:   50,
+			PeakPercent:      100,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 50,
+			Expected:         50,
+		},
+		{
+			Name:             "DontIncAboveMax50",
+			IsReconciled:     true,
+			CurrentPercent:   50,
+			PeakPercent:      100,
+			Factor:           2,
+			Max:              50,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         50,
+		},
+		{
+			Name:             "IncMyFactor25",
+			IsReconciled:     true,
+			CurrentPercent:   25,
+			PeakPercent:      25,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         50,
+		},
+		{
+			Name:             "IncMyFactor50",
+			IsReconciled:     true,
+			CurrentPercent:   50,
+			PeakPercent:      50,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         100,
+		},
+		{
+			Name:             "DontIncIfUnreconciled",
+			IsReconciled:     false,
+			CurrentPercent:   50,
+			PeakPercent:      50,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         50,
+		},
+		{
+			Name:             "DontSkipToPeak",
+			IsReconciled:     true,
+			CurrentPercent:   0,
+			PeakPercent:      99,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         5,
+		},
+		{
+			Name:             "DontSkipToMaxRemaining",
+			IsReconciled:     true,
+			CurrentPercent:   0,
+			PeakPercent:      99,
+			Factor:           2,
+			Max:              100,
+			Start:            5,
+			Delay:            time.Duration(5) * time.Second,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 80,
+			Expected:         5,
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			assert := testify.New(t)
+			releaseInfo := picchu.ReleaseInfo{
+				Eligible:        true,
+				Max:             test.Max,
+				ScalingStrategy: picchu.ScalingStrategyGeometric,
+				GeometricScaling: picchu.GeometricScaling{
+					Start:  test.Start,
+					Factor: test.Factor,
+					Delay:  &metav1.Duration{Duration: test.Delay},
+				},
+				LinearScaling: picchu.LinearScaling{},
+				Rate:          picchu.RateInfo{},
+				Schedule:      "always",
+				TTL:           86400,
+			}
+			m := mocks.NewMockScalableTarget(ctrl)
+			m.
+				EXPECT().
+				CurrentPercent().
+				Return(test.CurrentPercent).
+				AnyTimes()
+			m.
+				EXPECT().
+				IsReconciled(gomock.Any()).
+				Return(test.IsReconciled).
+				AnyTimes()
+			m.
+				EXPECT().
+				PeakPercent().
+				Return(test.PeakPercent).
+				AnyTimes()
+			m.
+				EXPECT().
+				ReleaseInfo().
+				Return(releaseInfo).
+				AnyTimes()
+			m.
+				EXPECT().
+				LastUpdated().
+				Return(test.LastUpdated).
+				AnyTimes()
 
-	defer ctrl.Finish()
-
-	m := prepareGeometricMock(ctrl, true, 0, 0, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(5, int(GeometricScale(m, 100, time.Now())), "Scale start at 5")
-
-	m = prepareGeometricMock(ctrl, true, 100, 100, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(100, int(GeometricScale(m, 100, time.Now())), "Scale shouldn't increment when at max")
-
-	m = prepareGeometricMock(ctrl, true, 50, 100, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(50, int(GeometricScale(m, 50, time.Now())), "Scale shouldn't increment when at max remaining")
-
-	m = prepareGeometricMock(ctrl, true, 50, 100, 2, 50, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(50, int(GeometricScale(m, 100, time.Now())), "Scale shouldn't increment when at max")
-
-	m = prepareGeometricMock(ctrl, true, 25, 50, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(50, int(GeometricScale(m, 100, time.Now())), "Scale should double")
-
-	m = prepareGeometricMock(ctrl, true, 50, 50, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(100, int(GeometricScale(m, 100, time.Now())), "Scale should double")
-
-	m = prepareGeometricMock(ctrl, false, 50, 50, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(50, int(GeometricScale(m, 100, time.Now())), "Scale shouldn't be incremented when unreconciled")
-
-	m = prepareGeometricMock(ctrl, true, 0, 99, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(5, int(GeometricScale(m, 100, time.Now())), "Scale should not skip to peak")
-
-	m = prepareGeometricMock(ctrl, true, 0, 99, 2, 100, 5, time.Duration(5)*time.Second, time.Time{})
-
-	assert.Equal(5, int(GeometricScale(m, 80, time.Now())), "Scale should not skip to max remaining")
+			assert.Equal(test.Expected, GeometricScale(m, test.RemainingPercent, time.Now()))
+		})
+	}
 }

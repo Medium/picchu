@@ -1,95 +1,173 @@
 package scaling
 
 import (
+	testify "github.com/stretchr/testify/assert"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"k8s.io/utils/pointer"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/scaling/mocks"
 )
 
-func prepareLinearMock(ctrl *gomock.Controller, isReconciled bool, currentPercent, peakPercent, increment, max, delay int, lastUpdated time.Time) ScalableTarget {
-	m := mocks.NewMockScalableTarget(ctrl)
-	releaseInfo := picchu.ReleaseInfo{
-		Eligible:         false,
-		Max:              uint32(max),
-		ScalingStrategy:  picchu.ScalingStrategyLinear,
-		GeometricScaling: picchu.GeometricScaling{},
-		LinearScaling:    picchu.LinearScaling{},
-		Rate: picchu.RateInfo{
-			Increment:    uint32(increment),
-			DelaySeconds: pointer.Int64Ptr(int64(delay)),
-		},
-		Schedule: "",
-		TTL:      0,
-	}
-
-	m.
-		EXPECT().
-		CurrentPercent().
-		Return(uint32(currentPercent)).
-		AnyTimes()
-	m.
-		EXPECT().
-		IsReconciled(gomock.Any()).
-		Return(isReconciled).
-		AnyTimes()
-	m.
-		EXPECT().
-		PeakPercent().
-		Return(uint32(peakPercent)).
-		AnyTimes()
-	m.
-		EXPECT().
-		ReleaseInfo().
-		Return(releaseInfo).
-		AnyTimes()
-	m.
-		EXPECT().
-		LastUpdated().
-		Return(lastUpdated).
-		AnyTimes()
-
-	return m
-}
-
 func TestLinearScaling(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	for _, test := range []struct {
+		Name             string
+		IsReconciled     bool
+		CurrentPercent   uint32
+		PeakPercent      uint32
+		Increment        uint32
+		Max              uint32
+		Delay            int64
+		LastUpdated      time.Time
+		RemainingPercent uint32
+		Expected         uint32
+	}{
+		{
+			Name:             "IncFromZero",
+			IsReconciled:     true,
+			CurrentPercent:   0,
+			PeakPercent:      0,
+			Increment:        5,
+			Max:              100,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         5,
+		},
+		{
+			Name:             "DontIncAboveMax100",
+			IsReconciled:     true,
+			CurrentPercent:   100,
+			PeakPercent:      100,
+			Increment:        5,
+			Max:              100,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         100,
+		},
+		{
+			Name:             "DontIncAboveRemaining",
+			IsReconciled:     true,
+			CurrentPercent:   50,
+			PeakPercent:      100,
+			Increment:        5,
+			Max:              100,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 50,
+			Expected:         50,
+		},
+		{
+			Name:             "DontIncAboveMax50",
+			IsReconciled:     true,
+			CurrentPercent:   50,
+			PeakPercent:      100,
+			Increment:        5,
+			Max:              50,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         50,
+		},
+		{
+			Name:             "IncFrom50",
+			IsReconciled:     true,
+			CurrentPercent:   50,
+			PeakPercent:      50,
+			Increment:        5,
+			Max:              100,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         55,
+		},
+		{
+			Name:             "DontIncIfUnreconciled",
+			IsReconciled:     false,
+			CurrentPercent:   50,
+			PeakPercent:      50,
+			Increment:        5,
+			Max:              100,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         50,
+		},
+		{
+			Name:             "DontIncToPeak",
+			IsReconciled:     true,
+			CurrentPercent:   0,
+			PeakPercent:      99,
+			Increment:        5,
+			Max:              100,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 100,
+			Expected:         5,
+		},
+		{
+			Name:             "DontIncToMaxRemaining",
+			IsReconciled:     true,
+			CurrentPercent:   0,
+			PeakPercent:      99,
+			Increment:        5,
+			Max:              100,
+			Delay:            5,
+			LastUpdated:      time.Time{},
+			RemainingPercent: 80,
+			Expected:         5,
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			assert := testify.New(t)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	defer ctrl.Finish()
+			m := mocks.NewMockScalableTarget(ctrl)
+			releaseInfo := picchu.ReleaseInfo{
+				Eligible:         true,
+				Max:              test.Max,
+				ScalingStrategy:  picchu.ScalingStrategyLinear,
+				GeometricScaling: picchu.GeometricScaling{},
+				LinearScaling:    picchu.LinearScaling{},
+				Rate: picchu.RateInfo{
+					Increment:    test.Increment,
+					DelaySeconds: pointer.Int64Ptr(test.Delay),
+				},
+				Schedule: "always",
+				TTL:      86400,
+			}
 
-	m := prepareLinearMock(ctrl, true, 0, 0, 5, 100, 5, time.Time{})
+			m.
+				EXPECT().
+				CurrentPercent().
+				Return(test.CurrentPercent).
+				AnyTimes()
+			m.
+				EXPECT().
+				IsReconciled(gomock.Any()).
+				Return(test.IsReconciled).
+				AnyTimes()
+			m.
+				EXPECT().
+				PeakPercent().
+				Return(test.PeakPercent).
+				AnyTimes()
+			m.
+				EXPECT().
+				ReleaseInfo().
+				Return(releaseInfo).
+				AnyTimes()
+			m.
+				EXPECT().
+				LastUpdated().
+				Return(test.LastUpdated).
+				AnyTimes()
 
-	assert.Equal(t, 5, int(LinearScale(m, 100, time.Now())), "Scale should increment by 5")
-
-	m = prepareLinearMock(ctrl, true, 100, 100, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 100, int(LinearScale(m, 100, time.Now())), "Scale shouldn't increment by 5 when at max")
-
-	m = prepareLinearMock(ctrl, true, 50, 100, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 50, int(LinearScale(m, 50, time.Now())), "Scale shouldn't increment by 5 when at max remaining")
-
-	m = prepareLinearMock(ctrl, true, 50, 100, 5, 50, 5, time.Time{})
-
-	assert.Equal(t, 50, int(LinearScale(m, 100, time.Now())), "Scale shouldn't increment by 5 when at max")
-
-	m = prepareLinearMock(ctrl, true, 50, 50, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 55, int(LinearScale(m, 100, time.Now())), "Scale should increment by 5")
-
-	m = prepareLinearMock(ctrl, false, 50, 50, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 50, int(LinearScale(m, 100, time.Now())), "Scale shouldn't be incremented")
-
-	m = prepareLinearMock(ctrl, true, 0, 99, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 5, int(LinearScale(m, 100, time.Now())), "Scale should not skip to peak")
-
-	m = prepareLinearMock(ctrl, true, 0, 99, 5, 100, 5, time.Time{})
-
-	assert.Equal(t, 5, int(LinearScale(m, 80, time.Now())), "Scale should not skip to max remaining")
+			assert.Equal(test.Expected, LinearScale(m, test.RemainingPercent, time.Now()))
+		})
+	}
 }
