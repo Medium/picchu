@@ -14,7 +14,7 @@ import (
 func TestLinearScaling(t *testing.T) {
 	for _, test := range []struct {
 		Name             string
-		IsReconciled     bool
+		CanRamp          bool
 		CurrentPercent   uint32
 		PeakPercent      uint32
 		Increment        uint32
@@ -26,7 +26,7 @@ func TestLinearScaling(t *testing.T) {
 	}{
 		{
 			Name:             "IncFromZero",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   0,
 			PeakPercent:      0,
 			Increment:        5,
@@ -38,7 +38,7 @@ func TestLinearScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncAboveMax100",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   100,
 			PeakPercent:      100,
 			Increment:        5,
@@ -50,7 +50,7 @@ func TestLinearScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncAboveRemaining",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   50,
 			PeakPercent:      100,
 			Increment:        5,
@@ -62,7 +62,7 @@ func TestLinearScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncAboveMax50",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   50,
 			PeakPercent:      100,
 			Increment:        5,
@@ -74,7 +74,7 @@ func TestLinearScaling(t *testing.T) {
 		},
 		{
 			Name:             "IncFrom50",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   50,
 			PeakPercent:      50,
 			Increment:        5,
@@ -86,7 +86,7 @@ func TestLinearScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncIfUnreconciled",
-			IsReconciled:     false,
+			CanRamp:          false,
 			CurrentPercent:   50,
 			PeakPercent:      50,
 			Increment:        5,
@@ -98,7 +98,7 @@ func TestLinearScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncToPeak",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   0,
 			PeakPercent:      99,
 			Increment:        5,
@@ -110,7 +110,7 @@ func TestLinearScaling(t *testing.T) {
 		},
 		{
 			Name:             "DontIncToMaxRemaining",
-			IsReconciled:     true,
+			CanRamp:          true,
 			CurrentPercent:   0,
 			PeakPercent:      99,
 			Increment:        5,
@@ -148,8 +148,8 @@ func TestLinearScaling(t *testing.T) {
 				AnyTimes()
 			m.
 				EXPECT().
-				IsReconciled(gomock.Any()).
-				Return(test.IsReconciled).
+				CanRampTo(gomock.Any()).
+				Return(test.CanRamp).
 				AnyTimes()
 			m.
 				EXPECT().

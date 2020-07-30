@@ -34,6 +34,20 @@ func (m *MockScalableTarget) EXPECT() *MockScalableTargetMockRecorder {
 	return m.recorder
 }
 
+// CanRampTo mocks base method
+func (m *MockScalableTarget) CanRampTo(arg0 uint32) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CanRampTo", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// CanRampTo indicates an expected call of CanRampTo
+func (mr *MockScalableTargetMockRecorder) CanRampTo(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanRampTo", reflect.TypeOf((*MockScalableTarget)(nil).CanRampTo), arg0)
+}
+
 // CurrentPercent mocks base method
 func (m *MockScalableTarget) CurrentPercent() uint32 {
 	m.ctrl.T.Helper()
@@ -46,20 +60,6 @@ func (m *MockScalableTarget) CurrentPercent() uint32 {
 func (mr *MockScalableTargetMockRecorder) CurrentPercent() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPercent", reflect.TypeOf((*MockScalableTarget)(nil).CurrentPercent))
-}
-
-// IsReconciled mocks base method
-func (m *MockScalableTarget) IsReconciled(arg0 uint32) bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsReconciled", arg0)
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// IsReconciled indicates an expected call of IsReconciled
-func (mr *MockScalableTargetMockRecorder) IsReconciled(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReconciled", reflect.TypeOf((*MockScalableTarget)(nil).IsReconciled), arg0)
 }
 
 // LastUpdated mocks base method

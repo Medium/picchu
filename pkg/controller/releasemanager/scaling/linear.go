@@ -35,7 +35,7 @@ func LinearScale(st ScalableTarget, max uint32, t time.Time) uint32 {
 		desired = max
 	}
 
-	if st.IsReconciled(desired) {
+	if st.CanRampTo(desired) {
 		return desired
 	}
 

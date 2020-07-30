@@ -14,8 +14,8 @@ type ScalableTargetAdapter struct {
 
 const Threshold = 0.95
 
-// IsReconciled returns true if the target is considered ready to be scaled to the next increment.
-func (s *ScalableTargetAdapter) IsReconciled(desiredScale uint32) bool {
+// CanRampTo returns true if the target is considered ready to be scaled to the next increment.
+func (s *ScalableTargetAdapter) CanRampTo(desiredScale uint32) bool {
 	target := s.Incarnation.target()
 	status := s.Incarnation.status
 	controller := s.Incarnation.controller
