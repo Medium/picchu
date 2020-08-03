@@ -90,15 +90,3 @@ func NextIncrement(i Incarnation, max uint32, t time.Time) uint32 {
 	i.log.Info("Not Scaling, no scalingStrategySelected")
 	return sta.CurrentPercent()
 }
-
-func ExpectedReleaseLatency(i Incarnation, max uint32) time.Duration {
-	sta := ScalableTargetAdapter{i}
-	switch sta.ReleaseInfo().ScalingStrategy {
-	case picchu.ScalingStrategyLinear:
-		return scaling.LinearExpectedReleaseLatency(&sta, max, i.log)
-	case picchu.ScalingStrategyGeometric:
-		return scaling.GeometricExpectedReleaseLatency(&sta, max, i.log)
-	}
-	i.log.Info("Not Scaling, no scalingStrategySelected")
-	return time.Duration(0)
-}
