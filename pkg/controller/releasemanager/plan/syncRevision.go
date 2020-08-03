@@ -77,6 +77,43 @@ type SyncRevision struct {
 	Sidecars           []corev1.Container // Additional sidecar containers.
 }
 
+func (p *SyncRevision) Printable() interface{} {
+	return struct {
+		App                string
+		Tag                string
+		Namespace          string
+		Labels             map[string]string
+		Ports              []picchuv1alpha1.PortInfo
+		Replicas           int32
+		Image              string
+		Resources          corev1.ResourceRequirements
+		IAMRole            string            // AWS iam role
+		PodAnnotations     map[string]string // metadata.annotations in the Pod template
+		ServiceAccountName string            // k8s ServiceAccount
+		LivenessProbe      *corev1.Probe
+		ReadinessProbe     *corev1.Probe
+		MinReadySeconds    int32
+		Affinity           *corev1.Affinity
+	}{
+
+		App:                p.App,
+		Tag:                p.Tag,
+		Namespace:          p.Namespace,
+		Labels:             p.Labels,
+		Ports:              p.Ports,
+		Replicas:           p.Replicas,
+		Image:              p.Image,
+		Resources:          p.Resources,
+		IAMRole:            p.IAMRole,
+		PodAnnotations:     p.PodAnnotations,
+		ServiceAccountName: p.ServiceAccountName,
+		LivenessProbe:      p.LivenessProbe,
+		ReadinessProbe:     p.ReadinessProbe,
+		MinReadySeconds:    p.MinReadySeconds,
+		Affinity:           p.Affinity,
+	}
+}
+
 func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 
 	// Clone passed in objects to prevent concurrency issues
