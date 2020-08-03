@@ -2,6 +2,7 @@ package scaling
 
 import (
 	"github.com/go-logr/logr"
+	"math"
 	"time"
 )
 
@@ -51,4 +52,9 @@ func LinearNextIncrement(st ScalableTarget, max uint32, t time.Time, log logr.Lo
 	}
 
 	return next
+}
+
+func LinearExpectedReleaseLatency(st ScalableTarget, max uint32, log logr.Logger) time.Duration {
+	iterations := math.Ceil(float64(max) / float64(st.ReleaseInfo().LinearScaling.Increment))
+	return st.ReleaseInfo().LinearScaling.Delay.Duration * time.Duration(iterations)
 }
