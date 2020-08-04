@@ -159,7 +159,6 @@ func TestGeometricScaling(t *testing.T) {
 					Delay:  &metav1.Duration{Duration: test.Delay},
 				},
 				LinearScaling: picchu.LinearScaling{},
-				Rate:          picchu.RateInfo{},
 				Schedule:      "always",
 				TTL:           86400,
 			}

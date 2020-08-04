@@ -1,22 +1,22 @@
 package releasemanager
 
 import (
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	ttesting "testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 	testIncarnation := createTestIncarnation("test", testing, 10)
-	recentLastUpdated := v1.NewTime(time.Now().Add(-5 * time.Minute))
-	oldLastUpdated := v1.NewTime(time.Now().Add(-15 * time.Minute))
-	timeout := v1.Duration{10 * time.Minute}
+	recentLastUpdated := meta.NewTime(time.Now().Add(-5 * time.Minute))
+	oldLastUpdated := meta.NewTime(time.Now().Add(-15 * time.Minute))
+	timeout := meta.Duration{10 * time.Minute}
 
 	// ExternalTestDisabled
-	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
+	assertExternalTestStatus(t, testIncarnation, picchu.ExternalTest{
 		Enabled:     false,
 		Timeout:     &timeout,
 		Started:     false,
@@ -26,7 +26,7 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 	}, ExternalTestDisabled, false)
 
 	// ExternalTestPending
-	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
+	assertExternalTestStatus(t, testIncarnation, picchu.ExternalTest{
 		Enabled:     true,
 		Timeout:     &timeout,
 		Started:     false,
@@ -36,7 +36,7 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 	}, ExternalTestPending, false)
 
 	// ExternalTestStarted
-	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
+	assertExternalTestStatus(t, testIncarnation, picchu.ExternalTest{
 		Enabled:     true,
 		Timeout:     &timeout,
 		Started:     true,
@@ -46,7 +46,7 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 	}, ExternalTestStarted, false)
 
 	// Timing out
-	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
+	assertExternalTestStatus(t, testIncarnation, picchu.ExternalTest{
 		Enabled:     true,
 		Timeout:     &timeout,
 		Started:     true,
@@ -56,7 +56,7 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 	}, ExternalTestStarted, true)
 
 	// ExternalTestFailed
-	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
+	assertExternalTestStatus(t, testIncarnation, picchu.ExternalTest{
 		Enabled:     true,
 		Timeout:     &timeout,
 		Started:     true,
@@ -66,7 +66,7 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 	}, ExternalTestFailed, false)
 
 	// ExternalTestSucceeded
-	assertExternalTestStatus(t, testIncarnation, v1alpha1.ExternalTest{
+	assertExternalTestStatus(t, testIncarnation, picchu.ExternalTest{
 		Enabled:     true,
 		Timeout:     &timeout,
 		Started:     true,
@@ -79,7 +79,7 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 func assertExternalTestStatus(
 	t *ttesting.T,
 	testIncarnation *Incarnation,
-	externalTest v1alpha1.ExternalTest,
+	externalTest picchu.ExternalTest,
 	expectedStatus ExternalTestStatus,
 	expectedTimeout bool,
 ) {
@@ -91,7 +91,7 @@ func assertExternalTestStatus(
 func TestIncarnation_targetScale(t *ttesting.T) {
 	testIncarnation := createTestIncarnation("test", testing, 10)
 	testIncarnation.status.State.Current = "releasing"
-	testIncarnation.revision.Spec.Targets[0].Release.Rate.Increment = 10
+	testIncarnation.revision.Spec.Targets[0].Release.LinearScaling.Increment = 10
 	testIncarnation.status.CurrentPercent = 0
 	assert.Equal(t, 1.0, testIncarnation.targetScale())
 	testIncarnation.status.CurrentPercent = 10
@@ -100,4 +100,76 @@ func TestIncarnation_targetScale(t *ttesting.T) {
 	assert.Equal(t, 0.9, testIncarnation.targetScale())
 	testIncarnation.status.CurrentPercent = 100
 	assert.Equal(t, 1.0, testIncarnation.targetScale())
+}
+
+func TestIncarnation_divideReplicas(t *ttesting.T) {
+	assert := assert.New(t)
+
+	for _, test := range []struct {
+		Name             string
+		ScalingStrategy  string
+		LinearScaling    picchu.LinearScaling
+		GeometricScaling picchu.GeometricScaling
+		CurrentPercent   int
+		Replicas         int32
+		ExpectedReplicas int32
+	}{
+		{
+			Name:            "TestSecondRamp",
+			ScalingStrategy: picchu.ScalingStrategyGeometric,
+			GeometricScaling: picchu.GeometricScaling{
+				Start:  10,
+				Factor: 2,
+				Delay:  &meta.Duration{},
+			},
+			CurrentPercent:   10,
+			Replicas:         30,
+			ExpectedReplicas: 6,
+		},
+		{
+			Name:            "TestThirdRamp",
+			ScalingStrategy: picchu.ScalingStrategyGeometric,
+			GeometricScaling: picchu.GeometricScaling{
+				Start:  10,
+				Factor: 2,
+				Delay:  &meta.Duration{},
+			},
+			CurrentPercent:   20,
+			Replicas:         30,
+			ExpectedReplicas: 12,
+		},
+		{
+			Name:            "TestFourthRamp",
+			ScalingStrategy: picchu.ScalingStrategyGeometric,
+			GeometricScaling: picchu.GeometricScaling{
+				Start:  10,
+				Factor: 2,
+				Delay:  &meta.Duration{},
+			},
+			CurrentPercent:   40,
+			Replicas:         30,
+			ExpectedReplicas: 24,
+		},
+		{
+			Name:            "TestFifthRamp",
+			ScalingStrategy: picchu.ScalingStrategyGeometric,
+			GeometricScaling: picchu.GeometricScaling{
+				Start:  10,
+				Factor: 2,
+				Delay:  &meta.Duration{},
+			},
+			CurrentPercent:   80,
+			Replicas:         30,
+			ExpectedReplicas: 30,
+		},
+	} {
+		t.Run(test.Name, func(t *ttesting.T) {
+			i := createTestIncarnation("test", "releasing", test.CurrentPercent)
+			i.revision.Spec.Targets[0].Release.ScalingStrategy = test.ScalingStrategy
+			i.revision.Spec.Targets[0].Release.LinearScaling = test.LinearScaling
+			i.revision.Spec.Targets[0].Release.GeometricScaling = test.GeometricScaling
+			assert.Equal(test.ExpectedReplicas, i.divideReplicas(test.Replicas))
+		})
+	}
+
 }

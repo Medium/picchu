@@ -15,7 +15,7 @@ type ScalableTargetAdapter struct {
 const Threshold = 0.95
 
 // CanRampTo returns true if the target is considered ready to be scaled to the next increment.
-func (s *ScalableTargetAdapter) CanRampTo(desiredScale uint32) bool {
+func (s *ScalableTargetAdapter) CanRampTo(desiredPercent uint32) bool {
 	target := s.Incarnation.target()
 	status := s.Incarnation.status
 	controller := s.Incarnation.controller
@@ -25,19 +25,19 @@ func (s *ScalableTargetAdapter) CanRampTo(desiredScale uint32) bool {
 		return false
 	}
 
-	totalReplicas := float64(controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredScale)))
+	totalReplicas := float64(controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredPercent)))
 	expectedReplicas := int32(math.Ceil(totalReplicas * Threshold))
 
 	log.Info(
 		"Computed expectedReplicas",
-		"desiredScale", desiredScale,
+		"desiredPercent", desiredPercent,
 		"expectedReplicas", expectedReplicas,
 		"currentReplicas", status.Scale.Current,
 	)
 	if status.Scale.Current < expectedReplicas {
 		log.Info(
 			"Deferring ramp-up; not all desired replicas are ready",
-			"desiredScale", desiredScale,
+			"desiredPercent", desiredPercent,
 			"expectedReplicas", expectedReplicas,
 			"currentReplicas", status.Scale.Current,
 		)
@@ -79,14 +79,26 @@ func Scale(i Incarnation, max uint32, t time.Time) uint32 {
 	return sta.CurrentPercent()
 }
 
-func NextIncrement(i Incarnation, max uint32, t time.Time) uint32 {
+func NextIncrement(i Incarnation, max uint32) uint32 {
 	sta := ScalableTargetAdapter{i}
 	switch sta.ReleaseInfo().ScalingStrategy {
 	case picchu.ScalingStrategyLinear:
-		return scaling.LinearNextIncrement(&sta, max, t, i.log)
+		return scaling.LinearNextIncrement(&sta, max, i.log)
 	case picchu.ScalingStrategyGeometric:
-		return scaling.GeometricNextIncrement(&sta, max, t, i.log)
+		return scaling.GeometricNextIncrement(&sta, max, i.log)
 	}
 	i.log.Info("Not Scaling, no scalingStrategySelected")
 	return sta.CurrentPercent()
+}
+
+func ExpectedReleaseLatency(i Incarnation, max uint32) time.Duration {
+	sta := ScalableTargetAdapter{i}
+	switch sta.ReleaseInfo().ScalingStrategy {
+	case picchu.ScalingStrategyLinear:
+		return scaling.LinearExpectedReleaseLatency(&sta, max, i.log)
+	case picchu.ScalingStrategyGeometric:
+		return scaling.GeometricExpectedReleaseLatency(&sta, max, i.log)
+	}
+	i.log.Info("Not Scaling, no scalingStrategySelected")
+	return time.Duration(0)
 }

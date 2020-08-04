@@ -468,8 +468,7 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 			r.log.Info(
 				"Percent target greater than percRemaining",
 				"current", currentPercent,
-				"percRemaining", percRemaining,
-				"increment", incarnation.target().Release.Rate.Increment)
+				"percRemaining", percRemaining)
 			panic("Assertion failed")
 		}
 		incarnation.updateCurrentPercent(currentPercent)

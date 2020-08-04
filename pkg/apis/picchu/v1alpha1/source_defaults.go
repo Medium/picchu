@@ -59,13 +59,6 @@ func SetReleaseDefaults(release *ReleaseInfo) {
 	if release.ScalingStrategy == "" {
 		release.ScalingStrategy = defaultReleaseScalingStrategy
 	}
-	if release.Rate.Increment == 0 {
-		release.Rate.Increment = defaultReleaseRateIncrement
-	}
-	if release.Rate.DelaySeconds == nil {
-		delay := defaultReleaseRateDelaySeconds
-		release.Rate.DelaySeconds = &delay
-	}
 	if release.TTL == 0 {
 		release.TTL = defaultReleaseGcTTLSeconds
 	}
