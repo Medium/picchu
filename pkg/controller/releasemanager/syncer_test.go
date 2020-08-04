@@ -34,10 +34,6 @@ func (s testScale) Apply(i *Incarnation, currentPercent int) {
 }
 
 func createTestIncarnation(tag string, currentState State, currentPercent int, options ...testIncarnationOption) *Incarnation {
-	var isRamping bool
-	if currentState == releasing {
-		isRamping = true
-	}
 	scaleMin := int32(1)
 	incarnation := &Incarnation{
 		tag: tag,
@@ -89,7 +85,7 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 				},
 			},
 		},
-		isRamping: isRamping,
+		isRamping: currentState == releasing,
 	}
 
 	for _, opt := range options {
