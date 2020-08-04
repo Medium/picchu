@@ -111,7 +111,74 @@ var (
 				"private-gateway",
 			},
 			Http: []*istio.HTTPRoute{
+				{ // Release http route
+					Name: "release-http",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: authorityRegex,
+							Gateways:  []string{"private-gateway"},
+							Port:      uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: authorityRegex,
+							Gateways:  []string{"private-gateway"},
+							Port:      uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "testapp.testnamespace.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(80)},
+								Subset: "testtag",
+							},
+							Weight: 100,
+						},
+					},
+					Retries: &istio.HTTPRetry{
+						Attempts:      2,
+						RetryOn:       defaultRetryOn,
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+					},
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+				},
+				{ // release status route
+					Name: "release-status",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(4242),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "testapp.testnamespace.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(4242)},
+								Subset: "testtag",
+							},
+							Weight: 100,
+						},
+					},
+				},
 				{ // Tagged http route
+					Name: "tagged-testtag-http",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -164,6 +231,7 @@ var (
 					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // Tagged status route
+					Name: "tagged-testtag-status",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -173,70 +241,6 @@ var (
 								},
 							},
 							Port: uint32(4242),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(4242)},
-								Subset: "testtag",
-							},
-							Weight: 100,
-						},
-					},
-				},
-				{ // Release http route
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Port:     uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: authorityRegex,
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: authorityRegex,
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(80)},
-								Subset: "testtag",
-							},
-							Weight: 100,
-						},
-					},
-					Retries: &istio.HTTPRetry{
-						Attempts:      2,
-						RetryOn:       defaultRetryOn,
-						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
-					},
-					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
-				},
-				{ // release status route
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Port:     uint32(4242),
 							Uri: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
 							},
@@ -648,7 +652,74 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 				"private-gateway",
 			},
 			Http: []*istio.HTTPRoute{
+				{ // Release http route
+					Name: "release-http",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: authorityRegex,
+							Gateways:  []string{"private-gateway"},
+							Port:      uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: authorityRegex,
+							Gateways:  []string{"private-gateway"},
+							Port:      uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "testapp.testnamespace.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(80)},
+								Subset: "testtag",
+							},
+							Weight: 100,
+						},
+					},
+					Retries: &istio.HTTPRetry{
+						Attempts:      2,
+						RetryOn:       defaultRetryOn,
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+					},
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+				},
+				{ // release status route
+					Name: "release-status",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(4242),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "testapp.testnamespace.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(4242)},
+								Subset: "testtag",
+							},
+							Weight: 100,
+						},
+					},
+				},
 				{ // Tagged http route
+					Name: "tagged-testtag-http",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -701,6 +772,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // Tagged status route
+					Name: "tagged-testtag-status",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -710,70 +782,6 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 								},
 							},
 							Port: uint32(4242),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(4242)},
-								Subset: "testtag",
-							},
-							Weight: 100,
-						},
-					},
-				},
-				{ // Release http route
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Port:     uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: authorityRegex,
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: authorityRegex,
-							Gateways:  []string{"private-gateway"},
-							Port:      uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "testapp.testnamespace.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(80)},
-								Subset: "testtag",
-							},
-							Weight: 100,
-						},
-					},
-					Retries: &istio.HTTPRetry{
-						Attempts:      2,
-						RetryOn:       defaultRetryOn,
-						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
-					},
-					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
-				},
-				{ // release status route
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Port:     uint32(4242),
 							Uri: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
 							},
@@ -939,7 +947,71 @@ func TestProductionEcho(t *testing.T) {
 				"private-ingressgateway.istio-system.svc.cluster.local",
 			},
 			Http: []*istio.HTTPRoute{
+				{ // Release http route
+					Name: "release-http",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: regex,
+							Gateways:  []string{"private-ingressgateway.istio-system.svc.cluster.local"},
+							Port:      uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: regex,
+							Gateways:  []string{"private-ingressgateway.istio-system.svc.cluster.local"},
+							Port:      uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "echo.echo-production.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(80)},
+								Subset: "master-20200529-144642-c3d06a9828",
+							},
+							Weight: 100,
+						},
+					},
+				},
+				{ // release status route
+					Name: "release-status",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(4242),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "echo.echo-production.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(4242)},
+								Subset: "master-20200529-144642-c3d06a9828",
+							},
+							Weight: 100,
+						},
+					},
+					Retries: &istio.HTTPRetry{
+						Attempts: 2,
+					},
+				},
 				{ // Tagged http route
+					Name: "tagged-master-20200529-144642-c3d06a9828-http",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -986,6 +1058,7 @@ func TestProductionEcho(t *testing.T) {
 					},
 				},
 				{ // Tagged status route
+					Name: "tagged-master-20200529-144642-c3d06a9828-status",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
@@ -995,67 +1068,6 @@ func TestProductionEcho(t *testing.T) {
 								},
 							},
 							Port: uint32(4242),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "echo.echo-production.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(4242)},
-								Subset: "master-20200529-144642-c3d06a9828",
-							},
-							Weight: 100,
-						},
-					},
-					Retries: &istio.HTTPRetry{
-						Attempts: 2,
-					},
-				},
-				{ // Release http route
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Port:     uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: regex,
-							Gateways:  []string{"private-ingressgateway.istio-system.svc.cluster.local"},
-							Port:      uint32(443),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-						{
-							Authority: regex,
-							Gateways:  []string{"private-ingressgateway.istio-system.svc.cluster.local"},
-							Port:      uint32(80),
-							Uri: &istio.StringMatch{
-								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
-							},
-						},
-					},
-					Route: []*istio.HTTPRouteDestination{
-						{
-							Destination: &istio.Destination{
-								Host:   "echo.echo-production.svc.cluster.local",
-								Port:   &istio.PortSelector{Number: uint32(80)},
-								Subset: "master-20200529-144642-c3d06a9828",
-							},
-							Weight: 100,
-						},
-					},
-				},
-				{ // release status route
-					Match: []*istio.HTTPMatchRequest{
-						{
-							Gateways: []string{"mesh"},
-							Port:     uint32(4242),
 							Uri: &istio.StringMatch{
 								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
 							},
