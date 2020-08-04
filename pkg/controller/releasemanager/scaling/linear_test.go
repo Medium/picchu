@@ -4,7 +4,7 @@ import (
 	testify "github.com/stretchr/testify/assert"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/test"
-	"k8s.io/utils/pointer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
 
@@ -135,10 +135,9 @@ func TestLinearScaling(t *testing.T) {
 				Max:              test.Max,
 				ScalingStrategy:  picchu.ScalingStrategyLinear,
 				GeometricScaling: picchu.GeometricScaling{},
-				LinearScaling:    picchu.LinearScaling{},
-				Rate: picchu.RateInfo{
-					Increment:    test.Increment,
-					DelaySeconds: pointer.Int64Ptr(test.Delay),
+				LinearScaling: picchu.LinearScaling{
+					Increment: test.Increment,
+					Delay:     &metav1.Duration{Duration: time.Duration(test.Delay) * time.Second},
 				},
 				Schedule: "always",
 				TTL:      86400,

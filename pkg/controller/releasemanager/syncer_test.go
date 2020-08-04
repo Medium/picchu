@@ -1,6 +1,7 @@
 package releasemanager
 
 import (
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math"
 	tt "testing"
 
@@ -33,7 +34,6 @@ func (s testScale) Apply(i *Incarnation, currentPercent int) {
 }
 
 func createTestIncarnation(tag string, currentState State, currentPercent int, options ...testIncarnationOption) *Incarnation {
-	delaySeconds := int64(0)
 	scaleMin := int32(1)
 	incarnation := &Incarnation{
 		tag: tag,
@@ -49,9 +49,9 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 						Release: picchuv1alpha1.ReleaseInfo{
 							ScalingStrategy: testReleaseScalingStrategy,
 							Max:             100,
-							Rate: picchuv1alpha1.RateInfo{
-								Increment:    testReleaseIncrement,
-								DelaySeconds: &delaySeconds,
+							LinearScaling: picchuv1alpha1.LinearScaling{
+								Increment: testReleaseIncrement,
+								Delay:     &meta.Duration{},
 							},
 						},
 						Scale: picchuv1alpha1.ScaleInfo{
@@ -109,8 +109,8 @@ func createTestIncarnations(ctrl *gomock.Controller) (m *MockIncarnations) {
 	deployedIncarnations := []*Incarnation{
 		createTestIncarnation("deployed", released, 100),
 	}
-	unreleasableIncarnations := []*Incarnation{}
-	alertableIncarnations := []*Incarnation{}
+	var unreleasableIncarnations []*Incarnation
+	var alertableIncarnations []*Incarnation
 
 	m = NewMockIncarnations(ctrl)
 	m.
@@ -145,13 +145,13 @@ func assertIncarnationPercent(
 	incarnationTagMap := map[string]int{}
 
 	for i, assertPercent := range assertPercents {
-		assert.Equal(t, int(assertPercent), int(incarnations[i].status.CurrentPercent))
+		assert.Equal(t, assertPercent, int(incarnations[i].status.CurrentPercent))
 		incarnationTagMap[incarnations[i].tag] = assertPercent
 	}
 
 	for _, rev := range revisions {
 		assertPercent := incarnationTagMap[rev.Tag]
-		assert.Equal(t, int(assertPercent), int(rev.Weight))
+		assert.Equal(t, assertPercent, int(rev.Weight))
 	}
 }
 

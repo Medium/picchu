@@ -126,7 +126,7 @@ type ScaleInfo struct {
 	Worker *WorkerScaleInfo `json:"worker,omitempty"`
 }
 
-func (s *ScaleInfo) TargetReqeustsRateQuantity() (*resource.Quantity, error) {
+func (s *ScaleInfo) TargetRequestsRateQuantity() (*resource.Quantity, error) {
 	if s.TargetRequestsRate == nil {
 		return nil, nil
 	}

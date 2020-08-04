@@ -437,7 +437,7 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 }
 
 func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
-	requestsRateTarget, err := i.target().Scale.TargetReqeustsRateQuantity()
+	requestsRateTarget, err := i.target().Scale.TargetRequestsRateQuantity()
 	if err != nil {
 		i.log.Error(err, "Failed to parse targetRequestsRate", "TargetRequestsRate", i.target().Scale.TargetRequestsRate)
 	}
@@ -709,20 +709,19 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 		return 1
 	}
 
-	var perc int32 = 100
+	var perc uint32 = 100
 	if status.State.Current == "canarying" {
-		perc = int32(i.target().Canary.Percent)
+		perc = i.target().Canary.Percent
 	} else {
 		release := i.target().Release
-		increment := release.Rate.Increment
 		if release.Eligible || i.status.CurrentPercent > 0 {
 			// since we sync before incrementing, we'll just err on the side of
 			// caution and use the next increment percent.
-			perc = int32(i.status.CurrentPercent + increment)
+			perc = NextIncrement(*i, i.target().Release.Max)
 		}
 	}
 
-	return i.controller.divideReplicas(count, perc)
+	return i.controller.divideReplicas(count, int32(perc))
 }
 
 // targetScale is used to scale HPA targets to prepare for next
@@ -731,7 +730,7 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 // not under-provisioned when it receives more traffic.
 func (i *Incarnation) targetScale() float64 {
 	status := i.getStatus()
-	next := float64(NextIncrement(*i, 100, time.Time{}))
+	next := float64(NextIncrement(*i, 100))
 	current := i.currentPercent()
 
 	if status.State.Current != "releasing" || current <= 0 || current >= 100 {
@@ -770,10 +769,7 @@ func (i *Incarnation) updateCurrentPercent(current uint32) {
 
 func (i *Incarnation) secondsSinceRevision() float64 {
 	start := i.revision.CreationTimestamp
-	rate := i.target().Release.Rate
-	delay := *rate.DelaySeconds
-	increment := rate.Increment
-	expected := time.Second * time.Duration(delay*int64(math.Ceil(100.0/float64(increment))))
+	expected := ExpectedReleaseLatency(*i, i.target().Release.Max)
 	latency := time.Since(start.Time) - expected
 	return latency.Seconds()
 }

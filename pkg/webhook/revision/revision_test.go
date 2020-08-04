@@ -5,8 +5,8 @@ import (
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 	"testing"
+	"time"
 )
 
 type revisionBuilder struct {
@@ -58,11 +58,12 @@ func (r *revisionBuilder) addIngressDefaultPort(target, ingress, port string) *r
 	return r
 }
 
-func (r *revisionBuilder) setRate(target string, rate picchu.RateInfo) *revisionBuilder {
+func (r *revisionBuilder) setRate(target string, scaling picchu.LinearScaling) *revisionBuilder {
 	r.ensureTarget(target)
 	for i := range r.Spec.Targets {
 		if r.Spec.Targets[i].Name == target {
-			r.Spec.Targets[i].Release.Rate = rate
+			r.Spec.Targets[i].Release.ScalingStrategy = picchu.ScalingStrategyLinear
+			r.Spec.Targets[i].Release.LinearScaling = scaling
 			break
 		}
 	}
@@ -83,7 +84,6 @@ func (r *revisionBuilder) ensureTarget(name string) *revisionBuilder {
 			ScalingStrategy:  picchu.ScalingStrategyLinear,
 			GeometricScaling: picchu.GeometricScaling{},
 			LinearScaling:    picchu.LinearScaling{},
-			Rate:             picchu.RateInfo{},
 			Schedule:         "",
 			TTL:              0,
 		},
@@ -161,9 +161,9 @@ func TestMutate(t *testing.T) {
 		{
 			name: "DontSetLinearScalingProperties",
 			rev: newRevisionBuilder().
-				setRate("production", picchu.RateInfo{
-					Increment:    10,
-					DelaySeconds: pointer.Int64Ptr(20),
+				setRate("production", picchu.LinearScaling{
+					Increment: 10,
+					Delay:     &meta.Duration{Duration: time.Duration(20) * time.Second},
 				}).
 				build(),
 			expected: []jsonpatch.JsonPatchOperation{},
