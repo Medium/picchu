@@ -338,6 +338,7 @@ func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, revision Revision) [
 }
 
 func (p *SyncApp) makeRoute(
+	name string,
 	port picchuv1alpha1.PortInfo,
 	match []*istio.HTTPMatchRequest,
 	route []*istio.HTTPRouteDestination,
@@ -369,6 +370,7 @@ func (p *SyncApp) makeRoute(
 		timeout = types.DurationProto(http.Timeout.Duration)
 	}
 	return &istio.HTTPRoute{
+		Name:    name,
 		Timeout: timeout,
 		Retries: retries,
 		Match:   match,
@@ -389,7 +391,8 @@ func (p *SyncApp) releaseRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPR
 		for _, host := range hosts {
 			hostMap[host] = true
 		}
-		routes = append(routes, p.makeRoute(port, releaseMatches, p.releaseRoute(port)))
+		name := fmt.Sprintf("release-%s", port.Name)
+		routes = append(routes, p.makeRoute(name, port, releaseMatches, p.releaseRoute(port)))
 	}
 
 	hosts := make([]string, 0, len(hostMap))
@@ -412,7 +415,8 @@ func (p *SyncApp) taggedRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRo
 			for _, host := range hosts {
 				hostMap[host] = true
 			}
-			routes = append(routes, p.makeRoute(port, taggedMatches, p.taggedRoute(port, revision)))
+			name := fmt.Sprintf("tagged-%s-%s", revision.Tag, port.Name)
+			routes = append(routes, p.makeRoute(name, port, taggedMatches, p.taggedRoute(port, revision)))
 		}
 	}
 
@@ -499,6 +503,10 @@ func (p *SyncApp) virtualService(log logr.Logger, cluster *picchuv1alpha1.Cluste
 		log.Info("Not syncing VirtualService, there are no available deployments")
 		return nil
 	}
+
+	sort.Slice(http, func(i, j int) bool {
+		return http[i].Name < http[j].Name
+	})
 
 	gatewayMap := map[string]bool{
 		"mesh": true,
