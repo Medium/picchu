@@ -9,13 +9,11 @@ import (
 const (
 	defaultReleaseMax                    = 100
 	defaultReleaseSchedule               = HumaneSchedule
-	defaultReleaseRateIncrement          = 5
-	defaultReleaseRateDelaySeconds       = int64(10)
 	defaultReleaseGcTTLSeconds           = int64(5 * 24 * 60 * 60)
 	defaultScaleDefault                  = int32(1)
 	defaultScaleMax                      = int32(1)
 	defaultRequestsRateMetric            = "istio_requests_rate"
-	defaultReleaseScalingStrategy        = ScalingStrategyLinear
+	defaultReleaseScalingStrategy        = ScalingStrategyGeometric
 	defaultReleaseGeometricScalingStart  = 10
 	defaultReleaseGeometricScalingFactor = 2
 	defaultReleaseLinearScalingIncrement = 5

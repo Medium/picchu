@@ -2206,16 +2206,6 @@ spec:
                       max:
                         format: int32
                         type: integer
-                      rate:
-                        description: Deprecated
-                        properties:
-                          delay:
-                            format: int64
-                            type: integer
-                          increment:
-                            format: int32
-                            type: integer
-                        type: object
                       scalingStrategy:
                         type: string
                       schedule:

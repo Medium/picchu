@@ -143,7 +143,6 @@ type ReleaseInfo struct {
 	ScalingStrategy  string           `json:"scalingStrategy,omitempty"`
 	GeometricScaling GeometricScaling `json:"geometricScaling,omitempty"`
 	LinearScaling    LinearScaling    `json:"linearScaling,omitempty"`
-	Rate             RateInfo         `json:"rate,omitempty"`
 	Schedule         string           `json:"schedule,omitempty"`
 	TTL              int64            `json:"ttl,omitempty"`
 }
@@ -157,12 +156,6 @@ type GeometricScaling struct {
 type LinearScaling struct {
 	Increment uint32           `json:"increment,omitempty"`
 	Delay     *metav1.Duration `json:"delay,omitempty"`
-}
-
-// Deprecated
-type RateInfo struct {
-	Increment    uint32 `json:"increment,omitempty"`
-	DelaySeconds *int64 `json:"delay,omitempty"`
 }
 
 type SentryInfo struct {
