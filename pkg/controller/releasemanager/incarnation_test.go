@@ -89,8 +89,7 @@ func assertExternalTestStatus(
 }
 
 func TestIncarnation_targetScale(t *ttesting.T) {
-	testIncarnation := createTestIncarnation("test", testing, 10)
-	testIncarnation.status.State.Current = "releasing"
+	testIncarnation := createTestIncarnation("test", releasing, 10)
 	testIncarnation.revision.Spec.Targets[0].Release.LinearScaling.Increment = 10
 	testIncarnation.status.CurrentPercent = 0
 	assert.Equal(t, 1.0, testIncarnation.targetScale())

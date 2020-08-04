@@ -44,6 +44,7 @@ type Incarnation struct {
 	log          logr.Logger
 	status       *picchuv1alpha1.ReleaseManagerRevisionStatus
 	picchuConfig utils.Config
+	isRamping    bool
 }
 
 // NewIncarnation creates a new Incarnation
@@ -56,7 +57,7 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 
 	if status.State.Current == "created" || status.State.Current == "deploying" {
 		if revision != nil {
-			status.GitTimestamp = &metav1.Time{revision.GitTimestamp()}
+			status.GitTimestamp = &metav1.Time{Time: revision.GitTimestamp()}
 			for _, target := range revision.Spec.Targets {
 				if target.Name == controller.getReleaseManager().Spec.Target {
 					status.ReleaseEligible = target.Release.Eligible
@@ -340,7 +341,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		return err
 	}
 
-	configs := []runtime.Object{}
+	var configs []runtime.Object
 
 	secrets, err := i.controller.getSecrets(ctx, configOpts)
 	if err != nil {
@@ -713,11 +714,12 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 	if status.State.Current == "canarying" {
 		perc = i.target().Canary.Percent
 	} else {
-		release := i.target().Release
-		if release.Eligible || i.status.CurrentPercent > 0 {
+		if i.isRamping {
 			// since we sync before incrementing, we'll just err on the side of
 			// caution and use the next increment percent.
 			perc = NextIncrement(*i, i.target().Release.Max)
+		} else {
+			perc = i.currentPercent()
 		}
 	}
 
@@ -729,11 +731,10 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 // prepare the revision for the next level by scaling it's target so it's
 // not under-provisioned when it receives more traffic.
 func (i *Incarnation) targetScale() float64 {
-	status := i.getStatus()
 	next := float64(NextIncrement(*i, 100))
 	current := i.currentPercent()
 
-	if status.State.Current != "releasing" || current <= 0 || current >= 100 {
+	if !i.isRamping || current <= 0 || current >= 100 {
 		return 1.0
 	}
 
@@ -809,6 +810,17 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 	rm := controller.getReleaseManager()
 	for _, r := range rm.Status.Revisions {
 		add(r.Tag, nil)
+	}
+
+	// mark ramping incarnation
+	sorted := ic.releasable()
+	for i := range sorted {
+		inc := sorted[i]
+		state := State(inc.status.State.Current)
+		if state != canaried && state != canarying {
+			inc.isRamping = true
+			break
+		}
 	}
 
 	return ic

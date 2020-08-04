@@ -443,9 +443,8 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 	for i, incarnation := range incarnations {
 		status := incarnation.status
 		oldCurrentPercent := status.CurrentPercent
-		currentState := State(status.State.Current)
 
-		if firstNonCanary == -1 && currentState != canaried && currentState != canarying {
+		if firstNonCanary == -1 && incarnation.isRamping {
 			r.log.Info(
 				"Found first ramping release",
 				"firstNonCanary", i,
