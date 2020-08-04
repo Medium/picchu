@@ -437,7 +437,7 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 }
 
 func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
-	requestsRateTarget, err := i.target().Scale.TargetReqeustsRateQuantity()
+	requestsRateTarget, err := i.target().Scale.TargetRequestsRateQuantity()
 	if err != nil {
 		i.log.Error(err, "Failed to parse targetRequestsRate", "TargetRequestsRate", i.target().Scale.TargetRequestsRate)
 	}
