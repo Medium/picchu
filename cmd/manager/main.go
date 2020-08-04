@@ -73,6 +73,7 @@ func main() {
 	serviceLevelsNamespace := pflag.String("service-levels-namespace", "service-levels", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
 	serviceLevelsFleet := pflag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 	webhookPort := pflag.Int("webhook-port", 8443, "The port to listen for admission webhooks on")
+	webhookDisabled := pflag.Bool("webhook-disabled", false, "Disables webhook")
 
 	pflag.Parse()
 
@@ -118,7 +119,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	webhook.Init(cli, int32(*webhookPort), namespace)
+	if !*webhookDisabled {
+		webhook.Init(cli, int32(*webhookPort), namespace)
+	}
 
 	ctx := context.TODO()
 
@@ -187,9 +190,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr.GetWebhookServer().Port = *webhookPort
+	if !*webhookDisabled {
+		mgr.GetWebhookServer().Port = *webhookPort
 
-	webhook.Register(mgr)
+		webhook.Register(mgr)
+	}
 
 	// Create Service object to expose the metrics port.
 	servicePorts := []core.ServicePort{
