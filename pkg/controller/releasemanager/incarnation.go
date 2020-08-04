@@ -818,6 +818,7 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 		inc := sorted[i]
 		state := State(inc.status.State.Current)
 		if state != canaried && state != canarying {
+			controller.getLog().Info("Setting revision as ramping", "tag", inc.tag)
 			inc.isRamping = true
 			break
 		}
