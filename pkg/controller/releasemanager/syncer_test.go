@@ -85,6 +85,7 @@ func createTestIncarnation(tag string, currentState State, currentPercent int, o
 				},
 			},
 		},
+		isRamping: currentState == releasing,
 	}
 
 	for _, opt := range options {
@@ -251,8 +252,8 @@ func TestPrepareRevisionsAndRulesIllegalStates(t *tt.T) {
 	}
 
 	releasableIncarnations := []*Incarnation{
-		createTestIncarnation("test3 incarnation0", deploying, 10), // illegal state
-		createTestIncarnation("test3 incarnation1", canaried, 10),  // illegal state
+		createTestIncarnation("test3 incarnation0", releasing, 10),
+		createTestIncarnation("test3 incarnation1", canaried, 10), // illegal state
 		createTestIncarnation("test3 incarnation2", canarying, 10),
 		createTestIncarnation("test3 incarnation3", pendingrelease, 10), // illegal state
 		createTestIncarnation("test3 incarnation4", releasing, 20),
