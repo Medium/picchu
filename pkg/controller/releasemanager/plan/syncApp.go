@@ -391,7 +391,7 @@ func (p *SyncApp) releaseRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPR
 		for _, host := range hosts {
 			hostMap[host] = true
 		}
-		name := fmt.Sprintf("release-%s", port.Name)
+		name := fmt.Sprintf("01_release-%s", port.Name)
 		routes = append(routes, p.makeRoute(name, port, releaseMatches, p.releaseRoute(port)))
 	}
 
@@ -415,7 +415,7 @@ func (p *SyncApp) taggedRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRo
 			for _, host := range hosts {
 				hostMap[host] = true
 			}
-			name := fmt.Sprintf("tagged-%s-%s", revision.Tag, port.Name)
+			name := fmt.Sprintf("00_tagged-%s-%s", revision.Tag, port.Name)
 			routes = append(routes, p.makeRoute(name, port, taggedMatches, p.taggedRoute(port, revision)))
 		}
 	}
