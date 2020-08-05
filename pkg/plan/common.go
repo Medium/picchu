@@ -3,7 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
-
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
@@ -69,6 +69,14 @@ func CreateOrUpdate(
 	cli client.Client,
 	obj runtime.Object,
 ) error {
+	isIgnored := func(meta metav1.ObjectMeta) bool {
+		for label := range meta.Labels {
+			if label == picchu.LabelIgnore {
+				return true
+			}
+		}
+		return false
+	}
 	switch orig := obj.(type) {
 	case *corev1.Namespace:
 		typed := orig.DeepCopy()
@@ -79,6 +87,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, namespace, func() error {
+			if isIgnored(namespace.ObjectMeta) {
+				kind := utils.MustGetKind(namespace).Kind
+				log.Info("Resource is ignored", "name", namespace.Name, "kind", kind)
+				return nil
+			}
 			namespace.Labels = CopyStringMap(typed.Labels)
 			return nil
 		})
@@ -95,6 +108,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, service, func() error {
+			if isIgnored(service.ObjectMeta) {
+				kind := utils.MustGetKind(service).Kind
+				log.Info("Resource is ignored", "namespace", service.Namespace, "name", service.Name, "kind", kind)
+				return nil
+			}
 			service.Spec.Ports = typed.Spec.Ports
 			service.Spec.Selector = typed.Spec.Selector
 			service.Labels = CopyStringMap(typed.Labels)
@@ -113,6 +131,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, dr, func() error {
+			if isIgnored(dr.ObjectMeta) {
+				kind := utils.MustGetKind(dr).Kind
+				log.Info("Resource is ignored", "namespace", dr.Namespace, "name", dr.Name, "kind", kind)
+				return nil
+			}
 			dr.Spec = typed.Spec
 			dr.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -130,6 +153,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, vs, func() error {
+			if isIgnored(vs.ObjectMeta) {
+				kind := utils.MustGetKind(vs).Kind
+				log.Info("Resource is ignored", "namespace", vs.Namespace, "name", vs.Name, "kind", kind)
+				return nil
+			}
 			vs.Spec = typed.Spec
 			vs.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -147,6 +175,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, gateway, func() error {
+			if isIgnored(gateway.ObjectMeta) {
+				kind := utils.MustGetKind(gateway).Kind
+				log.Info("Resource is ignored", "namespace", gateway.Namespace, "name", gateway.Name, "kind", kind)
+				return nil
+			}
 			gateway.Spec = typed.Spec
 			gateway.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -164,6 +197,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, pm, func() error {
+			if isIgnored(pm.ObjectMeta) {
+				kind := utils.MustGetKind(pm).Kind
+				log.Info("Resource is ignored", "namespace", pm.Namespace, "name", pm.Name, "kind", kind)
+				return nil
+			}
 			pm.Spec = typed.Spec
 			pm.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -181,6 +219,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, sm, func() error {
+			if isIgnored(sm.ObjectMeta) {
+				kind := utils.MustGetKind(sm).Kind
+				log.Info("Resource is ignored", "namespace", sm.Namespace, "name", sm.Name, "kind", kind)
+				return nil
+			}
 			sm.Spec = typed.Spec
 			sm.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -198,6 +241,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, sl, func() error {
+			if isIgnored(sl.ObjectMeta) {
+				kind := utils.MustGetKind(sl).Kind
+				log.Info("Resource is ignored", "namespace", sl.Namespace, "name", sl.Name, "kind", kind)
+				return nil
+			}
 			sl.Spec = typed.Spec
 			sl.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -215,6 +263,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, secret, func() error {
+			if isIgnored(secret.ObjectMeta) {
+				kind := utils.MustGetKind(secret).Kind
+				log.Info("Resource is ignored", "namespace", secret.Namespace, "name", secret.Name, "kind", kind)
+				return nil
+			}
 			secret.Data = typed.Data
 			secret.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -232,6 +285,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, configMap, func() error {
+			if isIgnored(configMap.ObjectMeta) {
+				kind := utils.MustGetKind(configMap).Kind
+				log.Info("Resource is ignored", "namespace", configMap.Namespace, "name", configMap.Name, "kind", kind)
+				return nil
+			}
 			configMap.Data = typed.Data
 			configMap.Labels = CopyStringMap(typed.Labels)
 			return nil
@@ -249,6 +307,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, rs, func() error {
+			if isIgnored(rs.ObjectMeta) {
+				kind := utils.MustGetKind(rs).Kind
+				log.Info("Resource is ignored", "namespace", rs.Namespace, "name", rs.Name, "kind", kind)
+				return nil
+			}
 			var zero int32 = 0
 			if rs.Spec.Replicas == nil {
 				rs.Spec.Replicas = &zero
@@ -275,6 +338,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, hpa, func() error {
+			if isIgnored(hpa.ObjectMeta) {
+				kind := utils.MustGetKind(hpa).Kind
+				log.Info("Resource is ignored", "namespace", hpa.Namespace, "name", hpa.Name, "kind", kind)
+				return nil
+			}
 			hpa.Spec = typed.Spec
 			return nil
 		})
@@ -292,6 +360,11 @@ func CreateOrUpdate(
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, wpa, func() error {
+			if isIgnored(wpa.ObjectMeta) {
+				kind := utils.MustGetKind(wpa).Kind
+				log.Info("Resource is ignored", "namespace", wpa.Namespace, "name", wpa.Name, "kind", kind)
+				return nil
+			}
 			wpa.Spec = typed.Spec
 			return nil
 		})

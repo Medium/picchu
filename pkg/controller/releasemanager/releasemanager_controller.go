@@ -198,6 +198,12 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	r.scheme.Default(rm)
 
 	rmLog := reqLog.WithValues("App", rm.Spec.App, "Fleet", rm.Spec.Fleet, "Target", rm.Spec.Target)
+	for label := range rm.Labels {
+		if label == picchuv1alpha1.LabelIgnore {
+			rmLog.Info("Ignoring ReleaseManager")
+			return r.requeue(rmLog, nil)
+		}
+	}
 	rmLog.Info("Reconciling Existing ReleaseManager")
 
 	if lastUpdated := rm.Status.LastUpdated; lastUpdated != nil {
