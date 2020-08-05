@@ -30,7 +30,7 @@ func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *
 	err = cli.Delete(ctx, wpa)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to delete WPA while retiring revisions",
+			log.Error(err, "Failed to delete WPA while retiring revision",
 				"namespace", p.Namespace,
 				"tag", p.Tag,
 			)
@@ -42,7 +42,10 @@ func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *
 	err = cli.Get(ctx, namespacedName, rs)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to update replicaset to 0 replicas")
+			log.Error(err, "Failed to update replicaset to 0 replicas, while retiring revision",
+				"namespace", p.Namespace,
+				"tag", p.Tag,
+			)
 			return
 		}
 	} else if *rs.Spec.Replicas != 0 {
