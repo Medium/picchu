@@ -8,6 +8,7 @@ import (
 	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
+	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
@@ -72,6 +73,15 @@ func TestDeleteRevision(t *testing.T) {
 		},
 	}
 
+	wpas := []wpav1.WorkerPodAutoScaler{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testwpa",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
 	m.
 		EXPECT().
 		List(ctx, mocks.InjectSecrets(secrets), mocks.ListOptions(opts)).
@@ -94,6 +104,11 @@ func TestDeleteRevision(t *testing.T) {
 		Times(1)
 	m.
 		EXPECT().
+		List(ctx, mocks.InjectWorkerPodAutoscalers(wpas), mocks.ListOptions(opts)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testsecret")).
 		Return(nil).
 		Times(1)
@@ -110,6 +125,11 @@ func TestDeleteRevision(t *testing.T) {
 	m.
 		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testhpa")).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.NamespacedName("testnamespace", "testwpa")).
 		Return(nil).
 		Times(1)
 

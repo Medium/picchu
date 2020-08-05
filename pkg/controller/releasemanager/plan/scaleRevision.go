@@ -53,7 +53,7 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 }
 
 func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
-	var metrics = []autoscaling.MetricSpec{}
+	var metrics []autoscaling.MetricSpec
 
 	if p.CPUTarget != nil {
 		cpuTarget := *p.CPUTarget

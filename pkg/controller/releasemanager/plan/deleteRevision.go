@@ -2,11 +2,12 @@ package plan
 
 import (
 	"context"
+
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
-	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,6 +22,7 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, cluster *
 		NewConfigMapList(),
 		NewReplicaSetList(),
 		NewHorizontalPodAutoscalerList(),
+		NewWorkerPodAutoscalerList(),
 	}
 
 	opts := &client.ListOptions{
