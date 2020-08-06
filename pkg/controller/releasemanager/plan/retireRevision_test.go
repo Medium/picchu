@@ -12,7 +12,6 @@ import (
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,16 +28,10 @@ func TestRetireMissingRevision(t *testing.T) {
 	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
 	ctx := context.TODO()
 
-	wpa := &wpav1.WorkerPodAutoScaler{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      rr.Tag,
-			Namespace: rr.Namespace,
-		},
-	}
-
+	wpa := &wpav1.WorkerPodAutoScaler{}
 	m.
 		EXPECT().
-		Delete(ctx, mocks.UpdateWPAObjectMeta(wpa)).
+		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateWPASpec(wpa)).
 		Return(common.NotFoundError).
 		Times(1)
 
@@ -85,6 +78,11 @@ func TestRetireExistingRevision(t *testing.T) {
 		}
 	}, "ensure Spec.Replicas == 0")
 
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateWPASpec(wpa)).
+		Return(nil).
+		Times(1)
 	m.
 		EXPECT().
 		Delete(ctx, mocks.UpdateWPASpec(wpa)).
