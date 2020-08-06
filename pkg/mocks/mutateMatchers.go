@@ -66,6 +66,20 @@ func InjectHorizontalPodAutoscalers(hpas []autoscaling.HorizontalPodAutoscaler) 
 	return Callback(fn, "injects horizontalpodautoscalers")
 }
 
+// InjectHorizontalPodAutoscalers puts hpas into a *HorizontalPodAutoscalerList
+func InjectWorkerPodAutoscalers(wpas []wpav1.WorkerPodAutoScaler) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *wpav1.WorkerPodAutoScalerList:
+			o.Items = append(o.Items, wpas...)
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "injects workerpodautoscalers")
+}
+
 // InjectPrometheusRules puts PrometheusRules into a *PrometheusRuleList
 func InjectPrometheusRules(rules []monitoringv1.PrometheusRule) gomock.Matcher {
 	fn := func(x interface{}) bool {
@@ -168,4 +182,18 @@ func UpdateWPASpec(wpa *wpav1.WorkerPodAutoScaler) gomock.Matcher {
 		}
 	}
 	return Callback(fn, "update wpa spec")
+}
+
+// UpdateWPAObjectMeta sets the ObjectMeta on a *HorizontalPodAutoscaler
+func UpdateWPAObjectMeta(wpa *wpav1.WorkerPodAutoScaler) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *wpav1.WorkerPodAutoScaler:
+			o.ObjectMeta = wpa.ObjectMeta
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "update wpa object meta")
 }
