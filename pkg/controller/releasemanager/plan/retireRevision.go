@@ -9,7 +9,6 @@ import (
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -19,43 +18,59 @@ type RetireRevision struct {
 	Namespace string
 }
 
-func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) (err error) {
+func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	namespacedName := types.NamespacedName{Namespace: p.Namespace, Name: p.Tag}
-	wpa := &wpav1.WorkerPodAutoScaler{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.Tag,
-			Namespace: p.Namespace,
-		},
-	}
-	err = cli.Delete(ctx, wpa)
-	if err != nil {
+
+	// Delete any WorkerPodAutoScaler for the deployed revision
+	wpa := &wpav1.WorkerPodAutoScaler{}
+	if err := cli.Get(ctx, namespacedName, wpa); err != nil {
 		if !errors.IsNotFound(err) {
+			log.Error(err, "Failed to get WPA while retiring revision",
+				"namespace", p.Namespace,
+				"tag", p.Tag,
+			)
+			return err
+		}
+		wpa = nil
+	}
+	if wpa != nil {
+		if err := cli.Delete(ctx, wpa); err != nil {
 			log.Error(err, "Failed to delete WPA while retiring revision",
 				"namespace", p.Namespace,
 				"tag", p.Tag,
 			)
-			return
+			return err
 		}
 	}
 
 	rs := &appsv1.ReplicaSet{}
-	err = cli.Get(ctx, namespacedName, rs)
-	if err != nil {
+	if err := cli.Get(ctx, namespacedName, rs); err != nil {
 		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to update replicaset to 0 replicas, while retiring revision",
+			log.Error(err, "Failed to get ReplicaSet while retiring revision",
 				"namespace", p.Namespace,
 				"tag", p.Tag,
 			)
-			return
+			return err
 		}
-	} else if *rs.Spec.Replicas != 0 {
-		var r int32 = 0
-		rs.Spec.Replicas = &r
-		err = cli.Update(ctx, rs)
-		log.Info("ReplicaSet sync'd", "Type", "ReplicaSet", "Audit", true, "Content", rs, "Op", "updated")
-		if err != nil {
-			return
+		rs = nil
+	}
+	if rs != nil && *rs.Spec.Replicas != 0 {
+		var zero int32 = 0
+		rs.Spec.Replicas = &zero
+		if err := cli.Update(ctx, rs); err != nil {
+			log.Error(err, "Failed to update ReplicaSet to 0 replicas while retiring revision",
+				"namespace", p.Namespace,
+				"tag", p.Tag,
+			)
+			return err
 		}
+
+		log.Info("ReplicaSet sync'd",
+			"Type", "ReplicaSet",
+			"Audit", true,
+			"Content", rs,
+			"Op", "updated",
+		)
 	}
 
 	return nil
