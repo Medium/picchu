@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"go.medium.engineering/picchu/pkg/mocks"
 	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
@@ -28,10 +30,16 @@ func TestRetireMissingRevision(t *testing.T) {
 	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
 	ctx := context.TODO()
 
-	wpa := &wpav1.WorkerPodAutoScaler{}
+	wpa := &wpav1.WorkerPodAutoScaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rr.Tag,
+			Namespace: rr.Namespace,
+		},
+	}
+
 	m.
 		EXPECT().
-		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateWPASpec(wpa)).
+		Delete(ctx, mocks.UpdateWPAObjectMeta(wpa)).
 		Return(common.NotFoundError).
 		Times(1)
 
@@ -78,11 +86,6 @@ func TestRetireExistingRevision(t *testing.T) {
 		}
 	}, "ensure Spec.Replicas == 0")
 
-	m.
-		EXPECT().
-		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateWPASpec(wpa)).
-		Return(nil).
-		Times(1)
 	m.
 		EXPECT().
 		Delete(ctx, mocks.UpdateWPASpec(wpa)).
