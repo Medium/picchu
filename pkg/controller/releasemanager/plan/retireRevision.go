@@ -3,12 +3,15 @@ package plan
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
 	"github.com/go-logr/logr"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -22,24 +25,24 @@ func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *
 	namespacedName := types.NamespacedName{Namespace: p.Namespace, Name: p.Tag}
 
 	// Delete any WorkerPodAutoScaler for the deployed revision
-	wpa := &wpav1.WorkerPodAutoScaler{}
-	if err := cli.Get(ctx, namespacedName, wpa); err != nil {
-		if !errors.IsNotFound(err) {
-			log.Error(err, "Failed to get WPA while retiring revision",
-				"namespace", p.Namespace,
-				"tag", p.Tag,
-			)
-			return err
-		}
-		wpa = nil
+	wpa := &wpav1.WorkerPodAutoScaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.Tag,
+			Namespace: p.Namespace,
+		},
 	}
-	if wpa != nil {
-		if err := cli.Delete(ctx, wpa); err != nil {
-			log.Error(err, "Failed to delete WPA while retiring revision",
-				"namespace", p.Namespace,
-				"tag", p.Tag,
-			)
-			return err
+	if err := cli.Delete(ctx, wpa); err != nil {
+		switch err.(type) {
+		case *meta.NoKindMatchError:
+			break
+		default:
+			if !errors.IsNotFound(err) {
+				log.Error(err, "Failed to delete WPA while retiring revision",
+					"namespace", p.Namespace,
+					"tag", p.Tag,
+				)
+				return err
+			}
 		}
 	}
 

@@ -3,6 +3,8 @@ package plan
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
@@ -32,8 +34,13 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, cluster *
 
 	for _, list := range lists {
 		if err := cli.List(ctx, list.GetList(), opts); err != nil {
-			log.Error(err, "Failed to list resource")
-			return err
+			switch err.(type) {
+			case *meta.NoKindMatchError:
+				continue
+			default:
+				log.Error(err, "Failed to list resource")
+				return err
+			}
 		}
 		log.Info("list", "list", list)
 		for _, item := range list.GetItems() {
