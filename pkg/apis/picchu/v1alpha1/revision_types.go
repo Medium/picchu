@@ -24,6 +24,11 @@ type Istio struct {
 	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
 }
 
+// +k8s:deepcopy-gen=false
+type IstioSidecar struct {
+	EgressHosts []string
+}
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -128,7 +133,8 @@ type RevisionTarget struct {
 	Ports               []PortInfo        `json:"ports,omitempty"`
 	Env                 []corev1.EnvVar   `json:"env,omitempty"`
 
-	Istio *Istio `json:"istio,omitempty"`
+	Istio        *Istio        `json:"istio,omitempty"`
+	IstioSidecar *IstioSidecar `json:"istioSidecar,omitempty"`
 }
 
 type ExternalTest struct {

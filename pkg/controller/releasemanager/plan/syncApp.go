@@ -44,6 +44,7 @@ type SyncApp struct {
 	AlertRules          []monitoringv1.Rule
 	Ports               []picchuv1alpha1.PortInfo
 	HTTPPortFaults      []picchuv1alpha1.HTTPPortFault
+	IstioSidecarConfig  *picchuv1alpha1.IstioSidecar
 	DefaultVariant      bool
 	IngressesVariant    bool
 	DefaultIngressPorts map[string]string
@@ -73,14 +74,19 @@ func (p *SyncApp) Apply(
 		return nil
 	}
 
-	destinationRule := p.destinationRule()
-	virtualService := p.virtualService(log, cluster)
-	prometheusRule := p.prometheusRule()
+	sidecarResource := p.sidecarResource()
+	if sidecarResource != nil {
+		if err := plan.CreateOrUpdate(ctx, log, cli, sidecarResource); err != nil {
+			return err
+		}
+	}
 
+	destinationRule := p.destinationRule()
 	if err := plan.CreateOrUpdate(ctx, log, cli, destinationRule); err != nil {
 		return err
 	}
 
+	prometheusRule := p.prometheusRule()
 	if len(prometheusRule.Spec.Groups) == 0 {
 		err := cli.Delete(ctx, prometheusRule)
 		if err != nil && !errors.IsNotFound(err) {
@@ -96,6 +102,7 @@ func (p *SyncApp) Apply(
 		}
 	}
 
+	virtualService := p.virtualService(log, cluster)
 	if virtualService == nil {
 		log.Info("No virtualService")
 		return nil
@@ -571,6 +578,27 @@ func (p *SyncApp) prometheusRule() *monitoringv1.PrometheusRule {
 				Name:  "picchu.rules",
 				Rules: p.AlertRules,
 			}},
+		},
+	}
+}
+
+func (p *SyncApp) sidecarResource() *istioclient.Sidecar {
+	if p.IstioSidecarConfig == nil {
+		return nil
+	}
+
+	return &istioclient.Sidecar{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.App,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: istio.Sidecar{
+			Egress: []*istio.IstioEgressListener{
+				{
+					Hosts: p.IstioSidecarConfig.EgressHosts,
+				},
+			},
 		},
 	}
 }
