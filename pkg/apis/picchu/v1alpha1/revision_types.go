@@ -24,7 +24,6 @@ type Istio struct {
 	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
 }
 
-// +k8s:deepcopy-gen=false
 type IstioSidecar struct {
 	EgressHosts []string
 }
