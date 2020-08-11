@@ -88,6 +88,9 @@ var (
 				Mode:          picchuv1alpha1.PortLocal,
 			},
 		},
+		IstioSidecarConfig: &picchuv1alpha1.IstioSidecar{
+			EgressHosts: []string{"istio-system/*"},
+		},
 	}
 
 	defaultExpectedVirtualService = &istioclient.VirtualService{
@@ -316,6 +319,24 @@ var (
 			},
 		},
 	}
+
+	defaultExpectedIstioSidecar = &istioclient.Sidecar{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testapp",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				"test": "label",
+			},
+		},
+		Spec: istio.Sidecar{
+			Egress: []*istio.IstioEgressListener{
+				{
+					Hosts: []string{"istio-system/*"},
+				},
+			},
+		},
+	}
+
 	defaultPrometheusRule = &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testapp",
@@ -354,6 +375,7 @@ func TestSyncNewApp(t *testing.T) {
 		defaultExpectedService,
 		defaultExpectedDestinationRule,
 		defaultExpectedVirtualService,
+		defaultExpectedIstioSidecar,
 	}
 
 	scalingFactor := 0.5
