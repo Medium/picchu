@@ -25,7 +25,7 @@ type Istio struct {
 }
 
 type IstioSidecar struct {
-	EgressHosts []string
+	EgressHosts []string `json:"egressHosts,omitempty"`
 }
 
 // +genclient

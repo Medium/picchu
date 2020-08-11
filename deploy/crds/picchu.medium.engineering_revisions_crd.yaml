@@ -1882,6 +1882,11 @@ spec:
                         type: object
                     type: object
                   istioSidecar:
+                    properties:
+                      egressHosts:
+                        items:
+                          type: string
+                        type: array
                     type: object
                   livenessProbe:
                     description: Probe describes a health check to be performed against
