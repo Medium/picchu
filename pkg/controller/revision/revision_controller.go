@@ -3,6 +3,7 @@ package revision
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -120,7 +121,8 @@ type ReconcileRevision struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	traceID := uuid.New().String()
+	reqLogger := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceID)
 	reqLogger.Info("Reconciling Revision")
 
 	// Fetch the Revision instance
@@ -132,10 +134,10 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return reconcile.Result{}, nil
+			return r.NoRequeue(reqLogger, err)
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return r.Requeue(reqLogger, err)
 	}
 	r.scheme.Default(instance)
 	log := reqLogger.WithValues("App", instance.Spec.App.Name, "Tag", instance.Spec.App.Tag)
@@ -143,11 +145,11 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	mirrors := &picchuv1alpha1.MirrorList{}
 	err = r.client.List(ctx, mirrors)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.Requeue(log, err)
 	}
 
 	if err = r.LabelWithAppAndFleets(log, instance); err != nil {
-		return reconcile.Result{}, err
+		return r.Requeue(log, err)
 	}
 
 	promLabels := prometheus.Labels{
@@ -157,16 +159,16 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	deleted, err := r.deleteIfMarked(log, instance)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.Requeue(log, err)
 	}
 
 	if deleted {
-		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
+		return r.Requeue(log, nil)
 	}
 
 	status, err := r.syncReleaseManager(log, instance)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.Requeue(log, err)
 	}
 
 	isDeployed := false
@@ -198,7 +200,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	triggered, alarms, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
-		return reconcile.Result{}, err
+		return r.Requeue(log, err)
 	}
 	if triggered && !instance.Spec.IgnoreSLOs {
 		log.Info("Revision triggered", "alarms", alarms)
@@ -243,7 +245,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 				return nil
 			})
 			if err != nil {
-				return reconcile.Result{}, err
+				return r.Requeue(log, err)
 			}
 			log.Info("Set Revision State to failed", "Op", op)
 			revisionFailedGauge.With(promLabels).Set(float64(1))
@@ -256,10 +258,28 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	instance.Status = status
 	if err = r.client.Status().Update(context.TODO(), instance); err != nil {
-		return reconcile.Result{}, err
+		return r.Requeue(log, err)
 	}
 
+	return r.Requeue(log, nil)
+}
+
+func (r *ReconcileRevision) Requeue(log logr.Logger, err error) (reconcile.Result, error) {
+	if err != nil {
+		log.Error(err, "Reconcile resulted in error")
+		return reconcile.Result{}, err
+	}
+	log.Info("Reconciled successfully", "requeueAfter", r.config.RequeueAfter)
 	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
+}
+
+func (r *ReconcileRevision) NoRequeue(log logr.Logger, err error) (reconcile.Result, error) {
+	if err != nil {
+		log.Error(err, "Reconcile resulted in error")
+		return reconcile.Result{}, err
+	}
+	log.Info("Reconciled successfully, no requeue")
+	return reconcile.Result{}, nil
 }
 
 func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *picchuv1alpha1.Revision) error {
