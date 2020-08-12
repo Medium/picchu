@@ -133,7 +133,7 @@ type RevisionTarget struct {
 	Ports               []PortInfo        `json:"ports,omitempty"`
 	Env                 []corev1.EnvVar   `json:"env,omitempty"`
 
-	Istio        *Istio        `json:"istio,omitempty"`
+	Istio *Istio `json:"istio,omitempty"`
 }
 
 type ExternalTest struct {
