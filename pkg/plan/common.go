@@ -23,17 +23,7 @@ import (
 
 type NoChangeNeededError error
 
-func NoChangeNeeded() error {
-	return NoChangeNeededError(errors.New("no change needed"))
-}
-
-func IsNoChangeNeededError(err error) bool {
-	switch err.(type) {
-	case NoChangeNeededError:
-		return true
-	}
-	return false
-}
+var ErrNoChangeNeeded = NoChangeNeededError(errors.New("no change needed"))
 
 func LogSync(log logr.Logger, op controllerutil.OperationResult, err error, resource runtime.Object) {
 	kind := utils.MustGetKind(resource).Kind
@@ -340,7 +330,7 @@ func CreateOrUpdate(
 				obj := typed.DeepCopy()
 				obj.Spec.Replicas = rs.Spec.Replicas
 				if equality.Semantic.DeepEqual(rs, obj) {
-					return NoChangeNeeded()
+					return ErrNoChangeNeeded
 				}
 			}
 			// end replicas logic
@@ -362,7 +352,7 @@ func CreateOrUpdate(
 			}
 			return nil
 		})
-		if IsNoChangeNeededError(err) {
+		if errors.Is(err, ErrNoChangeNeeded) {
 			op = "unchanged"
 			err = nil
 		}

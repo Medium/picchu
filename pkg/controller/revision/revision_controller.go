@@ -271,7 +271,7 @@ func (r *ReconcileRevision) Requeue(log logr.Logger, err error) (reconcile.Resul
 		log.Error(err, "Reconcile resulted in error")
 		return reconcile.Result{}, err
 	}
-	log.Info("Reconciled successfully", "requeueAfter", r.config.RequeueAfter)
+	log.Info("Reconciled successfully", "requeue", true, "requeueAfter", r.config.RequeueAfter)
 	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 }
 
@@ -280,7 +280,7 @@ func (r *ReconcileRevision) NoRequeue(log logr.Logger, err error) (reconcile.Res
 		log.Error(err, "Reconcile resulted in error")
 		return reconcile.Result{}, err
 	}
-	log.Info("Reconciled successfully, no requeue")
+	log.Info("Reconciled successfully", "requeue", false)
 	return reconcile.Result{}, nil
 }
 
