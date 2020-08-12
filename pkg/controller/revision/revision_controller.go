@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -53,7 +54,7 @@ var (
 func Add(mgr manager.Manager, c utils.Config) error {
 	metrics.Registry.MustRegister(revisionFailedGauge)
 	metrics.Registry.MustRegister(mirrorFailureCounter)
-	return add(mgr, newReconciler(mgr, c))
+	return add(mgr, newReconciler(mgr, c), c)
 }
 
 type PromAPI interface {
@@ -88,9 +89,10 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add(mgr manager.Manager, r reconcile.Reconciler, c utils.Config) error {
 	_, err := builder.ControllerManagedBy(mgr).
-		ForType(&picchuv1alpha1.Revision{}).
+		For(&picchuv1alpha1.Revision{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: c.ConcurrentRevisions}).
 		WithEventFilter(predicate.Funcs{
 			UpdateFunc: func(_ event.UpdateEvent) bool { return false },
 		}).
