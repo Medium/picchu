@@ -19,9 +19,15 @@ var (
 	rolloutTargets = []string{"production"}
 )
 
+// see custom_deepcopy.go
 // +k8s:deepcopy-gen=false
 type Istio struct {
 	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
+	Sidecar       *IstioSidecar        `json:"sidecar,omitempty"`
+}
+
+type IstioSidecar struct {
+	EgressHosts []string `json:"egressHosts,omitempty"`
 }
 
 // +genclient

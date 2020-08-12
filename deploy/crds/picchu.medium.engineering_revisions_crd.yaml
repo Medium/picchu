@@ -911,7 +911,15 @@ spec:
                   fleet:
                     type: string
                   istio:
+                    description: see custom_deepcopy.go
                     properties:
+                      sidecar:
+                        properties:
+                          egressHosts:
+                            items:
+                              type: string
+                            type: array
+                        type: object
                       trafficPolicy:
                         description: Traffic policies to apply for a specific destination,
                           across all destination ports. See DestinationRule for examples.

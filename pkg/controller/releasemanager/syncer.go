@@ -2,7 +2,6 @@ package releasemanager
 
 import (
 	"context"
-	istio "istio.io/api/networking/v1alpha3"
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -14,7 +13,7 @@ import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-
+	istio "istio.io/api/networking/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -217,7 +216,13 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 
 	revisions := r.prepareRevisions()
 	alertRules := r.prepareAlertRules()
-	defaultIngressPorts := incarnations[len(incarnations)-1].target().DefaultIngressPorts
+
+	latestTarget := incarnations[len(incarnations)-1].target()
+	defaultIngressPorts := latestTarget.DefaultIngressPorts
+	var istioSidecarConfig *picchuv1alpha1.IstioSidecar
+	if latestTarget.Istio != nil {
+		istioSidecarConfig = latestTarget.Istio.Sidecar
+	}
 
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
 		App:                 r.instance.Spec.App,
@@ -229,6 +234,7 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		AlertRules:          alertRules,
 		Ports:               ports,
 		HTTPPortFaults:      r.faults,
+		IstioSidecarConfig:  istioSidecarConfig,
 		DefaultVariant:      utils.VariantEnabled(r.instance, picchuv1alpha1.VariantPortDefault),
 		IngressesVariant:    utils.VariantEnabled(r.instance, picchuv1alpha1.VariantIngresses),
 		DefaultIngressPorts: defaultIngressPorts,
