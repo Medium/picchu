@@ -911,6 +911,7 @@ spec:
                   fleet:
                     type: string
                   istio:
+                    description: see custom_deepcopy.go
                     properties:
                       sidecar:
                         properties:
