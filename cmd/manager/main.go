@@ -74,6 +74,8 @@ func main() {
 	serviceLevelsFleet := pflag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 	webhookPort := pflag.Int("webhook-port", 8443, "The port to listen for admission webhooks on")
 	webhookDisabled := pflag.Bool("webhook-disabled", false, "Disables webhook")
+	concurrentRevisions := pflag.Int("concurrent-revisions", 20, "How many concurrent revisions to reconcile")
+	concurrentReleaseManagers := pflag.Int("concurrent-release-managers", 50, "How many concurrent release managers to reconcile")
 
 	pflag.Parse()
 
@@ -120,7 +122,7 @@ func main() {
 		panic(err)
 	}
 	if !*webhookDisabled {
-		webhook.Init(cli, int32(*webhookPort), namespace)
+		webhook.Init(cli, int32(*webhookPort), namespace, log)
 	}
 
 	ctx := context.TODO()
@@ -173,15 +175,17 @@ func main() {
 	}
 
 	cconfig := utils.Config{
-		ManageRoute53:          *manageRoute53,
-		HumaneReleasesEnabled:  *humaneReleasesEnabled,
-		RequeueAfter:           requeuePeriod,
-		PrometheusQueryAddress: *prometheusQueryAddress,
-		PrometheusQueryTTL:     *prometheusQueryTTL,
-		SentryAuthToken:        *sentryAuthToken,
-		SentryOrg:              *sentryOrg,
-		ServiceLevelsNamespace: *serviceLevelsNamespace,
-		ServiceLevelsFleet:     *serviceLevelsFleet,
+		ManageRoute53:             *manageRoute53,
+		HumaneReleasesEnabled:     *humaneReleasesEnabled,
+		RequeueAfter:              requeuePeriod,
+		PrometheusQueryAddress:    *prometheusQueryAddress,
+		PrometheusQueryTTL:        *prometheusQueryTTL,
+		SentryAuthToken:           *sentryAuthToken,
+		SentryOrg:                 *sentryOrg,
+		ServiceLevelsNamespace:    *serviceLevelsNamespace,
+		ServiceLevelsFleet:        *serviceLevelsFleet,
+		ConcurrentRevisions:       *concurrentRevisions,
+		ConcurrentReleaseManagers: *concurrentReleaseManagers,
 	}
 
 	// Setup all Controllers

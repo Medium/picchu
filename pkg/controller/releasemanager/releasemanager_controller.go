@@ -3,6 +3,7 @@ package releasemanager
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -138,7 +139,7 @@ func Add(mgr manager.Manager, c utils.Config) error {
 		revisionReleaseWeightGauge,
 		reconcileInterval,
 	)
-	return add(mgr, newReconciler(mgr, c))
+	return add(mgr, newReconciler(mgr, c), c)
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -152,8 +153,9 @@ func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add(mgr manager.Manager, r reconcile.Reconciler, c utils.Config) error {
 	_, err := builder.ControllerManagedBy(mgr).
+		WithOptions(controller.Options{MaxConcurrentReconciles: c.ConcurrentReleaseManagers}).
 		For(&picchuv1alpha1.ReleaseManager{}).
 		WithEventFilter(predicate.Funcs{
 			UpdateFunc: func(_ event.UpdateEvent) bool { return false },

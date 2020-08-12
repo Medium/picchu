@@ -2,23 +2,28 @@ package plan
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/controller/utils"
-
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+type NoChangeNeededError error
+
+var ErrNoChangeNeeded = NoChangeNeededError(errors.New("no change needed"))
 
 func LogSync(log logr.Logger, op controllerutil.OperationResult, err error, resource runtime.Object) {
 	kind := utils.MustGetKind(resource).Kind
@@ -312,18 +317,45 @@ func CreateOrUpdate(
 				log.Info("Resource is ignored", "namespace", rs.Namespace, "name", rs.Name, "kind", kind)
 				return nil
 			}
+			// Only update replicas if we are changing to/from zero, which means the replicaset is being retired/deployed
 			var zero int32 = 0
 			if rs.Spec.Replicas == nil {
 				rs.Spec.Replicas = &zero
 			}
 			if 0 == *typed.Spec.Replicas || 0 == *rs.Spec.Replicas {
 				*rs.Spec.Replicas = *typed.Spec.Replicas
+			} else {
+				// if the only change is replicas, and neither is zero, abort update. Replicas can change so fast in
+				// response to HPAs that we often get "fake" changes
+				obj := typed.DeepCopy()
+				obj.Spec.Replicas = rs.Spec.Replicas
+				if equality.Semantic.DeepEqual(rs, obj) {
+					return ErrNoChangeNeeded
+				}
 			}
+			// end replicas logic
+
 			rs.Spec.Template = typed.Spec.Template
 			rs.Spec.Selector = typed.Spec.Selector
-			rs.Labels = CopyStringMap(typed.Labels)
+			updateLabels := false
+			if len(rs.Labels) != len(typed.Labels) {
+				updateLabels = true
+			} else {
+				for n, v := range typed.Labels {
+					if rs.Labels[n] != v {
+						updateLabels = true
+					}
+				}
+			}
+			if updateLabels {
+				rs.Labels = CopyStringMap(typed.Labels)
+			}
 			return nil
 		})
+		if errors.Is(err, ErrNoChangeNeeded) {
+			op = "unchanged"
+			err = nil
+		}
 		LogSync(log, op, err, rs)
 		if err != nil {
 			return err
