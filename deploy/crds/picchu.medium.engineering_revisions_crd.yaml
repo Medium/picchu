@@ -912,6 +912,13 @@ spec:
                     type: string
                   istio:
                     properties:
+                      sidecar:
+                        properties:
+                          egressHosts:
+                            items:
+                              type: string
+                            type: array
+                        type: object
                       trafficPolicy:
                         description: Traffic policies to apply for a specific destination,
                           across all destination ports. See DestinationRule for examples.
@@ -1880,13 +1887,6 @@ spec:
                                 type: array
                             type: object
                         type: object
-                    type: object
-                  istioSidecar:
-                    properties:
-                      egressHosts:
-                        items:
-                          type: string
-                        type: array
                     type: object
                   livenessProbe:
                     description: Probe describes a health check to be performed against

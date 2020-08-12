@@ -217,7 +217,7 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	revisions := r.prepareRevisions()
 	alertRules := r.prepareAlertRules()
 	defaultIngressPorts := incarnations[len(incarnations)-1].target().DefaultIngressPorts
-	istioSidecarConfig := incarnations[len(incarnations)-1].target().IstioSidecar
+	istioSidecarConfig := incarnations[len(incarnations)-1].target().Istio.Sidecar
 
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
 		App:                 r.instance.Spec.App,

@@ -1349,11 +1349,6 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 		in, out := &in.Istio, &out.Istio
 		*out = (*in).DeepCopy()
 	}
-	if in.IstioSidecar != nil {
-		in, out := &in.IstioSidecar, &out.IstioSidecar
-		*out = new(IstioSidecar)
-		(*in).DeepCopyInto(*out)
-	}
 	return
 }
 
