@@ -120,7 +120,7 @@ func main() {
 		panic(err)
 	}
 	if !*webhookDisabled {
-		webhook.Init(cli, int32(*webhookPort), namespace)
+		webhook.Init(cli, int32(*webhookPort), namespace, log)
 	}
 
 	ctx := context.TODO()

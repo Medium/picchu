@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"go.medium.engineering/picchu/pkg/webhook/revision"
 	"io/ioutil"
 	admissionregistration "k8s.io/api/admissionregistration/v1beta1"
@@ -15,7 +16,6 @@ import (
 	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"time"
 )
@@ -33,17 +33,14 @@ const (
 	CrtDir                   = "/tmp/k8s-webhook-server/serving-certs"
 )
 
-var (
-	log = logf.Log.WithName("webhook")
-)
-
 func Register(mgr manager.Manager) {
 	revision.Register(mgr)
 }
 
 // Init creates all necessary infrastructure to support webhooks. Service, Secret, certs and WebhookConfigurations.
 // It is intended to run on the same /tmp volume as the picchu operator which requires the certs to be present.
-func Init(cli client.Client, targetPort int32, namespace string) {
+func Init(cli client.Client, targetPort int32, namespace string, log logr.Logger) {
+	log = log.WithName("webhook")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
 	defer cancel()
 	service := &core.Service{
