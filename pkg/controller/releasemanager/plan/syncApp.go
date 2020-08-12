@@ -445,6 +445,10 @@ func (p *SyncApp) service() *corev1.Service {
 		labels[k] = v
 	}
 
+	// Don't needlessly update services
+	sort.Slice(ports, func(i, j int) bool {
+		return ports[i].Port < ports[j].Port
+	})
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.App,
