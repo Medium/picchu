@@ -22,6 +22,7 @@ var (
 // +k8s:deepcopy-gen=false
 type Istio struct {
 	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
+	Sidecar       *IstioSidecar        `json:"sidecar,omitempty"`
 }
 
 type IstioSidecar struct {
@@ -133,7 +134,6 @@ type RevisionTarget struct {
 	Env                 []corev1.EnvVar   `json:"env,omitempty"`
 
 	Istio        *Istio        `json:"istio,omitempty"`
-	IstioSidecar *IstioSidecar `json:"istioSidecar,omitempty"`
 }
 
 type ExternalTest struct {
