@@ -95,8 +95,8 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 	}
 
 	a.lock.Lock()
+	defer a.lock.Unlock()
 	a.cache[query] = cachedValue{val, time.Now()}
-	a.lock.Unlock()
 	return val, nil
 }
 
