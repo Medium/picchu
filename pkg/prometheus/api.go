@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 	"text/template"
 	"time"
 
@@ -56,6 +57,7 @@ type API struct {
 	api   PromAPI
 	cache map[string]cachedValue
 	ttl   time.Duration
+	lock  sync.Mutex
 }
 
 type noopAPI struct{}
@@ -72,13 +74,13 @@ func NewAPI(address string, ttl time.Duration) (*API, error) {
 	}
 	if address == "" {
 		log.Info("WARNING: No prometheus address defined, SLOs disabled")
-		return &API{&noopAPI{}, map[string]cachedValue{}, ttl}, nil
+		return &API{&noopAPI{}, map[string]cachedValue{}, ttl, sync.Mutex{}}, nil
 	}
-	return &API{api.NewAPI(client), map[string]cachedValue{}, ttl}, nil
+	return &API{api.NewAPI(client), map[string]cachedValue{}, ttl, sync.Mutex{}}, nil
 }
 
 func InjectAPI(a PromAPI, ttl time.Duration) *API {
-	return &API{a, map[string]cachedValue{}, ttl}
+	return &API{a, map[string]cachedValue{}, ttl, sync.Mutex{}}
 }
 
 func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (model.Value, error) {
@@ -91,6 +93,9 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 	if err != nil {
 		return nil, err
 	}
+
+	a.lock.Lock()
+	defer a.lock.Unlock()
 	a.cache[query] = cachedValue{val, time.Now()}
 	return val, nil
 }
