@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -210,6 +211,10 @@ func (p *SyncRevision) syncReplicaSet(
 			hasStatusPort = true
 		}
 	}
+
+	sort.Slice(ports, func(i, j int) bool {
+		return ports[i].ContainerPort < ports[j].ContainerPort
+	})
 
 	appContainer := corev1.Container{
 		EnvFrom:        envs,
