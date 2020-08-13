@@ -27,13 +27,13 @@ var (
 		},
 		Configs: []runtime.Object{},
 		Ports: []picchuv1alpha1.PortInfo{{
-			Name:          "http",
-			Protocol:      "TCP",
-			ContainerPort: 8080,
-		}, {
 			Name:          "status",
 			Protocol:      "TCP",
 			ContainerPort: 4242,
+		}, {
+			Name:          "http",
+			Protocol:      "TCP",
+			ContainerPort: 8080,
 		}},
 		Replicas: 2,
 		Image:    "docker.medium.sh/test:testtag",
@@ -95,13 +95,13 @@ var (
 		},
 		Configs: []runtime.Object{},
 		Ports: []picchuv1alpha1.PortInfo{{
-			Name:          "http",
-			Protocol:      "TCP",
-			ContainerPort: 8080,
-		}, {
 			Name:          "status",
 			Protocol:      "TCP",
 			ContainerPort: 4242,
+		}, {
+			Name:          "http",
+			Protocol:      "TCP",
+			ContainerPort: 8080,
 		}},
 		Replicas: 0,
 		Image:    "docker.medium.sh/test:testtag",
@@ -169,13 +169,13 @@ var (
 						Image:   "docker.medium.sh/test:testtag",
 						Name:    "testapp",
 						Ports: []corev1.ContainerPort{{
-							Name:          "http",
-							Protocol:      "TCP",
-							ContainerPort: 8080,
-						}, {
 							Name:          "status",
 							Protocol:      "TCP",
 							ContainerPort: 4242,
+						}, {
+							Name:          "http",
+							Protocol:      "TCP",
+							ContainerPort: 8080,
 						}},
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
@@ -293,13 +293,13 @@ var (
 						Image:   "docker.medium.sh/test:testtag",
 						Name:    "testapp",
 						Ports: []corev1.ContainerPort{{
-							Name:          "http",
-							Protocol:      "TCP",
-							ContainerPort: 8080,
-						}, {
 							Name:          "status",
 							Protocol:      "TCP",
 							ContainerPort: 4242,
+						}, {
+							Name:          "http",
+							Protocol:      "TCP",
+							ContainerPort: 8080,
 						}},
 						Resources: corev1.ResourceRequirements{
 							Limits: corev1.ResourceList{
@@ -366,7 +366,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 	ctx := context.TODO()
 	log := test.MustNewLogger()
 	existing := defaultExpectedReplicaSet.DeepCopy()
-	existing.Spec.Template.Spec.ServiceAccountName = "updateme"
+	existing.Labels["name"] = "updateme"
 	expected := defaultExpectedReplicaSet.DeepCopy()
 	expected.ObjectMeta.ResourceVersion = "2"
 	cli := fakeClient(existing)
@@ -375,6 +375,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 	assert.NoError(t, defaultRevisionPlan.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
 	assert.NoError(t, cli.List(ctx, rsl))
 	assert.Equal(t, 1, len(rsl.Items))
+
 	common.ResourcesEqual(t, expected, &rsl.Items[0])
 }
 

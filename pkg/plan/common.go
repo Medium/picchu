@@ -16,7 +16,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -348,32 +347,14 @@ func CreateOrUpdate(
 			}
 			if 0 == *typed.Spec.Replicas || 0 == *rs.Spec.Replicas {
 				*rs.Spec.Replicas = *typed.Spec.Replicas
-			} else {
-				// if the only change is replicas, and neither is zero, abort update. Replicas can change so fast in
-				// response to HPAs that we often get "fake" changes
-				obj := typed.DeepCopy()
-				obj.Spec.Replicas = rs.Spec.Replicas
-				if equality.Semantic.DeepEqual(rs, obj) {
-					return ErrNoChangeNeeded
-				}
 			}
 			// end replicas logic
 
-			rs.Spec.Template = typed.Spec.Template
+			if len(rs.Spec.Template.Labels) == 0 {
+				rs.Spec.Template = typed.Spec.Template
+			}
 			rs.Spec.Selector = typed.Spec.Selector
-			updateLabels := false
-			if len(rs.Labels) != len(typed.Labels) {
-				updateLabels = true
-			} else {
-				for n, v := range typed.Labels {
-					if rs.Labels[n] != v {
-						updateLabels = true
-					}
-				}
-			}
-			if updateLabels {
-				rs.Labels = CopyStringMap(typed.Labels)
-			}
+			rs.Labels = typed.Labels
 			return nil
 		})
 		if errors.Is(err, ErrNoChangeNeeded) {
