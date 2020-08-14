@@ -23,10 +23,12 @@ generate: deepcopy defaulter openapi clientset matcher
 build:
 	@mkdir -p build/_output/bin
 	go build -o build/_output/bin/picchu ./cmd/manager
+	go build -o build/_output/bin/picchu-webhook ./cmd/webhook
 
 docker:
 	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
 	operator-sdk build $(IMAGE)
+	docker build -t $(WEBHOOK_IMAGE) -f build/webhook.Dockerfile .
 
 deps:
 	go mod tidy

@@ -25,7 +25,7 @@ const (
 	ServicePort              = 443
 	ServiceName              = "webhook"
 	ServicePortName          = "webhook"
-	ServiceLabelName         = "picchu"
+	ServiceLabelName         = "picchu-webhook"
 	SecretName               = "webhook-cert"
 	WebhookConfigurationName = "picchu-policy"
 	ValidationWebhookName    = "picchu-validation.medium.engineering"
