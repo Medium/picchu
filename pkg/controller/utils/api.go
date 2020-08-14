@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.medium.engineering/picchu/pkg/client/scheme"
+	"sync"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -17,6 +18,7 @@ import (
 )
 
 var cache = map[client.ObjectKey]client.Client{}
+var lock = sync.Mutex{}
 
 func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
 	key, err := client.ObjectKeyFromObject(cluster)
@@ -44,6 +46,8 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 	if err != nil {
 		return cli, err
 	}
+	lock.Lock()
+	defer lock.Unlock()
 	cache[key] = cli
 	return cli, nil
 }
