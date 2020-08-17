@@ -1,3 +1,17 @@
+FROM golang:1.15
+
+WORKDIR /go/src/go.medium.engineering/picchu
+
+COPY pkg ./pkg
+COPY cmd ./cmd
+COPY version ./version
+
+COPY go.mod go.sum ./
+
+RUN ls
+
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o webhook ./cmd/webhook
+
 FROM alpine:3.8
 
 RUN apk add --no-cache tzdata
@@ -7,7 +21,7 @@ ENV OPERATOR=/usr/local/bin/picchu-webhook \
     USER_NAME=picchu
 
 # install operator binary
-COPY build/_output/bin/picchu-webhook ${OPERATOR}
+COPY --from=0 /go/src/go.medium.engineering/picchu/webhook ${OPERATOR}
 
 COPY build/bin /usr/local/bin
 RUN apk add --no-cache ca-certificates && \
