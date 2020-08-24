@@ -53,15 +53,15 @@ matcher: generators/matcher-gen
 crds:
 	operator-sdk generate crds
 
-generators/%:
+generators/%: go.sum
 	@mkdir -p generators
 	go build -o $@ k8s.io/code-generator/cmd/$*-gen
 
-generators/matcher-gen:
+generators/matcher-gen: go.sum
 	@mkdir -p generators
 	go build -o $@ go.medium.engineering/kubernetes/cmd/matcher-gen
 
-generators/openapi-gen:
+generators/openapi-gen: go.sum
 	@mkdir -p generators
 	go build -o ./generators/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
 
@@ -78,7 +78,7 @@ verify: crds
 fix:
 	hack/fix-all.sh
 
-mocks:
+mocks: go.sum
 	@mkdir -p generators
 	go get github.com/golang/mock/mockgen
 	mockgen -destination=pkg/mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
