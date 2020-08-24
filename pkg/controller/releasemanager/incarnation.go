@@ -369,6 +369,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		ReadinessProbe:     i.target().ReadinessProbe,
 		LivenessProbe:      i.target().LivenessProbe,
 		MinReadySeconds:    i.target().Scale.MinReadySeconds,
+		Lifecycle:          i.target().Lifecycle,
 		Affinity:           i.target().Affinity,
 		Tolerations:        i.target().Tolerations,
 		EnvVars:            i.target().Env,
