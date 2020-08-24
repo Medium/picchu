@@ -124,6 +124,7 @@ type RevisionTarget struct {
 	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
 	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
+	Lifecycle      *corev1.Lifecycle           `json:"lifecycle,omitempty"`
 
 	Affinity    *corev1.Affinity    `json:"affinity,omitempty"`
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`

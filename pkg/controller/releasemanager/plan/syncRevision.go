@@ -72,6 +72,7 @@ type SyncRevision struct {
 	LivenessProbe      *corev1.Probe
 	ReadinessProbe     *corev1.Probe
 	MinReadySeconds    int32
+	Lifecycle          *corev1.Lifecycle
 	Affinity           *corev1.Affinity
 	Tolerations        []corev1.Toleration
 	EnvVars            []corev1.EnvVar
@@ -94,6 +95,7 @@ func (p *SyncRevision) Printable() interface{} {
 		LivenessProbe      *corev1.Probe
 		ReadinessProbe     *corev1.Probe
 		MinReadySeconds    int32
+		Lifecycle          *corev1.Lifecycle
 		Affinity           *corev1.Affinity
 	}{
 
@@ -111,6 +113,7 @@ func (p *SyncRevision) Printable() interface{} {
 		LivenessProbe:      p.LivenessProbe,
 		ReadinessProbe:     p.ReadinessProbe,
 		MinReadySeconds:    p.MinReadySeconds,
+		Lifecycle:          p.Lifecycle,
 		Affinity:           p.Affinity,
 	}
 }
@@ -190,6 +193,7 @@ func (p *SyncRevision) syncReplicaSet(
 ) error {
 	var livenessProbe *corev1.Probe
 	var readinessProbe *corev1.Probe
+	var lifecycle *corev1.Lifecycle
 	if p.LivenessProbe != nil {
 		probe := *p.LivenessProbe
 		livenessProbe = &probe
@@ -197,6 +201,10 @@ func (p *SyncRevision) syncReplicaSet(
 	if p.ReadinessProbe != nil {
 		probe := *p.ReadinessProbe
 		readinessProbe = &probe
+	}
+	if p.Lifecycle != nil {
+		lc := *p.Lifecycle
+		lifecycle = &lc
 	}
 
 	var ports []corev1.ContainerPort
@@ -225,6 +233,7 @@ func (p *SyncRevision) syncReplicaSet(
 		Resources:      p.Resources,
 		LivenessProbe:  livenessProbe,
 		ReadinessProbe: readinessProbe,
+		Lifecycle:      lifecycle,
 	}
 
 	if hasStatusPort {

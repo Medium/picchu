@@ -79,6 +79,13 @@ var (
 				},
 			},
 		}},
+		Lifecycle: &corev1.Lifecycle{
+			PreStop: &corev1.Handler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "-c", "sleep 20"},
+				},
+			},
+		},
 		Sidecars: []corev1.Container{
 			{
 				Name:  "test-1",
@@ -212,6 +219,13 @@ var (
 							TimeoutSeconds:      1,
 							SuccessThreshold:    1,
 							FailureThreshold:    3,
+						},
+						Lifecycle: &corev1.Lifecycle{
+							PreStop: &corev1.Handler{
+								Exec: &corev1.ExecAction{
+									Command: []string{"/bin/sh", "-c", "sleep 20"},
+								},
+							},
 						},
 					},
 						{
