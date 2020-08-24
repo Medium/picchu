@@ -1310,6 +1310,11 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 		*out = new(corev1.Probe)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Lifecycle != nil {
+		in, out := &in.Lifecycle, &out.Lifecycle
+		*out = new(corev1.Lifecycle)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
 		*out = new(corev1.Affinity)
