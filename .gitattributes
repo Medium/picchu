@@ -1,4 +1,5 @@
 **/zz_generated.*.go linguist-generated=true
 /pkg/client/** linguist-generated=true
 /pkg/openapi/** linguist-generated=true
+/deploy/crds/** linguist-generated=true
 Gopkg.lock linguist-generated=true
