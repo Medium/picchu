@@ -21,6 +21,8 @@ var cache = map[client.ObjectKey]client.Client{}
 var lock = &sync.Mutex{}
 
 func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
+	lock.Lock()
+	defer lock.Unlock()
 	key, err := client.ObjectKeyFromObject(cluster)
 	if err != nil {
 		return nil, err
@@ -46,8 +48,6 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 	if err != nil {
 		return cli, err
 	}
-	lock.Lock()
-	defer lock.Unlock()
 	cache[key] = cli
 	return cli, nil
 }
