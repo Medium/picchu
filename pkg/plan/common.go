@@ -330,8 +330,9 @@ func CreateOrUpdate(
 		typed := orig.DeepCopy()
 		rs := &appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      typed.Name,
-				Namespace: typed.Namespace,
+				Name:        typed.Name,
+				Namespace:   typed.Namespace,
+				Annotations: typed.Annotations,
 			},
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, rs, func() error {
@@ -340,13 +341,15 @@ func CreateOrUpdate(
 				log.Info("Resource is ignored", "namespace", rs.Namespace, "name", rs.Name, "kind", kind)
 				return nil
 			}
-			// Only update replicas if we are changing to/from zero, which means the replicaset is being retired/deployed
-			var zero int32 = 0
-			if rs.Spec.Replicas == nil {
-				rs.Spec.Replicas = &zero
-			}
-			if 0 == *typed.Spec.Replicas || 0 == *rs.Spec.Replicas {
-				*rs.Spec.Replicas = *typed.Spec.Replicas
+			if typed.Annotations[picchu.AnnotationAutoscaler] != "wpa" { // Allow WorkerPodAutoScaler to manipulate Replicas on its own
+				// Only update replicas if we are changing to/from zero, which means the replicaset is being retired/deployed
+				var zero int32 = 0
+				if rs.Spec.Replicas == nil {
+					rs.Spec.Replicas = &zero
+				}
+				if *typed.Spec.Replicas == 0 || *rs.Spec.Replicas == 0 {
+					*rs.Spec.Replicas = *typed.Spec.Replicas
+				}
 			}
 			// end replicas logic
 

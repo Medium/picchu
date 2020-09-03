@@ -64,6 +64,7 @@ const (
 	AnnotationFailedAt               = "picchu.medium.engineering/failed-at-timestamp"
 	AnnotationRepo                   = "picchu.medium.engineering/repo"
 	AnnotationCanaryStartedTimestamp = "picchu.medium.engineering/canaryStartedTimestamp"
+	AnnotationAutoscaler             = "picchu.medium.engineering/autoscaler"
 )
 
 type PortInfo struct {

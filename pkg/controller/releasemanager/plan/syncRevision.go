@@ -72,6 +72,7 @@ type SyncRevision struct {
 	LivenessProbe      *corev1.Probe
 	ReadinessProbe     *corev1.Probe
 	MinReadySeconds    int32
+	Worker             *picchuv1alpha1.WorkerScaleInfo
 	Lifecycle          *corev1.Lifecycle
 	Affinity           *corev1.Affinity
 	Tolerations        []corev1.Toleration
@@ -296,12 +297,22 @@ func (p *SyncRevision) syncReplicaSet(
 			tempSelector[k] = v
 		}
 	}
+
+	autoScaler := "hpa"
+	if p.Worker != nil {
+		autoScaler = "wpa"
+	}
+	rsAnnotations := map[string]string{
+		picchuv1alpha1.AnnotationAutoscaler: autoScaler,
+	}
+
 	// End badness
 	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: p.Namespace,
-			Name:      p.Tag,
-			Labels:    p.Labels,
+			Namespace:   p.Namespace,
+			Name:        p.Tag,
+			Labels:      p.Labels,
+			Annotations: rsAnnotations,
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas:        &scaledReplicas,
