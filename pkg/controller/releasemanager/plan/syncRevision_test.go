@@ -140,6 +140,9 @@ var (
 			Labels: map[string]string{
 				"test": "label",
 			},
+			Annotations: map[string]string{
+				"picchu.medium.engineering/autoscaler": "hpa",
+			},
 			ResourceVersion: "1",
 		},
 		Spec: appsv1.ReplicaSetSpec{
@@ -280,6 +283,9 @@ var (
 			Namespace: "testnamespace",
 			Labels: map[string]string{
 				"test": "label",
+			},
+			Annotations: map[string]string{
+				"picchu.medium.engineering/autoscaler": "hpa",
 			},
 		},
 		Spec: appsv1.ReplicaSetSpec{

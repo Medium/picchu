@@ -12,11 +12,11 @@ import (
 	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
-	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -369,6 +369,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		ReadinessProbe:     i.target().ReadinessProbe,
 		LivenessProbe:      i.target().LivenessProbe,
 		MinReadySeconds:    i.target().Scale.MinReadySeconds,
+		Worker:             i.target().Scale.Worker,
 		Lifecycle:          i.target().Lifecycle,
 		Affinity:           i.target().Affinity,
 		Tolerations:        i.target().Tolerations,
@@ -456,6 +457,8 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 	max := i.divideReplicas(i.target().Scale.Max)
 	if i.status.CurrentPercent == 0 {
 		min = max
+	} else if i.target().Scale.Worker != nil && *i.target().Scale.Min == 0 {
+		min = 0
 	}
 
 	return &rmplan.ScaleRevision{
