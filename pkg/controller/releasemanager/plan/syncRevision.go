@@ -298,9 +298,9 @@ func (p *SyncRevision) syncReplicaSet(
 		}
 	}
 
-	autoScaler := "hpa"
+	autoScaler := picchuv1alpha1.AutoscalerTypeHPA
 	if p.Worker != nil {
-		autoScaler = "wpa"
+		autoScaler = picchuv1alpha1.AutoscalerTypeWPA
 	}
 	rsAnnotations := map[string]string{
 		picchuv1alpha1.AnnotationAutoscaler: autoScaler,

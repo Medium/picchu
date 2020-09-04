@@ -341,7 +341,7 @@ func CreateOrUpdate(
 				log.Info("Resource is ignored", "namespace", rs.Namespace, "name", rs.Name, "kind", kind)
 				return nil
 			}
-			if typed.Annotations[picchu.AnnotationAutoscaler] != "wpa" { // Allow WorkerPodAutoScaler to manipulate Replicas on its own
+			if typed.Annotations[picchu.AnnotationAutoscaler] != picchu.AutoscalerTypeWPA { // Allow WorkerPodAutoScaler to manipulate Replicas on its own
 				// Only update replicas if we are changing to/from zero, which means the replicaset is being retired/deployed
 				var zero int32 = 0
 				if rs.Spec.Replicas == nil {
