@@ -6,8 +6,11 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
 	"github.com/go-logr/logr"
+	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -57,5 +60,26 @@ func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *
 		)
 	}
 
+	return nil
+}
+
+// Delete any WorkerPodAutoScaler for the deployed revision
+func deleteWPA(ctx context.Context, cli client.Client, namespace, name string) error {
+	wpa := &wpav1.WorkerPodAutoScaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	if err := cli.Delete(ctx, wpa); err != nil {
+		switch err.(type) {
+		case *meta.NoKindMatchError:
+			break
+		default:
+			if !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
 	return nil
 }

@@ -167,16 +167,6 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		}
 	}
 
-	if p.Worker != nil && p.Replicas == 0 {
-		if err := deleteWPA(ctx, cli, p.Namespace, p.Tag); err != nil {
-			log.Error(err, "Failed to delete WPA while syncing 0 replica revision",
-				"tag", p.Tag,
-				"name", p.Namespace,
-			)
-			return err
-		}
-	}
-
 	// This is required for DestinationRule mapping, which doesn't allow slashes in label names.
 	labels := map[string]string{
 		"tag.picchu.medium.engineering": p.Tag,
