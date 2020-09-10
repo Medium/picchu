@@ -455,7 +455,10 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 
 	min := i.divideReplicas(*i.target().Scale.Min)
 	max := i.divideReplicas(i.target().Scale.Max)
-	if i.status.CurrentPercent == 0 {
+	if i.target().Scale.Worker != nil && !i.isRoutable() {
+		min = 0
+		max = 0
+	} else if i.status.CurrentPercent == 0 {
 		min = max
 	} else if i.target().Scale.Worker != nil && *i.target().Scale.Min == 0 {
 		min = 0
