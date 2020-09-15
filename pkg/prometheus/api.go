@@ -57,7 +57,7 @@ type API struct {
 	api   PromAPI
 	cache map[string]cachedValue
 	ttl   time.Duration
-	lock  *sync.Mutex
+	lock  *sync.RWMutex
 }
 
 type noopAPI struct{}
@@ -74,20 +74,29 @@ func NewAPI(address string, ttl time.Duration) (*API, error) {
 	}
 	if address == "" {
 		log.Info("WARNING: No prometheus address defined, SLOs disabled")
-		return &API{&noopAPI{}, map[string]cachedValue{}, ttl, &sync.Mutex{}}, nil
+		return &API{&noopAPI{}, map[string]cachedValue{}, ttl, &sync.RWMutex{}}, nil
 	}
-	return &API{api.NewAPI(client), map[string]cachedValue{}, ttl, &sync.Mutex{}}, nil
+	return &API{api.NewAPI(client), map[string]cachedValue{}, ttl, &sync.RWMutex{}}, nil
 }
 
 func InjectAPI(a PromAPI, ttl time.Duration) *API {
-	return &API{a, map[string]cachedValue{}, ttl, &sync.Mutex{}}
+	return &API{a, map[string]cachedValue{}, ttl, &sync.RWMutex{}}
+}
+
+func (a API) checkCache(ctx context.Context, query string) (model.Value, bool) {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+	if v, ok := a.cache[query]; ok {
+		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
+			return v.value, true
+		}
+	}
+	return nil, false
 }
 
 func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (model.Value, error) {
-	if v, ok := a.cache[query]; ok {
-		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
-			return v.value, nil
-		}
+	if v, ok := a.checkCache(ctx, query); ok {
+		return v, nil
 	}
 	val, _, err := a.api.Query(ctx, query, t)
 	if err != nil {
