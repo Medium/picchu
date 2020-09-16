@@ -3,21 +3,22 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"time"
+
 	"github.com/go-logr/logr"
 	"go.medium.engineering/picchu/pkg/webhook/revision"
-	"io/ioutil"
-	admissionregistration "k8s.io/api/admissionregistration/v1beta1"
+	admissionregistration "k8s.io/api/admissionregistration/v1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
-	"os"
-	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"time"
 )
 
 const (
@@ -112,6 +113,7 @@ func Init(cli client.Client, targetPort int32, namespace string, log logr.Logger
 	panicOnError(ioutil.WriteFile(path.Join(CrtDir, "tls.crt"), cert.Crt, os.FileMode(0644)))
 	panicOnError(ioutil.WriteFile(path.Join(CrtDir, "tls.key"), cert.Key, os.FileMode(0644)))
 
+	noSideEffect := admissionregistration.SideEffectClassNone
 	validator := &admissionregistration.ValidatingWebhookConfiguration{
 		ObjectMeta: meta.ObjectMeta{
 			Name: WebhookConfigurationName,
@@ -141,7 +143,8 @@ func Init(cli client.Client, targetPort int32, namespace string, log logr.Logger
 			}},
 			FailurePolicy:           failurePolicyTypePtr(admissionregistration.Fail),
 			TimeoutSeconds:          pointer.Int32Ptr(1),
-			AdmissionReviewVersions: []string{"v1", "v1beta1"},
+			AdmissionReviewVersions: []string{"v1beta1"},
+			SideEffects:             &noSideEffect,
 		}},
 	}
 	vWebhooks := validator.DeepCopy().Webhooks
@@ -180,7 +183,8 @@ func Init(cli client.Client, targetPort int32, namespace string, log logr.Logger
 			}},
 			FailurePolicy:           failurePolicyTypePtr(admissionregistration.Fail),
 			TimeoutSeconds:          pointer.Int32Ptr(1),
-			AdmissionReviewVersions: []string{"v1", "v1beta1"},
+			AdmissionReviewVersions: []string{"v1beta1"},
+			SideEffects:             &noSideEffect,
 		}},
 	}
 	mWebhooks := mutator.DeepCopy().Webhooks
