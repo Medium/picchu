@@ -3,6 +3,7 @@ package releasemanager
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -39,9 +40,28 @@ func (i *Incarnation) TTL() time.Duration {
 }
 
 func markDeletable(ctx context.Context, log logr.Logger, cli client.Client, incarnation *Incarnation) error {
-	revision := incarnation.revision
-	if revision == nil {
+	if incarnation.revision == nil {
 		return nil
+	}
+
+	key, err := client.ObjectKeyFromObject(incarnation.revision)
+	if err != nil {
+		return err
+	}
+	// Get fresh copy of revision so there aren't any write conflicts due to concurrent revision_controller
+	// TODO(bob): retry on conflict?
+	revision := &picchu.Revision{}
+	err = cli.Get(ctx, key, revision)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("Revision marked ready for deletion doesn't exist", "key", key)
+			return nil
+		}
+		// Error reading the object - requeue the request.
+		return err
 	}
 	label := fmt.Sprintf("%s%s", picchu.LabelTargetDeletablePrefix, incarnation.targetName())
 	if revision.Labels[label] != "true" {
