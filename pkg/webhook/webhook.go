@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"go.medium.engineering/picchu/pkg/webhook/revision"
-	admissionregistration "k8s.io/api/admissionregistration/v1"
+	admissionregistration "k8s.io/api/admissionregistration/v1beta1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
