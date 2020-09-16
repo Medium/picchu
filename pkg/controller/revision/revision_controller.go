@@ -524,7 +524,7 @@ func (r *ReconcileRevision) mirrorRevision(
 	for i := range revCopy.Spec.Targets {
 		revCopy.Spec.Targets[i].ExternalTest.Enabled = false
 	}
-	log.Info("Syncing revision", revCopy)
+	log.Info("Syncing revision", "revision", revCopy)
 	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func() error {
 		revCopy.Spec = revision.Spec
 		return nil
