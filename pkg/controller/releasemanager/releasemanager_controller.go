@@ -309,10 +309,25 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		if err != nil {
 			return r.requeue(rmLog, err)
 		}
-		rm.Status.Revisions = rs
+
+		// TODO(bob): Figure out why we are getting object modified errors
+		// Refetch fresh ReleaseManager instance so we don't get conflicting updates
+		srm := &picchuv1alpha1.ReleaseManager{}
+		if err := r.client.Get(ctx, request.NamespacedName, srm); err != nil {
+			if errors.IsNotFound(err) {
+				// Request object not found, could have been deleted after reconcile request.
+				// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+				// Return and don't requeue
+				return reconcile.Result{}, nil
+			}
+			// Error reading the object - requeue the request.
+			return r.requeue(reqLog, err)
+		}
+		r.scheme.Default(srm)
+		srm.Status.Revisions = rs
 		timeNow := metav1.NewTime(time.Now())
-		rm.Status.LastUpdated = &timeNow
-		if err := utils.UpdateStatus(ctx, r.client, rm); err != nil {
+		srm.Status.LastUpdated = &timeNow
+		if err := utils.UpdateStatus(ctx, r.client, srm); err != nil {
 			return r.requeue(rmLog, err)
 		}
 		rmLog.Info("Updated releasemanager status", "Content", rm.Status, "Type", "ReleaseManager.Status")
