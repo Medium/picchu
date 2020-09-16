@@ -3,9 +3,10 @@ package revision
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -136,7 +137,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return r.NoRequeue(reqLogger, err)
+			return r.NoRequeue(reqLogger, nil)
 		}
 		// Error reading the object - requeue the request.
 		return r.Requeue(reqLogger, err)
