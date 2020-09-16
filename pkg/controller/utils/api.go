@@ -3,8 +3,9 @@ package utils
 import (
 	"context"
 	"fmt"
-	"go.medium.engineering/picchu/pkg/client/scheme"
 	"sync"
+
+	"go.medium.engineering/picchu/pkg/client/scheme"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -18,16 +19,24 @@ import (
 )
 
 var cache = map[client.ObjectKey]client.Client{}
-var lock = &sync.Mutex{}
+var lock = &sync.RWMutex{}
 
+func checkCache(key client.ObjectKey) (client.Client, bool) {
+	lock.RLock()
+	defer lock.RUnlock()
+	if client, ok := cache[client.ObjectKey{}]; ok {
+		return client, true
+	}
+	return nil, false
+}
+
+// RemoteClient creates a k8s client from a cluster object.
 func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
-	lock.Lock()
-	defer lock.Unlock()
 	key, err := client.ObjectKeyFromObject(cluster)
 	if err != nil {
 		return nil, err
 	}
-	if client, ok := cache[key]; ok {
+	if client, ok := checkCache(key); ok {
 		return client, nil
 	}
 	log.Info("Initializing remote client", "Cluster", cluster.Name)
@@ -48,6 +57,8 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 	if err != nil {
 		return cli, err
 	}
+	lock.Lock()
+	defer lock.Unlock()
 	cache[key] = cli
 	return cli, nil
 }
