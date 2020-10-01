@@ -529,12 +529,12 @@ func (r *ReconcileRevision) mirrorRevision(
 			revCopy.Spec.Targets[i].Affinity.NodeAffinity != nil &&
 			revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil &&
 			len(revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms) == 1 &&
-			len(revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchFields) == 1 {
+			len(revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions) == 1 {
 
-			if revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchFields[0].Key == "node-role.kubernetes.io/infrastructure" {
-				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchFields[0].Key = "node.medium.engineering/role"
-				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchFields[0].Values = []string{"infrastructure"}
-				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchFields[0].Operator = corev1.NodeSelectorOpIn
+			if revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Key == "node-role.kubernetes.io/infrastructure" {
+				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Key = "node.medium.engineering/role"
+				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values = []string{"infrastructure"}
+				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Operator = corev1.NodeSelectorOpIn
 			}
 		}
 	}
