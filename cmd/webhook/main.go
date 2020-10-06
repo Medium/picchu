@@ -21,6 +21,7 @@ import (
 	"go.medium.engineering/picchu/pkg/client/scheme"
 	"go.medium.engineering/picchu/pkg/webhook"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	apps "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	core "k8s.io/api/core/v1"
@@ -117,6 +118,7 @@ func main() {
 		monitoring.AddToScheme,
 		slo.AddToScheme,
 		wpav1.AddToScheme,
+		admissionv1beta1.AddToScheme,
 	}
 
 	for _, sch := range []*k8sruntime.Scheme{mgr.GetScheme(), scheme.Scheme} {

@@ -3,9 +3,12 @@ package revision
 import (
 	"context"
 	"fmt"
+
 	"github.com/prometheus/common/log"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
+	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -16,19 +19,31 @@ type revisionMutator struct {
 }
 
 func (r *revisionMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	resp := &admission.Response{
+		AdmissionResponse: admissionv1beta1.AdmissionResponse{
+			UID:     req.UID,
+			Allowed: false,
+		},
+	}
 	clog.Info("Got revision mutation request", "req", req)
 	rev := &picchu.Revision{}
 	if err := r.decoder.Decode(req, rev); err != nil {
 		clog.Error(err, "Failed to decode revision")
-		return admission.Denied("internal error")
+		resp.Result = &metav1.Status{Message: "internal error"}
+		return *resp
 	}
 	patches := r.getPatches(rev)
 	if len(patches) > 0 {
 		log.Info("Patching revision", "patches", patches)
-		return admission.Patched("patching revision", patches...)
+		resp.Result = &metav1.Status{Message: "patching revision"}
+		resp.Allowed = true
+		resp.Patches = patches
+		return *resp
 	}
 	log.Info("No patches needed")
-	return admission.Allowed("ok")
+	resp.Result = &metav1.Status{Message: "ok"}
+	resp.Allowed = true
+	return *resp
 }
 
 func (r *revisionMutator) getPatches(rev *picchu.Revision) []jsonpatch.JsonPatchOperation {

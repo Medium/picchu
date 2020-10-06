@@ -69,16 +69,16 @@ func (p *SyncApp) Apply(
 		return err
 	}
 
-	if len(p.DeployedRevisions) == 0 {
-		log.Info("Not syncing app", "Reason", "there are no deployed revisions")
-		return nil
-	}
-
 	sidecarResource := p.sidecarResource()
 	if sidecarResource != nil {
 		if err := plan.CreateOrUpdate(ctx, log, cli, sidecarResource); err != nil {
 			return err
 		}
+	}
+
+	if len(p.DeployedRevisions) == 0 {
+		log.Info("Not syncing app", "Reason", "there are no deployed revisions")
+		return nil
 	}
 
 	destinationRule := p.destinationRule()

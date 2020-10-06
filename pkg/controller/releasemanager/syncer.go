@@ -190,15 +190,16 @@ func (r *ResourceSyncer) observe(ctx context.Context) error {
 func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	portMap := map[string]picchuv1alpha1.PortInfo{}
 	incarnations := r.incarnations.deployed()
-	if len(incarnations) < 1 {
-		return nil
-	}
 
 	// Include ports from apps in "deploying" state
 	for _, incarnation := range r.incarnations.sorted() {
 		if incarnation.status.State.Current == "deploying" {
 			incarnations = append(incarnations, incarnation)
 		}
+	}
+
+	if len(incarnations) < 1 {
+		return nil
 	}
 
 	for _, incarnation := range incarnations {
