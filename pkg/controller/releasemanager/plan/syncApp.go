@@ -48,7 +48,6 @@ type SyncApp struct {
 	DefaultVariant      bool
 	IngressesVariant    bool
 	DefaultIngressPorts map[string]string
-	userDefinedHosts    map[string]bool // internal cache
 }
 
 func (p *SyncApp) Apply(
@@ -144,15 +143,13 @@ func (p *SyncApp) privateAuthorityMatch(port picchuv1alpha1.PortInfo, cluster *p
 }
 
 func (p *SyncApp) isUserDefined(host string) bool {
-	if p.userDefinedHosts == nil {
-		p.userDefinedHosts = map[string]bool{}
-		for _, port := range p.Ports {
-			for _, host := range port.Hosts {
-				p.userDefinedHosts[host] = true
-			}
+	userDefinedHosts := map[string]bool{}
+	for _, port := range p.Ports {
+		for _, host := range port.Hosts {
+			userDefinedHosts[host] = true
 		}
 	}
-	return p.userDefinedHosts[host]
+	return userDefinedHosts[host]
 }
 
 func (p *SyncApp) ingressHosts(

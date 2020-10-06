@@ -77,7 +77,7 @@ generators/openapi-gen: go.sum
 	go build -o ./generators/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
 
 generators/operator-sdk:
-	@echo $(GOOS) $(ARCH)
+	@mkdir -p generators
 	curl -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
 	chmod +x generators/operator-sdk
 
