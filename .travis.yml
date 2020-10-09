@@ -5,10 +5,6 @@ go:
 
 sudo: required
 
-before_install:
-- sudo curl -L https://github.com/operator-framework/operator-sdk/releases/download/v0.13.0/operator-sdk-v0.13.0-x86_64-linux-gnu -o /usr/local/bin/operator-sdk
-- sudo chmod +x /usr/local/bin/operator-sdk
-
 script: make ci
 
 go_import_path: go.medium.engineering/picchu

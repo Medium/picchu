@@ -7,12 +7,23 @@ API_PACKAGE := $(PACKAGE)/apis
 GROUPS := picchu/v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
+OPERATOR_SDK_VERSION := v0.13.0
 
 platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))
 GOARCH = $(word 2, $(platform_temp))
 export GOROOT = $(shell go env GOROOT)
 export GO111MODULE = on
+
+OPERATOR_SDK_PLATFORM := unknown
+
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Linux)
+	OPERATOR_SDK_PLATFORM = linux-gnu
+endif
+ifeq ($(UNAME),Darwin)
+	OPERATOR_SDK_PLATFORM = apple-darwin
+endif
 
 .PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
 
@@ -25,18 +36,18 @@ build:
 	go build -o build/_output/bin/picchu ./cmd/manager
 	go build -o build/_output/bin/picchu-webhook ./cmd/webhook
 
-docker:
+docker: generators/operator-sdk
 	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
-	operator-sdk build $(IMAGE)
+	$< build $(IMAGE)
 	docker build -t $(WEBHOOK_IMAGE) -f build/webhook.Dockerfile .
 
 deps:
 	go mod tidy
 	go mod vendor
 
-deepcopy:
+deepcopy: generators/operator-sdk
 	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
-	operator-sdk generate k8s
+	$< generate k8s
 
 defaulter: generators/defaulter
 	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).defaults -h $(BOILERPLATE)
@@ -50,8 +61,8 @@ clientset: generators/client
 matcher: generators/matcher-gen
 	$< -i github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1 -p go.medium.engineering/picchu/pkg/test/monitoring/v1
 
-crds:
-	operator-sdk generate crds
+crds: generators/operator-sdk
+	$< generate crds
 
 generators/%: go.sum
 	@mkdir -p generators
@@ -64,6 +75,11 @@ generators/matcher-gen: go.sum
 generators/openapi-gen: go.sum
 	@mkdir -p generators
 	go build -o ./generators/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
+
+generators/operator-sdk:
+	@mkdir -p generators
+	curl -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
+	chmod +x generators/operator-sdk
 
 build-dirs:
 	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)

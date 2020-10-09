@@ -930,7 +930,6 @@ func TestProductionEcho(t *testing.T) {
 		},
 		DefaultVariant:   true,
 		IngressesVariant: true,
-		userDefinedHosts: nil,
 	}
 
 	regex := &istio.StringMatch{
