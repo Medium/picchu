@@ -523,20 +523,6 @@ func (r *ReconcileRevision) mirrorRevision(
 	}
 	for i := range revCopy.Spec.Targets {
 		revCopy.Spec.Targets[i].ExternalTest.Enabled = false
-
-		// temp hack to migrate node affinity labels to Kubernetes 1.16+ ("node-role.kubernetes.io" is no longer allowed)
-		if revCopy.Spec.Targets[i].Affinity != nil &&
-			revCopy.Spec.Targets[i].Affinity.NodeAffinity != nil &&
-			revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil &&
-			len(revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms) == 1 &&
-			len(revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions) == 1 {
-
-			if revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Key == "node-role.kubernetes.io/infrastructure" {
-				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Key = "node.medium.engineering/role"
-				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Values = []string{"infrastructure"}
-				revCopy.Spec.Targets[i].Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions[0].Operator = corev1.NodeSelectorOpIn
-			}
-		}
 	}
 	log.Info("Syncing revision", "revision", revCopy)
 	_, err = controllerutil.CreateOrUpdate(ctx, remoteClient, revCopy, func() error {
