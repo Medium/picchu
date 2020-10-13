@@ -234,7 +234,8 @@ func Testing(ctx context.Context, deployment Deployment) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if HasFailed(deployment) {
+	// Only transition to failure on external test failures, ignoring all other failure states.
+	if deployment.getExternalTestStatus() == ExternalTestFailed {
 		return failing, nil
 	}
 	externalTestStatus := deployment.getExternalTestStatus()

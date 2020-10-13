@@ -228,9 +228,9 @@ func TestTesting(t *tt.T) {
 	testcase(tested, m(true, false, ExternalTestSucceeded))
 	testcase(failing, m(true, false, ExternalTestFailed))
 
-	testcase(failing, m(true, true, ExternalTestPending))
-	testcase(failing, m(true, true, ExternalTestStarted))
-	testcase(failing, m(true, true, ExternalTestSucceeded))
+	testcase(pendingtest, m(true, true, ExternalTestPending))
+	testcase(testing, expectSync(m(true, true, ExternalTestStarted)))
+	testcase(tested, m(true, true, ExternalTestSucceeded))
 	testcase(failing, m(true, true, ExternalTestFailed))
 
 	m = func(hasRevision, markedAsFailed bool, externalTestStatus ExternalTestStatus) *MockDeployment {
