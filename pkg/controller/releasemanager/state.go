@@ -53,6 +53,14 @@ const (
 	timedout       State = "timedout"
 )
 
+var AllStates []string
+
+func init() {
+	for name := range handlers {
+		AllStates = append(AllStates, name)
+	}
+}
+
 type State string
 type StateHandler func(context.Context, Deployment) (State, error)
 
