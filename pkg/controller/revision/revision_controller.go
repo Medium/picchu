@@ -112,10 +112,11 @@ var _ reconcile.Reconciler = &ReconcileRevision{}
 type ReconcileRevision struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client  client.Client
-	scheme  *runtime.Scheme
-	config  utils.Config
-	promAPI PromAPI
+	client       client.Client
+	scheme       *runtime.Scheme
+	config       utils.Config
+	promAPI      PromAPI
+	customLogger logr.Logger
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
@@ -126,6 +127,9 @@ type ReconcileRevision struct {
 func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	traceID := uuid.New().String()
 	reqLogger := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceID)
+	if r.customLogger != nil {
+		reqLogger = r.customLogger
+	}
 	reqLogger.Info("Reconciling Revision")
 
 	// Fetch the Revision instance
@@ -205,14 +209,23 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return r.Requeue(log, err)
 	}
-	if triggered && !instance.Spec.IgnoreSLOs {
+
+	var revisionFailing bool
+	var revisionFailingReason string
+	for _, statusTarget := range status.Targets {
+		if statusTarget.State == "timingout" {
+			revisionFailing = true
+			revisionFailingReason = "test timing out"
+		}
+	}
+
+	if !revisionFailing && triggered && !instance.Spec.IgnoreSLOs {
 		log.Info("Revision triggered", "alarms", alarms)
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
 		for i := range status.Targets {
 			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
 		}
 
-		var revisionFailing bool
 		for _, revisionTarget := range instance.Spec.Targets {
 			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
 				targetStatus := targetStatusMap[revisionTarget.Name]
@@ -221,6 +234,7 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 				}
 				if targetStatus.Release.PeakPercent < AcceptancePercentage {
 					revisionFailing = true
+					revisionFailingReason = "SLO violation"
 
 					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
 					if err != nil {
@@ -241,20 +255,18 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 				break
 			}
 		}
+	}
 
-		if revisionFailing {
-			op, err := controllerutil.CreateOrUpdate(ctx, r.client, instance, func() error {
-				instance.Fail()
-				return nil
-			})
-			if err != nil {
-				return r.Requeue(log, err)
-			}
-			log.Info("Set Revision State to failed", "Op", op)
-			revisionFailedGauge.With(promLabels).Set(float64(1))
-		} else {
-			revisionFailedGauge.With(promLabels).Set(float64(0))
+	if revisionFailing {
+		op, err := controllerutil.CreateOrUpdate(ctx, r.client, instance, func() error {
+			instance.Fail()
+			return nil
+		})
+		if err != nil {
+			return r.Requeue(log, err)
 		}
+		log.Info("Set Revision State to failed", "Op", op, "Reason", revisionFailingReason)
+		revisionFailedGauge.With(promLabels).Set(float64(1))
 	} else {
 		revisionFailedGauge.With(promLabels).Set(float64(0))
 	}

@@ -27,7 +27,6 @@ var (
 		string(canarying):      Canarying,
 		string(canaried):       Canaried,
 		string(timingout):      Timingout,
-		string(timedout):       Timedout,
 	}
 )
 
@@ -50,7 +49,6 @@ const (
 	canarying      State = "canarying"
 	canaried       State = "canaried"
 	timingout      State = "timingout"
-	timedout       State = "timedout"
 )
 
 var AllStates []string
@@ -473,25 +471,11 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 
 // Timingout state is responsible for cleaning up a timing out release
 func Timingout(ctx context.Context, deployment Deployment) (State, error) {
-	if deployment.currentPercent() > 0 {
-		return timingout, nil
-	}
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
-	if err := deployment.deleteCanaryRules(ctx); err != nil {
-		return timingout, err
-	}
-	if deployment.currentPercent() <= 0 {
-		return timedout, deployment.retire(ctx)
+	if HasFailed(deployment) {
+		return failing, nil
 	}
 	return timingout, nil
-}
-
-// Timedout state
-func Timedout(ctx context.Context, deployment Deployment) (State, error) {
-	if !deployment.hasRevision() {
-		return deleting, nil
-	}
-	return timedout, deployment.retire(ctx)
 }
