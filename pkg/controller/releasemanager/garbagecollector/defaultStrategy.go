@@ -6,6 +6,8 @@ import (
 	"github.com/go-logr/logr"
 )
 
+const FailedTTL = time.Duration(8) * time.Hour
+
 func defaultStrategy(log logr.Logger, revisions []Revision) ([]Revision, error) {
 	budget := MinimumRetired
 	toDelete := []Revision{}
@@ -15,6 +17,12 @@ func defaultStrategy(log logr.Logger, revisions []Revision) ([]Revision, error) 
 		if rev.State() == "retired" && budget > 0 {
 			budget--
 			continue
+		}
+		if rev.State() == "failed" {
+			if time.Now().After(rev.CreatedOn().Add(FailedTTL)) {
+				toDelete = append(toDelete, rev)
+				continue
+			}
 		}
 		if time.Now().After(rev.CreatedOn().Add(rev.TTL())) {
 			switch rev.State() {
