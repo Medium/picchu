@@ -137,6 +137,11 @@ func (r *ResourceSyncer) reportMetrics() error {
 	incarnationsInState := map[string]int{}
 	oldestIncarnationsInState := map[string]float64{}
 
+	// initialize oldestIncarnationInState with zeros to zero out any non-existant states
+	for _, state := range AllStates {
+		oldestIncarnationsInState[state] = 0
+	}
+
 	for _, incarnation := range r.incarnations.sorted() {
 		current := incarnation.status.State.Current
 		incarnationsInState[current]++
