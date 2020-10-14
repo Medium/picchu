@@ -1,9 +1,10 @@
 package v1alpha1
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 const (
@@ -23,6 +24,8 @@ const (
 	defaultPortPort          = int32(80)
 	defaultPortProtocol      = corev1.ProtocolTCP
 	defaultPortMode          = PortPrivate
+
+	defaultExternalTestTimeout = time.Duration(2) * time.Hour
 )
 
 var (
@@ -44,6 +47,13 @@ func SetDefaults_RevisionSpec(spec *RevisionSpec) {
 		for j := range spec.Targets[i].Ports {
 			SetPortDefaults(&spec.Targets[i].Ports[j])
 		}
+		SetExternalTestDefaults(&spec.Targets[i].ExternalTest)
+	}
+}
+
+func SetExternalTestDefaults(externalTest *ExternalTest) {
+	if externalTest.Timeout == nil {
+		externalTest.Timeout = &metav1.Duration{Duration: defaultExternalTestTimeout}
 	}
 }
 
