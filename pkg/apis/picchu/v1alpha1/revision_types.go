@@ -10,15 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Reference imports to suppress errors if they are not otherwise used.
-
-var (
-	// TODO(bob): I don't like this. maybe configurable?
-	// Which targets need to reach 100% to consider the rollout complete and
-	// stop slo failures from rolling back.
-	rolloutTargets = []string{"production"}
-)
-
 // see custom_deepcopy.go
 // +k8s:deepcopy-gen=false
 type Istio struct {
@@ -214,6 +205,7 @@ type RevisionTargetStatus struct {
 	Name    string                `json:"name"`
 	Scale   RevisionScaleStatus   `json:"scale"`
 	Release RevisionReleaseStatus `json:"release"`
+	State   string                `json:"state,omitempty"`
 }
 
 type RevisionScaleStatus struct {
@@ -233,6 +225,7 @@ func (r *RevisionTargetStatus) AddReleaseManagerStatus(status ReleaseManagerRevi
 	r.Scale.Current = uint32(status.Scale.Current)
 	r.Scale.Desired = uint32(status.Scale.Desired)
 	r.Scale.Peak = uint32(status.Scale.Peak)
+	r.State = status.State.Current
 }
 
 func (r *Revision) GitTimestamp() time.Time {

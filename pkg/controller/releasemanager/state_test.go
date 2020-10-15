@@ -644,6 +644,28 @@ func TestFailed(t *tt.T) {
 	testcase(failed, expectRetire(m(true, false, ExternalTestFailed)))
 }
 
+func TestTimingout(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, markedAsFailed bool, externalTestStatus ExternalTestStatus) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:        hasRevision,
+			markedAsFailed:     markedAsFailed,
+			externalTestStatus: externalTestStatus,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "timingout", expected, mock)
+	}
+
+	testcase(failing, m(true, true, ExternalTestSucceeded))
+	testcase(failing, m(true, false, ExternalTestFailed))
+	testcase(timingout, m(true, false, ExternalTestPending))
+}
+
 func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m *MockDeployment) {
 	state, err := handlers[handler](ctx, m)
 	assert.NoError(t, err)

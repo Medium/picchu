@@ -4186,6 +4186,8 @@ spec:
                     - desired
                     - peak
                     type: object
+                  state:
+                    type: string
                 required:
                 - name
                 - release
