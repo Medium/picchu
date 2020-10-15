@@ -140,6 +140,7 @@ func (r *ResourceSyncer) reportMetrics() error {
 	// initialize oldestIncarnationInState with zeros to zero out any non-existant states
 	for _, state := range AllStates {
 		oldestIncarnationsInState[state] = 0
+		incarnationsInState[state] = 0
 	}
 
 	for _, incarnation := range r.incarnations.sorted() {
