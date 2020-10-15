@@ -3,8 +3,9 @@ package releasemanager
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -217,7 +218,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	clusters, err := r.getClustersByFleet(ctx, rm.Namespace, rm.Spec.Fleet)
 	if err != nil {
-		return r.requeue(rmLog, fmt.Errorf("Failed to get clusters for fleet %s: %w", rm.Spec.Fleet, err))
+		return r.requeue(rmLog, fmt.Errorf("failed to get clusters for fleet %s: %w", rm.Spec.Fleet, err))
 	}
 	clusterInfo := ClusterInfoList{}
 	for _, cluster := range clusters {
@@ -241,7 +242,7 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.config.ServiceLevelsFleet)
 	if err != nil {
-		return r.requeue(rmLog, fmt.Errorf("Failed to get delivery clusters for fleet %s: %w", r.config.ServiceLevelsFleet, err))
+		return r.requeue(rmLog, fmt.Errorf("failed to get delivery clusters for fleet %s: %w", r.config.ServiceLevelsFleet, err))
 	}
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
@@ -330,7 +331,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		if err := utils.UpdateStatus(ctx, r.client, srm); err != nil {
 			return r.requeue(rmLog, err)
 		}
-		rmLog.Info("Updated releasemanager status", "Content", rm.Status, "Type", "ReleaseManager.Status")
 		return r.requeue(rmLog, nil)
 	} else if !rm.IsFinalized() {
 		rmLog.Info("Deleting ServiceLevels")
