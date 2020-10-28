@@ -174,7 +174,12 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
 
 	for _, incarnation := range r.incarnations.sorted() {
-		sm := NewDeploymentStateManager(incarnation)
+		var lastUpdated *time.Time
+		if incarnation.status.LastUpdated != nil {
+			lastUpdated = &incarnation.status.LastUpdated.Time
+
+		}
+		sm := NewDeploymentStateManager(incarnation, lastUpdated)
 
 		if err := sm.tick(ctx); err != nil {
 			return err
