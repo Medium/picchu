@@ -5,6 +5,9 @@ package releasemanager
 import (
 	"context"
 	tt "testing"
+	"time"
+
+	"go.medium.engineering/picchu/pkg/test"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +25,7 @@ func TestCreated(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "created", expected, mock)
+		testHandler(ctx, t, "created", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false))
@@ -42,20 +45,31 @@ func TestDeploying(t *tt.T) {
 		})
 	}
 
-	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "deploying", expected, mock)
+	testcase := func(expected State, mock *MockDeployment, lu *time.Time) {
+		testHandler(ctx, t, "deploying", expected, mock, lu)
 	}
 
-	testcase(deleting, m(false, false, false))
-	testcase(deleting, m(false, false, true))
-	testcase(deleting, m(false, true, false))
-	testcase(deleting, m(false, true, true))
-	testcase(failing, m(true, true, false))
-	testcase(failing, m(true, true, true))
+	now := time.Now()
+	old := time.Now().Add(-time.Duration(4) * time.Hour)
 
-	testcase(deploying, expectSync(m(true, false, false)))
+	testcase(deleting, m(false, false, false), &now)
+	testcase(deleting, m(false, false, true), &now)
+	testcase(deleting, m(false, true, false), &now)
+	testcase(deleting, m(false, true, true), &now)
+	testcase(failing, m(true, true, false), &now)
+	testcase(failing, m(true, true, true), &now)
 
-	testcase(deployed, expectSync(m(true, false, true)))
+	testcase(deleting, m(false, false, false), nil)
+	testcase(deleting, m(false, false, true), nil)
+	testcase(deleting, m(false, true, false), nil)
+	testcase(deleting, m(false, true, true), nil)
+	testcase(failing, m(true, true, false), nil)
+	testcase(failing, m(true, true, true), nil)
+
+	testcase(deploying, expectSync(m(true, false, false)), nil)
+	testcase(timingout, expectSync(m(true, false, false)), &old)
+
+	testcase(deployed, expectSync(m(true, false, true)), nil)
 }
 
 func TestDeployed(t *tt.T) {
@@ -75,7 +89,7 @@ func TestDeployed(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "deployed", expected, mock)
+		testHandler(ctx, t, "deployed", expected, mock, nil)
 	}
 
 	// TODO(lyra): clean up; when !hasRevision, only ExternalTestUnknown is possible
@@ -185,7 +199,7 @@ func TestPendingTest(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "pendingtest", expected, mock)
+		testHandler(ctx, t, "pendingtest", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, ExternalTestPending))
@@ -213,7 +227,7 @@ func TestTesting(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "testing", expected, mock)
+		testHandler(ctx, t, "testing", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, ExternalTestPending))
@@ -263,7 +277,7 @@ func TestTested(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "tested", expected, mock)
+		testHandler(ctx, t, "tested", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false, false, ExternalTestSucceeded))
@@ -304,7 +318,7 @@ func TestCanarying(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "canarying", expected, mock)
+		testHandler(ctx, t, "canarying", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false))
@@ -331,7 +345,7 @@ func TestCanaried(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "canaried", expected, mock)
+		testHandler(ctx, t, "canaried", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false))
@@ -359,7 +373,7 @@ func TestPendingRelease(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "pendingrelease", expected, mock)
+		testHandler(ctx, t, "pendingrelease", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false, false))
@@ -399,7 +413,7 @@ func TestReleasing(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "releasing", expected, mock)
+		testHandler(ctx, t, "releasing", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false, 0))
@@ -435,7 +449,7 @@ func TestReleased(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "released", expected, mock)
+		testHandler(ctx, t, "released", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false, 0))
@@ -471,7 +485,7 @@ func TestRetiring(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "retiring", expected, mock)
+		testHandler(ctx, t, "retiring", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false, 0))
@@ -517,7 +531,7 @@ func TestRetired(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "retired", expected, mock)
+		testHandler(ctx, t, "retired", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, false, false))
@@ -545,7 +559,7 @@ func TestDeleting(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "deleting", expected, mock)
+		testHandler(ctx, t, "deleting", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, 100))
@@ -568,7 +582,7 @@ func TestDeleted(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "deleted", expected, mock)
+		testHandler(ctx, t, "deleted", expected, mock, nil)
 	}
 
 	testcase(deleted, m(false))
@@ -590,7 +604,7 @@ func TestFailing(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "failing", expected, mock)
+		testHandler(ctx, t, "failing", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, true, ExternalTestUnknown, 0))
@@ -629,7 +643,7 @@ func TestFailed(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "failed", expected, mock)
+		testHandler(ctx, t, "failed", expected, mock, nil)
 	}
 
 	testcase(deleting, m(false, true, ExternalTestUnknown))
@@ -658,7 +672,7 @@ func TestTimingout(t *tt.T) {
 	}
 
 	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "timingout", expected, mock)
+		testHandler(ctx, t, "timingout", expected, mock, nil)
 	}
 
 	testcase(failing, m(true, true, ExternalTestSucceeded))
@@ -666,8 +680,8 @@ func TestTimingout(t *tt.T) {
 	testcase(timingout, m(true, false, ExternalTestPending))
 }
 
-func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m *MockDeployment) {
-	state, err := handlers[handler](ctx, m)
+func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m *MockDeployment, lu *time.Time) {
+	state, err := handlers[handler](ctx, m, lu)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, state)
 }
@@ -691,7 +705,13 @@ type responses struct {
 
 func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment {
 	m := NewMockDeployment(ctrl)
+	log := test.MustNewLogger()
 
+	m.
+		EXPECT().
+		getLog().
+		Return(log).
+		AnyTimes()
 	m.
 		EXPECT().
 		hasRevision().

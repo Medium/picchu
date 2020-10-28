@@ -2,6 +2,7 @@ package releasemanager
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -49,6 +50,8 @@ const (
 	canarying      State = "canarying"
 	canaried       State = "canaried"
 	timingout      State = "timingout"
+
+	DeployingTimeout = time.Duration(2) * time.Hour
 )
 
 var AllStates []string
@@ -60,7 +63,7 @@ func init() {
 }
 
 type State string
-type StateHandler func(context.Context, Deployment) (State, error)
+type StateHandler func(context.Context, Deployment, *time.Time) (State, error)
 
 type Deployment interface {
 	sync(context.Context) error
@@ -137,16 +140,20 @@ func HasFailed(d Deployment) bool {
 }
 
 type DeploymentStateManager struct {
-	deployment Deployment
+	deployment  Deployment
+	lastUpdated *time.Time
 }
 
-func NewDeploymentStateManager(deployment Deployment) *DeploymentStateManager {
-	return &DeploymentStateManager{deployment}
+func NewDeploymentStateManager(deployment Deployment, lastUpdated *time.Time) *DeploymentStateManager {
+	return &DeploymentStateManager{
+		deployment:  deployment,
+		lastUpdated: lastUpdated,
+	}
 }
 
 func (s *DeploymentStateManager) tick(ctx context.Context) error {
 	currentState := s.deployment.getStatus().State.Current
-	nextState, err := handlers[currentState](ctx, s.deployment)
+	nextState, err := handlers[currentState](ctx, s.deployment, s.lastUpdated)
 	if err != nil {
 		return err
 	}
@@ -160,14 +167,14 @@ func (s *DeploymentStateManager) tick(ctx context.Context) error {
 	return nil
 }
 
-func Created(ctx context.Context, deployment Deployment) (State, error) {
+func Created(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
 	return deploying, nil
 }
 
-func Deploying(ctx context.Context, deployment Deployment) (State, error) {
+func Deploying(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -180,10 +187,14 @@ func Deploying(ctx context.Context, deployment Deployment) (State, error) {
 	if deployment.isDeployed() {
 		return deployed, nil
 	}
+	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "deploying")
+		return timingout, nil
+	}
 	return deploying, nil
 }
 
-func Deployed(ctx context.Context, deployment Deployment) (State, error) {
+func Deployed(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -213,7 +224,7 @@ func Deployed(ctx context.Context, deployment Deployment) (State, error) {
 	return deployed, nil
 }
 
-func PendingTest(ctx context.Context, deployment Deployment) (State, error) {
+func PendingTest(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -236,7 +247,7 @@ func PendingTest(ctx context.Context, deployment Deployment) (State, error) {
 	return pendingtest, nil
 }
 
-func Testing(ctx context.Context, deployment Deployment) (State, error) {
+func Testing(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -263,7 +274,7 @@ func Testing(ctx context.Context, deployment Deployment) (State, error) {
 	return testing, nil
 }
 
-func Tested(ctx context.Context, deployment Deployment) (State, error) {
+func Tested(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -286,7 +297,7 @@ func Tested(ctx context.Context, deployment Deployment) (State, error) {
 	return tested, nil
 }
 
-func PendingRelease(ctx context.Context, deployment Deployment) (State, error) {
+func PendingRelease(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -305,7 +316,7 @@ func PendingRelease(ctx context.Context, deployment Deployment) (State, error) {
 	return pendingrelease, nil
 }
 
-func Releasing(ctx context.Context, deployment Deployment) (State, error) {
+func Releasing(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -327,11 +338,11 @@ func Releasing(ctx context.Context, deployment Deployment) (State, error) {
 	return releasing, nil
 }
 
-func Released(ctx context.Context, deployment Deployment) (State, error) {
-	return Releasing(ctx, deployment)
+func Released(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
+	return Releasing(ctx, deployment, lastUpdated)
 }
 
-func Retiring(ctx context.Context, deployment Deployment) (State, error) {
+func Retiring(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if deployment.currentPercent() > 0 {
 		return retiring, nil
 	}
@@ -353,7 +364,7 @@ func Retiring(ctx context.Context, deployment Deployment) (State, error) {
 	return retiring, nil
 }
 
-func Retired(ctx context.Context, deployment Deployment) (State, error) {
+func Retired(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -366,7 +377,7 @@ func Retired(ctx context.Context, deployment Deployment) (State, error) {
 	return retired, deployment.retire(ctx)
 }
 
-func Deleting(ctx context.Context, deployment Deployment) (State, error) {
+func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if deployment.currentPercent() > 0 {
 		return deleting, nil
 	}
@@ -389,14 +400,14 @@ func Deleting(ctx context.Context, deployment Deployment) (State, error) {
 	return deleting, nil
 }
 
-func Deleted(ctx context.Context, deployment Deployment) (State, error) {
+func Deleted(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if deployment.hasRevision() {
 		return deploying, nil
 	}
 	return deleted, nil
 }
 
-func Failing(ctx context.Context, deployment Deployment) (State, error) {
+func Failing(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if deployment.currentPercent() > 0 {
 		return failing, nil
 	}
@@ -418,7 +429,7 @@ func Failing(ctx context.Context, deployment Deployment) (State, error) {
 	return failing, nil
 }
 
-func Failed(ctx context.Context, deployment Deployment) (State, error) {
+func Failed(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -428,7 +439,7 @@ func Failed(ctx context.Context, deployment Deployment) (State, error) {
 	return failed, deployment.retire(ctx)
 }
 
-func Canarying(ctx context.Context, deployment Deployment) (State, error) {
+func Canarying(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -450,7 +461,7 @@ func Canarying(ctx context.Context, deployment Deployment) (State, error) {
 	return canarying, nil
 }
 
-func Canaried(ctx context.Context, deployment Deployment) (State, error) {
+func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
@@ -470,7 +481,7 @@ func Canaried(ctx context.Context, deployment Deployment) (State, error) {
 }
 
 // Timingout state is responsible for cleaning up a timing out release
-func Timingout(ctx context.Context, deployment Deployment) (State, error) {
+func Timingout(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
