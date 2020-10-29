@@ -146,9 +146,10 @@ func (r *ResourceSyncer) reportMetrics() error {
 	for _, incarnation := range r.incarnations.sorted() {
 		current := incarnation.status.State.Current
 		incarnationsInState[current]++
-		gitElapsed := time.Since(incarnation.status.GitTimestamp.Time).Seconds()
-		if age, ok := oldestIncarnationsInState[current]; !ok || age < gitElapsed {
-			oldestIncarnationsInState[current] = gitElapsed
+
+		age := time.Since(incarnation.status.LastUpdated.Time).Seconds()
+		if oldest, ok := oldestIncarnationsInState[current]; !ok || oldest < age {
+			oldestIncarnationsInState[current] = age
 		}
 
 		incarnation.reportMetrics()
