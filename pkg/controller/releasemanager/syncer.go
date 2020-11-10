@@ -53,6 +53,7 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 		return
 	}
 	if err = r.reportMetrics(); err != nil {
+		r.log.Error(err, "Failed to report metrics")
 		return
 	}
 	if err = r.tickIncarnations(ctx); err != nil {
@@ -147,7 +148,9 @@ func (r *ResourceSyncer) reportMetrics() error {
 		current := incarnation.status.State.Current
 		incarnationsInState[current]++
 
-		age := time.Since(incarnation.status.LastUpdated.Time).Seconds()
+		lastUpdated := incarnation.status.LastUpdated.Time
+		age := time.Since(lastUpdated).Seconds()
+		r.log.Info("Computing state age", "lastUpdated", lastUpdated, "state", current, "age", age)
 		if oldest, ok := oldestIncarnationsInState[current]; !ok || oldest < age {
 			oldestIncarnationsInState[current] = age
 		}
