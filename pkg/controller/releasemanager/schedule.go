@@ -70,16 +70,15 @@ func schedulePermitsRelease(t time.Time, schedule string) bool {
 		return true
 	}
 
-	t = t.In(scheduleLocation).Truncate(time.Hour)
+	day := date(t.Year(), t.Month(), t.Day())
 
-	day := t.Round(time.Hour * 24)
 	for _, holiday := range holidays {
 		if holiday == day {
 			return false
 		}
 	}
 
-	hour := t.Hour()
+	hour := t.In(scheduleLocation).Hour()
 
 	switch t.Weekday() {
 	case time.Saturday, time.Sunday:
