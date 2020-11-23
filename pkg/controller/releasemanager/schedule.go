@@ -30,8 +30,8 @@ func init() {
 		date(2020, time.July, 4),      // Saturday, Independence day
 		date(2020, time.July, 5),      // Sunday, Day after Independence day
 		date(2020, time.September, 7), // Labor day
-		date(2020, time.October, 26),  // Day before thanksgiving
-		date(2020, time.October, 27),  // Thanksgiving
+		date(2020, time.November, 26), // Thanksgiving
+		date(2020, time.November, 27), // Day after thanksgiving
 		date(2020, time.December, 22), // Christmas break
 		date(2020, time.December, 23), // Christmas break
 		date(2020, time.December, 24), // Christmas break
@@ -50,8 +50,8 @@ func init() {
 		date(2021, time.July, 4),      // Sunday, Independence day
 		date(2021, time.July, 5),      // Day after Independence day
 		date(2021, time.September, 6), // Labor day
-		date(2021, time.October, 25),  // Thanksgiving
-		date(2021, time.October, 26),  // Day after Thanksgiving
+		date(2021, time.November, 25), // Thanksgiving
+		date(2021, time.November, 26), // Day after Thanksgiving
 		date(2021, time.December, 24), // Christmas break
 		date(2021, time.December, 25), // Sat, Christmas break
 		date(2021, time.December, 26), // Sun, Christmas break
@@ -70,16 +70,15 @@ func schedulePermitsRelease(t time.Time, schedule string) bool {
 		return true
 	}
 
-	t = t.In(scheduleLocation).Truncate(time.Hour)
+	day := date(t.Year(), t.Month(), t.Day())
 
-	day := t.Round(time.Hour * 24)
 	for _, holiday := range holidays {
 		if holiday == day {
 			return false
 		}
 	}
 
-	hour := t.Hour()
+	hour := t.In(scheduleLocation).Hour()
 
 	switch t.Weekday() {
 	case time.Saturday, time.Sunday:
