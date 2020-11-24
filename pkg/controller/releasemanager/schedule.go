@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+const (
+	defaultStartHour = 7
+	defaultEndHour   = 16
+	earlyEndHour     = 14
+)
+
 var (
 	scheduleLocation *time.Location
 	holidays         []time.Time
@@ -71,21 +77,23 @@ func schedulePermitsRelease(t time.Time, schedule string) bool {
 	}
 
 	day := date(t.Year(), t.Month(), t.Day())
-
+	hour := t.In(scheduleLocation).Hour()
+	tomorrow := day.Add(time.Hour * 24)
 	for _, holiday := range holidays {
 		if holiday == day {
 			return false
 		}
+		if holiday == tomorrow && t.Weekday() != time.Saturday && t.Weekday() != time.Sunday {
+			return hour >= defaultStartHour && hour < earlyEndHour
+		}
 	}
-
-	hour := t.In(scheduleLocation).Hour()
 
 	switch t.Weekday() {
 	case time.Saturday, time.Sunday:
 		return false
 	case time.Friday:
-		return hour >= 7 && hour < 15
+		return hour >= defaultStartHour && hour < earlyEndHour
 	default:
-		return hour >= 7 && hour < 16
+		return hour >= defaultStartHour && hour < defaultEndHour
 	}
 }
