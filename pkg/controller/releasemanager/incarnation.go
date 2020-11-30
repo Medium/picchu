@@ -352,6 +352,13 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		return err
 	}
 
+	var replicas int32
+	if i.target().Scale.HasAutoscaler() {
+		replicas = i.divideReplicas(i.target().Scale.Default)
+	} else {
+		replicas = i.divideReplicasNoAutoscale(i.target().Scale.Default)
+
+	}
 	syncPlan := &rmplan.SyncRevision{
 		App:                i.appName(),
 		Tag:                i.tag,
@@ -359,7 +366,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Labels:             i.defaultLabels(),
 		Configs:            append(append(configs, secrets...), configMaps...),
 		Ports:              i.ports(),
-		Replicas:           i.divideReplicas(i.target().Scale.Default),
+		Replicas:           replicas,
 		Image:              i.image(),
 		Sidecars:           i.target().Sidecars,
 		Resources:          i.target().Resources,
@@ -731,6 +738,12 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 	}
 
 	return i.controller.divideReplicas(count, int32(perc))
+}
+
+// divideReplicaseNoAutoscale is used when there's no autoscaler. The initial ReplicaSet replica count will exist for
+// the life of the revision, so it must be set to 100% no matter what state it's in
+func (i *Incarnation) divideReplicasNoAutoscale(count int32) int32 {
+	return i.controller.divideReplicas(count, 100)
 }
 
 // targetScale is used to scale HPA targets to prepare for next

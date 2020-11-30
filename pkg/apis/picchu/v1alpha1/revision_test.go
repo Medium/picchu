@@ -1,10 +1,12 @@
 package v1alpha1
 
 import (
-	istio "istio.io/api/networking/v1alpha3"
-	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 	"time"
+
+	istio "istio.io/api/networking/v1alpha3"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,4 +102,44 @@ func TestRevisionDefaults(t *testing.T) {
 	RegisterDefaults(scheme)
 	scheme.Default(r)
 	assert.EqualValues(defaultReleaseGcTTLSeconds, r.Spec.Targets[0].Release.TTL)
+}
+
+func TestScaleInfo_HasAutoscaler(t *testing.T) {
+	for _, test := range []struct {
+		Name                           string
+		TargetCPUUtilizationPercentage *int32
+		TargetRequestsRate             *string
+		Worker                         *WorkerScaleInfo
+		Expected                       bool
+	}{
+		{
+			Name:     "No Autoscaler Defined",
+			Expected: false,
+		},
+		{
+			Name:                           "CPU Utilization Defined",
+			TargetCPUUtilizationPercentage: pointer.Int32Ptr(90),
+			Expected:                       true,
+		},
+		{
+			Name:               "Requests Rate Defined",
+			TargetRequestsRate: pointer.StringPtr("1"),
+			Expected:           true,
+		},
+		{
+			Name:     "Worker Defined",
+			Worker:   &WorkerScaleInfo{},
+			Expected: true,
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			s := &ScaleInfo{
+				TargetCPUUtilizationPercentage: test.TargetCPUUtilizationPercentage,
+				TargetRequestsRate:             test.TargetRequestsRate,
+				Worker:                         test.Worker,
+			}
+			assert.Equal(test.Expected, s.HasAutoscaler())
+		})
+	}
 }
