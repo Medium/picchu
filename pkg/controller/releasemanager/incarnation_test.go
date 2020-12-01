@@ -1,9 +1,10 @@
 package releasemanager
 
 import (
-	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	ttesting "testing"
 	"time"
+
+	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
 	"github.com/stretchr/testify/assert"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -170,5 +171,49 @@ func TestIncarnation_divideReplicas(t *ttesting.T) {
 			assert.Equal(test.ExpectedReplicas, i.divideReplicas(test.Replicas))
 		})
 	}
+}
 
+func TestIncarnation_divideReplicasNoAutoscale(t *ttesting.T) {
+	for _, test := range []struct {
+		Name         string
+		Clusters     int
+		ScaleDefault int32
+		Expected     int32
+	}{
+		{
+			Name:         "One Cluster, One Instance",
+			Clusters:     1,
+			ScaleDefault: 1,
+			Expected:     1,
+		},
+		{
+			Name:         "One Cluster, Eight Instance",
+			Clusters:     1,
+			ScaleDefault: 8,
+			Expected:     8,
+		},
+		{
+			Name:         "Two Cluster, Eight Instance",
+			Clusters:     2,
+			ScaleDefault: 8,
+			Expected:     4,
+		},
+		{
+			Name:         "Three Cluster, Eight Instance",
+			Clusters:     3,
+			ScaleDefault: 8,
+			Expected:     3,
+		},
+	} {
+		t.Run(test.Name, func(t *ttesting.T) {
+			assert := assert.New(t)
+			i := createTestIncarnation(
+				"test",
+				"deploying",
+				0,
+				&testClusters{Clusters: test.Clusters},
+			)
+			assert.Equal(test.Expected, i.divideReplicasNoAutoscale(test.ScaleDefault))
+		})
+	}
 }

@@ -1,9 +1,11 @@
 package releasemanager
 
 import (
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"fmt"
 	"math"
 	tt "testing"
+
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +33,32 @@ func (s testScale) Apply(i *Incarnation, currentPercent int) {
 	i.status.Scale.Current = s.Current
 	i.status.Scale.Desired = s.Desired
 	*i.target().Scale.Min = int32(math.Ceil(float64(s.Desired) / (float64(currentPercent) / 100.0)))
+}
+
+type testClusters struct {
+	Clusters int
+}
+
+func (t testClusters) Apply(i *Incarnation, currentPercent int) {
+	if t.Clusters > 0 {
+		var clusters []ClusterInfo
+		for i := 0; i < t.Clusters; i++ {
+			clusters = append(clusters, ClusterInfo{
+				Name:          fmt.Sprintf("cluster-%d", i),
+				Live:          true,
+				ScalingFactor: 1.0,
+			})
+		}
+		i.controller = &IncarnationController{
+			clusterInfo: clusters,
+			log:         test.MustNewLogger(),
+			releaseManager: &picchuv1alpha1.ReleaseManager{
+				Spec: picchuv1alpha1.ReleaseManagerSpec{
+					Target: i.tag,
+				},
+			},
+		}
+	}
 }
 
 func createTestIncarnation(tag string, currentState State, currentPercent int, options ...testIncarnationOption) *Incarnation {

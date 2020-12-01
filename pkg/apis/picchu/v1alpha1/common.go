@@ -142,6 +142,12 @@ func (s *ScaleInfo) TargetRequestsRateQuantity() (*resource.Quantity, error) {
 	return &r, nil
 }
 
+func (s *ScaleInfo) HasAutoscaler() bool {
+	return s.TargetCPUUtilizationPercentage != nil ||
+		s.TargetRequestsRate != nil ||
+		s.Worker != nil
+}
+
 type ReleaseInfo struct {
 	Eligible         bool             `json:"eligible,omitempty"`
 	Max              uint32           `json:"max,omitempty"`
