@@ -673,41 +673,119 @@ func (i *Incarnation) taggedRoutes(privateGateway string, serviceHost string) (h
 	}
 	overrideLabel := fmt.Sprintf("pin/%s", i.appName())
 	for _, port := range i.ports() {
-		matches := []*istiov1alpha3.HTTPMatchRequest{{
-			// mesh traffic from same tag'd service with and test tag
-			SourceLabels: map[string]string{
-				overrideLabel: i.tag,
-			},
-			Port:     uint32(port.Port),
-			Gateways: []string{"mesh"},
-		}}
-		if privateGateway != "" {
-			matches = append(matches,
-				&istiov1alpha3.HTTPMatchRequest{
-					// internal traffic with MEDIUM-TAG header
-					Headers: map[string]*istiov1alpha3.StringMatch{
-						"Medium-Tag": {MatchType: &istiov1alpha3.StringMatch_Exact{Exact: i.tag}},
-					},
-					Port:     uint32(port.IngressPort),
-					Gateways: []string{privateGateway},
-				},
-			)
-		}
+		headerMatches := headerMatches(privateGateway, serviceHost, i.tag, overrideLabel, port)
 
-		http = append(http, &istiov1alpha3.HTTPRoute{
-			Match: matches,
-			Route: []*istiov1alpha3.HTTPRouteDestination{
-				{
-					Destination: &istiov1alpha3.Destination{
-						Host:   serviceHost,
-						Port:   &istiov1alpha3.PortSelector{Number: uint32(port.Port)},
-						Subset: i.tag,
-					},
-					Weight: 100,
-				},
-			},
-		})
+		// matches := []*istiov1alpha3.HTTPMatchRequest{{
+		// 	// mesh traffic from same tag'd service with and test tag
+		// 	SourceLabels: map[string]string{
+		// 		overrideLabel: i.tag,
+		// 	},
+		// 	Port:     uint32(port.Port),
+		// 	Gateways: []string{"mesh"},
+		// }}
+		// if privateGateway != "" {
+		// 	matches = append(matches,
+		// 		&istiov1alpha3.HTTPMatchRequest{
+		// 			// internal traffic with MEDIUM-TAG header
+		// 			Headers: map[string]*istiov1alpha3.StringMatch{
+		// 				"Medium-Tag": {MatchType: &istiov1alpha3.StringMatch_Exact{Exact: i.tag}},
+		// 			},
+		// 			Port:     uint32(port.IngressPort),
+		// 			Gateways: []string{privateGateway},
+		// 		},
+		// 	)
+		// }
+
+		// http = append(http, &istiov1alpha3.HTTPRoute{
+		// 	Match: matches,
+		// 	Route: []*istiov1alpha3.HTTPRouteDestination{
+		// 		{
+		// 			Destination: &istiov1alpha3.Destination{
+		// 				Host:   serviceHost,
+		// 				Port:   &istiov1alpha3.PortSelector{Number: uint32(port.Port)},
+		// 				Subset: i.tag,
+		// 			},
+		// 			Weight: 100,
+		// 		},
+		// 	},
+		// })
 	}
+	return
+}
+
+func headerMatches(privateGateway, serviceHost, tag string, overrideLabel string, port picchuv1alpha1.PortInfo) (http []*istiov1alpha3.HTTPRoute) {
+	matches := []*istiov1alpha3.HTTPMatchRequest{{
+		// mesh traffic from same tag'd service with and test tag
+		SourceLabels: map[string]string{
+			overrideLabel: tag,
+		},
+		Port:     uint32(port.Port),
+		Gateways: []string{"mesh"},
+	}}
+	if privateGateway != "" {
+		matches = append(matches,
+			&istiov1alpha3.HTTPMatchRequest{
+				// internal traffic with MEDIUM-TAG header
+				Headers: map[string]*istiov1alpha3.StringMatch{
+					"Medium-Tag": {MatchType: &istiov1alpha3.StringMatch_Exact{Exact: tag}},
+				},
+				Port:     uint32(port.IngressPort),
+				Gateways: []string{privateGateway},
+			},
+		)
+	}
+
+	http = append(http, &istiov1alpha3.HTTPRoute{
+		Match: matches,
+		Route: []*istiov1alpha3.HTTPRouteDestination{
+			{
+				Destination: &istiov1alpha3.Destination{
+					Host:   serviceHost,
+					Port:   &istiov1alpha3.PortSelector{Number: uint32(port.Port)},
+					Subset: tag,
+				},
+				Weight: 100,
+			},
+		},
+	})
+	return
+}
+
+func cookieMatches(privateGateway, serviceHost, tag string, overrideLabel string, port picchuv1alpha1.PortInfo) (http []*istiov1alpha3.HTTPRoute) {
+	matches := []*istiov1alpha3.HTTPMatchRequest{{
+		// mesh traffic from same tag'd service with and test tag
+		SourceLabels: map[string]string{
+			overrideLabel: tag,
+		},
+		Port:     uint32(port.Port),
+		Gateways: []string{"mesh"},
+	}}
+	if privateGateway != "" {
+		matches = append(matches,
+			&istiov1alpha3.HTTPMatchRequest{
+				// internal traffic with MEDIUM-TAG header
+				Headers: map[string]*istiov1alpha3.StringMatch{
+					"Cookie": {MatchType: &istiov1alpha3.StringMatch_Regex{Regex: "^(.\\*?;)?(my-color=green)(;.\\*)?$"}},
+				},
+				Port:     uint32(port.IngressPort),
+				Gateways: []string{privateGateway},
+			},
+		)
+	}
+
+	http = append(http, &istiov1alpha3.HTTPRoute{
+		Match: matches,
+		Route: []*istiov1alpha3.HTTPRouteDestination{
+			{
+				Destination: &istiov1alpha3.Destination{
+					Host:   serviceHost,
+					Port:   &istiov1alpha3.PortSelector{Number: uint32(port.Port)},
+					Subset: tag,
+				},
+				Weight: 100,
+			},
+		},
+	})
 	return
 }
 
