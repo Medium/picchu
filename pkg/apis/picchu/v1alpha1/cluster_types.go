@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -37,11 +38,12 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled       bool             `json:"enabled"`
-	HotStandby    bool             `json:"hotStandby,omitempty"`
-	Config        *ClusterConfig   `json:"config,omitempty"`
-	ScalingFactor *float64         `json:"scalingFactor,omitempty"`
-	Ingresses     ClusterIngresses `json:"ingresses"`
+	Enabled         bool             `json:"enabled"`
+	HotStandby      bool             `json:"hotStandby,omitempty"`
+	Config          *ClusterConfig   `json:"config,omitempty"`
+	ScalingFactor   *float64         `json:"scalingFactor,omitempty"`
+	Ingresses       ClusterIngresses `json:"ingresses"`
+	EnableDevRoutes bool             `json:"enableDevRoutes,omitempty"`
 }
 
 type ClusterConfig struct {

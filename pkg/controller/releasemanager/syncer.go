@@ -241,19 +241,21 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 	}
 
 	err := r.applyPlan(ctx, "Sync Application", &rmplan.SyncApp{
-		App:                 r.instance.Spec.App,
-		Target:              r.instance.Spec.Target,
-		Fleet:               r.instance.Spec.Fleet,
-		Namespace:           r.instance.TargetNamespace(),
-		Labels:              r.defaultLabels(),
-		DeployedRevisions:   revisions,
-		AlertRules:          alertRules,
-		Ports:               ports,
-		HTTPPortFaults:      r.faults,
-		IstioSidecarConfig:  istioSidecarConfig,
-		DefaultVariant:      utils.VariantEnabled(r.instance, picchuv1alpha1.VariantPortDefault),
-		IngressesVariant:    utils.VariantEnabled(r.instance, picchuv1alpha1.VariantIngresses),
-		DefaultIngressPorts: defaultIngressPorts,
+		App:                  r.instance.Spec.App,
+		Target:               r.instance.Spec.Target,
+		Fleet:                r.instance.Spec.Fleet,
+		Namespace:            r.instance.TargetNamespace(),
+		Labels:               r.defaultLabels(),
+		DeployedRevisions:    revisions,
+		AlertRules:           alertRules,
+		Ports:                ports,
+		HTTPPortFaults:       r.faults,
+		IstioSidecarConfig:   istioSidecarConfig,
+		DefaultVariant:       utils.VariantEnabled(r.instance, picchuv1alpha1.VariantPortDefault),
+		IngressesVariant:     utils.VariantEnabled(r.instance, picchuv1alpha1.VariantIngresses),
+		DefaultIngressPorts:  defaultIngressPorts,
+		DevRoutesServiceHost: r.picchuConfig.DevRoutesServiceHost,
+		DevRoutesServicePort: r.picchuConfig.DevRoutesServicePort,
 	})
 	if err != nil {
 		return err
@@ -437,14 +439,17 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 			trafficPolicy = i.target().Istio.TrafficPolicy
 		}
 		tagRoutingHeader := ""
+		devTagRoutingHeader := ""
 		if i.revision != nil && i.isRoutable() {
 			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
+			devTagRoutingHeader = i.revision.Spec.DevTagRoutingHeader
 		}
 		revisionsMap[i.tag] = &rmplan.Revision{
-			Tag:              i.tag,
-			Weight:           0,
-			TagRoutingHeader: tagRoutingHeader,
-			TrafficPolicy:    trafficPolicy,
+			Tag:                 i.tag,
+			Weight:              0,
+			TagRoutingHeader:    tagRoutingHeader,
+			DevTagRoutingHeader: devTagRoutingHeader,
+			TrafficPolicy:       trafficPolicy,
 		}
 	}
 
@@ -522,18 +527,21 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 		}
 
 		tagRoutingHeader := ""
+		devTagRoutingHeader := ""
 		if incarnation.revision != nil && incarnation.isRoutable() {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
+			devTagRoutingHeader = incarnation.revision.Spec.DevTagRoutingHeader
 		}
 		var trafficPolicy *istio.TrafficPolicy
 		if incarnation.target() != nil && incarnation.target().Istio != nil {
 			trafficPolicy = incarnation.target().Istio.TrafficPolicy
 		}
 		revisionsMap[incarnation.tag] = &rmplan.Revision{
-			Tag:              incarnation.tag,
-			Weight:           currentPercent,
-			TagRoutingHeader: tagRoutingHeader,
-			TrafficPolicy:    trafficPolicy,
+			Tag:                 incarnation.tag,
+			Weight:              currentPercent,
+			TagRoutingHeader:    tagRoutingHeader,
+			DevTagRoutingHeader: devTagRoutingHeader,
+			TrafficPolicy:       trafficPolicy,
 		}
 		if i == count-1 && percRemaining > 0 && firstNonCanary != -1 {
 			revisionsMap[incarnations[firstNonCanary].tag].Weight += percRemaining

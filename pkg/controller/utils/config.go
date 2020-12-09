@@ -12,4 +12,6 @@ type Config struct {
 	ServiceLevelsFleet        string
 	ConcurrentRevisions       int
 	ConcurrentReleaseManagers int
+	DevRoutesServiceHost      string
+	DevRoutesServicePort      int
 }

@@ -68,6 +68,8 @@ func main() {
 	serviceLevelsFleet := pflag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 	concurrentRevisions := pflag.Int("concurrent-revisions", 20, "How many concurrent revisions to reconcile")
 	concurrentReleaseManagers := pflag.Int("concurrent-release-managers", 50, "How many concurrent release managers to reconcile")
+	devRoutesServiceHost := pflag.String("dev-routes-service-host", "", "Configures the dev routes service host, if cluster dev routes are enabled")
+	devRoutesServicePort := pflag.Int("dev-routes-service-port", 80, "Configures the dev routes service port, if cluster dev routes are enabled")
 
 	pflag.Parse()
 
@@ -163,6 +165,8 @@ func main() {
 		ServiceLevelsFleet:        *serviceLevelsFleet,
 		ConcurrentRevisions:       *concurrentRevisions,
 		ConcurrentReleaseManagers: *concurrentReleaseManagers,
+		DevRoutesServiceHost:      *devRoutesServiceHost,
+		DevRoutesServicePort:      *devRoutesServicePort,
 	}
 
 	// Setup all Controllers

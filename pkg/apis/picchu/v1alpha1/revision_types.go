@@ -78,14 +78,15 @@ type RevisionList struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                RevisionApp      `json:"app"`
-	Targets            []RevisionTarget `json:"targets"`
-	Failed             bool             `json:"failed"`
-	IgnoreSLOs         bool             `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules bool             `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo       `json:"sentry,omitempty"`
-	TagRoutingHeader   string           `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring   bool             `json:"disableMirroring,omitempty"`
+	App                 RevisionApp      `json:"app"`
+	Targets             []RevisionTarget `json:"targets"`
+	Failed              bool             `json:"failed"`
+	IgnoreSLOs          bool             `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules  bool             `json:"canaryWithSLIRules,omitempty"`
+	Sentry              SentryInfo       `json:"sentry,omitempty"`
+	TagRoutingHeader    string           `json:"tagRoutingHeader,omitempty"`
+	DevTagRoutingHeader string           `json:"devTagRoutingHeader,omitempty"`
+	DisableMirroring    bool             `json:"disableMirroring,omitempty"`
 }
 
 type RevisionApp struct {
