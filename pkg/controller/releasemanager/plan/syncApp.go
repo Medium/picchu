@@ -463,13 +463,14 @@ func (p *SyncApp) devRoutes(cluster *picchuv1alpha1.Cluster) []*istio.HTTPRoute 
 		if revision.DevTagRoutingHeader == "" {
 			continue
 		}
-		if cluster.Spec.EnableDevRoutes {
+		if cluster.Spec.EnableDevRoutes && p.DevRoutesServiceHost != "" && p.DevRoutesServicePort > 0 {
 			route := &istio.HTTPRoute{
 				Name:  fmt.Sprintf("00_dev-%s", p.App),
 				Match: p.devMatches(revision),
 				Route: p.devRoute(),
 			}
 			routes = append(routes, route)
+			break // only need one dev route for all revisions
 		}
 	}
 
