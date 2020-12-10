@@ -1,8 +1,10 @@
 package plan
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"regexp"
 	"sort"
 	"strings"
@@ -28,11 +30,10 @@ const (
 )
 
 type Revision struct {
-	Tag                 string
-	Weight              uint32
-	TagRoutingHeader    string
-	DevTagRoutingHeader string
-	TrafficPolicy       *istio.TrafficPolicy
+	Tag              string
+	Weight           uint32
+	TagRoutingHeader string
+	TrafficPolicy    *istio.TrafficPolicy
 }
 
 type SyncApp struct {
@@ -315,16 +316,22 @@ func (p *SyncApp) portHeaderMatches(
 	return matches, hosts
 }
 
-func (p *SyncApp) devMatches(
-	revision Revision,
-) []*istio.HTTPMatchRequest {
+func (p *SyncApp) devMatches(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPMatchRequest, error) {
+	t, err := template.New("devRouteTagTemplate").Parse(cluster.Spec.DevRouteTagTemplate)
+	if err != nil {
+		return nil, err
+	}
+	var tpl bytes.Buffer
+	if err := t.Execute(&tpl, p); err != nil {
+		return nil, err
+	}
 	headers := map[string]*istio.StringMatch{
-		revision.DevTagRoutingHeader: {MatchType: &istio.StringMatch_Regex{Regex: "(.+)"}},
+		tpl.String(): {MatchType: &istio.StringMatch_Regex{Regex: "(.+)"}},
 	}
 
 	return []*istio.HTTPMatchRequest{{
 		Headers: headers,
-	}}
+	}}, nil
 }
 
 func (p *SyncApp) releaseRoute(port picchuv1alpha1.PortInfo) []*istio.HTTPRouteDestination {
@@ -458,20 +465,17 @@ func (p *SyncApp) taggedRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRo
 
 func (p *SyncApp) devRoutes(cluster *picchuv1alpha1.Cluster) []*istio.HTTPRoute {
 	var routes []*istio.HTTPRoute
-
-	for _, revision := range p.DeployedRevisions {
-		if revision.DevTagRoutingHeader == "" {
-			continue
+	if cluster.Spec.EnableDevRoutes && cluster.Spec.DevRouteTagTemplate != "" && p.DevRoutesServiceHost != "" && p.DevRoutesServicePort > 0 {
+		matches, err := p.devMatches(cluster)
+		if err != nil {
+			return routes
 		}
-		if cluster.Spec.EnableDevRoutes && p.DevRoutesServiceHost != "" && p.DevRoutesServicePort > 0 {
-			route := &istio.HTTPRoute{
-				Name:  fmt.Sprintf("00_dev-%s", p.App),
-				Match: p.devMatches(revision),
-				Route: p.devRoute(),
-			}
-			routes = append(routes, route)
-			break // only need one dev route for all revisions
+		route := &istio.HTTPRoute{
+			Name:  fmt.Sprintf("00_dev-%s", p.App),
+			Match: matches,
+			Route: p.devRoute(),
 		}
+		routes = append(routes, route)
 	}
 
 	return routes

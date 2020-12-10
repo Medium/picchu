@@ -38,12 +38,13 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled         bool             `json:"enabled"`
-	HotStandby      bool             `json:"hotStandby,omitempty"`
-	Config          *ClusterConfig   `json:"config,omitempty"`
-	ScalingFactor   *float64         `json:"scalingFactor,omitempty"`
-	Ingresses       ClusterIngresses `json:"ingresses"`
-	EnableDevRoutes bool             `json:"enableDevRoutes,omitempty"`
+	Enabled             bool             `json:"enabled"`
+	HotStandby          bool             `json:"hotStandby,omitempty"`
+	Config              *ClusterConfig   `json:"config,omitempty"`
+	ScalingFactor       *float64         `json:"scalingFactor,omitempty"`
+	Ingresses           ClusterIngresses `json:"ingresses"`
+	EnableDevRoutes     bool             `json:"enableDevRoutes,omitempty"`
+	DevRouteTagTemplate string           `json:"devRouteTagTemplate,omitempty"`
 }
 
 type ClusterConfig struct {

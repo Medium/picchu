@@ -439,17 +439,14 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 			trafficPolicy = i.target().Istio.TrafficPolicy
 		}
 		tagRoutingHeader := ""
-		devTagRoutingHeader := ""
 		if i.revision != nil && i.isRoutable() {
 			tagRoutingHeader = i.revision.Spec.TagRoutingHeader
-			devTagRoutingHeader = i.revision.Spec.DevTagRoutingHeader
 		}
 		revisionsMap[i.tag] = &rmplan.Revision{
-			Tag:                 i.tag,
-			Weight:              0,
-			TagRoutingHeader:    tagRoutingHeader,
-			DevTagRoutingHeader: devTagRoutingHeader,
-			TrafficPolicy:       trafficPolicy,
+			Tag:              i.tag,
+			Weight:           0,
+			TagRoutingHeader: tagRoutingHeader,
+			TrafficPolicy:    trafficPolicy,
 		}
 	}
 
@@ -527,21 +524,18 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 		}
 
 		tagRoutingHeader := ""
-		devTagRoutingHeader := ""
 		if incarnation.revision != nil && incarnation.isRoutable() {
 			tagRoutingHeader = incarnation.revision.Spec.TagRoutingHeader
-			devTagRoutingHeader = incarnation.revision.Spec.DevTagRoutingHeader
 		}
 		var trafficPolicy *istio.TrafficPolicy
 		if incarnation.target() != nil && incarnation.target().Istio != nil {
 			trafficPolicy = incarnation.target().Istio.TrafficPolicy
 		}
 		revisionsMap[incarnation.tag] = &rmplan.Revision{
-			Tag:                 incarnation.tag,
-			Weight:              currentPercent,
-			TagRoutingHeader:    tagRoutingHeader,
-			DevTagRoutingHeader: devTagRoutingHeader,
-			TrafficPolicy:       trafficPolicy,
+			Tag:              incarnation.tag,
+			Weight:           currentPercent,
+			TagRoutingHeader: tagRoutingHeader,
+			TrafficPolicy:    trafficPolicy,
 		}
 		if i == count-1 && percRemaining > 0 && firstNonCanary != -1 {
 			revisionsMap[incarnations[firstNonCanary].tag].Weight += percRemaining

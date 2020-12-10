@@ -1127,9 +1127,10 @@ func TestDevRoutes(t *testing.T) {
 			},
 		},
 		Spec: picchuv1alpha1.ClusterSpec{
-			Enabled:         true,
-			EnableDevRoutes: true, // what this function is testing
-			ScalingFactor:   &scalingFactor,
+			Enabled:             true,
+			EnableDevRoutes:     true,               // what this function is testing
+			DevRouteTagTemplate: "dev-{{.App}}-tag", // what this function is testing
+			ScalingFactor:       &scalingFactor,
 			Ingresses: picchuv1alpha1.ClusterIngresses{
 				Public: picchuv1alpha1.IngressInfo{
 					Gateway: "public-ingressgateway.istio-system.svc.cluster.local",
@@ -1179,10 +1180,9 @@ func TestDevRoutes(t *testing.T) {
 						},
 					},
 				},
-				Tag:                 "main-20200529-144642-c3d06a9828",
-				Weight:              100,
-				TagRoutingHeader:    "echo-tag",
-				DevTagRoutingHeader: "dev-echo-tag",
+				Tag:              "main-20200529-144642-c3d06a9828",
+				Weight:           100,
+				TagRoutingHeader: "echo-tag",
 			},
 		},
 		Ports: []picchuv1alpha1.PortInfo{
