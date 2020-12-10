@@ -1,8 +1,10 @@
 package plan
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"regexp"
 	"sort"
 	"strings"
@@ -35,19 +37,21 @@ type Revision struct {
 }
 
 type SyncApp struct {
-	App                 string
-	Target              string
-	Fleet               string
-	Namespace           string
-	Labels              map[string]string
-	DeployedRevisions   []Revision
-	AlertRules          []monitoringv1.Rule
-	Ports               []picchuv1alpha1.PortInfo
-	HTTPPortFaults      []picchuv1alpha1.HTTPPortFault
-	IstioSidecarConfig  *picchuv1alpha1.IstioSidecar
-	DefaultVariant      bool
-	IngressesVariant    bool
-	DefaultIngressPorts map[string]string
+	App                  string
+	Target               string
+	Fleet                string
+	Namespace            string
+	Labels               map[string]string
+	DeployedRevisions    []Revision
+	AlertRules           []monitoringv1.Rule
+	Ports                []picchuv1alpha1.PortInfo
+	HTTPPortFaults       []picchuv1alpha1.HTTPPortFault
+	IstioSidecarConfig   *picchuv1alpha1.IstioSidecar
+	DefaultVariant       bool
+	IngressesVariant     bool
+	DefaultIngressPorts  map[string]string
+	DevRoutesServiceHost string
+	DevRoutesServicePort int
 }
 
 func (p *SyncApp) Apply(
@@ -312,6 +316,24 @@ func (p *SyncApp) portHeaderMatches(
 	return matches, hosts
 }
 
+func (p *SyncApp) devMatches(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPMatchRequest, error) {
+	t, err := template.New("devRouteTagTemplate").Parse(cluster.Spec.DevRouteTagTemplate)
+	if err != nil {
+		return nil, err
+	}
+	var tpl bytes.Buffer
+	if err := t.Execute(&tpl, p); err != nil {
+		return nil, err
+	}
+	headers := map[string]*istio.StringMatch{
+		tpl.String(): {MatchType: &istio.StringMatch_Regex{Regex: "(.+)"}},
+	}
+
+	return []*istio.HTTPMatchRequest{{
+		Headers: headers,
+	}}, nil
+}
+
 func (p *SyncApp) releaseRoute(port picchuv1alpha1.PortInfo) []*istio.HTTPRouteDestination {
 	var weights []*istio.HTTPRouteDestination
 	for _, revision := range p.DeployedRevisions {
@@ -336,6 +358,16 @@ func (p *SyncApp) taggedRoute(port picchuv1alpha1.PortInfo, revision Revision) [
 			Host:   p.serviceHost(),
 			Port:   &istio.PortSelector{Number: uint32(port.Port)},
 			Subset: revision.Tag,
+		},
+		Weight: 100,
+	}}
+}
+
+func (p *SyncApp) devRoute() []*istio.HTTPRouteDestination {
+	return []*istio.HTTPRouteDestination{{
+		Destination: &istio.Destination{
+			Host: p.DevRoutesServiceHost,
+			Port: &istio.PortSelector{Number: uint32(p.DevRoutesServicePort)},
 		},
 		Weight: 100,
 	}}
@@ -431,6 +463,24 @@ func (p *SyncApp) taggedRoutes(cluster *picchuv1alpha1.Cluster) ([]*istio.HTTPRo
 	return routes, hosts
 }
 
+func (p *SyncApp) devRoutes(cluster *picchuv1alpha1.Cluster) []*istio.HTTPRoute {
+	var routes []*istio.HTTPRoute
+	if cluster.Spec.EnableDevRoutes && cluster.Spec.DevRouteTagTemplate != "" && p.DevRoutesServiceHost != "" && p.DevRoutesServicePort > 0 {
+		matches, err := p.devMatches(cluster)
+		if err != nil {
+			return routes
+		}
+		route := &istio.HTTPRoute{
+			Name:  fmt.Sprintf("00_dev-%s", p.App),
+			Match: matches,
+			Route: p.devRoute(),
+		}
+		routes = append(routes, route)
+	}
+
+	return routes
+}
+
 func (p *SyncApp) service() *corev1.Service {
 	var ports []corev1.ServicePort
 	for _, port := range p.Ports {
@@ -506,7 +556,10 @@ func (p *SyncApp) virtualService(log logr.Logger, cluster *picchuv1alpha1.Cluste
 		hostMap[host] = true
 	}
 
-	http := append(taggedRoutes, releaseRoutes...)
+	devRoutes := p.devRoutes(cluster)
+
+	http := append(devRoutes, taggedRoutes...)
+	http = append(http, releaseRoutes...)
 	if len(http) < 1 {
 		log.Info("Not syncing VirtualService, there are no available deployments")
 		return nil

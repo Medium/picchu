@@ -41,7 +41,7 @@ var (
 			{
 				Tag:              "testtag",
 				Weight:           100,
-				TagRoutingHeader: "MEDIUM-TAG",
+				TagRoutingHeader: "TEST-TAG",
 				TrafficPolicy: &istio.TrafficPolicy{
 					ConnectionPool: &istio.ConnectionPoolSettings{
 						Tcp: &istio.ConnectionPoolSettings_TCPSettings{
@@ -120,7 +120,7 @@ var (
 						{
 							Gateways: []string{"mesh"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -130,7 +130,7 @@ var (
 						{
 							Gateways: []string{"private-gateway"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -141,7 +141,7 @@ var (
 						{
 							Gateways: []string{"private-gateway"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -173,7 +173,7 @@ var (
 						{
 							Gateways: []string{"mesh"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -598,7 +598,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 			{
 				Tag:              "testtag",
 				Weight:           100,
-				TagRoutingHeader: "MEDIUM-TAG",
+				TagRoutingHeader: "TEST-TAG",
 				TrafficPolicy: &istio.TrafficPolicy{
 					ConnectionPool: &istio.ConnectionPoolSettings{
 						Tcp: &istio.ConnectionPoolSettings_TCPSettings{
@@ -680,7 +680,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 						{
 							Gateways: []string{"mesh"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -690,7 +690,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 						{
 							Gateways: []string{"private-gateway"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -701,7 +701,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 						{
 							Gateways: []string{"private-gateway"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -733,7 +733,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 						{
 							Gateways: []string{"mesh"},
 							Headers: map[string]*istio.StringMatch{
-								"MEDIUM-TAG": {
+								"TEST-TAG": {
 									MatchType: &istio.StringMatch_Exact{Exact: "testtag"},
 								},
 							},
@@ -893,9 +893,9 @@ func TestProductionEcho(t *testing.T) {
 						},
 					},
 				},
-				Tag:              "master-20200529-144642-c3d06a9828",
+				Tag:              "main-20200529-144642-c3d06a9828",
 				Weight:           100,
-				TagRoutingHeader: "medium-tag-echo",
+				TagRoutingHeader: "echo-tag",
 			},
 		},
 		Ports: []picchuv1alpha1.PortInfo{
@@ -969,13 +969,13 @@ func TestProductionEcho(t *testing.T) {
 			},
 			Http: []*istio.HTTPRoute{
 				{ // Tagged http route
-					Name: "00_tagged-master-20200529-144642-c3d06a9828-http",
+					Name: "00_tagged-main-20200529-144642-c3d06a9828-http",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
 							Headers: map[string]*istio.StringMatch{
-								"medium-tag-echo": {
-									MatchType: &istio.StringMatch_Exact{Exact: "master-20200529-144642-c3d06a9828"},
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
 								},
 							},
 							Port: uint32(80),
@@ -984,8 +984,8 @@ func TestProductionEcho(t *testing.T) {
 						{
 							Gateways: []string{"private-ingressgateway.istio-system.svc.cluster.local"},
 							Headers: map[string]*istio.StringMatch{
-								"medium-tag-echo": {
-									MatchType: &istio.StringMatch_Exact{Exact: "master-20200529-144642-c3d06a9828"},
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
 								},
 							},
 							Authority: regex,
@@ -995,8 +995,8 @@ func TestProductionEcho(t *testing.T) {
 						{
 							Gateways: []string{"private-ingressgateway.istio-system.svc.cluster.local"},
 							Headers: map[string]*istio.StringMatch{
-								"medium-tag-echo": {
-									MatchType: &istio.StringMatch_Exact{Exact: "master-20200529-144642-c3d06a9828"},
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
 								},
 							},
 							Authority: regex,
@@ -1009,20 +1009,20 @@ func TestProductionEcho(t *testing.T) {
 							Destination: &istio.Destination{
 								Host:   "echo.echo-production.svc.cluster.local",
 								Port:   &istio.PortSelector{Number: uint32(80)},
-								Subset: "master-20200529-144642-c3d06a9828",
+								Subset: "main-20200529-144642-c3d06a9828",
 							},
 							Weight: 100,
 						},
 					},
 				},
 				{ // Tagged status route
-					Name: "00_tagged-master-20200529-144642-c3d06a9828-status",
+					Name: "00_tagged-main-20200529-144642-c3d06a9828-status",
 					Match: []*istio.HTTPMatchRequest{
 						{
 							Gateways: []string{"mesh"},
 							Headers: map[string]*istio.StringMatch{
-								"medium-tag-echo": {
-									MatchType: &istio.StringMatch_Exact{Exact: "master-20200529-144642-c3d06a9828"},
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
 								},
 							},
 							Port: uint32(4242),
@@ -1036,7 +1036,7 @@ func TestProductionEcho(t *testing.T) {
 							Destination: &istio.Destination{
 								Host:   "echo.echo-production.svc.cluster.local",
 								Port:   &istio.PortSelector{Number: uint32(4242)},
-								Subset: "master-20200529-144642-c3d06a9828",
+								Subset: "main-20200529-144642-c3d06a9828",
 							},
 							Weight: 100,
 						},
@@ -1077,7 +1077,7 @@ func TestProductionEcho(t *testing.T) {
 							Destination: &istio.Destination{
 								Host:   "echo.echo-production.svc.cluster.local",
 								Port:   &istio.PortSelector{Number: uint32(80)},
-								Subset: "master-20200529-144642-c3d06a9828",
+								Subset: "main-20200529-144642-c3d06a9828",
 							},
 							Weight: 100,
 						},
@@ -1099,7 +1099,311 @@ func TestProductionEcho(t *testing.T) {
 							Destination: &istio.Destination{
 								Host:   "echo.echo-production.svc.cluster.local",
 								Port:   &istio.PortSelector{Number: uint32(4242)},
-								Subset: "master-20200529-144642-c3d06a9828",
+								Subset: "main-20200529-144642-c3d06a9828",
+							},
+							Weight: 100,
+						},
+					},
+					Retries: &istio.HTTPRetry{
+						Attempts: 2,
+					},
+				},
+			},
+		},
+	}
+	assert.NoError(plan.Apply(ctx, cli, cluster, log))
+	ktest.AssertMatch(ctx, t, cli, expected)
+}
+
+func TestDevRoutes(t *testing.T) {
+	assert := testify.New(t)
+	scalingFactor := 1.0
+	cluster := &picchuv1alpha1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "staging-reef-a",
+			Labels: map[string]string{
+				"picchu.medium.engineering/fleet": "staging",
+				"shunt.medium.build/edition":      "reef",
+			},
+		},
+		Spec: picchuv1alpha1.ClusterSpec{
+			Enabled:             true,
+			EnableDevRoutes:     true,               // what this function is testing
+			DevRouteTagTemplate: "dev-{{.App}}-tag", // what this function is testing
+			ScalingFactor:       &scalingFactor,
+			Ingresses: picchuv1alpha1.ClusterIngresses{
+				Public: picchuv1alpha1.IngressInfo{
+					Gateway: "public-ingressgateway.istio-system.svc.cluster.local",
+				},
+				Private: picchuv1alpha1.IngressInfo{
+					Gateway: "private-ingressgateway.istio-system.svc.cluster.local",
+					DefaultDomains: []string{
+						"medm.io",
+						"staging.medm.io",
+					},
+				},
+			},
+		},
+	}
+	ctx := context.TODO()
+	log := test.MustNewLogger()
+	cli := fakeClient(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "echo-staging",
+		},
+	})
+
+	plan := &SyncApp{
+		App:       "echo",
+		Target:    "staging",
+		Fleet:     "staging",
+		Namespace: "echo-staging",
+		Labels: map[string]string{
+			"app.kubernetes.io/name":              "echo",
+			"picchu.medium.engineering/ownerName": "echo-staging",
+			"picchu.medium.engineering/ownerType": "releasemanager",
+			"picchu.medium.engineering/app":       "echo",
+		},
+		DeployedRevisions: []Revision{
+			{
+				TrafficPolicy: &istio.TrafficPolicy{
+					PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
+						{
+							Port: &istio.PortSelector{
+								Number: 4242,
+							},
+						},
+					},
+					ConnectionPool: &istio.ConnectionPoolSettings{
+						Http: &istio.ConnectionPoolSettings_HTTPSettings{
+							Http2MaxRequests: 10,
+						},
+					},
+				},
+				Tag:              "main-20200529-144642-c3d06a9828",
+				Weight:           100,
+				TagRoutingHeader: "echo-tag",
+			},
+		},
+		Ports: []picchuv1alpha1.PortInfo{
+			{
+				Name:          "http",
+				IngressPort:   443,
+				Port:          80,
+				ContainerPort: 8080,
+				Protocol:      corev1.ProtocolTCP,
+				Ingresses:     []string{"private", "public"},
+				Mode:          picchuv1alpha1.PortPublic,
+			},
+			{
+				Name:          "status",
+				IngressPort:   443,
+				Port:          4242,
+				ContainerPort: 8081,
+				Protocol:      corev1.ProtocolTCP,
+				Mode:          picchuv1alpha1.PortLocal,
+				Istio: picchuv1alpha1.IstioPortConfig{
+					HTTP: picchuv1alpha1.IstioHTTPPortConfig{
+						Retries: &picchuv1alpha1.Retries{
+							Attempts: 2,
+						},
+					},
+				},
+			},
+		},
+		DefaultIngressPorts: map[string]string{
+			"public":  "http",
+			"private": "http",
+		},
+		DefaultVariant:       true,
+		IngressesVariant:     true,
+		DevRoutesServiceHost: "dev-routes-service-host",
+		DevRoutesServicePort: 80,
+	}
+
+	regex := &istio.StringMatch{
+		MatchType: &istio.StringMatch_Regex{
+			Regex: "^(echo-staging\\.medm\\.io|echo-staging\\.staging\\.medm\\.io|echo\\.medm\\.io|echo\\.staging\\.medm\\.io)(:[0-9]+)?$",
+		},
+	}
+
+	expected := &istioclient.VirtualService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "echo",
+			Namespace: "echo-staging",
+			Labels: map[string]string{
+				"app.kubernetes.io/name":              "echo",
+				"picchu.medium.engineering/ownerName": "echo-staging",
+				"picchu.medium.engineering/ownerType": "releasemanager",
+				"picchu.medium.engineering/app":       "echo",
+			},
+		},
+		Spec: istio.VirtualService{
+			Hosts: []string{
+				"echo-staging.medm.io",
+				"echo-staging.staging.medm.io",
+				"echo.echo-staging.svc.cluster.local",
+				"echo.medm.io",
+				"echo.staging.medm.io",
+			},
+			Gateways: []string{
+				"mesh",
+				"private-ingressgateway.istio-system.svc.cluster.local",
+			},
+			Http: []*istio.HTTPRoute{
+				{ // dev route
+					Name: "00_dev-echo",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Headers: map[string]*istio.StringMatch{
+								"dev-echo-tag": {
+									MatchType: &istio.StringMatch_Regex{Regex: "(.+)"},
+								},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host: "dev-routes-service-host",
+								Port: &istio.PortSelector{Number: uint32(80)},
+							},
+							Weight: 100,
+						},
+					},
+				},
+				{ // Tagged http route
+					Name: "00_tagged-main-20200529-144642-c3d06a9828-http",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Headers: map[string]*istio.StringMatch{
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
+								},
+							},
+							Port: uint32(80),
+							Uri:  &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+						},
+						{
+							Gateways: []string{"private-ingressgateway.istio-system.svc.cluster.local"},
+							Headers: map[string]*istio.StringMatch{
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
+								},
+							},
+							Authority: regex,
+							Port:      uint32(443),
+							Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+						},
+						{
+							Gateways: []string{"private-ingressgateway.istio-system.svc.cluster.local"},
+							Headers: map[string]*istio.StringMatch{
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
+								},
+							},
+							Authority: regex,
+							Port:      uint32(80),
+							Uri:       &istio.StringMatch{MatchType: &istio.StringMatch_Prefix{Prefix: "/"}},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "echo.echo-staging.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(80)},
+								Subset: "main-20200529-144642-c3d06a9828",
+							},
+							Weight: 100,
+						},
+					},
+				},
+				{ // Tagged status route
+					Name: "00_tagged-main-20200529-144642-c3d06a9828-status",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Headers: map[string]*istio.StringMatch{
+								"echo-tag": {
+									MatchType: &istio.StringMatch_Exact{Exact: "main-20200529-144642-c3d06a9828"},
+								},
+							},
+							Port: uint32(4242),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "echo.echo-staging.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(4242)},
+								Subset: "main-20200529-144642-c3d06a9828",
+							},
+							Weight: 100,
+						},
+					},
+					Retries: &istio.HTTPRetry{
+						Attempts: 2,
+					},
+				},
+				{ // Release http route
+					Name: "01_release-http",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: regex,
+							Gateways:  []string{"private-ingressgateway.istio-system.svc.cluster.local"},
+							Port:      uint32(443),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+						{
+							Authority: regex,
+							Gateways:  []string{"private-ingressgateway.istio-system.svc.cluster.local"},
+							Port:      uint32(80),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "echo.echo-staging.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(80)},
+								Subset: "main-20200529-144642-c3d06a9828",
+							},
+							Weight: 100,
+						},
+					},
+				},
+				{ // release status route
+					Name: "01_release-status",
+					Match: []*istio.HTTPMatchRequest{
+						{
+							Gateways: []string{"mesh"},
+							Port:     uint32(4242),
+							Uri: &istio.StringMatch{
+								MatchType: &istio.StringMatch_Prefix{Prefix: "/"},
+							},
+						},
+					},
+					Route: []*istio.HTTPRouteDestination{
+						{
+							Destination: &istio.Destination{
+								Host:   "echo.echo-staging.svc.cluster.local",
+								Port:   &istio.PortSelector{Number: uint32(4242)},
+								Subset: "main-20200529-144642-c3d06a9828",
 							},
 							Weight: 100,
 						},

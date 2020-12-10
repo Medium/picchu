@@ -45,6 +45,10 @@ spec:
               - certificate-authority-data
               - server
               type: object
+            devRouteTagTemplate:
+              type: string
+            enableDevRoutes:
+              type: boolean
             enabled:
               type: boolean
             hotStandby:
