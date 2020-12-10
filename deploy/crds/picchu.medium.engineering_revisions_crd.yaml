@@ -52,6 +52,8 @@ spec:
               type: object
             canaryWithSLIRules:
               type: boolean
+            devTagRoutingHeader:
+              type: string
             disableMirroring:
               type: boolean
             failed:

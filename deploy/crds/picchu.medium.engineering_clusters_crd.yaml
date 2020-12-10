@@ -45,6 +45,8 @@ spec:
               - certificate-authority-data
               - server
               type: object
+            enableDevRoutes:
+              type: boolean
             enabled:
               type: boolean
             hotStandby:
