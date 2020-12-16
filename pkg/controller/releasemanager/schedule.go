@@ -38,6 +38,9 @@ func init() {
 		date(2020, time.September, 7), // Labor day
 		date(2020, time.November, 26), // Thanksgiving
 		date(2020, time.November, 27), // Day after thanksgiving
+		date(2020, time.December, 17), // Holiday Freeze
+		date(2020, time.December, 18), // Holiday Freeze
+		date(2020, time.December, 21), // Christmas break
 		date(2020, time.December, 22), // Christmas break
 		date(2020, time.December, 23), // Christmas break
 		date(2020, time.December, 24), // Christmas break
