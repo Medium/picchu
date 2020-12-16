@@ -40,17 +40,17 @@ func init() {
 		date(2020, time.November, 27), // Day after thanksgiving
 		date(2020, time.December, 17), // Holiday Freeze
 		date(2020, time.December, 18), // Holiday Freeze
-		date(2020, time.December, 21), // Christmas break
-		date(2020, time.December, 22), // Christmas break
-		date(2020, time.December, 23), // Christmas break
-		date(2020, time.December, 24), // Christmas break
-		date(2020, time.December, 25), // Christmas break
-		date(2020, time.December, 26), // Sat, Christmas break
-		date(2020, time.December, 27), // Sunday, Christmas break
-		date(2020, time.December, 28), // Christmas break
-		date(2020, time.December, 29), // Christmas break
-		date(2020, time.December, 30), // Christmas break
-		date(2020, time.December, 31), // Christmas break
+		date(2020, time.December, 21), // Holiday break
+		date(2020, time.December, 22), // Holiday break
+		date(2020, time.December, 23), // Holiday break
+		date(2020, time.December, 24), // Holiday break
+		date(2020, time.December, 25), // Holiday break
+		date(2020, time.December, 26), // Sat, Holiday break
+		date(2020, time.December, 27), // Sunday, Holiday break
+		date(2020, time.December, 28), // Holiday break
+		date(2020, time.December, 29), // Holiday break
+		date(2020, time.December, 30), // Holiday break
+		date(2020, time.December, 31), // Holiday break
 
 		date(2021, time.January, 1),   // New year's day
 		date(2021, time.January, 18),  // MLK day
@@ -61,14 +61,14 @@ func init() {
 		date(2021, time.September, 6), // Labor day
 		date(2021, time.November, 25), // Thanksgiving
 		date(2021, time.November, 26), // Day after Thanksgiving
-		date(2021, time.December, 24), // Christmas break
-		date(2021, time.December, 25), // Sat, Christmas break
-		date(2021, time.December, 26), // Sun, Christmas break
-		date(2021, time.December, 27), // Christmas break
-		date(2021, time.December, 28), // Christmas break
-		date(2021, time.December, 29), // Christmas break
-		date(2021, time.December, 30), // Christmas break
-		date(2021, time.December, 31), // Christmas break
+		date(2021, time.December, 24), // Holiday break
+		date(2021, time.December, 25), // Sat, Holiday break
+		date(2021, time.December, 26), // Sun, Holiday break
+		date(2021, time.December, 27), // Holiday break
+		date(2021, time.December, 28), // Holiday break
+		date(2021, time.December, 29), // Holiday break
+		date(2021, time.December, 30), // Holiday break
+		date(2021, time.December, 31), // Holiday break
 	}
 }
 
