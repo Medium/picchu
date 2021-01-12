@@ -978,6 +978,15 @@ func (i *IncarnationCollection) sorted() (r []*Incarnation) {
 		if r[y].revision != nil {
 			b = r[y].revision.GitTimestamp()
 		}
+		if a.Equal(b) {
+			if r[x].revision != nil {
+				a = r[x].revision.CreationTimestamp.Time
+			}
+			if r[y].revision != nil {
+				b = r[y].revision.CreationTimestamp.Time
+			}
+
+		}
 		return a.After(b)
 	})
 	return
