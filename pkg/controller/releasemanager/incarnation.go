@@ -7,6 +7,8 @@ import (
 	"sort"
 	"time"
 
+	"go.medium.engineering/picchu/pkg/controller/releasemanager/schedule"
+
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/observe"
 	rmplan "go.medium.engineering/picchu/pkg/controller/releasemanager/plan"
@@ -526,7 +528,7 @@ func (i *Incarnation) schedulePermitsRelease() bool {
 		time.Now(),
 	}
 	for _, t := range times {
-		if schedulePermitsRelease(t, i.target().Release.Schedule) {
+		if schedule.PermitsRelease(t, i.target().Release.Schedule) {
 			return true
 		}
 	}

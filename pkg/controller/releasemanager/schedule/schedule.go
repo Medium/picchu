@@ -1,4 +1,4 @@
-package releasemanager
+package schedule
 
 import (
 	"fmt"
@@ -72,31 +72,13 @@ func init() {
 	}
 }
 
-// TODO(lyra): make configurable
-// TODO(lyra): give schedule its own type
-func schedulePermitsRelease(t time.Time, schedule string) bool {
-	if schedule != "humane" && schedule != "Humane" {
-		return true
-	}
-
-	day := date(t.Year(), t.Month(), t.Day())
-	hour := t.In(scheduleLocation).Hour()
-	tomorrow := day.Add(time.Hour * 24)
-	for _, holiday := range holidays {
-		if holiday == day {
-			return false
-		}
-		if holiday == tomorrow && t.Weekday() != time.Saturday && t.Weekday() != time.Sunday {
-			return hour >= defaultStartHour && hour < earlyEndHour
-		}
-	}
-
-	switch t.Weekday() {
-	case time.Saturday, time.Sunday:
-		return false
-	case time.Friday:
-		return hour >= defaultStartHour && hour < earlyEndHour
+func PermitsRelease(t time.Time, schedule string) bool {
+	switch schedule {
+	case "humane", "Humane":
+		return humanePermitsRelease(t)
+	case "inhumane", "Inhumane":
+		return inhumanePermitsRelease(t)
 	default:
-		return hour >= defaultStartHour && hour < defaultEndHour
+		return alwaysPermitsRelease(t)
 	}
 }
