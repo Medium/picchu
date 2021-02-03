@@ -34,6 +34,7 @@ var (
 
 const (
 	HumaneSchedule    = "humane"
+	InhumaneSchedule  = "inhumane"
 	AlwaysSchedule    = "always"
 	LabelApp          = "picchu.medium.engineering/app"
 	LabelTag          = "picchu.medium.engineering/tag"
