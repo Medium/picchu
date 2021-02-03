@@ -9,7 +9,7 @@ import (
 
 const (
 	defaultReleaseMax                    = 100
-	defaultReleaseSchedule               = HumaneSchedule
+	defaultReleaseSchedule               = InhumaneSchedule
 	defaultReleaseGcTTLSeconds           = int64(5 * 24 * 60 * 60)
 	defaultScaleDefault                  = int32(1)
 	defaultScaleMax                      = int32(1)
