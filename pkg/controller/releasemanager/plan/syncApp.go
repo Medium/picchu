@@ -590,6 +590,11 @@ func (p *SyncApp) virtualService(log logr.Logger, cluster *picchuv1alpha1.Cluste
 		hosts = append(hosts, host)
 	}
 
+	if len(hosts) == 0 {
+		log.Info("Not syncing VirtualService, there are no available hosts")
+		return nil
+	}
+
 	sort.Strings(hosts)
 
 	return &istioclient.VirtualService{
