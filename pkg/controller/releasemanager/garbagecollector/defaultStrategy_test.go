@@ -126,3 +126,55 @@ func TestDefaultStrategyNotEnoughExpired(t *testing.T) {
 	assert.Equal(t, 2012, sortedOut[3].CreatedOn().Year(), "correct revisions found")
 	assert.Equal(t, 2011, sortedOut[4].CreatedOn().Year(), "correct revisions found")
 }
+
+func TestDefaultStrategyDontDeleteAll(t *testing.T) {
+	for _, test := range []struct {
+		Name             string
+		Revisions        []Revision
+		ExpectedToDelete int
+	}{
+		{
+			Name: "single-created",
+			Revisions: []Revision{
+				rev(1, 2011, "created"),
+			},
+			ExpectedToDelete: 0,
+		},
+		{
+			Name: "double-created",
+			Revisions: []Revision{
+				rev(1, 2011, "created"),
+				rev(1, 2012, "created"),
+			},
+			ExpectedToDelete: 1,
+		},
+		{
+			Name: "single-deploying",
+			Revisions: []Revision{
+				rev(1, 2011, "deploying"),
+			},
+			ExpectedToDelete: 0,
+		},
+		{
+			Name: "single-deployed",
+			Revisions: []Revision{
+				rev(1, 2011, "deployed"),
+			},
+			ExpectedToDelete: 0,
+		},
+		{
+			Name: "single-pendingrelease",
+			Revisions: []Revision{
+				rev(1, 2011, "pendingrelease"),
+			},
+			ExpectedToDelete: 0,
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			assert := assert.New(t)
+			out, err := FindGarbage(nil, DefaultStrategy, test.Revisions)
+			assert.NoError(err)
+			assert.Len(out, test.ExpectedToDelete)
+		})
+	}
+}
