@@ -34,5 +34,11 @@ func defaultStrategy(log logr.Logger, revisions []Revision) ([]Revision, error) 
 		}
 
 	}
+
+	// Don't delete all the revisions
+	if len(revisions) == len(toDelete) {
+		return toDelete[:len(toDelete)-1], nil
+	}
+
 	return toDelete, nil
 }
