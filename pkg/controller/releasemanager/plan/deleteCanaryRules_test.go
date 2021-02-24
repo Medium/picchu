@@ -7,7 +7,7 @@ import (
 	_ "runtime"
 	"testing"
 
-	monitoring "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/test"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"

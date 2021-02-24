@@ -3,7 +3,7 @@ package v1
 import (
 	testing "testing"
 
-	v1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	assert "github.com/stretchr/testify/assert"
 	test "go.medium.engineering/kubernetes/pkg/test"
 	runtime "k8s.io/apimachinery/pkg/runtime"
