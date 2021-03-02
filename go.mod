@@ -12,7 +12,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
-	github.com/operator-framework/operator-sdk v0.13.0
+	github.com/operator-framework/operator-sdk v0.19.0
 	github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.15.0
@@ -65,3 +65,5 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.18.16
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.0
 )
+
+replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
