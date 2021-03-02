@@ -12,7 +12,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.1.1
-	github.com/operator-framework/operator-sdk v0.19.0
+	github.com/operator-framework/operator-sdk v0.19.2
 	github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.15.0
