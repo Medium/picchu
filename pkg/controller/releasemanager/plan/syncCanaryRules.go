@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
@@ -36,7 +37,7 @@ type SyncCanaryRules struct {
 }
 
 func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	prometheusRules, err := p.prometheusRules()
+	prometheusRules, err := p.prometheusRules(log)
 	if err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster 
 	return nil
 }
 
-func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, error) {
+func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.PrometheusRuleList, error) {
 	prl := &monitoringv1.PrometheusRuleList{}
 	prs := []*monitoringv1.PrometheusRule{}
 
@@ -67,7 +68,7 @@ func (p *SyncCanaryRules) prometheusRules() (*monitoringv1.PrometheusRuleList, e
 				Tag:    p.Tag,
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
-			canaryRules := config.canaryRules()
+			canaryRules := config.canaryRules(log)
 			for _, rg := range canaryRules {
 				rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 			}
@@ -100,7 +101,7 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 	}
 }
 
-func (s *SLOConfig) canaryRules() []*monitoringv1.RuleGroup {
+func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 	ruleGroups := []*monitoringv1.RuleGroup{}
 
 	labels := s.canaryRuleLabels()
@@ -117,9 +118,9 @@ func (s *SLOConfig) canaryRules() []*monitoringv1.RuleGroup {
 			{
 				Alert:       s.canaryAlertName(),
 				For:         s.SLO.ServiceLevelIndicator.Canary.FailAfter,
-				Expr:        intstr.FromString(s.canaryQuery()),
+				Expr:        intstr.FromString(s.canaryQuery(log)),
 				Labels:      labels,
-				Annotations: s.canaryRuleAnnotations(),
+				Annotations: s.canaryRuleAnnotations(log),
 			},
 		},
 	}
@@ -137,10 +138,10 @@ func (s *SLOConfig) canaryRuleLabels() map[string]string {
 	}
 }
 
-func (s *SLOConfig) canaryRuleAnnotations() map[string]string {
+func (s *SLOConfig) canaryRuleAnnotations(log logr.Logger) map[string]string {
 	return map[string]string{
 		CanarySummaryAnnotation: "Canary is failing SLO",
-		CanaryMessageAnnotation: s.serviceLevelObjective().Description,
+		CanaryMessageAnnotation: s.serviceLevelObjective(log).Description,
 	}
 }
 
@@ -152,14 +153,23 @@ func (s *SLOConfig) canaryAlertName() string {
 	return fmt.Sprintf("%s_canary", s.Name)
 }
 
-func (s *SLOConfig) canaryQuery() string {
+func (s *SLOConfig) canaryQuery(log logr.Logger) string {
 	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > ignoring(%s) sum(%s) / sum(%s)",
 		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
-		s.formatAllowancePercent(), s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery())
+		s.formatAllowancePercent(log), s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery())
 }
 
-func (s *SLOConfig) formatAllowancePercent() string {
-	r := s.SLO.ServiceLevelIndicator.Canary.AllowancePercent / 100
+func (s *SLOConfig) formatAllowancePercent(log logr.Logger) string {
+	allowancePercent := s.SLO.ServiceLevelIndicator.Canary.AllowancePercent
+	if s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString != "" {
+		f, err := strconv.ParseFloat(s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString, 64)
+		if err != nil {
+			log.Error(err, "Could not parse %v to float", s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString)
+		} else {
+			allowancePercent = f
+		}
+	}
+	r := allowancePercent / 100
 	return fmt.Sprintf("%.10g", r)
 }

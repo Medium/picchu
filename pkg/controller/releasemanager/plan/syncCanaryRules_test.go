@@ -140,6 +140,8 @@ func TestSyncCanaryRules(t *testing.T) {
 }
 
 func TestFormatAllowancePercent(t *testing.T) {
+	log := test.MustNewLogger()
+
 	inputs := []struct {
 		float    float64
 		expected string
@@ -161,7 +163,7 @@ func TestFormatAllowancePercent(t *testing.T) {
 				},
 			},
 		}
-		actual := c.formatAllowancePercent()
+		actual := c.formatAllowancePercent(log)
 		if !reflect.DeepEqual(i.expected, actual) {
 			t.Errorf("Expected did not match actual. Expected: %v. Actual: %v", i.expected, actual)
 			t.Fail()

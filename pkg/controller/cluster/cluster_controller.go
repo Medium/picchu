@@ -3,10 +3,9 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"regexp"
-
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
+	"regexp"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -131,6 +130,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 		return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
+
 	if !instance.IsFinalized() {
 		instance.Finalize()
 		return reconcile.Result{}, r.client.Update(context.TODO(), instance)

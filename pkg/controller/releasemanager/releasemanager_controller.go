@@ -3,6 +3,7 @@ package releasemanager
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -226,6 +227,14 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
 		}
+		if cluster.Spec.ScalingFactorString != nil {
+			f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+			if err != nil {
+				reqLog.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
+			} else {
+				scalingFactor = f
+			}
+		}
 		clusterInfo = append(clusterInfo, ClusterInfo{
 			Name:          cluster.Name,
 			Live:          !cluster.Spec.HotStandby,
@@ -249,6 +258,14 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 		var scalingFactor = 0.0
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
+		}
+		if cluster.Spec.ScalingFactorString != nil {
+			f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+			if err != nil {
+				reqLog.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
+			} else {
+				scalingFactor = f
+			}
 		}
 		deliveryClusterInfo = append(deliveryClusterInfo, ClusterInfo{
 			Name:          cluster.Name,

@@ -88,6 +88,8 @@ spec:
               - public
               type: object
             scalingFactor: {}
+            scalingFactorString:
+              type: string
           required:
           - enabled
           - ingresses

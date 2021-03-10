@@ -155,7 +155,7 @@ func (r *ResourceSyncer) reportMetrics() error {
 			oldestIncarnationsInState[current] = age
 		}
 
-		incarnation.reportMetrics()
+		incarnation.reportMetrics(r.log)
 	}
 	for state, numIncarnations := range incarnationsInState {
 		incarnationReleaseStateGauge.With(prometheus.Labels{

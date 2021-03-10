@@ -2466,6 +2466,8 @@ spec:
                           queueUri:
                             type: string
                           secondsToProcessOneJob: {}
+                          secondsToProcessOneJobString:
+                            type: string
                           targetMessagesPerWorker:
                             format: int32
                             type: integer
@@ -2506,6 +2508,8 @@ spec:
                         name:
                           type: string
                         objectivePercent: {}
+                        objectivePercentString:
+                          type: string
                         serviceLevelIndicator:
                           properties:
                             alertAfter:
@@ -2513,6 +2517,8 @@ spec:
                             canary:
                               properties:
                                 allowancePercent: {}
+                                allowancePercentString:
+                                  type: string
                                 enabled:
                                   type: boolean
                                 failAfter:
