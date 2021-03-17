@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
@@ -25,7 +26,7 @@ type SyncServiceLevels struct {
 }
 
 func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	serviceLevels, err := p.serviceLevels()
+	serviceLevels, err := p.serviceLevels(log)
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluste
 	return nil
 }
 
-func (p *SyncServiceLevels) serviceLevels() ([]*slov1alpha1.ServiceLevel, error) {
+func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.ServiceLevel, error) {
 	var sl []*slov1alpha1.ServiceLevel
 	var slos []slov1alpha1.SLO
 
@@ -52,7 +53,7 @@ func (p *SyncServiceLevels) serviceLevels() ([]*slov1alpha1.ServiceLevel, error)
 				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
-			serviceLevelObjective := config.serviceLevelObjective()
+			serviceLevelObjective := config.serviceLevelObjective(log)
 			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.sliSource()
 			slos = append(slos, *serviceLevelObjective)
 		}
@@ -82,7 +83,7 @@ func (s *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
 	return source
 }
 
-func (s *SLOConfig) serviceLevelObjective() *slov1alpha1.SLO {
+func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 	labels := make(map[string]string)
 	for k, v := range s.Labels.ServiceLevelLabels {
 		labels[k] = v
@@ -96,9 +97,18 @@ func (s *SLOConfig) serviceLevelObjective() *slov1alpha1.SLO {
 		labels[prometheus.TagLabel] = s.Tag
 	}
 
+	objectivePercent := s.SLO.ObjectivePercent
+	if s.SLO.ObjectivePercentString != "" {
+		f, err := strconv.ParseFloat(s.SLO.ObjectivePercentString, 64)
+		if err != nil {
+			log.Error(err, "Could not parse %v to float", s.SLO.ObjectivePercentString)
+		} else {
+			objectivePercent = f
+		}
+	}
 	slo := &slov1alpha1.SLO{
 		Name:                         s.Name,
-		AvailabilityObjectivePercent: s.SLO.ObjectivePercent,
+		AvailabilityObjectivePercent: objectivePercent,
 		Description:                  s.SLO.Description,
 		Disable:                      false,
 		Output: slov1alpha1.Output{

@@ -314,6 +314,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = new(ClusterConfig)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ScalingFactorString != nil {
+		in, out := &in.ScalingFactorString, &out.ScalingFactorString
+		*out = new(string)
+		**out = **in
+	}
 	if in.ScalingFactor != nil {
 		in, out := &in.ScalingFactor, &out.ScalingFactor
 		*out = new(float64)
@@ -911,6 +916,71 @@ func (in *ReleaseManagerRevisionMetricsStatus) DeepCopyInto(out *ReleaseManagerR
 	if in.ReleaseSeconds != nil {
 		in, out := &in.ReleaseSeconds, &out.ReleaseSeconds
 		*out = new(float64)
+		**out = **in
+	}
+	if in.GitCreateSecondsInt != nil {
+		in, out := &in.GitCreateSecondsInt, &out.GitCreateSecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.GitDeploySecondsInt != nil {
+		in, out := &in.GitDeploySecondsInt, &out.GitDeploySecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.GitCanarySecondsInt != nil {
+		in, out := &in.GitCanarySecondsInt, &out.GitCanarySecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.GitPendingReleaseSecondsInt != nil {
+		in, out := &in.GitPendingReleaseSecondsInt, &out.GitPendingReleaseSecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.GitReleaseSecondsInt != nil {
+		in, out := &in.GitReleaseSecondsInt, &out.GitReleaseSecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.RevisionDeploySecondsInt != nil {
+		in, out := &in.RevisionDeploySecondsInt, &out.RevisionDeploySecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.RevisionCanarySecondsInt != nil {
+		in, out := &in.RevisionCanarySecondsInt, &out.RevisionCanarySecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.RevisionReleaseSecondsInt != nil {
+		in, out := &in.RevisionReleaseSecondsInt, &out.RevisionReleaseSecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.ReivisonPendingReleaseSecondsInt != nil {
+		in, out := &in.ReivisonPendingReleaseSecondsInt, &out.ReivisonPendingReleaseSecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.RevisionRollbackSecondsInt != nil {
+		in, out := &in.RevisionRollbackSecondsInt, &out.RevisionRollbackSecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.DeploySecondsInt != nil {
+		in, out := &in.DeploySecondsInt, &out.DeploySecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.CanarySecondsInt != nil {
+		in, out := &in.CanarySecondsInt, &out.CanarySecondsInt
+		*out = new(int)
+		**out = **in
+	}
+	if in.ReleaseSecondsInt != nil {
+		in, out := &in.ReleaseSecondsInt, &out.ReleaseSecondsInt
+		*out = new(int)
 		**out = **in
 	}
 	return
@@ -1585,6 +1655,11 @@ func (in *WorkerScaleInfo) DeepCopyInto(out *WorkerScaleInfo) {
 	if in.TargetMessagesPerWorker != nil {
 		in, out := &in.TargetMessagesPerWorker, &out.TargetMessagesPerWorker
 		*out = new(int32)
+		**out = **in
+	}
+	if in.SecondsToProcessOneJobString != nil {
+		in, out := &in.SecondsToProcessOneJobString, &out.SecondsToProcessOneJobString
+		*out = new(string)
 		**out = **in
 	}
 	if in.SecondsToProcessOneJob != nil {

@@ -93,6 +93,20 @@ type ReleaseManagerRevisionMetricsStatus struct {
 	DeploySeconds                 *float64 `json:"deploySeconds,omitempty"`
 	CanarySeconds                 *float64 `json:"canarySeconds,omitempty"`
 	ReleaseSeconds                *float64 `json:"releaseSeconds,omitempty"`
+
+	GitCreateSecondsInt              *int `json:"gitCreateSecondsInt,omitempty"`
+	GitDeploySecondsInt              *int `json:"gitDeploySecondsInt,omitempty"`
+	GitCanarySecondsInt              *int `json:"gitCanarySecondsInt,omitempty"`
+	GitPendingReleaseSecondsInt      *int `json:"gitPendingReleaseSecondsInt,omitempty"`
+	GitReleaseSecondsInt             *int `json:"gitReleaseSecondsInt,omitempty"`
+	RevisionDeploySecondsInt         *int `json:"revisionDeploySecondsInt,omitempty"`
+	RevisionCanarySecondsInt         *int `json:"revisionCanarySecondsInt,omitempty"`
+	RevisionReleaseSecondsInt        *int `json:"revisionReleaseSecondsInt,omitempty"`
+	ReivisonPendingReleaseSecondsInt *int `json:"revisionPendingReleaseSecondsInt,omitempty"`
+	RevisionRollbackSecondsInt       *int `json:"revisionRollbackSecondsInt,omitempty"`
+	DeploySecondsInt                 *int `json:"deploySecondsInt,omitempty"`
+	CanarySecondsInt                 *int `json:"canarySecondsInt,omitempty"`
+	ReleaseSecondsInt                *int `json:"releaseSecondsInt,omitempty"`
 }
 
 type ReleaseManagerRevisionStateStatus struct {

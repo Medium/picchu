@@ -103,12 +103,80 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 	return &i
 }
 
-func (i *Incarnation) reportMetrics() {
+// temporarily migrate floats
+func (i *Incarnation) migrateFloats() {
+	if i.status.Metrics.GitCreateSeconds != nil && i.status.Metrics.GitCreateSecondsInt == nil {
+		conv := int(*i.status.Metrics.GitCreateSeconds)
+		i.status.Metrics.GitCreateSecondsInt = &conv
+	}
+	if i.status.Metrics.GitDeploySeconds != nil && i.status.Metrics.GitDeploySecondsInt == nil {
+		conv := int(*i.status.Metrics.GitDeploySeconds)
+		i.status.Metrics.GitDeploySecondsInt = &conv
+	}
+	if i.status.Metrics.GitCanarySeconds != nil && i.status.Metrics.GitCanarySecondsInt == nil {
+		conv := int(*i.status.Metrics.GitCanarySeconds)
+		i.status.Metrics.GitCanarySecondsInt = &conv
+	}
+	if i.status.Metrics.GitPendingReleaseSeconds != nil && i.status.Metrics.GitPendingReleaseSecondsInt == nil {
+		conv := int(*i.status.Metrics.GitPendingReleaseSeconds)
+		i.status.Metrics.GitPendingReleaseSecondsInt = &conv
+	}
+	if i.status.Metrics.GitReleaseSeconds != nil && i.status.Metrics.GitReleaseSecondsInt == nil {
+		conv := int(*i.status.Metrics.GitReleaseSeconds)
+		i.status.Metrics.GitReleaseSecondsInt = &conv
+	}
+	if i.status.Metrics.RevisionDeploySeconds != nil && i.status.Metrics.RevisionDeploySecondsInt == nil {
+		conv := int(*i.status.Metrics.RevisionDeploySeconds)
+		i.status.Metrics.RevisionDeploySecondsInt = &conv
+	}
+	if i.status.Metrics.RevisionCanarySeconds != nil && i.status.Metrics.RevisionCanarySecondsInt == nil {
+		conv := int(*i.status.Metrics.RevisionCanarySeconds)
+		i.status.Metrics.RevisionCanarySecondsInt = &conv
+	}
+	if i.status.Metrics.RevisionReleaseSeconds != nil && i.status.Metrics.RevisionReleaseSecondsInt == nil {
+		conv := int(*i.status.Metrics.RevisionReleaseSeconds)
+		i.status.Metrics.RevisionReleaseSecondsInt = &conv
+	}
+	if i.status.Metrics.ReivisonPendingReleaseSeconds != nil && i.status.Metrics.ReivisonPendingReleaseSecondsInt == nil {
+		conv := int(*i.status.Metrics.ReivisonPendingReleaseSeconds)
+		i.status.Metrics.ReivisonPendingReleaseSecondsInt = &conv
+	}
+	if i.status.Metrics.RevisionRollbackSeconds != nil && i.status.Metrics.RevisionRollbackSecondsInt == nil {
+		conv := int(*i.status.Metrics.RevisionRollbackSeconds)
+		i.status.Metrics.RevisionRollbackSecondsInt = &conv
+	}
+	if i.status.Metrics.DeploySeconds != nil && i.status.Metrics.DeploySecondsInt == nil {
+		conv := int(*i.status.Metrics.DeploySeconds)
+		i.status.Metrics.DeploySecondsInt = &conv
+	}
+	if i.status.Metrics.CanarySeconds != nil && i.status.Metrics.CanarySecondsInt == nil {
+		conv := int(*i.status.Metrics.CanarySeconds)
+		i.status.Metrics.CanarySecondsInt = &conv
+	}
+	if i.status.Metrics.ReleaseSeconds != nil && i.status.Metrics.ReleaseSecondsInt == nil {
+		conv := int(*i.status.Metrics.ReleaseSeconds)
+		i.status.Metrics.ReleaseSecondsInt = &conv
+	}
+}
+
+func (i *Incarnation) reportMetrics(log logr.Logger) {
+	i.migrateFloats()
+
 	current := State(i.status.State.Current)
 
 	if current == created && i.status.Metrics.GitCreateSeconds == nil {
 		elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
 		i.status.Metrics.GitCreateSeconds = &elapsed
+		incarnationGitCreateLatency.With(prometheus.Labels{
+			"app":    i.appName(),
+			"target": i.targetName(),
+		}).Observe(elapsed)
+	}
+
+	if current == created && i.status.Metrics.GitCreateSecondsInt == nil {
+		elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
+		elapsedInt := int(elapsed)
+		i.status.Metrics.GitCreateSecondsInt = &elapsedInt
 		incarnationGitCreateLatency.With(prometheus.Labels{
 			"app":    i.appName(),
 			"target": i.targetName(),
@@ -125,9 +193,29 @@ func (i *Incarnation) reportMetrics() {
 			}).Observe(elapsed)
 		}
 
+		if i.status.Metrics.GitDeploySecondsInt == nil {
+			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.GitDeploySecondsInt = &elapsedInt
+			incarnationGitDeployLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
 		if i.status.Metrics.RevisionDeploySeconds == nil {
 			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
 			i.status.Metrics.RevisionDeploySeconds = &elapsed
+			incarnationRevisionDeployLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
+		if i.status.Metrics.RevisionDeploySecondsInt == nil {
+			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.RevisionDeploySecondsInt = &elapsedInt
 			incarnationRevisionDeployLatency.With(prometheus.Labels{
 				"app":    i.appName(),
 				"target": i.targetName(),
@@ -138,6 +226,18 @@ func (i *Incarnation) reportMetrics() {
 			if i.status.DeployingStartTimestamp != nil {
 				elapsed := time.Since(i.status.DeployingStartTimestamp.Time).Seconds()
 				i.status.Metrics.DeploySeconds = &elapsed
+				incarnationDeployLatency.With(prometheus.Labels{
+					"app":    i.appName(),
+					"target": i.targetName(),
+				}).Observe(elapsed)
+			}
+		}
+
+		if i.status.Metrics.DeploySecondsInt == nil {
+			if i.status.DeployingStartTimestamp != nil {
+				elapsed := time.Since(i.status.DeployingStartTimestamp.Time).Seconds()
+				elapsedInt := int(elapsed)
+				i.status.Metrics.DeploySecondsInt = &elapsedInt
 				incarnationDeployLatency.With(prometheus.Labels{
 					"app":    i.appName(),
 					"target": i.targetName(),
@@ -156,9 +256,29 @@ func (i *Incarnation) reportMetrics() {
 			}).Observe(elapsed)
 		}
 
+		if i.status.Metrics.GitCanarySecondsInt == nil {
+			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.GitCanarySecondsInt = &elapsedInt
+			incarnationGitCanaryLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
 		if i.status.Metrics.RevisionCanarySeconds == nil {
 			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
 			i.status.Metrics.RevisionCanarySeconds = &elapsed
+			incarnationRevisionCanaryLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
+		if i.status.Metrics.RevisionCanarySecondsInt == nil {
+			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.RevisionCanarySecondsInt = &elapsedInt
 			incarnationRevisionCanaryLatency.With(prometheus.Labels{
 				"app":    i.appName(),
 				"target": i.targetName(),
@@ -169,6 +289,18 @@ func (i *Incarnation) reportMetrics() {
 			if i.status.CanaryStartTimestamp != nil {
 				elapsed := time.Since(i.status.CanaryStartTimestamp.Time).Seconds()
 				i.status.Metrics.CanarySeconds = &elapsed
+				incarnationCanaryLatency.With(prometheus.Labels{
+					"app":    i.appName(),
+					"target": i.targetName(),
+				}).Observe(elapsed)
+			}
+		}
+
+		if i.status.Metrics.CanarySecondsInt == nil {
+			if i.status.CanaryStartTimestamp != nil {
+				elapsed := time.Since(i.status.CanaryStartTimestamp.Time).Seconds()
+				elapsedInt := int(elapsed)
+				i.status.Metrics.CanarySecondsInt = &elapsedInt
 				incarnationCanaryLatency.With(prometheus.Labels{
 					"app":    i.appName(),
 					"target": i.targetName(),
@@ -187,9 +319,29 @@ func (i *Incarnation) reportMetrics() {
 			}).Observe(elapsed)
 		}
 
+		if i.status.Metrics.GitPendingReleaseSecondsInt == nil {
+			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.GitPendingReleaseSecondsInt = &elapsedInt
+			incarnationGitPendingReleaseLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
 		if i.status.Metrics.ReivisonPendingReleaseSeconds == nil {
 			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
 			i.status.Metrics.ReivisonPendingReleaseSeconds = &elapsed
+			incarnationRevisionPendingReleaseLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
+		if i.status.Metrics.ReivisonPendingReleaseSecondsInt == nil {
+			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.ReivisonPendingReleaseSecondsInt = &elapsedInt
 			incarnationRevisionPendingReleaseLatency.With(prometheus.Labels{
 				"app":    i.appName(),
 				"target": i.targetName(),
@@ -207,9 +359,29 @@ func (i *Incarnation) reportMetrics() {
 			}).Observe(elapsed)
 		}
 
+		if i.status.Metrics.GitReleaseSecondsInt == nil {
+			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.GitReleaseSecondsInt = &elapsedInt
+			incarnationGitReleaseLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
 		if i.status.Metrics.RevisionReleaseSeconds == nil {
 			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
 			i.status.Metrics.RevisionReleaseSeconds = &elapsed
+			incarnationRevisionReleaseLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
+		if i.status.Metrics.RevisionReleaseSecondsInt == nil {
+			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.RevisionReleaseSecondsInt = &elapsedInt
 			incarnationRevisionReleaseLatency.With(prometheus.Labels{
 				"app":    i.appName(),
 				"target": i.targetName(),
@@ -226,12 +398,36 @@ func (i *Incarnation) reportMetrics() {
 				}).Observe(elapsed)
 			}
 		}
+
+		if i.status.Metrics.ReleaseSecondsInt == nil {
+			if i.status.ReleaseStartTimestamp != nil {
+				elapsed := time.Since(i.status.ReleaseStartTimestamp.Time).Seconds()
+				elapsedInt := int(elapsed)
+				i.status.Metrics.ReleaseSecondsInt = &elapsedInt
+				incarnationReleaseLatency.With(prometheus.Labels{
+					"app":    i.appName(),
+					"target": i.targetName(),
+				}).Observe(elapsed)
+			}
+		}
 	}
 
 	if current == failed && i.status.Metrics.RevisionRollbackSeconds == nil {
 		if i.revision != nil {
 			elapsed := i.revision.SinceFailed().Seconds()
 			i.status.Metrics.RevisionRollbackSeconds = &elapsed
+			incarnationRevisionRollbackLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+	}
+
+	if current == failed && i.status.Metrics.RevisionRollbackSecondsInt == nil {
+		if i.revision != nil {
+			elapsed := i.revision.SinceFailed().Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.RevisionRollbackSecondsInt = &elapsedInt
 			incarnationRevisionRollbackLatency.With(prometheus.Labels{
 				"app":    i.appName(),
 				"target": i.targetName(),

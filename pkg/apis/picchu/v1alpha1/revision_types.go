@@ -148,6 +148,7 @@ type ServiceLevelObjective struct {
 	Annotations                 map[string]string           `json:"annotations,omitempty"`
 	Description                 string                      `json:"description,omitempty"`
 	Enabled                     bool                        `json:"enabled"`
+	ObjectivePercentString      string                      `json:"objectivePercentString,omitempty"`
 	ObjectivePercent            float64                     `json:"objectivePercent,omitempty"`
 	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
@@ -168,9 +169,10 @@ type ServiceLevelIndicator struct {
 }
 
 type SLICanaryConfig struct {
-	Enabled          bool    `json:"enabled"`
-	AllowancePercent float64 `json:"allowancePercent,omitempty"`
-	FailAfter        string  `json:"failAfter,omitempty"`
+	Enabled                bool    `json:"enabled"`
+	AllowancePercentString string  `json:"allowancePercentString,omitempty"`
+	AllowancePercent       float64 `json:"allowancePercent,omitempty"`
+	FailAfter              string  `json:"failAfter,omitempty"`
 }
 
 type ServiceMonitor struct {

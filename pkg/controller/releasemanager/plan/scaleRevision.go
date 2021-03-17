@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"strconv"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
@@ -36,6 +37,14 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 	}
 
 	scalingFactor := cluster.Spec.ScalingFactor
+	if cluster.Spec.ScalingFactorString != nil {
+		f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+		if err != nil {
+			log.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
+		} else {
+			scalingFactor = &f
+		}
+	}
 	if scalingFactor == nil {
 		e := errors.New("cluster scalingFactor can't be nil")
 		log.Error(e, "Cluster scalingFactor nil")
@@ -120,6 +129,16 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log log
 }
 
 func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+	secondsToProcessOneJob := p.Worker.SecondsToProcessOneJob
+	if p.Worker.SecondsToProcessOneJobString != nil {
+		f, err := strconv.ParseFloat(*p.Worker.SecondsToProcessOneJobString, 64)
+		if err != nil {
+			log.Error(err, "Could not parse %v to float", *p.Worker.SecondsToProcessOneJobString)
+		} else {
+			secondsToProcessOneJob = &f
+		}
+	}
+
 	wpa := &wpav1.WorkerPodAutoScaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.Tag,
@@ -132,7 +151,7 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 			MaxReplicas:             &scaledMax,
 			QueueURI:                p.Worker.QueueURI,
 			TargetMessagesPerWorker: p.Worker.TargetMessagesPerWorker,
-			SecondsToProcessOneJob:  p.Worker.SecondsToProcessOneJob,
+			SecondsToProcessOneJob:  secondsToProcessOneJob,
 			MaxDisruption:           p.Worker.MaxDisruption,
 		},
 	}

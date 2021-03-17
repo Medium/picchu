@@ -41,6 +41,7 @@ type ClusterSpec struct {
 	Enabled             bool             `json:"enabled"`
 	HotStandby          bool             `json:"hotStandby,omitempty"`
 	Config              *ClusterConfig   `json:"config,omitempty"`
+	ScalingFactorString *string          `json:"scalingFactorString,omitempty"`
 	ScalingFactor       *float64         `json:"scalingFactor,omitempty"`
 	Ingresses           ClusterIngresses `json:"ingresses"`
 	EnableDevRoutes     bool             `json:"enableDevRoutes,omitempty"`

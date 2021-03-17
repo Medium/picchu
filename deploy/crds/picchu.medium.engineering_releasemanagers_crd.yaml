@@ -88,18 +88,44 @@ spec:
                       state of ReleaseManagerRevisionMetrics
                     properties:
                       canarySeconds: {}
+                      canarySecondsInt:
+                        type: integer
                       deploySeconds: {}
+                      deploySecondsInt:
+                        type: integer
                       gitCanarySeconds: {}
+                      gitCanarySecondsInt:
+                        type: integer
                       gitCreateSeconds: {}
+                      gitCreateSecondsInt:
+                        type: integer
                       gitDeploySeconds: {}
+                      gitDeploySecondsInt:
+                        type: integer
                       gitPendingReleaseSeconds: {}
+                      gitPendingReleaseSecondsInt:
+                        type: integer
                       gitReleaseSeconds: {}
+                      gitReleaseSecondsInt:
+                        type: integer
                       releaseSeconds: {}
+                      releaseSecondsInt:
+                        type: integer
                       revisionCanarySeconds: {}
+                      revisionCanarySecondsInt:
+                        type: integer
                       revisionDeploySeconds: {}
+                      revisionDeploySecondsInt:
+                        type: integer
                       revisionPendingReleaseSeconds: {}
+                      revisionPendingReleaseSecondsInt:
+                        type: integer
                       revisionReleaseSeconds: {}
+                      revisionReleaseSecondsInt:
+                        type: integer
                       revisionRollbackSeconds: {}
+                      revisionRollbackSecondsInt:
+                        type: integer
                     type: object
                   peakPercent:
                     format: int32
