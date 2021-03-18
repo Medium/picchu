@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -35,8 +36,8 @@ var (
 
 func SetDefaults_ClusterSpec(spec *ClusterSpec) {
 	if spec.ScalingFactor == nil {
-		one := float64(1.0)
-		spec.ScalingFactor = &one
+		r := resource.MustParse("1.0")
+		spec.ScalingFactor = &r
 	}
 }
 

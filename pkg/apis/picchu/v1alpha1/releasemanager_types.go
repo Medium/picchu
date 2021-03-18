@@ -80,19 +80,19 @@ type ReleaseManagerRevisionStatus struct {
 
 // ReleaseManagerRevisionMetricsStatus defines the observed state of ReleaseManagerRevisionMetrics
 type ReleaseManagerRevisionMetricsStatus struct {
-	GitCreateSeconds              *float64 `json:"gitCreateSeconds,omitempty"`
-	GitDeploySeconds              *float64 `json:"gitDeploySeconds,omitempty"`
-	GitCanarySeconds              *float64 `json:"gitCanarySeconds,omitempty"`
-	GitPendingReleaseSeconds      *float64 `json:"gitPendingReleaseSeconds,omitempty"`
-	GitReleaseSeconds             *float64 `json:"gitReleaseSeconds,omitempty"`
-	RevisionDeploySeconds         *float64 `json:"revisionDeploySeconds,omitempty"`
-	RevisionCanarySeconds         *float64 `json:"revisionCanarySeconds,omitempty"`
-	RevisionReleaseSeconds        *float64 `json:"revisionReleaseSeconds,omitempty"`
-	ReivisonPendingReleaseSeconds *float64 `json:"revisionPendingReleaseSeconds,omitempty"`
-	RevisionRollbackSeconds       *float64 `json:"revisionRollbackSeconds,omitempty"`
-	DeploySeconds                 *float64 `json:"deploySeconds,omitempty"`
-	CanarySeconds                 *float64 `json:"canarySeconds,omitempty"`
-	ReleaseSeconds                *float64 `json:"releaseSeconds,omitempty"`
+	GitCreateSeconds              *int `json:"gitCreateSeconds,omitempty"`
+	GitDeploySeconds              *int `json:"gitDeploySeconds,omitempty"`
+	GitCanarySeconds              *int `json:"gitCanarySeconds,omitempty"`
+	GitPendingReleaseSeconds      *int `json:"gitPendingReleaseSeconds,omitempty"`
+	GitReleaseSeconds             *int `json:"gitReleaseSeconds,omitempty"`
+	RevisionDeploySeconds         *int `json:"revisionDeploySeconds,omitempty"`
+	RevisionCanarySeconds         *int `json:"revisionCanarySeconds,omitempty"`
+	RevisionReleaseSeconds        *int `json:"revisionReleaseSeconds,omitempty"`
+	ReivisonPendingReleaseSeconds *int `json:"revisionPendingReleaseSeconds,omitempty"`
+	RevisionRollbackSeconds       *int `json:"revisionRollbackSeconds,omitempty"`
+	DeploySeconds                 *int `json:"deploySeconds,omitempty"`
+	CanarySeconds                 *int `json:"canarySeconds,omitempty"`
+	ReleaseSeconds                *int `json:"releaseSeconds,omitempty"`
 
 	GitCreateSecondsInt              *int `json:"gitCreateSecondsInt,omitempty"`
 	GitDeploySecondsInt              *int `json:"gitDeploySecondsInt,omitempty"`
