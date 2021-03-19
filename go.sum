@@ -1382,8 +1382,14 @@ howett.net/plist v0.0.0-20181124034731-591f970eefbb/go.mod h1:vMygbs4qMhSZSc4lCU
 istio.io/api v0.0.0-20200615162408-9b5293c30ef5/go.mod h1:uXD10AwGZkxIrVKTntYm2uyFWQQfNzhAGkIxLfRNocs=
 istio.io/api v0.0.0-20200617184712-fb83ff2d8228 h1:I+PS2abFypPWmHF/JujPjyq7raPxgAhbfP5Ousp1pqQ=
 istio.io/api v0.0.0-20200617184712-fb83ff2d8228/go.mod h1:uXD10AwGZkxIrVKTntYm2uyFWQQfNzhAGkIxLfRNocs=
+istio.io/api v0.0.0-20210128181506-0c4b8e54850f/go.mod h1:88HN3o1fSD1jo+Z1WTLlJfMm9biopur6Ct9BFKjiB64=
+istio.io/api v0.0.0-20210205171209-1744f93fc684/go.mod h1:88HN3o1fSD1jo+Z1WTLlJfMm9biopur6Ct9BFKjiB64=
 istio.io/client-go v0.0.0-20200615164228-d77b0b53b6a0 h1:xeY9LpoaZ14+XMorriB/Uox6vQMfAj6hHyCc74WpdaY=
 istio.io/client-go v0.0.0-20200615164228-d77b0b53b6a0/go.mod h1:W+REwu9Vz96+hFyDL05C9QVHkYjROjeeup0nznYE/sc=
+istio.io/client-go v0.0.0-20210128182905-ee2edd059e02 h1:ZA8Y2gKkKtEeYuKfqlEzIBDfU4IE5uIAdsXDeD41T9w=
+istio.io/client-go v0.0.0-20210128182905-ee2edd059e02/go.mod h1:oXMjFUWhxlReUSbg4i3GjKgOhSX1WgD68ZNlHQEcmQg=
+istio.io/client-go v1.8.4 h1:oO4rTFxTXNfilPgBdTgQdBRJG+E2OKSaDdVl5RqCQOk=
+istio.io/client-go v1.8.4/go.mod h1:QmDdhdO7vFI3IedWaYPVwGMzPLh9R5GfBTKtu/4eYaA=
 istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a h1:w7zILua2dnYo9CxImhpNW4NE/8ZxEoc/wfBfHrhUhrE=
 istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a/go.mod h1:OzpAts7jljZceG4Vqi5/zXy/pOg1b209T3jb7Nv5wIs=
 k8s.io/api v0.20.4 h1:xZjKidCirayzX6tHONRQyTNDVIR55TYVqgATqo6ZULY=
