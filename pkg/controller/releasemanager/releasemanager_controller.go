@@ -3,7 +3,7 @@ package releasemanager
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -223,22 +223,25 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	clusterInfo := ClusterInfoList{}
 	for _, cluster := range clusters {
-		var scalingFactor = 0.0
+		var scalingFactor, err = resource.ParseQuantity("0.0")
+		if err != nil {
+			reqLog.Error(err, "could not parse quantity")
+		}
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
 		}
 		if cluster.Spec.ScalingFactorString != nil {
-			f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+			r, err := resource.ParseQuantity(*cluster.Spec.ScalingFactorString)
 			if err != nil {
 				reqLog.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
 			} else {
-				scalingFactor = f
+				scalingFactor = r
 			}
 		}
 		clusterInfo = append(clusterInfo, ClusterInfo{
 			Name:          cluster.Name,
 			Live:          !cluster.Spec.HotStandby,
-			ScalingFactor: scalingFactor,
+			ScalingFactor: scalingFactor.AsApproximateFloat64(),
 		})
 	}
 	if clusterInfo.ClusterCount(true) == 0 {
@@ -255,22 +258,25 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
-		var scalingFactor = 0.0
+		var scalingFactor, err = resource.ParseQuantity("0.0")
+		if err != nil {
+			reqLog.Error(err, "could not parse quantity")
+		}
 		if cluster.Spec.ScalingFactor != nil {
 			scalingFactor = *cluster.Spec.ScalingFactor
 		}
 		if cluster.Spec.ScalingFactorString != nil {
-			f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+			r, err := resource.ParseQuantity(*cluster.Spec.ScalingFactorString)
 			if err != nil {
 				reqLog.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
 			} else {
-				scalingFactor = f
+				scalingFactor = r
 			}
 		}
 		deliveryClusterInfo = append(deliveryClusterInfo, ClusterInfo{
 			Name:          cluster.Name,
 			Live:          !cluster.Spec.HotStandby,
-			ScalingFactor: scalingFactor,
+			ScalingFactor: scalingFactor.AsApproximateFloat64(),
 		})
 	}
 

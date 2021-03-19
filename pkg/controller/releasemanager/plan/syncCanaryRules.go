@@ -3,12 +3,11 @@ package plan
 import (
 	"context"
 	"fmt"
-	"strconv"
-
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -163,13 +162,13 @@ func (s *SLOConfig) canaryQuery(log logr.Logger) string {
 func (s *SLOConfig) formatAllowancePercent(log logr.Logger) string {
 	allowancePercent := s.SLO.ServiceLevelIndicator.Canary.AllowancePercent
 	if s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString != "" {
-		f, err := strconv.ParseFloat(s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString, 64)
+		r, err := resource.ParseQuantity(s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString)
 		if err != nil {
 			log.Error(err, "Could not parse %v to float", s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString)
 		} else {
-			allowancePercent = f
+			allowancePercent = r
 		}
 	}
-	r := allowancePercent / 100
+	r := allowancePercent.AsApproximateFloat64() / 100
 	return fmt.Sprintf("%.10g", r)
 }

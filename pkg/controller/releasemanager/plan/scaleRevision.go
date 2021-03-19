@@ -3,10 +3,8 @@ package plan
 import (
 	"context"
 	"errors"
-	"math"
-	"strconv"
-
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
+	"math"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -38,11 +36,11 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 
 	scalingFactor := cluster.Spec.ScalingFactor
 	if cluster.Spec.ScalingFactorString != nil {
-		f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+		r, err := resource.ParseQuantity(*cluster.Spec.ScalingFactorString)
 		if err != nil {
-			log.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
+			log.Error(err, "Could not parse %v to resource.quantity", *cluster.Spec.ScalingFactorString)
 		} else {
-			scalingFactor = &f
+			scalingFactor = &r
 		}
 	}
 	if scalingFactor == nil {
@@ -51,8 +49,8 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		return e
 	}
 
-	scaledMin := int32(math.Ceil(float64(p.Min) * *scalingFactor))
-	scaledMax := int32(math.Ceil(float64(p.Max) * *scalingFactor))
+	scaledMin := int32(math.Ceil(float64(p.Min) * scalingFactor.AsApproximateFloat64()))
+	scaledMax := int32(math.Ceil(float64(p.Max) * scalingFactor.AsApproximateFloat64()))
 
 	if p.Worker != nil {
 		return p.applyWPA(ctx, cli, log, scaledMin, scaledMax)
@@ -129,13 +127,13 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log log
 }
 
 func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
-	secondsToProcessOneJob := p.Worker.SecondsToProcessOneJob
+	secondsToProcessOneJob := p.Worker.SecondsToProcessOneJob.AsApproximateFloat64()
 	if p.Worker.SecondsToProcessOneJobString != nil {
-		f, err := strconv.ParseFloat(*p.Worker.SecondsToProcessOneJobString, 64)
+		r, err := resource.ParseQuantity(*p.Worker.SecondsToProcessOneJobString)
 		if err != nil {
-			log.Error(err, "Could not parse %v to float", *p.Worker.SecondsToProcessOneJobString)
+			log.Error(err, "Could not parse %v to quantity", *p.Worker.SecondsToProcessOneJobString)
 		} else {
-			secondsToProcessOneJob = &f
+			secondsToProcessOneJob = r.AsApproximateFloat64()
 		}
 	}
 
@@ -151,7 +149,7 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 			MaxReplicas:             &scaledMax,
 			QueueURI:                p.Worker.QueueURI,
 			TargetMessagesPerWorker: p.Worker.TargetMessagesPerWorker,
-			SecondsToProcessOneJob:  secondsToProcessOneJob,
+			SecondsToProcessOneJob:  &secondsToProcessOneJob,
 			MaxDisruption:           p.Worker.MaxDisruption,
 		},
 	}

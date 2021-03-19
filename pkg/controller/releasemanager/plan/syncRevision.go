@@ -181,7 +181,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		log.Error(e, "Failed to sync revision")
 		return e
 	}
-	return p.syncReplicaSet(ctx, cli, *scalingFactor, labels, envs, log)
+	return p.syncReplicaSet(ctx, cli, scalingFactor.AsApproximateFloat64(), labels, envs, log)
 }
 
 func (p *SyncRevision) syncReplicaSet(
