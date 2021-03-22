@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/resource"
 	_ "runtime"
 	"testing"
 
@@ -39,11 +40,11 @@ var (
 			Enabled:          true,
 			Name:             "test-app-availability",
 			Description:      "test desc",
-			ObjectivePercent: 99.999,
+			ObjectivePercent:  resource.MustParse("99.999"),
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
-					AllowancePercent: 1,
+					AllowancePercent:  resource.MustParse("1"),
 					FailAfter:        "1m",
 				},
 				TagKey:     "destination_workload",

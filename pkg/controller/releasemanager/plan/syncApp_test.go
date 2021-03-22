@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/resource"
 	_ "runtime"
 	"testing"
 	"time"
@@ -378,7 +379,7 @@ func TestSyncNewApp(t *testing.T) {
 		defaultExpectedIstioSidecar,
 	}
 
-	scalingFactor := 0.5
+	scalingFactor := resource.MustParse("0.5")
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
@@ -408,7 +409,7 @@ func TestDomains(t *testing.T) {
 	ctx := context.TODO()
 	log := test.MustNewLogger()
 	cli := fakeClient()
-	scalingFactor := 1.0
+	scalingFactor := resource.MustParse("1.0")
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
@@ -512,7 +513,7 @@ func TestHosts(t *testing.T) {
 		Hosts: []string{"www.dkpn.io"},
 		Mode:  picchuv1alpha1.PortPrivate,
 	}
-	scalingFactor := 1.0
+	scalingFactor := resource.MustParse("1.0")
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
@@ -564,7 +565,7 @@ func TestHosts(t *testing.T) {
 
 func TestHostsWithVariantsEnabled(t *testing.T) {
 	assert := testify.New(t)
-	scalingFactor := 0.5
+	scalingFactor := resource.MustParse("0.5")
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
@@ -829,7 +830,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 
 func TestProductionEcho(t *testing.T) {
 	assert := testify.New(t)
-	scalingFactor := 1.0
+	scalingFactor := resource.MustParse("1.0")
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "production-reef-a",
@@ -1117,7 +1118,7 @@ func TestProductionEcho(t *testing.T) {
 
 func TestDevRoutes(t *testing.T) {
 	assert := testify.New(t)
-	scalingFactor := 1.0
+	scalingFactor := resource.MustParse("1.0")
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "staging-reef-a",

@@ -4,6 +4,7 @@ import (
 	"context"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"testing"
 
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -15,7 +16,7 @@ import (
 )
 
 var (
-	scalingFactor = 1.0
+	scalingFactor =  resource.MustParse("1.0")
 	cluster       = &picchuv1alpha1.Cluster{
 		Spec: picchuv1alpha1.ClusterSpec{
 			ScalingFactor: &scalingFactor,

@@ -127,13 +127,19 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log log
 }
 
 func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
-	secondsToProcessOneJob := p.Worker.SecondsToProcessOneJob.AsApproximateFloat64()
+	var secondsToProcessOneJob *float64
+
+	if p.Worker.SecondsToProcessOneJob != nil {
+		f := p.Worker.SecondsToProcessOneJob.AsApproximateFloat64()
+		secondsToProcessOneJob = &f
+	}
 	if p.Worker.SecondsToProcessOneJobString != nil {
 		r, err := resource.ParseQuantity(*p.Worker.SecondsToProcessOneJobString)
 		if err != nil {
 			log.Error(err, "Could not parse %v to quantity", *p.Worker.SecondsToProcessOneJobString)
 		} else {
-			secondsToProcessOneJob = r.AsApproximateFloat64()
+			f := r.AsApproximateFloat64()
+			secondsToProcessOneJob = &f
 		}
 	}
 
@@ -149,7 +155,7 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 			MaxReplicas:             &scaledMax,
 			QueueURI:                p.Worker.QueueURI,
 			TargetMessagesPerWorker: p.Worker.TargetMessagesPerWorker,
-			SecondsToProcessOneJob:  &secondsToProcessOneJob,
+			SecondsToProcessOneJob:  secondsToProcessOneJob,
 			MaxDisruption:           p.Worker.MaxDisruption,
 		},
 	}
