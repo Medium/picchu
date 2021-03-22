@@ -8,7 +8,9 @@ import (
 // HTTPPortFault allows injecting faults into apps by port number
 // +k8s:deepcopy-gen=false
 type HTTPPortFault struct {
+	// +kubebuilder:validation:Schemaless
 	PortSelector *istio.PortSelector       `json:"portSelector,omitempty"`
+	// +kubebuilder:validation:Schemaless
 	HTTPFault    *istio.HTTPFaultInjection `json:"fault,omitempty"`
 }
 

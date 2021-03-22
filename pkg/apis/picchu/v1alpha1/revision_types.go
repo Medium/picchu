@@ -14,6 +14,7 @@ import (
 // see custom_deepcopy.go
 // +k8s:deepcopy-gen=false
 type Istio struct {
+	// +kubebuilder:validation:Schemaless
 	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
 	Sidecar       *IstioSidecar        `json:"sidecar,omitempty"`
 }
