@@ -4,19 +4,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"time"
 
-	istio "istio.io/api/networking/v1alpha3"
-
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // see custom_deepcopy.go
-// +k8s:deepcopy-gen=false
 type Istio struct {
-	// +kubebuilder:validation:Schemaless
-	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
-	Sidecar       *IstioSidecar        `json:"sidecar,omitempty"`
+	TrafficPolicy *TrafficPolicy `json:"trafficPolicy,omitempty"`
+	Sidecar       *IstioSidecar  `json:"sidecar,omitempty"`
 }
 
 type IstioSidecar struct {

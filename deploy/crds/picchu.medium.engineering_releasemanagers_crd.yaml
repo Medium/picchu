@@ -1,4 +1,4 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: releasemanagers.picchu.medium.engineering
@@ -13,183 +13,196 @@ spec:
     plural: releasemanagers
     singular: releasemanager
   scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      description: ReleaseManager is the Schema for the releasemanagers API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: ReleaseManagerSpec defines the desired state of ReleaseManager
-          properties:
-            app:
-              type: string
-            fleet:
-              type: string
-            target:
-              type: string
-            variants:
-              items:
-                properties:
-                  enabled:
-                    type: boolean
-                  name:
-                    type: string
-                required:
-                - enabled
-                - name
-                type: object
-              type: array
-          required:
-          - app
-          - fleet
-          - target
-          type: object
-        status:
-          description: ReleaseManagerStatus defines the observed state of ReleaseManager
-          properties:
-            lastUpdated:
-              format: date-time
-              type: string
-            revisions:
-              items:
-                properties:
-                  canaryStartTimestamp:
-                    format: date-time
-                    type: string
-                  currentPercent:
-                    format: int32
-                    type: integer
-                  deleted:
-                    type: boolean
-                  deployingStartTimestamp:
-                    format: date-time
-                    type: string
-                  gitTimestamp:
-                    format: date-time
-                    type: string
-                  lastUpdated:
-                    format: date-time
-                    type: string
-                  metrics:
-                    description: ReleaseManagerRevisionMetricsStatus defines the observed
-                      state of ReleaseManagerRevisionMetrics
-                    properties:
-                      canarySeconds: {}
-                      canarySecondsInt:
-                        type: integer
-                      deploySeconds: {}
-                      deploySecondsInt:
-                        type: integer
-                      gitCanarySeconds: {}
-                      gitCanarySecondsInt:
-                        type: integer
-                      gitCreateSeconds: {}
-                      gitCreateSecondsInt:
-                        type: integer
-                      gitDeploySeconds: {}
-                      gitDeploySecondsInt:
-                        type: integer
-                      gitPendingReleaseSeconds: {}
-                      gitPendingReleaseSecondsInt:
-                        type: integer
-                      gitReleaseSeconds: {}
-                      gitReleaseSecondsInt:
-                        type: integer
-                      releaseSeconds: {}
-                      releaseSecondsInt:
-                        type: integer
-                      revisionCanarySeconds: {}
-                      revisionCanarySecondsInt:
-                        type: integer
-                      revisionDeploySeconds: {}
-                      revisionDeploySecondsInt:
-                        type: integer
-                      revisionPendingReleaseSeconds: {}
-                      revisionPendingReleaseSecondsInt:
-                        type: integer
-                      revisionReleaseSeconds: {}
-                      revisionReleaseSecondsInt:
-                        type: integer
-                      revisionRollbackSeconds: {}
-                      revisionRollbackSecondsInt:
-                        type: integer
-                    type: object
-                  peakPercent:
-                    format: int32
-                    type: integer
-                  pendingReleaseStartTimestamp:
-                    format: date-time
-                    type: string
-                  releaseEligible:
-                    type: boolean
-                  releaseStartTimestamp:
-                    format: date-time
-                    type: string
-                  revisionTimestamp:
-                    format: date-time
-                    type: string
-                  scale:
-                    properties:
-                      Current:
-                        format: int32
-                        type: integer
-                      Desired:
-                        format: int32
-                        type: integer
-                      Peak:
-                        format: int32
-                        type: integer
-                    type: object
-                  state:
-                    properties:
-                      current:
-                        type: string
-                      lastUpdated:
-                        format: date-time
-                        type: string
-                      target:
-                        type: string
-                    required:
-                    - current
-                    - target
-                    type: object
-                  tag:
-                    type: string
-                  triggeredAlerts:
-                    items:
-                      type: string
-                    type: array
-                  ttl:
-                    format: int64
-                    type: integer
-                required:
-                - currentPercent
-                - lastUpdated
-                - peakPercent
-                - releaseEligible
-                - scale
-                - tag
-                type: object
-              type: array
-          required:
-          - lastUpdated
-          type: object
-      type: object
-  version: v1alpha1
   versions:
   - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ReleaseManager is the Schema for the releasemanagers API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ReleaseManagerSpec defines the desired state of ReleaseManager
+            properties:
+              app:
+                type: string
+              fleet:
+                type: string
+              target:
+                type: string
+              variants:
+                items:
+                  properties:
+                    enabled:
+                      type: boolean
+                    name:
+                      type: string
+                  required:
+                  - enabled
+                  - name
+                  type: object
+                type: array
+            required:
+            - app
+            - fleet
+            - target
+            type: object
+          status:
+            description: ReleaseManagerStatus defines the observed state of ReleaseManager
+            properties:
+              lastUpdated:
+                format: date-time
+                type: string
+              revisions:
+                items:
+                  properties:
+                    canaryStartTimestamp:
+                      format: date-time
+                      type: string
+                    currentPercent:
+                      format: int32
+                      type: integer
+                    deleted:
+                      type: boolean
+                    deployingStartTimestamp:
+                      format: date-time
+                      type: string
+                    gitTimestamp:
+                      format: date-time
+                      type: string
+                    lastUpdated:
+                      format: date-time
+                      type: string
+                    metrics:
+                      description: ReleaseManagerRevisionMetricsStatus defines the
+                        observed state of ReleaseManagerRevisionMetrics
+                      properties:
+                        canarySeconds:
+                          type: integer
+                        canarySecondsInt:
+                          type: integer
+                        deploySeconds:
+                          type: integer
+                        deploySecondsInt:
+                          type: integer
+                        gitCanarySeconds:
+                          type: integer
+                        gitCanarySecondsInt:
+                          type: integer
+                        gitCreateSeconds:
+                          type: integer
+                        gitCreateSecondsInt:
+                          type: integer
+                        gitDeploySeconds:
+                          type: integer
+                        gitDeploySecondsInt:
+                          type: integer
+                        gitPendingReleaseSeconds:
+                          type: integer
+                        gitPendingReleaseSecondsInt:
+                          type: integer
+                        gitReleaseSeconds:
+                          type: integer
+                        gitReleaseSecondsInt:
+                          type: integer
+                        releaseSeconds:
+                          type: integer
+                        releaseSecondsInt:
+                          type: integer
+                        revisionCanarySeconds:
+                          type: integer
+                        revisionCanarySecondsInt:
+                          type: integer
+                        revisionDeploySeconds:
+                          type: integer
+                        revisionDeploySecondsInt:
+                          type: integer
+                        revisionPendingReleaseSeconds:
+                          type: integer
+                        revisionPendingReleaseSecondsInt:
+                          type: integer
+                        revisionReleaseSeconds:
+                          type: integer
+                        revisionReleaseSecondsInt:
+                          type: integer
+                        revisionRollbackSeconds:
+                          type: integer
+                        revisionRollbackSecondsInt:
+                          type: integer
+                      type: object
+                    peakPercent:
+                      format: int32
+                      type: integer
+                    pendingReleaseStartTimestamp:
+                      format: date-time
+                      type: string
+                    releaseEligible:
+                      type: boolean
+                    releaseStartTimestamp:
+                      format: date-time
+                      type: string
+                    revisionTimestamp:
+                      format: date-time
+                      type: string
+                    scale:
+                      properties:
+                        Current:
+                          format: int32
+                          type: integer
+                        Desired:
+                          format: int32
+                          type: integer
+                        Peak:
+                          format: int32
+                          type: integer
+                      type: object
+                    state:
+                      properties:
+                        current:
+                          type: string
+                        lastUpdated:
+                          format: date-time
+                          type: string
+                        target:
+                          type: string
+                      required:
+                      - current
+                      - target
+                      type: object
+                    tag:
+                      type: string
+                    triggeredAlerts:
+                      items:
+                        type: string
+                      type: array
+                    ttl:
+                      format: int64
+                      type: integer
+                  required:
+                  - currentPercent
+                  - lastUpdated
+                  - peakPercent
+                  - releaseEligible
+                  - scale
+                  - tag
+                  type: object
+                type: array
+                x-kubernetes-list-type: set
+            required:
+            - lastUpdated
+            type: object
+        type: object
     served: true
     storage: true
+    subresources:
+      status: {}

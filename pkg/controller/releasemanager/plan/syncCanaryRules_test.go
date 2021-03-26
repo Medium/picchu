@@ -45,7 +45,7 @@ var (
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
-					AllowancePercent:  resource.MustParse("1"),
+					AllowancePercent: resource.MustParse("1"),
 					FailAfter:        "1m",
 				},
 				TagKey:     "destination_workload",
@@ -144,7 +144,7 @@ func TestFormatAllowancePercent(t *testing.T) {
 	log := test.MustNewLogger()
 
 	inputs := []struct {
-		resource    resource.Quantity
+		resource resource.Quantity
 		expected string
 	}{
 		{resource.MustParse("1"), "0.01"},

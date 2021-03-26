@@ -40,11 +40,11 @@ var (
 			Enabled:          true,
 			Name:             "test-app-availability",
 			Description:      "test desc",
-			ObjectivePercent:  resource.MustParse("99.999"),
+			ObjectivePercent: resource.MustParse("99.999"),
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
-					AllowancePercent:  resource.MustParse("1"),
+					AllowancePercent: resource.MustParse("1"),
 					FailAfter:        "1m",
 				},
 				TagKey:     "destination_workload",

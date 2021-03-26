@@ -24,13 +24,13 @@ import (
 )
 
 var (
-	scalingFactor =  resource.MustParse("1.0")
+	scalingFactor = resource.MustParse("1.0")
 	cluster       = &picchu.Cluster{
 		Spec: picchu.ClusterSpec{
 			ScalingFactor: &scalingFactor,
 		},
 	}
-	halfScalingFactor =  resource.MustParse("0.5")
+	halfScalingFactor = resource.MustParse("0.5")
 	halfCluster       = &picchu.Cluster{
 		Spec: picchu.ClusterSpec{
 			ScalingFactor: &halfScalingFactor,

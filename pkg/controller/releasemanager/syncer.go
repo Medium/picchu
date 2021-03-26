@@ -436,7 +436,9 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 	for _, i := range r.incarnations.deployed() {
 		var trafficPolicy *istio.TrafficPolicy
 		if i.target() != nil && i.target().Istio != nil {
-			trafficPolicy = i.target().Istio.TrafficPolicy
+			//TODO(micah): translate
+			//trafficPolicy = i.target().Istio.TrafficPolicy
+			trafficPolicy = &istio.TrafficPolicy{}
 		}
 		tagRoutingHeader := ""
 		if i.revision != nil && i.isRoutable() {
@@ -529,7 +531,9 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 		}
 		var trafficPolicy *istio.TrafficPolicy
 		if incarnation.target() != nil && incarnation.target().Istio != nil {
-			trafficPolicy = incarnation.target().Istio.TrafficPolicy
+			//TODO(micah): translate
+			//trafficPolicy = incarnation.target().Istio.TrafficPolicy
+			trafficPolicy = &istio.TrafficPolicy{}
 		}
 		revisionsMap[incarnation.tag] = &rmplan.Revision{
 			Tag:              incarnation.tag,

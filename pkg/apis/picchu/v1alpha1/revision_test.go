@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	istio "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 
@@ -68,12 +67,12 @@ func TestTrafficPolicyDeepCopy(t *testing.T) {
 		Spec: RevisionSpec{
 			Targets: []RevisionTarget{
 				{
-					Istio: &Istio{TrafficPolicy: &istio.TrafficPolicy{
-						PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
+					Istio: &Istio{TrafficPolicy: &TrafficPolicy{
+						PortLevelSettings: []*TrafficPolicy_PortTrafficPolicy{
 							{
-								Port: &istio.PortSelector{Number: 8282},
-								ConnectionPool: &istio.ConnectionPoolSettings{
-									Http: &istio.ConnectionPoolSettings_HTTPSettings{
+								Port: &PortSelector{Number: 8282},
+								ConnectionPool: &ConnectionPoolSettings{
+									Http: &ConnectionPoolSettings_HTTPSettings{
 										Http2MaxRequests: 10,
 									},
 								},

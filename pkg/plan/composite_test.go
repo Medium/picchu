@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	scalingFactor =  resource.MustParse("1.0")
+	scalingFactor = resource.MustParse("1.0")
 	cluster       = &picchuv1alpha1.Cluster{
 		Spec: picchuv1alpha1.ClusterSpec{
 			ScalingFactor: &scalingFactor,

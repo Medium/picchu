@@ -1,17 +1,45 @@
 package v1alpha1
 
 import (
-	istio "istio.io/api/networking/v1alpha3"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // HTTPPortFault allows injecting faults into apps by port number
-// +k8s:deepcopy-gen=false
 type HTTPPortFault struct {
-	// +kubebuilder:validation:Schemaless
-	PortSelector *istio.PortSelector       `json:"portSelector,omitempty"`
-	// +kubebuilder:validation:Schemaless
-	HTTPFault    *istio.HTTPFaultInjection `json:"fault,omitempty"`
+	PortSelector *PortSelector       `json:"portSelector,omitempty"`
+	HTTPFault    *HTTPFaultInjection `json:"fault,omitempty"`
+}
+
+type HTTPFaultInjection struct {
+	Delay *HTTPFaultInjection_Delay `json:"delay,omitempty"`
+	Abort *HTTPFaultInjection_Abort `json:"abort,omitempty"`
+}
+
+type HTTPFaultInjection_Delay struct {
+	Percent       int32                               `json:"percent,omitempty"`
+	HttpDelayType *HTTPFaultInjection_Delay_DelayType `json:"http_delay_type,omitempty"`
+	Percentage    *Percent                            `json:"percentage,omitempty"`
+}
+
+type Percent struct {
+	Value resource.Quantity `json:"value,omitempty"`
+}
+
+type HTTPFaultInjection_Abort struct {
+	ErrorType  *HTTPFaultInjection_Abort_ErrorType `json:"error_type,omitempty"`
+	Percentage *Percent                            `json:"percentage,omitempty"`
+}
+
+type HTTPFaultInjection_Abort_ErrorType struct {
+	HttpStatus int32  `json:"http_status,omitempty"`
+	GrpcStatus string `json:"grpc_status,omitempty"`
+	Http2Error string `json:"http2_error,omitempty"`
+}
+
+type HTTPFaultInjection_Delay_DelayType struct {
+	FixedDelay       *Duration `json:"fixed_delay,omitempty"`
+	ExponentialDelay *Duration `json:"exponential_delay,omitempty"`
 }
 
 // FaultInjectorSpec defines the desired state of FaultInjector

@@ -386,7 +386,9 @@ func (p *SyncApp) makeRoute(
 
 	for _, f := range p.HTTPPortFaults {
 		if int32(f.PortSelector.Number) == port.Port {
-			fault = f.HTTPFault
+			//TODO(micah): translate
+			//fault = f.HTTPFault
+			fault = &istio.HTTPFaultInjection{}
 		}
 	}
 
