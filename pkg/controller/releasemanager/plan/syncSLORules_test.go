@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"reflect"
 	_ "runtime"
 	"testing"
@@ -35,14 +34,14 @@ var (
 			},
 		},
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
-			Enabled:          true,
-			Name:             "test-app-availability",
-			ObjectivePercent: resource.MustParse("99.999"),
+			Enabled:                true,
+			Name:                   "test-app-availability",
+			ObjectivePercentString: "99.999",
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
-					Enabled:          true,
-					AllowancePercent: resource.MustParse("1"),
-					FailAfter:        "1m",
+					Enabled:                true,
+					AllowancePercentString: "1",
+					FailAfter:              "1m",
 				},
 				TagKey:     "destination_workload",
 				AlertAfter: "1m",

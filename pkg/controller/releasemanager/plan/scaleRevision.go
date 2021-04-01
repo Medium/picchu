@@ -5,6 +5,7 @@ import (
 	"errors"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"math"
+	"strconv"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
@@ -33,14 +34,14 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 	if p.Min > p.Max {
 		p.Max = p.Min
 	}
+	var scalingFactor *float64
 
-	scalingFactor := cluster.Spec.ScalingFactor
 	if cluster.Spec.ScalingFactorString != nil {
-		r, err := resource.ParseQuantity(*cluster.Spec.ScalingFactorString)
+		f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
 		if err != nil {
 			log.Error(err, "Could not parse %v to resource.quantity", *cluster.Spec.ScalingFactorString)
 		} else {
-			scalingFactor = &r
+			scalingFactor = &f
 		}
 	}
 	if scalingFactor == nil {
@@ -49,8 +50,8 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		return e
 	}
 
-	scaledMin := int32(math.Ceil(float64(p.Min) * scalingFactor.AsApproximateFloat64()))
-	scaledMax := int32(math.Ceil(float64(p.Max) * scalingFactor.AsApproximateFloat64()))
+	scaledMin := int32(math.Ceil(float64(p.Min) * *scalingFactor))
+	scaledMax := int32(math.Ceil(float64(p.Max) * *scalingFactor))
 
 	if p.Worker != nil {
 		return p.applyWPA(ctx, cli, log, scaledMin, scaledMax)
@@ -129,16 +130,11 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log log
 func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
 	var secondsToProcessOneJob *float64
 
-	if p.Worker.SecondsToProcessOneJob != nil {
-		f := p.Worker.SecondsToProcessOneJob.AsApproximateFloat64()
-		secondsToProcessOneJob = &f
-	}
 	if p.Worker.SecondsToProcessOneJobString != nil {
-		r, err := resource.ParseQuantity(*p.Worker.SecondsToProcessOneJobString)
+		f, err := strconv.ParseFloat(*p.Worker.SecondsToProcessOneJobString, 64)
 		if err != nil {
-			log.Error(err, "Could not parse %v to quantity", *p.Worker.SecondsToProcessOneJobString)
+			log.Error(err, "Could not parse %v to float", *p.Worker.SecondsToProcessOneJobString)
 		} else {
-			f := r.AsApproximateFloat64()
 			secondsToProcessOneJob = &f
 		}
 	}

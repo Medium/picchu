@@ -53,11 +53,9 @@ spec:
                             percentage:
                               properties:
                                 value:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                  x-kubernetes-int-or-string: true
+                                  description: Replace with resource.Quantity when
+                                    upgrading to client-go 1.20.x
+                                  type: string
                               type: object
                           type: object
                         delay:
@@ -75,11 +73,9 @@ spec:
                             percentage:
                               properties:
                                 value:
-                                  anyOf:
-                                  - type: integer
-                                  - type: string
-                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                  x-kubernetes-int-or-string: true
+                                  description: Replace with resource.Quantity when
+                                    upgrading to client-go 1.20.x
+                                  type: string
                               type: object
                           type: object
                       type: object

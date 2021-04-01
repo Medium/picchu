@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"time"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -142,12 +141,13 @@ type Canary struct {
 }
 
 type ServiceLevelObjective struct {
-	Name                        string                      `json:"name,omitempty"`
-	Annotations                 map[string]string           `json:"annotations,omitempty"`
-	Description                 string                      `json:"description,omitempty"`
-	Enabled                     bool                        `json:"enabled"`
-	ObjectivePercentString      string                      `json:"objectivePercentString,omitempty"`
-	ObjectivePercent            resource.Quantity           `json:"objectivePercent,omitempty"`
+	Name        string            `json:"name,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Enabled     bool              `json:"enabled"`
+	// Replace with resource.Quantity when upgrading to client-go 1.20.x
+	ObjectivePercentString string `json:"objectivePercentString,omitempty"`
+	//ObjectivePercent            resource.Quantity           `json:"objectivePercent,omitempty"`
 	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
 }
@@ -167,10 +167,11 @@ type ServiceLevelIndicator struct {
 }
 
 type SLICanaryConfig struct {
-	Enabled                bool              `json:"enabled"`
-	AllowancePercentString string            `json:"allowancePercentString,omitempty"`
-	AllowancePercent       resource.Quantity `json:"allowancePercent,omitempty"`
-	FailAfter              string            `json:"failAfter,omitempty"`
+	Enabled bool `json:"enabled"`
+	// Replace with resource.Quantity when upgrading to client-go 1.20.x
+	AllowancePercentString string `json:"allowancePercentString,omitempty"`
+	//AllowancePercent       resource.Quantity `json:"allowancePercent,omitempty"`
+	FailAfter string `json:"failAfter,omitempty"`
 }
 
 type ServiceMonitor struct {

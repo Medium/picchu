@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -23,7 +22,8 @@ type HTTPFaultInjection_Delay struct {
 }
 
 type Percent struct {
-	Value resource.Quantity `json:"value,omitempty"`
+	// Replace with resource.Quantity when upgrading to client-go 1.20.x
+	Value string `json:"value,omitempty"`
 }
 
 type HTTPFaultInjection_Abort struct {

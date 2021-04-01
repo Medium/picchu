@@ -1,7 +1,6 @@
 package plan
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	"time"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
@@ -24,16 +23,16 @@ import (
 )
 
 var (
-	scalingFactor = resource.MustParse("1.0")
+	scalingFactor = "1.0"
 	cluster       = &picchu.Cluster{
 		Spec: picchu.ClusterSpec{
-			ScalingFactor: &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 		},
 	}
-	halfScalingFactor = resource.MustParse("0.5")
+	halfScalingFactor = "0.5"
 	halfCluster       = &picchu.Cluster{
 		Spec: picchu.ClusterSpec{
-			ScalingFactor: &halfScalingFactor,
+			ScalingFactorString: &halfScalingFactor,
 		},
 	}
 	scheme     = runtime.NewScheme()

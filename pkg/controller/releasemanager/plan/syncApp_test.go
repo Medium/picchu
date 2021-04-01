@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/resource"
 	_ "runtime"
 	"testing"
 	"time"
@@ -379,13 +378,13 @@ func TestSyncNewApp(t *testing.T) {
 		defaultExpectedIstioSidecar,
 	}
 
-	scalingFactor := resource.MustParse("0.5")
+	scalingFactor := "0.5"
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
 		},
 		Spec: picchuv1alpha1.ClusterSpec{
-			ScalingFactor: &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 			Ingresses: picchuv1alpha1.ClusterIngresses{
 				Public: picchuv1alpha1.IngressInfo{
 					Gateway: "public-gateway",
@@ -409,13 +408,13 @@ func TestDomains(t *testing.T) {
 	ctx := context.TODO()
 	log := test.MustNewLogger()
 	cli := fakeClient()
-	scalingFactor := resource.MustParse("1.0")
+	scalingFactor := "1.0"
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
 		},
 		Spec: picchuv1alpha1.ClusterSpec{
-			ScalingFactor: &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 			Ingresses: picchuv1alpha1.ClusterIngresses{
 				Public: picchuv1alpha1.IngressInfo{
 					Gateway:        "public-ingressgateway",
@@ -513,13 +512,13 @@ func TestHosts(t *testing.T) {
 		Hosts: []string{"www.dkpn.io"},
 		Mode:  picchuv1alpha1.PortPrivate,
 	}
-	scalingFactor := resource.MustParse("1.0")
+	scalingFactor := "1.0"
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
 		},
 		Spec: picchuv1alpha1.ClusterSpec{
-			ScalingFactor: &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 			Ingresses: picchuv1alpha1.ClusterIngresses{
 				Public: picchuv1alpha1.IngressInfo{
 					Gateway:        "public-ingressgateway",
@@ -565,13 +564,13 @@ func TestHosts(t *testing.T) {
 
 func TestHostsWithVariantsEnabled(t *testing.T) {
 	assert := testify.New(t)
-	scalingFactor := resource.MustParse("0.5")
+	scalingFactor := "0.5"
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-a",
 		},
 		Spec: picchuv1alpha1.ClusterSpec{
-			ScalingFactor: &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 			Ingresses: picchuv1alpha1.ClusterIngresses{
 				Public: picchuv1alpha1.IngressInfo{
 					Gateway: "public-gateway",
@@ -830,7 +829,7 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 
 func TestProductionEcho(t *testing.T) {
 	assert := testify.New(t)
-	scalingFactor := resource.MustParse("1.0")
+	scalingFactor := "1.0"
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "production-reef-a",
@@ -840,8 +839,8 @@ func TestProductionEcho(t *testing.T) {
 			},
 		},
 		Spec: picchuv1alpha1.ClusterSpec{
-			Enabled:       true,
-			ScalingFactor: &scalingFactor,
+			Enabled:             true,
+			ScalingFactorString: &scalingFactor,
 			Ingresses: picchuv1alpha1.ClusterIngresses{
 				Public: picchuv1alpha1.IngressInfo{
 					Gateway: "public-ingressgateway.istio-system.svc.cluster.local",
@@ -1118,7 +1117,7 @@ func TestProductionEcho(t *testing.T) {
 
 func TestDevRoutes(t *testing.T) {
 	assert := testify.New(t)
-	scalingFactor := resource.MustParse("1.0")
+	scalingFactor := "1.0"
 	cluster := &picchuv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "staging-reef-a",
@@ -1131,7 +1130,7 @@ func TestDevRoutes(t *testing.T) {
 			Enabled:             true,
 			EnableDevRoutes:     true,               // what this function is testing
 			DevRouteTagTemplate: "dev-{{.App}}-tag", // what this function is testing
-			ScalingFactor:       &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 			Ingresses: picchuv1alpha1.ClusterIngresses{
 				Public: picchuv1alpha1.IngressInfo{
 					Gateway: "public-ingressgateway.istio-system.svc.cluster.local",

@@ -108,11 +108,12 @@ type IstioHTTPPortConfig struct {
 }
 
 type WorkerScaleInfo struct {
-	QueueURI                     string             `json:"queueUri"`
-	TargetMessagesPerWorker      *int32             `json:"targetMessagesPerWorker"`
-	SecondsToProcessOneJobString *string            `json:"secondsToProcessOneJobString,omitempty"` // optional
-	SecondsToProcessOneJob       *resource.Quantity `json:"secondsToProcessOneJob,omitempty"`       // optional
-	MaxDisruption                *string            `json:"maxDisruption"`                          // optional
+	QueueURI                     string  `json:"queueUri"`
+	TargetMessagesPerWorker      *int32  `json:"targetMessagesPerWorker"`
+	SecondsToProcessOneJobString *string `json:"secondsToProcessOneJobString,omitempty"` // optional
+	// Add resource.Quantity when upgrading to client-go 1.20.x
+	//SecondsToProcessOneJob       *resource.Quantity `json:"secondsToProcessOneJob,omitempty"`       // optional
+	MaxDisruption *string `json:"maxDisruption"` // optional
 }
 
 type ScaleInfo struct {

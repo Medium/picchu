@@ -4,7 +4,6 @@ import (
 	"context"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -103,17 +102,8 @@ func TestGetFaults(t *T.T) {
 						ErrorType: &picchuv1alpha1.HTTPFaultInjection_Abort_ErrorType{
 							HttpStatus: 404,
 						},
-						//ErrorType: &apiextensionsv1.JSON{
-						//	Raw: []byte(`"http_status: 404"`),
-						//},
-						//ErrorType: &picchuv1alpha1.HTTPFaultInjection_Abort_HttpStatus{
-						//	HttpStatus: 404,
-						//},
-						//ErrorType: &picchuv1alpha1.HTTPFaultInjection_Abort_HttpStatus{
-						//	HttpStatus: 404,
-						//},
 						Percentage: &picchuv1alpha1.Percent{
-							Value: resource.MustParse("100"),
+							Value: "100",
 						},
 					},
 				},

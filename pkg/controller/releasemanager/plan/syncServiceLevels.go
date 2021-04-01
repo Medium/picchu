@@ -3,7 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
+	"strconv"
 	"strings"
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
@@ -97,18 +97,18 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		labels[prometheus.TagLabel] = s.Tag
 	}
 
-	objectivePercent := s.SLO.ObjectivePercent
+	var objectivePercent float64
 	if s.SLO.ObjectivePercentString != "" {
-		r, err := resource.ParseQuantity(s.SLO.ObjectivePercentString)
+		f, err := strconv.ParseFloat(s.SLO.ObjectivePercentString, 64)
 		if err != nil {
 			log.Error(err, "Could not parse %v to float", s.SLO.ObjectivePercentString)
 		} else {
-			objectivePercent = r
+			objectivePercent = f
 		}
 	}
 	slo := &slov1alpha1.SLO{
 		Name:                         s.Name,
-		AvailabilityObjectivePercent: objectivePercent.AsApproximateFloat64(),
+		AvailabilityObjectivePercent: objectivePercent,
 		Description:                  s.SLO.Description,
 		Disable:                      false,
 		Output: slov1alpha1.Output{

@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"reflect"
 	_ "runtime"
 	"testing"
@@ -38,15 +37,15 @@ var (
 			},
 		},
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
-			Enabled:          true,
-			Name:             "test-app-availability",
-			ObjectivePercent: resource.MustParse("99.999"),
-			Description:      "Test description",
+			Enabled:                true,
+			Name:                   "test-app-availability",
+			ObjectivePercentString: "99.999",
+			Description:            "Test description",
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
-					Enabled:          true,
-					AllowancePercent: resource.MustParse("1"),
-					FailAfter:        "1m",
+					Enabled:                true,
+					AllowancePercentString: "1",
+					FailAfter:              "1m",
 				},
 				TagKey:     "destination_workload",
 				AlertAfter: "1m",
@@ -144,14 +143,14 @@ func TestFormatAllowancePercent(t *testing.T) {
 	log := test.MustNewLogger()
 
 	inputs := []struct {
-		resource resource.Quantity
-		expected string
+		allowance string
+		expected  string
 	}{
-		{resource.MustParse("1"), "0.01"},
-		{resource.MustParse("100"), "1"},
-		{resource.MustParse("2"), "0.02"},
-		{resource.MustParse("0.1"), "0.001"},
-		{resource.MustParse("0.01"), "0.0001"},
+		{"1", "0.01"},
+		{"100", "1"},
+		{"2", "0.02"},
+		{"0.1", "0.001"},
+		{"0.01", "0.0001"},
 	}
 
 	for _, i := range inputs {
@@ -159,7 +158,7 @@ func TestFormatAllowancePercent(t *testing.T) {
 			SLO: &picchuv1alpha1.ServiceLevelObjective{
 				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 					Canary: picchuv1alpha1.SLICanaryConfig{
-						AllowancePercent: i.resource,
+						AllowancePercentString: i.allowance,
 					},
 				},
 			},

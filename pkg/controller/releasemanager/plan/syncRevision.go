@@ -175,13 +175,21 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		labels[k] = v
 	}
 
-	scalingFactor := cluster.Spec.ScalingFactor
+	var scalingFactor *float64
+	if cluster.Spec.ScalingFactorString != nil {
+		f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+		if err != nil {
+			log.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
+		} else {
+			scalingFactor = &f
+		}
+	}
 	if scalingFactor == nil {
 		e := fmt.Errorf("cluster scalingFactor is nil")
 		log.Error(e, "Failed to sync revision")
 		return e
 	}
-	return p.syncReplicaSet(ctx, cli, scalingFactor.AsApproximateFloat64(), labels, envs, log)
+	return p.syncReplicaSet(ctx, cli, *scalingFactor, labels, envs, log)
 }
 
 func (p *SyncRevision) syncReplicaSet(

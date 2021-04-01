@@ -3,8 +3,6 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -39,14 +37,15 @@ type ClusterList struct {
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled             bool               `json:"enabled"`
-	HotStandby          bool               `json:"hotStandby,omitempty"`
-	Config              *ClusterConfig     `json:"config,omitempty"`
-	ScalingFactorString *string            `json:"scalingFactorString,omitempty"`
-	ScalingFactor       *resource.Quantity `json:"scalingFactor,omitempty"`
-	Ingresses           ClusterIngresses   `json:"ingresses"`
-	EnableDevRoutes     bool               `json:"enableDevRoutes,omitempty"`
-	DevRouteTagTemplate string             `json:"devRouteTagTemplate,omitempty"`
+	Enabled    bool           `json:"enabled"`
+	HotStandby bool           `json:"hotStandby,omitempty"`
+	Config     *ClusterConfig `json:"config,omitempty"`
+	// Replace with resource.Quantity when upgrading to client-go 1.20.x
+	ScalingFactorString *string `json:"scalingFactorString,omitempty"`
+	//ScalingFactor       *resource.Quantity `json:"scalingFactor,omitempty"`
+	Ingresses           ClusterIngresses `json:"ingresses"`
+	EnableDevRoutes     bool             `json:"enableDevRoutes,omitempty"`
+	DevRouteTagTemplate string           `json:"devRouteTagTemplate,omitempty"`
 }
 
 type ClusterConfig struct {
