@@ -23,16 +23,16 @@ import (
 )
 
 var (
-	scalingFactor = 1.0
+	scalingFactor = "1.0"
 	cluster       = &picchu.Cluster{
 		Spec: picchu.ClusterSpec{
-			ScalingFactor: &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 		},
 	}
-	halfScalingFactor = 0.5
+	halfScalingFactor = "0.5"
 	halfCluster       = &picchu.Cluster{
 		Spec: picchu.ClusterSpec{
-			ScalingFactor: &halfScalingFactor,
+			ScalingFactorString: &halfScalingFactor,
 		},
 	}
 	scheme     = runtime.NewScheme()
