@@ -2465,7 +2465,6 @@ spec:
                             type: string
                           queueUri:
                             type: string
-                          secondsToProcessOneJob: {}
                           secondsToProcessOneJobString:
                             type: string
                           targetMessagesPerWorker:
@@ -2507,7 +2506,6 @@ spec:
                           type: boolean
                         name:
                           type: string
-                        objectivePercent: {}
                         objectivePercentString:
                           type: string
                         serviceLevelIndicator:
