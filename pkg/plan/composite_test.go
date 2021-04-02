@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	scalingFactor = 1.0
+	scalingFactor = "1.0"
 	cluster       = &picchuv1alpha1.Cluster{
 		Spec: picchuv1alpha1.ClusterSpec{
-			ScalingFactor: &scalingFactor,
+			ScalingFactorString: &scalingFactor,
 		},
 	}
 )

@@ -38,6 +38,10 @@ func SetDefaults_ClusterSpec(spec *ClusterSpec) {
 		one := float64(1.0)
 		spec.ScalingFactor = &one
 	}
+	if spec.ScalingFactorString == nil {
+		one := "1.0"
+		spec.ScalingFactorString = &one
+	}
 }
 
 func SetDefaults_RevisionSpec(spec *RevisionSpec) {

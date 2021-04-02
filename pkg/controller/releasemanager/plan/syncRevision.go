@@ -176,6 +176,14 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 	}
 
 	scalingFactor := cluster.Spec.ScalingFactor
+	if cluster.Spec.ScalingFactorString != nil {
+		f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
+		if err != nil {
+			log.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
+		} else {
+			scalingFactor = &f
+		}
+	}
 	if scalingFactor == nil {
 		e := fmt.Errorf("cluster scalingFactor is nil")
 		log.Error(e, "Failed to sync revision")
