@@ -103,25 +103,7 @@ func NewIncarnation(controller Controller, tag string, revision *picchuv1alpha1.
 	return &i
 }
 
-// temporarily migrate floats
-func (i *Incarnation) migrateFloats() {
-	i.status.Metrics.GitCreateSeconds = nil
-	i.status.Metrics.GitDeploySeconds = nil
-	i.status.Metrics.GitCanarySeconds = nil
-	i.status.Metrics.GitPendingReleaseSeconds = nil
-	i.status.Metrics.RevisionDeploySeconds = nil
-	i.status.Metrics.RevisionCanarySeconds = nil
-	i.status.Metrics.RevisionReleaseSeconds = nil
-	i.status.Metrics.ReivisonPendingReleaseSeconds = nil
-	i.status.Metrics.RevisionRollbackSeconds = nil
-	i.status.Metrics.DeploySeconds = nil
-	i.status.Metrics.CanarySeconds = nil
-	i.status.Metrics.ReleaseSeconds = nil
-}
-
 func (i *Incarnation) reportMetrics(log logr.Logger) {
-	i.migrateFloats()
-
 	current := State(i.status.State.Current)
 
 	if current == created && i.status.Metrics.GitCreateSecondsInt == nil {

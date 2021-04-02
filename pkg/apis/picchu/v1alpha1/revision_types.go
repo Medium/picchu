@@ -149,7 +149,6 @@ type ServiceLevelObjective struct {
 	Description                 string                      `json:"description,omitempty"`
 	Enabled                     bool                        `json:"enabled"`
 	ObjectivePercentString      string                      `json:"objectivePercentString,omitempty"`
-	ObjectivePercent            float64                     `json:"objectivePercent,omitempty"`
 	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
 }

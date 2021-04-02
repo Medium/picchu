@@ -33,10 +33,10 @@ var (
 			},
 		},
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
-			Enabled:          true,
-			Name:             "test-app-availability",
-			Description:      "test desc",
-			ObjectivePercent: 99.999,
+			Enabled:                true,
+			Name:                   "test-app-availability",
+			Description:            "test desc",
+			ObjectivePercentString: "99.999",
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,

@@ -34,10 +34,6 @@ var (
 )
 
 func SetDefaults_ClusterSpec(spec *ClusterSpec) {
-	if spec.ScalingFactor == nil {
-		one := float64(1.0)
-		spec.ScalingFactor = &one
-	}
 	if spec.ScalingFactorString == nil {
 		one := "1.0"
 		spec.ScalingFactorString = &one
