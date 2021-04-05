@@ -36,7 +36,7 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		p.Max = p.Min
 	}
 
-	scalingFactor := cluster.Spec.ScalingFactor
+	var scalingFactor *float64
 	if cluster.Spec.ScalingFactorString != nil {
 		f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
 		if err != nil {
@@ -129,7 +129,7 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log log
 }
 
 func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
-	secondsToProcessOneJob := p.Worker.SecondsToProcessOneJob
+	var secondsToProcessOneJob *float64
 	if p.Worker.SecondsToProcessOneJobString != nil {
 		f, err := strconv.ParseFloat(*p.Worker.SecondsToProcessOneJobString, 64)
 		if err != nil {

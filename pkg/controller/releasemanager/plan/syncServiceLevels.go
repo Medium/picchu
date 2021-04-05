@@ -97,7 +97,7 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		labels[prometheus.TagLabel] = s.Tag
 	}
 
-	objectivePercent := s.SLO.ObjectivePercent
+	var objectivePercent float64
 	if s.SLO.ObjectivePercentString != "" {
 		f, err := strconv.ParseFloat(s.SLO.ObjectivePercentString, 64)
 		if err != nil {

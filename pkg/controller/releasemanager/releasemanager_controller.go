@@ -224,9 +224,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	clusterInfo := ClusterInfoList{}
 	for _, cluster := range clusters {
 		var scalingFactor = 0.0
-		if cluster.Spec.ScalingFactor != nil {
-			scalingFactor = *cluster.Spec.ScalingFactor
-		}
 		if cluster.Spec.ScalingFactorString != nil {
 			f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
 			if err != nil {
@@ -256,9 +253,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
 		var scalingFactor = 0.0
-		if cluster.Spec.ScalingFactor != nil {
-			scalingFactor = *cluster.Spec.ScalingFactor
-		}
 		if cluster.Spec.ScalingFactorString != nil {
 			f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
 			if err != nil {

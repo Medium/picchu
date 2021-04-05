@@ -175,7 +175,7 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		labels[k] = v
 	}
 
-	scalingFactor := cluster.Spec.ScalingFactor
+	var scalingFactor *float64
 	if cluster.Spec.ScalingFactorString != nil {
 		f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
 		if err != nil {

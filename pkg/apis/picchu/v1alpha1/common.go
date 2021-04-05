@@ -108,11 +108,10 @@ type IstioHTTPPortConfig struct {
 }
 
 type WorkerScaleInfo struct {
-	QueueURI                     string   `json:"queueUri"`
-	TargetMessagesPerWorker      *int32   `json:"targetMessagesPerWorker"`
-	SecondsToProcessOneJobString *string  `json:"secondsToProcessOneJobString,omitempty"` // optional
-	SecondsToProcessOneJob       *float64 `json:"secondsToProcessOneJob,omitempty"`       // optional
-	MaxDisruption                *string  `json:"maxDisruption"`                          // optional
+	QueueURI                     string  `json:"queueUri"`
+	TargetMessagesPerWorker      *int32  `json:"targetMessagesPerWorker"`
+	SecondsToProcessOneJobString *string `json:"secondsToProcessOneJobString,omitempty"` // optional
+	MaxDisruption                *string `json:"maxDisruption"`                          // optional
 }
 
 type ScaleInfo struct {

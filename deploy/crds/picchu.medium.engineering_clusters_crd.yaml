@@ -87,7 +87,6 @@ spec:
               - private
               - public
               type: object
-            scalingFactor: {}
             scalingFactorString:
               type: string
           required:
