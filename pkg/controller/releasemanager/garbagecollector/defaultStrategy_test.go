@@ -127,6 +127,36 @@ func TestDefaultStrategyNotEnoughExpired(t *testing.T) {
 	assert.Equal(t, 2011, sortedOut[4].CreatedOn().Year(), "correct revisions found")
 }
 
+func TestDefaultStrategyFailedTTL(t *testing.T) {
+	in := []Revision{
+		&testRevision{
+			ttl:       1 * time.Hour,
+			createdOn: time.Now().Add(time.Hour * -1),
+			state:     "failed",
+		},
+		&testRevision{
+			ttl:       1 * time.Hour,
+			createdOn: time.Now(),
+			state:     "failed",
+		},
+		&testRevision{
+			ttl:       1 * time.Hour,
+			createdOn: time.Now(),
+			state:     "retired",
+		},
+		&testRevision{
+			ttl:       1 * time.Hour,
+			createdOn: time.Now(),
+			state:     "deployed",
+		},
+	}
+	out, err := FindGarbage(nil, DefaultStrategy, in)
+	assert.NoError(t, err, "error during find garbage")
+	assert.Equal(t, 1, len(out), "correct number of revisions found")
+	sortedOut := sortRevisions(out)
+	assert.Equal(t, "failed", sortedOut[0].State(), "correct revisions found")
+}
+
 func TestDefaultStrategyDontDeleteAll(t *testing.T) {
 	for _, test := range []struct {
 		Name             string
