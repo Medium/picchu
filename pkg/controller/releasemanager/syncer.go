@@ -148,8 +148,12 @@ func (r *ResourceSyncer) reportMetrics() error {
 		current := incarnation.status.State.Current
 		incarnationsInState[current]++
 
-		lastUpdated := incarnation.status.LastUpdated.Time
-		age := time.Since(lastUpdated).Seconds()
+		var lastUpdated *time.Time
+		var age float64
+		if incarnation.status.State.LastUpdated != nil {
+			lastUpdated = &incarnation.status.State.LastUpdated.Time
+			age = time.Since(*lastUpdated).Seconds()
+		}
 		r.log.Info("Computing state age", "lastUpdated", lastUpdated, "state", current, "age", age)
 		if oldest, ok := oldestIncarnationsInState[current]; !ok || oldest < age {
 			oldestIncarnationsInState[current] = age
@@ -179,9 +183,8 @@ func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
 
 	for _, incarnation := range r.incarnations.sorted() {
 		var lastUpdated *time.Time
-		if incarnation.status.LastUpdated != nil {
-			lastUpdated = &incarnation.status.LastUpdated.Time
-
+		if incarnation.status.State.LastUpdated != nil {
+			lastUpdated = &incarnation.status.State.LastUpdated.Time
 		}
 		sm := NewDeploymentStateManager(incarnation, lastUpdated)
 
