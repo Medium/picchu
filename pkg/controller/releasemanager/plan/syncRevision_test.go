@@ -158,6 +158,7 @@ var (
 					Annotations: map[string]string{
 						"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
 						picchuv1alpha1.AnnotationIAMRole:          "testrole",
+						annotationDatadogTolerateUnready:          "true",
 					},
 					Labels: map[string]string{
 						"test":                          "label",
@@ -300,6 +301,7 @@ var (
 					Namespace: "testnamespace",
 					Annotations: map[string]string{
 						picchuv1alpha1.AnnotationIAMRole: "testrole",
+						annotationDatadogTolerateUnready: "true",
 					},
 					Labels: map[string]string{
 						"test":                          "label",

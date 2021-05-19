@@ -20,6 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const annotationDatadogTolerateUnready = "ad.datadoghq.com/tolerate-unready"
+
 var (
 	defaultLivenessProbe  *corev1.Probe
 	defaultReadinessProbe *corev1.Probe
@@ -295,6 +297,8 @@ func (p *SyncRevision) syncReplicaSet(
 	if p.IAMRole != "" {
 		template.Annotations[picchuv1alpha1.AnnotationIAMRole] = p.IAMRole
 	}
+
+	template.Annotations[annotationDatadogTolerateUnready] = "true"
 
 	scaledReplicas := int32(math.Ceil(float64(p.Replicas) * scalingFactor))
 
