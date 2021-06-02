@@ -18,10 +18,10 @@ func defaultStrategy(log logr.Logger, revisions []Revision) ([]Revision, error) 
 		}
 		if time.Now().After(rev.CreatedOn().Add(rev.TTL())) {
 			switch rev.State() {
-			case "pendingrelease", "releasing", "released":
-				continue
-			default:
+			case "retired", "deleting", "deleted", "failed":
 				toDelete = append(toDelete, rev)
+			default:
+				continue
 			}
 		}
 
