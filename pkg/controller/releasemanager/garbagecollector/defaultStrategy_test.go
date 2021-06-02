@@ -53,15 +53,11 @@ func TestDefaultStrategyVariousStates(t *testing.T) {
 
 	out, err := FindGarbage(nil, DefaultStrategy, in)
 	assert.NoError(t, err, "error during find garbage")
-	assert.Equal(t, 7, len(out), "correct number of revisions found")
+	assert.Equal(t, 3, len(out), "correct number of revisions found")
 	sortedOut := sortRevisions(out)
-	assert.Equal(t, 2015, sortedOut[0].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2014, sortedOut[1].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2013, sortedOut[2].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2012, sortedOut[3].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2011, sortedOut[4].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2001, sortedOut[5].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2000, sortedOut[6].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2011, sortedOut[0].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2001, sortedOut[1].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2000, sortedOut[2].CreatedOn().Year(), "correct revisions found")
 }
 
 func TestDefaultStrategyNonExpiredRevisions(t *testing.T) {
@@ -89,18 +85,14 @@ func TestDefaultStrategyNonExpiredRevisions(t *testing.T) {
 	}
 	out, err := FindGarbage(nil, DefaultStrategy, in)
 	assert.NoError(t, err, "error during find garbage")
-	assert.Equal(t, 10, len(out), "correct number of revisions found")
+	assert.Equal(t, 6, len(out), "correct number of revisions found")
 	sortedOut := sortRevisions(out)
-	assert.Equal(t, 2015, sortedOut[0].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2014, sortedOut[1].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2013, sortedOut[2].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2012, sortedOut[3].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2011, sortedOut[4].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2004, sortedOut[5].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2003, sortedOut[6].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2002, sortedOut[7].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2001, sortedOut[8].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2000, sortedOut[9].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2011, sortedOut[0].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2004, sortedOut[1].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2003, sortedOut[2].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2002, sortedOut[3].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2001, sortedOut[4].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2000, sortedOut[5].CreatedOn().Year(), "correct revisions found")
 }
 
 func TestDefaultStrategyNotEnoughExpired(t *testing.T) {
@@ -118,13 +110,9 @@ func TestDefaultStrategyNotEnoughExpired(t *testing.T) {
 	}
 	out, err := FindGarbage(nil, DefaultStrategy, in)
 	assert.NoError(t, err, "error during find garbage")
-	assert.Equal(t, 5, len(out), "correct number of revisions found")
+	assert.Equal(t, 1, len(out), "correct number of revisions found")
 	sortedOut := sortRevisions(out)
-	assert.Equal(t, 2015, sortedOut[0].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2014, sortedOut[1].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2013, sortedOut[2].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2012, sortedOut[3].CreatedOn().Year(), "correct revisions found")
-	assert.Equal(t, 2011, sortedOut[4].CreatedOn().Year(), "correct revisions found")
+	assert.Equal(t, 2011, sortedOut[0].CreatedOn().Year(), "correct revisions found")
 }
 
 func TestDefaultStrategyFailedTTL(t *testing.T) {
@@ -176,7 +164,7 @@ func TestDefaultStrategyDontDeleteAll(t *testing.T) {
 				rev(1, 2011, "created"),
 				rev(1, 2012, "created"),
 			},
-			ExpectedToDelete: 1,
+			ExpectedToDelete: 0,
 		},
 		{
 			Name: "single-deploying",
