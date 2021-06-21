@@ -538,28 +538,29 @@ func TestHosts(t *testing.T) {
 		Namespace: "website-internal",
 		Ports:     []picchuv1alpha1.PortInfo{publicPort, privatePort},
 	}
+	log := test.MustNewLogger()
 
 	assert.Equal("website.website-internal.svc.cluster.local", plan.serviceHost())
 	assert.ElementsMatch([]string{
 		"www.doki-pen.org",
 		"website-internal.doki-pen.org",
 		"website.doki-pen.org",
-	}, plan.publicHosts(publicPort, cluster))
+	}, plan.publicHosts(log, publicPort, cluster))
 	assert.ElementsMatch([]string{
 		"www.doki-pen.org",
 		"website-internal.dkpn.io",
 		"website.dkpn.io",
 		"website.doki-pen.org",
-	}, plan.privateHosts(publicPort, cluster))
+	}, plan.privateHosts(log, publicPort, cluster))
 	assert.ElementsMatch([]string{
 		"www.dkpn.io",
 		"website-internal.doki-pen.org",
-	}, plan.publicHosts(privatePort, cluster))
+	}, plan.publicHosts(log, privatePort, cluster))
 	assert.ElementsMatch([]string{
 		"www.dkpn.io",
 		"website-internal.dkpn.io",
 		"website.dkpn.io",
-	}, plan.privateHosts(privatePort, cluster))
+	}, plan.privateHosts(log, privatePort, cluster))
 }
 
 func TestHostsWithVariantsEnabled(t *testing.T) {
