@@ -92,6 +92,22 @@ var (
 				Image: "test-1:latest",
 			},
 		},
+		Volumes: []corev1.Volume{
+			{
+				Name: "shm",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{
+						Medium: corev1.StorageMediumMemory,
+					},
+				},
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "shm",
+				MountPath: "/dev/shm",
+			},
+		},
 	}
 	retiredRevisionPlan = &SyncRevision{
 		App:       "testapp",
@@ -231,6 +247,12 @@ var (
 								},
 							},
 						},
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "shm",
+								MountPath: "/dev/shm",
+							},
+						},
 					},
 						{
 							Image: "test-1:latest",
@@ -243,6 +265,12 @@ var (
 									},
 								},
 							}},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "shm",
+									MountPath: "/dev/shm",
+								},
+							},
 						},
 					},
 					DNSConfig: &corev1.PodDNSConfig{
@@ -268,6 +296,16 @@ var (
 						{
 							Key:    "infrastructure",
 							Effect: corev1.TaintEffectNoExecute,
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "shm",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									Medium: corev1.StorageMediumMemory,
+								},
+							},
 						},
 					},
 				},

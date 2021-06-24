@@ -396,6 +396,8 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Affinity:           i.target().Affinity,
 		Tolerations:        i.target().Tolerations,
 		EnvVars:            i.target().Env,
+		Volumes:            i.target().Volumes,
+		VolumeMounts:       i.target().VolumeMounts,
 	}
 
 	if !i.isRoutable() {

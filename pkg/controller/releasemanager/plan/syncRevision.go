@@ -80,6 +80,8 @@ type SyncRevision struct {
 	Tolerations        []corev1.Toleration
 	EnvVars            []corev1.EnvVar
 	Sidecars           []corev1.Container // Additional sidecar containers.
+	VolumeMounts       []corev1.VolumeMount
+	Volumes            []corev1.Volume
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -265,6 +267,7 @@ func (p *SyncRevision) syncReplicaSet(
 	for i := range containers {
 		containers[i].EnvFrom = envs
 		containers[i].Env = p.EnvVars
+		containers[i].VolumeMounts = p.VolumeMounts
 	}
 
 	template := corev1.PodTemplateSpec{
@@ -280,6 +283,7 @@ func (p *SyncRevision) syncReplicaSet(
 			DNSConfig:          DefaultDNSConfig(),
 			Affinity:           p.Affinity,
 			Tolerations:        p.Tolerations,
+			Volumes:            p.Volumes,
 		},
 	}
 

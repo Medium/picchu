@@ -108,6 +108,8 @@ type RevisionTarget struct {
 	AWS                         AWSInfo                     `json:"aws,omitempty"`
 	AlertRules                  []monitoringv1.Rule         `json:"alertRules,omitempty"`
 	Sidecars                    []corev1.Container          `json:"sidecars,omitempty"`
+	VolumeMounts                []corev1.VolumeMount        `json:"volumeMounts,omitempty"`
+	Volumes                     []corev1.Volume             `json:"volumes,omitempty"`
 
 	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
 	ServiceAccountName string            `json:"serviceAccountName,omitempty"`
