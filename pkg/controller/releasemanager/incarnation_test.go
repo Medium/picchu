@@ -217,3 +217,33 @@ func TestIncarnation_divideReplicasNoAutoscale(t *ttesting.T) {
 		})
 	}
 }
+
+func Test_IsExpired(t *ttesting.T) {
+	for _, test := range []struct {
+		Name              string
+		TTL               time.Duration
+		CreationTimestamp time.Time
+		Expected          bool
+	}{
+		{
+			Name:              "expired",
+			TTL:               time.Second,
+			CreationTimestamp: time.Now().Add(-time.Second * 2),
+			Expected:          true,
+		},
+		{
+			Name:              "almost expired",
+			TTL:               time.Second * 4,
+			CreationTimestamp: time.Now().Add(-time.Second * 2),
+			Expected:          true,
+		},
+	} {
+		t.Run(test.Name, func(t *ttesting.T) {
+			assert := assert.New(t)
+			i := createTestIncarnation("test", "deployed", 0, &testClusters{Clusters: 1})
+			i.target().Release.TTL = int64(test.TTL / time.Second)
+			i.revision.CreationTimestamp = meta.Time{test.CreationTimestamp}
+			assert.Equal(test.Expected, i.isExpired())
+		})
+	}
+}

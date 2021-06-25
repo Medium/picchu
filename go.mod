@@ -10,7 +10,7 @@ require (
 	github.com/go-logr/zapr v0.1.1
 	github.com/go-openapi/spec v0.19.7
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.1.1
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9
