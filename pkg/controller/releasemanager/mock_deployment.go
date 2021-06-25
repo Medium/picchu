@@ -175,6 +175,20 @@ func (mr *MockDeploymentMockRecorder) isDeployed() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isDeployed", reflect.TypeOf((*MockDeployment)(nil).isDeployed))
 }
 
+// isExpired mocks base method
+func (m *MockDeployment) isExpired() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "isExpired")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// isExpired indicates an expected call of isExpired
+func (mr *MockDeploymentMockRecorder) isExpired() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isExpired", reflect.TypeOf((*MockDeployment)(nil).isExpired))
+}
+
 // isReleaseEligible mocks base method
 func (m *MockDeployment) isReleaseEligible() bool {
 	m.ctrl.T.Helper()

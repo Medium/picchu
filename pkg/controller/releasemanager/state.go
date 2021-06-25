@@ -86,6 +86,7 @@ type Deployment interface {
 	peakPercent() uint32
 	isCanaryPending() bool
 	isTimingOut() bool
+	isExpired() bool
 }
 
 // ExternalTestStatus summarizes a RevisionTarget's ExternalTest spec field.
@@ -220,6 +221,9 @@ func Deployed(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 			return canarying, nil
 		}
 		return pendingrelease, nil
+	}
+	if deployment.isExpired() {
+		return retiring, nil
 	}
 	return deployed, nil
 }

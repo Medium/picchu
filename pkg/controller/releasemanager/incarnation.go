@@ -605,6 +605,11 @@ func (i *Incarnation) isReleaseEligible() bool {
 	return i.status.ReleaseEligible
 }
 
+// isExpired returns true if the TTL of the revision is passed
+func (i *Incarnation) isExpired() bool {
+	return i.revision.CreationTimestamp.Add(i.TTL()).Before(time.Now())
+}
+
 // = End Deployment interface
 
 func (i *Incarnation) target() *picchuv1alpha1.RevisionTarget {
