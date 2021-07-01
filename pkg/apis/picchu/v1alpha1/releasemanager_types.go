@@ -6,11 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	VariantPortDefault = "PORT_DEFAULT"
-	VariantIngresses   = "PORT_INGRESSES"
-)
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

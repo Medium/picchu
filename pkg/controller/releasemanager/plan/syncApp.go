@@ -47,8 +47,6 @@ type SyncApp struct {
 	Ports                []picchuv1alpha1.PortInfo
 	HTTPPortFaults       []picchuv1alpha1.HTTPPortFault
 	IstioSidecarConfig   *picchuv1alpha1.IstioSidecar
-	DefaultVariant       bool
-	IngressesVariant     bool
 	DefaultIngressPorts  map[string]string
 	DevRoutesServiceHost string
 	DevRoutesServicePort int
@@ -169,15 +167,12 @@ func (p *SyncApp) ingressHosts(
 		if p.isUserDefined(host) {
 			return
 		}
-		if p.DefaultVariant {
-			log.Info("Using variant", "variant", "PORT_DEFAULT")
-			defaultPort, ok := p.DefaultIngressPorts[ingressName]
-			if !ok {
-				return
-			}
-			if defaultPort != port.Name {
-				return
-			}
+		defaultPort, ok := p.DefaultIngressPorts[ingressName]
+		if !ok {
+			return
+		}
+		if defaultPort != port.Name {
+			return
 		}
 		hostMap[host] = true
 	}
@@ -244,23 +239,11 @@ func (p *SyncApp) portHeaderMatches(
 	}}
 
 	publicEnabled, privateEnabled := false, false
-	if p.IngressesVariant {
-		log.Info("Using variant", "variant", "PORT_INGRESSES")
-		for _, ingress := range port.Ingresses {
-			switch ingress {
-			case "public":
-				publicEnabled = true
-			case "private":
-				privateEnabled = true
-			}
-		}
-
-	} else {
-		switch port.Mode {
-		case picchuv1alpha1.PortPublic:
+	for _, ingress := range port.Ingresses {
+		switch ingress {
+		case "public":
 			publicEnabled = true
-			privateEnabled = true
-		case picchuv1alpha1.PortPrivate:
+		case "private":
 			privateEnabled = true
 		}
 	}

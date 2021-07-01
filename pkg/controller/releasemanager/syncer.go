@@ -254,8 +254,6 @@ func (r *ResourceSyncer) syncApp(ctx context.Context) error {
 		Ports:                ports,
 		HTTPPortFaults:       r.faults,
 		IstioSidecarConfig:   istioSidecarConfig,
-		DefaultVariant:       utils.VariantEnabled(r.instance, picchuv1alpha1.VariantPortDefault),
-		IngressesVariant:     utils.VariantEnabled(r.instance, picchuv1alpha1.VariantIngresses),
 		DefaultIngressPorts:  defaultIngressPorts,
 		DevRoutesServiceHost: r.picchuConfig.DevRoutesServiceHost,
 		DevRoutesServicePort: r.picchuConfig.DevRoutesServicePort,
