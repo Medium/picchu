@@ -63,7 +63,7 @@ var (
 				Port:          80,
 				ContainerPort: 5000,
 				Protocol:      corev1.ProtocolTCP,
-				Mode:          picchuv1alpha1.PortPrivate,
+				Ingresses:     []string{"private", "public"},
 				Istio: picchuv1alpha1.IstioPortConfig{
 					HTTP: picchuv1alpha1.IstioHTTPPortConfig{
 						Retries: &picchuv1alpha1.Retries{
@@ -85,8 +85,11 @@ var (
 				Port:          4242,
 				ContainerPort: 4444,
 				Protocol:      corev1.ProtocolTCP,
-				Mode:          picchuv1alpha1.PortLocal,
 			},
+		},
+		DefaultIngressPorts: map[string]string{
+			"private": "http",
+			"public":  "http",
 		},
 		IstioSidecarConfig: &picchuv1alpha1.IstioSidecar{
 			EgressHosts: []string{"istio-system/*"},
@@ -399,7 +402,9 @@ func TestSyncNewApp(t *testing.T) {
 	assert.NoError(defaultSyncAppPlan.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
 
 	for _, e := range expected {
-		ktest.AssertMatch(ctx, t, cli, e)
+		t.Run("testcase", func(t *testing.T) {
+			ktest.AssertMatch(ctx, t, cli, e)
+		})
 	}
 }
 
@@ -457,7 +462,7 @@ func TestDomains(t *testing.T) {
 				Port:          80,
 				ContainerPort: 5000,
 				Protocol:      corev1.ProtocolTCP,
-				Mode:          picchuv1alpha1.PortPublic,
+				Ingresses:     []string{"private", "public"},
 				Hosts:         []string{"www.doki-pen.org"},
 			},
 			{
@@ -466,7 +471,7 @@ func TestDomains(t *testing.T) {
 				Port:          8080,
 				ContainerPort: 5001,
 				Protocol:      corev1.ProtocolTCP,
-				Mode:          picchuv1alpha1.PortPrivate,
+				Ingresses:     []string{"private"},
 			},
 			{
 				Name:          "status",
@@ -474,8 +479,11 @@ func TestDomains(t *testing.T) {
 				Port:          4242,
 				ContainerPort: 4444,
 				Protocol:      corev1.ProtocolTCP,
-				Mode:          picchuv1alpha1.PortLocal,
 			},
+		},
+		DefaultIngressPorts: map[string]string{
+			"private": "http",
+			"public":  "http",
 		},
 	}
 	assert.NoError(plan.Apply(ctx, cli, cluster, log))
@@ -505,12 +513,14 @@ func TestDomains(t *testing.T) {
 func TestHosts(t *testing.T) {
 	assert := testify.New(t)
 	publicPort := picchuv1alpha1.PortInfo{
-		Hosts: []string{"www.doki-pen.org", "website.doki-pen.org"},
-		Mode:  picchuv1alpha1.PortPublic,
+		Name:      "http",
+		Hosts:     []string{"www.doki-pen.org", "website.doki-pen.org"},
+		Ingresses: []string{"private", "public"},
 	}
 	privatePort := picchuv1alpha1.PortInfo{
-		Hosts: []string{"www.dkpn.io"},
-		Mode:  picchuv1alpha1.PortPrivate,
+		Name:      "http-private",
+		Hosts:     []string{"www.dkpn.io"},
+		Ingresses: []string{"private"},
 	}
 	scalingFactor := "1.0"
 	cluster := &picchuv1alpha1.Cluster{
@@ -537,6 +547,10 @@ func TestHosts(t *testing.T) {
 		Fleet:     "internal",
 		Namespace: "website-internal",
 		Ports:     []picchuv1alpha1.PortInfo{publicPort, privatePort},
+		DefaultIngressPorts: map[string]string{
+			"private": "http-private",
+			"public":  "http",
+		},
 	}
 	log := test.MustNewLogger()
 
@@ -548,13 +562,10 @@ func TestHosts(t *testing.T) {
 	}, plan.publicHosts(log, publicPort, cluster))
 	assert.ElementsMatch([]string{
 		"www.doki-pen.org",
-		"website-internal.dkpn.io",
-		"website.dkpn.io",
 		"website.doki-pen.org",
 	}, plan.privateHosts(log, publicPort, cluster))
 	assert.ElementsMatch([]string{
 		"www.dkpn.io",
-		"website-internal.doki-pen.org",
 	}, plan.publicHosts(log, privatePort, cluster))
 	assert.ElementsMatch([]string{
 		"www.dkpn.io",
@@ -650,8 +661,6 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 				Mode:          picchuv1alpha1.PortLocal,
 			},
 		},
-		DefaultVariant:   true,
-		IngressesVariant: true,
 	}
 
 	expected := &istioclient.VirtualService{
@@ -929,8 +938,6 @@ func TestProductionEcho(t *testing.T) {
 			"public":  "http",
 			"private": "http",
 		},
-		DefaultVariant:   true,
-		IngressesVariant: true,
 	}
 
 	regex := &istio.StringMatch{
@@ -1216,8 +1223,6 @@ func TestDevRoutes(t *testing.T) {
 			"public":  "http",
 			"private": "http",
 		},
-		DefaultVariant:       true,
-		IngressesVariant:     true,
 		DevRoutesServiceHost: "dev-routes-service-host",
 		DevRoutesServicePort: 80,
 	}
