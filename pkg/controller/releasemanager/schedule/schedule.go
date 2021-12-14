@@ -64,10 +64,6 @@ func init() {
 		date(2021, time.December, 24), // Holiday break
 		date(2021, time.December, 25), // Sat, Holiday break
 		date(2021, time.December, 26), // Sun, Holiday break
-		date(2021, time.December, 27), // Holiday break
-		date(2021, time.December, 28), // Holiday break
-		date(2021, time.December, 29), // Holiday break
-		date(2021, time.December, 30), // Holiday break
 		date(2021, time.December, 31), // Holiday break
 	}
 }
