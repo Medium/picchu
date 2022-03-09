@@ -123,6 +123,9 @@ type ScaleInfo struct {
 	// TargetCPUUtilizationPercentage scales based on CPU percentage
 	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
 
+	// TargetMemoryUtilizationPercentage scales based on Memory percentage
+	TargetMemoryUtilizationPercentage *int32 `json:"targetMemoryUtilizationPercentage,omitempty"`
+
 	// TargetRequestsRate scales based on the specified RequestsRateMetric
 	TargetRequestsRate *string `json:"targetRequestsRate,omitempty"`
 	// RequestsRateMetric refers to a Prometheus Adapter metric. See: https://github.com/DirectXMan12/k8s-prometheus-adapter
@@ -146,6 +149,7 @@ func (s *ScaleInfo) TargetRequestsRateQuantity() (*resource.Quantity, error) {
 func (s *ScaleInfo) HasAutoscaler() bool {
 	return s.TargetCPUUtilizationPercentage != nil ||
 		s.TargetRequestsRate != nil ||
+		s.TargetMemoryUtilizationPercentage != nil ||
 		s.Worker != nil
 }
 

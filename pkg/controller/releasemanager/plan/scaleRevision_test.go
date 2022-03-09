@@ -66,6 +66,56 @@ func TestScaleRevisionByCPU(t *testing.T) {
 	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
 }
 
+func TestScaleRevisionByMemory(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	var thirty int32 = 30
+	plan := &ScaleRevision{
+		Tag:          "testtag",
+		Namespace:    "testnamespace",
+		Min:          4,
+		Max:          10,
+		MemoryTarget: &thirty,
+		Labels:       map[string]string{},
+	}
+	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	hpa := &autoscaling.HorizontalPodAutoscaler{
+		Spec: autoscaling.HorizontalPodAutoscalerSpec{
+			MaxReplicas: 0,
+		},
+	}
+
+	expected := mocks.Callback(func(x interface{}) bool {
+		switch o := x.(type) {
+		case *autoscaling.HorizontalPodAutoscaler:
+			return o.Spec.MaxReplicas == 5 &&
+				*o.Spec.Metrics[0].Resource.Target.AverageUtilization == 30 &&
+				len(o.Spec.Metrics) == 1
+		default:
+			return false
+		}
+	}, "match expected hpa")
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateHPASpec(hpa)).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Update(ctx, expected).
+		Return(nil).
+		Times(1)
+
+	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
+}
+
 func TestScaleRevisionByRequestsRate(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)

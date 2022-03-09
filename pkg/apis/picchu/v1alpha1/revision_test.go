@@ -106,11 +106,12 @@ func TestRevisionDefaults(t *testing.T) {
 
 func TestScaleInfo_HasAutoscaler(t *testing.T) {
 	for _, test := range []struct {
-		Name                           string
-		TargetCPUUtilizationPercentage *int32
-		TargetRequestsRate             *string
-		Worker                         *WorkerScaleInfo
-		Expected                       bool
+		Name                              string
+		TargetCPUUtilizationPercentage    *int32
+		TargetMemoryUtilizationPercentage *int32
+		TargetRequestsRate                *string
+		Worker                            *WorkerScaleInfo
+		Expected                          bool
 	}{
 		{
 			Name:     "No Autoscaler Defined",
@@ -120,6 +121,11 @@ func TestScaleInfo_HasAutoscaler(t *testing.T) {
 			Name:                           "CPU Utilization Defined",
 			TargetCPUUtilizationPercentage: pointer.Int32Ptr(90),
 			Expected:                       true,
+		},
+		{
+			Name:                              "Memory Utilization Defined",
+			TargetMemoryUtilizationPercentage: pointer.Int32Ptr(90),
+			Expected:                          true,
 		},
 		{
 			Name:               "Requests Rate Defined",
@@ -135,9 +141,10 @@ func TestScaleInfo_HasAutoscaler(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			assert := assert.New(t)
 			s := &ScaleInfo{
-				TargetCPUUtilizationPercentage: test.TargetCPUUtilizationPercentage,
-				TargetRequestsRate:             test.TargetRequestsRate,
-				Worker:                         test.Worker,
+				TargetCPUUtilizationPercentage:    test.TargetCPUUtilizationPercentage,
+				TargetMemoryUtilizationPercentage: test.TargetMemoryUtilizationPercentage,
+				TargetRequestsRate:                test.TargetRequestsRate,
+				Worker:                            test.Worker,
 			}
 			assert.Equal(test.Expected, s.HasAutoscaler())
 		})

@@ -1428,6 +1428,11 @@ func (in *ScaleInfo) DeepCopyInto(out *ScaleInfo) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.TargetMemoryUtilizationPercentage != nil {
+		in, out := &in.TargetMemoryUtilizationPercentage, &out.TargetMemoryUtilizationPercentage
+		*out = new(int32)
+		**out = **in
+	}
 	if in.TargetRequestsRate != nil {
 		in, out := &in.TargetRequestsRate, &out.TargetRequestsRate
 		*out = new(string)

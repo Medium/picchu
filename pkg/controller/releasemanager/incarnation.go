@@ -477,6 +477,11 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		*cpuTarget = int32(math.Floor(float64(*cpuTarget) * i.targetScale()))
 	}
 
+	memoryTarget := i.target().Scale.TargetMemoryUtilizationPercentage
+	if memoryTarget != nil {
+		*memoryTarget = int32(math.Floor(float64(*memoryTarget) * i.targetScale()))
+	}
+
 	min := i.divideReplicas(*i.target().Scale.Min)
 	max := i.divideReplicas(i.target().Scale.Max)
 	if i.target().Scale.Worker != nil && !i.isRoutable() {
@@ -495,6 +500,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		Max:                max,
 		Labels:             i.defaultLabels(),
 		CPUTarget:          cpuTarget,
+		MemoryTarget:       memoryTarget,
 		RequestsRateMetric: i.target().Scale.RequestsRateMetric,
 		RequestsRateTarget: requestsRateTarget,
 		Worker:             i.target().Scale.Worker,
