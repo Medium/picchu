@@ -26,6 +26,7 @@ type ScaleRevision struct {
 	Max                int32
 	Labels             map[string]string
 	CPUTarget          *int32
+	MemoryTarget       *int32
 	RequestsRateMetric string
 	RequestsRateTarget *resource.Quantity
 	Worker             *picchuv1alpha1.WorkerScaleInfo
@@ -72,6 +73,20 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log log
 				Name: "cpu",
 				Target: autoscaling.MetricTarget{
 					AverageUtilization: &cpuTarget,
+					Type:               autoscaling.UtilizationMetricType,
+				},
+			},
+		})
+	}
+
+	if p.MemoryTarget != nil {
+		memoryTarget := *p.MemoryTarget
+		metrics = append(metrics, autoscaling.MetricSpec{
+			Type: autoscaling.ResourceMetricSourceType,
+			Resource: &autoscaling.ResourceMetricSource{
+				Name: "memory",
+				Target: autoscaling.MetricTarget{
+					AverageUtilization: &memoryTarget,
 					Type:               autoscaling.UtilizationMetricType,
 				},
 			},
