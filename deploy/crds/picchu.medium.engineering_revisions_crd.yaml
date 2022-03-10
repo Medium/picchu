@@ -2453,11 +2453,6 @@ spec:
                           CPU percentage
                         format: int32
                         type: integer
-                      targetMemoryUtilizationPercentage:
-                        description: TargetMemoryUtilizationPercentage scales based on
-                          Memory percentage
-                        format: int32
-                        type: integer
                       targetRequestsRate:
                         description: TargetRequestsRate scales based on the specified
                           RequestsRateMetric
