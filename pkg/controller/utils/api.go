@@ -39,7 +39,6 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 	if client, ok := checkCache(key); ok {
 		return client, nil
 	}
-	log.Info("Initializing remote client", "Cluster", cluster.Name)
 	secret := &corev1.Secret{}
 	if err = reader.Get(ctx, key, secret); err != nil {
 		return nil, err

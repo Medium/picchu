@@ -42,7 +42,6 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, cluster *
 				return err
 			}
 		}
-		log.Info("list", "list", list)
 		for _, item := range list.GetItems() {
 			kind := utils.MustGetKind(item)
 			log.Info("Deleting remote resource",

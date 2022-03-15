@@ -54,7 +54,6 @@ func (o *ClusterObserver) Observe(ctx context.Context, namespace string) (*Obser
 	obs := &Observation{
 		ReplicaSets: replicaSets,
 	}
-	o.log.Info("Cluster state", "Observation", obs)
 	return obs, nil
 }
 

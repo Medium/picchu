@@ -159,12 +159,7 @@ func (s *DeploymentStateManager) tick(ctx context.Context) error {
 		return err
 	}
 	s.deployment.setState(string(nextState))
-	s.deployment.getLog().Info(
-		"Advanced state",
-		"current", string(nextState),
-		"previous", currentState,
-		"stateChanged", string(nextState) != currentState,
-	)
+
 	return nil
 }
 

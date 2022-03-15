@@ -117,12 +117,10 @@ func (r *ResourceSyncer) del(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan) error {
-	r.log.Info("Applying plan", "Name", name, "Plan", p)
 	return r.planApplier.Apply(ctx, p)
 }
 
 func (r *ResourceSyncer) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
-	r.log.Info("Applying delivery plan", "Name", name, "Plan", p)
 	return r.deliveryApplier.Apply(ctx, p)
 }
 
@@ -154,7 +152,6 @@ func (r *ResourceSyncer) reportMetrics() error {
 			lastUpdated = &incarnation.status.State.LastUpdated.Time
 			age = time.Since(*lastUpdated).Seconds()
 		}
-		r.log.Info("Computing state age", "lastUpdated", lastUpdated, "state", current, "age", age)
 		if oldest, ok := oldestIncarnationsInState[current]; !ok || oldest < age {
 			oldestIncarnationsInState[current] = age
 		}
@@ -179,8 +176,6 @@ func (r *ResourceSyncer) reportMetrics() error {
 }
 
 func (r *ResourceSyncer) tickIncarnations(ctx context.Context) error {
-	r.log.Info("Incarnation count", "count", len(r.incarnations.sorted()))
-
 	for _, incarnation := range r.incarnations.sorted() {
 		var lastUpdated *time.Time
 		if incarnation.status.State.LastUpdated != nil {
@@ -473,12 +468,6 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 		oldCurrentPercent := status.CurrentPercent
 
 		if firstNonCanary == -1 && incarnation.isRamping {
-			r.log.Info(
-				"Found first ramping release",
-				"firstNonCanary", i,
-				"Tag", incarnation.tag,
-				"currentState", status.State.Current,
-			)
 			firstNonCanary = i
 			firstNonCanaryTag = incarnation.tag
 		}
@@ -499,16 +488,6 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 			panic("Assertion failed")
 		}
 		incarnation.updateCurrentPercent(currentPercent)
-		r.log.Info(
-			"Updated incarnation CurrentPercent",
-			"Tag", incarnation.tag,
-			"oldCurrentPercent", oldCurrentPercent,
-			"currentPercent", currentPercent,
-			"weightChanged", currentPercent != oldCurrentPercent,
-			"desiredReplicas", status.Scale.Desired,
-			"currentReplicas", status.Scale.Current,
-			"currentState", status.State.Current,
-		)
 
 		percRemaining -= currentPercent
 
