@@ -2,8 +2,9 @@ package plan
 
 import (
 	"context"
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"reflect"
+
+	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,12 +31,6 @@ func (p *compositePlan) Apply(ctx context.Context, cli client.Client, cluster *p
 		plan := p.plans[i]
 		planType := reflect.TypeOf(plan).Elem()
 
-		switch v := plan.(type) {
-		case PrintablePlan:
-			log.Info("Applying Plan", "Plan", v.Printable())
-		default:
-			log.Info("Applying Plan", "Plan", plan)
-		}
 		if err := plan.Apply(ctx, cli, cluster, log.WithValues("Applier", planType.Name())); err != nil {
 			return err
 		}

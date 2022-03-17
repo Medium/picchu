@@ -34,25 +34,21 @@ func LogSync(log logr.Logger, op controllerutil.OperationResult, err error, reso
 			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 			return
 		}
-		log.Info("Sync resource", "Result", "success", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 	case *corev1.Service:
 		if err != nil {
 			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 			return
 		}
-		log.Info("Sync resource", "Result", "success", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 	case *appsv1.ReplicaSet:
 		if err != nil {
 			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 			return
 		}
-		log.Info("Sync resource", "Result", "success", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 	default:
 		if err != nil {
 			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", resource, "Op", op)
 			return
 		}
-		log.Info("Sync resource", "Result", "success", "Kind", kind, "Audit", true, "Resource", resource, "Op", op)
 	}
 }
 

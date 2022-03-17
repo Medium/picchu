@@ -130,7 +130,6 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 	if r.customLogger != nil {
 		reqLogger = r.customLogger
 	}
-	reqLogger.Info("Reconciling Revision")
 
 	// Fetch the Revision instance
 	ctx := context.TODO()
@@ -196,12 +195,6 @@ func (r *ReconcileRevision) Reconcile(request reconcile.Request) (reconcile.Resu
 				}
 				mirrorFailureCounter.With(mLabels).Inc()
 			}
-		}
-	} else {
-		if instance.Spec.DisableMirroring {
-			log.Info("Mirroring disabled")
-		} else {
-			log.Info("Skipping mirroring because revision isn't deployed to any target")
 		}
 	}
 
@@ -284,7 +277,6 @@ func (r *ReconcileRevision) Requeue(log logr.Logger, err error) (reconcile.Resul
 		log.Error(err, "Reconcile resulted in error")
 		return reconcile.Result{}, err
 	}
-	log.Info("Reconciled successfully", "requeue", true, "requeueAfter", r.config.RequeueAfter)
 	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 }
 
@@ -293,7 +285,6 @@ func (r *ReconcileRevision) NoRequeue(log logr.Logger, err error) (reconcile.Res
 		log.Error(err, "Reconcile resulted in error")
 		return reconcile.Result{}, err
 	}
-	log.Info("Reconciled successfully", "requeue", false)
 	return reconcile.Result{}, nil
 }
 

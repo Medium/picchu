@@ -181,10 +181,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	start := time.Now()
 	traceID := uuid.New().String()
 	reqLog := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceID)
-	defer func() {
-		reqLog.Info("Finished releasemanager reconcile", "Elapsed", time.Since(start))
-	}()
-	reqLog.Info("Reconciling ReleaseManager")
 	ctx := context.TODO()
 
 	// Fetch the ReleaseManager instance
@@ -208,7 +204,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 			return r.requeue(rmLog, nil)
 		}
 	}
-	rmLog.Info("Reconciling Existing ReleaseManager")
 
 	if lastUpdated := rm.Status.LastUpdated; lastUpdated != nil {
 		reconcileInterval.With(prometheus.Labels{
@@ -316,7 +311,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	if !rm.IsDeleted() {
-		rmLog.Info("Sync'ing releasemanager")
 		rs, err := syncer.sync(ctx)
 		if err != nil {
 			return r.requeue(rmLog, err)
@@ -365,7 +359,6 @@ func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcil
 
 func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Logger, namespace, fleet, app, target string) (*picchuv1alpha1.RevisionList, error) {
 	fleetLabel := fmt.Sprintf("%s%s", picchuv1alpha1.LabelFleetPrefix, fleet)
-	log.Info("Looking for revisions")
 	listOptions := []client.ListOption{
 		&client.ListOptions{Namespace: namespace},
 		client.MatchingLabels{
@@ -394,8 +387,6 @@ func (r *ReconcileReleaseManager) getRevisions(ctx context.Context, log logr.Log
 }
 
 func (r *ReconcileReleaseManager) getFaults(ctx context.Context, log logr.Logger, namespace, app, target string) ([]picchuv1alpha1.HTTPPortFault, error) {
-	log.Info("Looking for faultInjectors")
-
 	selector, err := labels.Parse(fmt.Sprintf("%s=%s,%s in (,%s)", picchuv1alpha1.LabelApp, app, picchuv1alpha1.LabelTarget, target))
 	if err != nil {
 		log.Error(err, "Failed to parse label requirement")
@@ -428,7 +419,6 @@ func (r *ReconcileReleaseManager) requeue(log logr.Logger, err error) (reconcile
 		log.Error(err, "An error occurred during reconciliation")
 		return reconcile.Result{}, err
 	}
-	log.Info("Requeuing", "duration", r.config.RequeueAfter)
 	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
 }
 
