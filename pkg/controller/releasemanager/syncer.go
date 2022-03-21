@@ -35,6 +35,7 @@ type ResourceSyncer struct {
 	planApplier     plan.Applier
 	observer        observe.Observer
 	instance        *picchuv1alpha1.ReleaseManager
+	revision        *picchuv1alpha1.Revision
 	incarnations    Incarnations
 	reconciler      *ReconcileReleaseManager
 	log             logr.Logger
@@ -164,11 +165,13 @@ func (r *ResourceSyncer) reportMetrics() error {
 			"target": r.instance.Spec.Target,
 			"state":  state,
 		}).Set(float64(numIncarnations))
+
 		if age, ok := oldestIncarnationsInState[state]; ok {
 			incarnationRevisionOldestStateGauge.With(prometheus.Labels{
 				"app":    r.instance.Spec.App,
 				"target": r.instance.Spec.Target,
 				"state":  state,
+				"ref":    r.revision.Spec.App.Ref,
 			}).Set(age)
 		}
 	}
