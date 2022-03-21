@@ -96,7 +96,7 @@ var (
 	incarnationRevisionOldestStateGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_oldest_age_seconds",
 		Help: "The oldest revision in seconds for each state",
-	}, []string{"app", "target", "state". "release_eligible"})
+	}, []string{"app", "target", "state", "release_eligible"})
 	incarnationDeployLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "picchu_deploy_latency",
 		Help:    "track time a revision spends from deploying to deployed",
