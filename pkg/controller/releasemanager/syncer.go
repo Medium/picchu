@@ -2,6 +2,7 @@ package releasemanager
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -166,13 +167,23 @@ func (r *ResourceSyncer) reportMetrics() error {
 			"state":  state,
 		}).Set(float64(numIncarnations))
 
-		if age, ok := oldestIncarnationsInState[state]; ok {
-			incarnationRevisionOldestStateGauge.With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"target": r.instance.Spec.Target,
-				"state":  state,
-				"ref":    r.revision.Spec.App.Ref,
-			}).Set(age)
+		// if ref values = "main"
+
+		r.log.Info("ref %s", r.revision.Spec.App.Ref)
+
+		match, _ := regexp.MatchString("main", r.revision.Spec.App.Ref)
+
+		r.log.Info("match %s", match)
+
+		if match {
+			// set values
+			if age, ok := oldestIncarnationsInState[state]; ok {
+				incarnationRevisionOldestStateGauge.With(prometheus.Labels{
+					"app":    r.instance.Spec.App,
+					"target": r.instance.Spec.Target,
+					"state":  state,
+				}).Set(age)
+			}
 		}
 	}
 	return nil
