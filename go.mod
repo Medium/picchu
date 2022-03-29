@@ -9,7 +9,7 @@ require (
 	github.com/go-logr/logr v0.2.0
 	github.com/go-logr/zapr v0.1.1
 	github.com/go-openapi/spec v0.19.7
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.1.1
 	github.com/operator-framework/operator-sdk v0.13.0
@@ -21,7 +21,7 @@ require (
 	github.com/stretchr/testify v1.6.0
 	go.medium.engineering/kubernetes v0.0.0-20200708143024-6f9f0aae51b2
 	go.uber.org/zap v1.13.0
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	gomodules.xyz/jsonpatch/v2 v2.0.1
 	istio.io/api v0.0.0-20200617184712-fb83ff2d8228
 	istio.io/client-go v0.0.0-20200615164228-d77b0b53b6a0
