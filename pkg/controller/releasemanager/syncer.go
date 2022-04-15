@@ -135,11 +135,13 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 func (r *ResourceSyncer) reportMetrics() error {
 	incarnationsInState := map[string]int{}
 	oldestIncarnationsInState := map[string]float64{}
+	oldestIncarnations := map[string]string{}
 
 	// initialize oldestIncarnationInState with zeros to zero out any non-existant states
 	for _, state := range AllStates {
 		oldestIncarnationsInState[state] = 0
 		incarnationsInState[state] = 0
+		oldestIncarnations[state] = ""
 	}
 
 	for _, incarnation := range r.incarnations.sorted() {
@@ -152,8 +154,10 @@ func (r *ResourceSyncer) reportMetrics() error {
 			lastUpdated = &incarnation.status.State.LastUpdated.Time
 			age = time.Since(*lastUpdated).Seconds()
 		}
+
 		if oldest, ok := oldestIncarnationsInState[current]; !ok || oldest < age {
 			oldestIncarnationsInState[current] = age
+			oldestIncarnations[current] = incarnation.tag
 		}
 
 		incarnation.reportMetrics(r.log)
@@ -166,9 +170,10 @@ func (r *ResourceSyncer) reportMetrics() error {
 		}).Set(float64(numIncarnations))
 		if age, ok := oldestIncarnationsInState[state]; ok {
 			incarnationRevisionOldestStateGauge.With(prometheus.Labels{
-				"app":    r.instance.Spec.App,
-				"target": r.instance.Spec.Target,
-				"state":  state,
+				"app":      r.instance.Spec.App,
+				"target":   r.instance.Spec.Target,
+				"state":    state,
+				"revision": oldestIncarnations[state],
 			}).Set(age)
 		}
 	}
