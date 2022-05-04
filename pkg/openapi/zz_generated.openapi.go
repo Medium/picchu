@@ -51,17 +51,20 @@ func schema_pkg_apis_picchu_v1alpha1_Cluster(ref common.ReferenceCallback) commo
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSpec"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterStatus"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterStatus"),
 						},
 					},
 				},
@@ -95,17 +98,20 @@ func schema_pkg_apis_picchu_v1alpha1_ClusterSecrets(ref common.ReferenceCallback
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretsSpec"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretsSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretsStatus"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretsStatus"),
 						},
 					},
 				},
@@ -125,12 +131,14 @@ func schema_pkg_apis_picchu_v1alpha1_ClusterSecretsSpec(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"source": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretSource"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretSource"),
 						},
 					},
 					"target": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretTarget"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ClusterSecretTarget"),
 						},
 					},
 				},
@@ -161,8 +169,9 @@ func schema_pkg_apis_picchu_v1alpha1_ClusterSecretsStatus(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
 									},
 								},
 							},
@@ -197,17 +206,20 @@ func schema_pkg_apis_picchu_v1alpha1_Mirror(ref common.ReferenceCallback) common
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorSpec"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorStatus"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.MirrorStatus"),
 						},
 					},
 				},
@@ -241,17 +253,20 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManager(ref common.ReferenceCallback
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerSpec"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerStatus"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerStatus"),
 						},
 					},
 				},
@@ -271,29 +286,38 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"fleet": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
 						},
 					},
 					"app": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
 						},
 					},
 					"target": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
 						},
 					},
 					"variants": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "set",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Variant"),
+										Default: map[string]interface{}{},
+										Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.Variant"),
 									},
 								},
 							},
@@ -326,7 +350,8 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerRevisionStatus"),
+										Default: map[string]interface{}{},
+										Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.ReleaseManagerRevisionStatus"),
 									},
 								},
 							},
@@ -369,17 +394,20 @@ func schema_pkg_apis_picchu_v1alpha1_Revision(ref common.ReferenceCallback) comm
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionSpec"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionStatus"),
+							Default: map[string]interface{}{},
+							Ref:     ref("go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1.RevisionStatus"),
 						},
 					},
 				},

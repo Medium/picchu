@@ -8,6 +8,8 @@
 package v1alpha1
 
 import (
+	"reflect"
+
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -35,6 +37,18 @@ func SetObjectDefaults_ClusterList(in *ClusterList) {
 
 func SetObjectDefaults_Revision(in *Revision) {
 	SetDefaults_RevisionSpec(&in.Spec)
+	for i := range in.Spec.Targets {
+		a := &in.Spec.Targets[i]
+		for j := range a.Sidecars {
+			b := &a.Sidecars[j]
+			for k := range b.Ports {
+				c := &b.Ports[k]
+				if reflect.ValueOf(c.Protocol).IsZero() {
+					c.Protocol = "TCP"
+				}
+			}
+		}
+	}
 }
 
 func SetObjectDefaults_RevisionList(in *RevisionList) {

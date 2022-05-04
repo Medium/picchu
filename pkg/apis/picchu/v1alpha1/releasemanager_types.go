@@ -34,9 +34,10 @@ type ReleaseManagerList struct {
 // ReleaseManagerSpec defines the desired state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerSpec struct {
-	Fleet    string    `json:"fleet"`
-	App      string    `json:"app"`
-	Target   string    `json:"target"`
+	Fleet  string `json:"fleet"`
+	App    string `json:"app"`
+	Target string `json:"target"`
+	// +listType=set
 	Variants []Variant `json:"variants,omitempty"`
 }
 
