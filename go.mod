@@ -1,6 +1,6 @@
 module go.medium.engineering/picchu
 
-go 1.14
+go 1.16
 
 require (
 	github.com/Medium/service-level-operator v0.3.1-0.20200128160720-77476ad50a61
