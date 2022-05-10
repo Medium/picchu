@@ -38,10 +38,10 @@ type ReleaseManagerSpec struct {
 	App    string `json:"app"`
 	Target string `json:"target"`
 	// +listType=map
+	// +listMapKey=name
 	Variants []Variant `json:"variants,omitempty"`
 }
 
-// +listMapKey=name
 type Variant struct {
 	Name    string `json:"name"`
 	Enabled bool   `json:"enabled"`
@@ -51,11 +51,11 @@ type Variant struct {
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
 	// +listType=map
+	// +listMapKey=tag
 	Revisions   []ReleaseManagerRevisionStatus `json:"revisions,omitempty"`
 	LastUpdated *metav1.Time                   `json:"lastUpdated"`
 }
 
-// +listMapKey=tag
 type ReleaseManagerRevisionStatus struct {
 	Tag                          string                              `json:"tag"`
 	State                        ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
