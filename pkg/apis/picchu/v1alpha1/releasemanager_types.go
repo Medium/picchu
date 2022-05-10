@@ -40,7 +40,7 @@ type ReleaseManagerSpec struct {
 	// +listType=set
 	Variants []Variant `json:"variants,omitempty"`
 }
-// +mapType=atomic
+// +structType=atomic
 type Variant struct {
 	Name    string `json:"name"`
 	Enabled bool   `json:"enabled"`
@@ -54,7 +54,7 @@ type ReleaseManagerStatus struct {
 	LastUpdated *metav1.Time                   `json:"lastUpdated"`
 }
 
-// +mapType=atomic
+// +structType=atomic
 type ReleaseManagerRevisionStatus struct {
 	Tag                          string                              `json:"tag"`
 	State                        ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
