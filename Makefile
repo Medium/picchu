@@ -63,10 +63,7 @@ matcher: generators/matcher-gen
 	$< -i github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1 -p go.medium.engineering/picchu/pkg/test/monitoring/v1
 
 crds: generators/operator-sdk
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
-	go mod tidy
-	go mod vendor
-	controller-gen +crd:allowDangerousTypes=true,crdVersions=v1beta1 paths=./pkg/... output:crd:dir=./deploy/crds output:stdout
+	hack/crd-update.sh $(CONTROLLER_GEN_VERSION)
 
 generators/%: go.sum
 	@mkdir -p generators
