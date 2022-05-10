@@ -57,7 +57,7 @@ spec:
                 - name
                 type: object
               type: array
-              x-kubernetes-list-type: set
+              x-kubernetes-list-type: map
           required:
           - app
           - fleet
@@ -177,7 +177,7 @@ spec:
                 - tag
                 type: object
               type: array
-              x-kubernetes-list-type: set
+              x-kubernetes-list-type: map
           required:
           - lastUpdated
           type: object

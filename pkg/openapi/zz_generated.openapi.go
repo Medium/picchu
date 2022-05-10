@@ -308,7 +308,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 					"variants": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "set",
+								"x-kubernetes-list-type": "map",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
@@ -342,7 +342,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref common.ReferenceCa
 					"revisions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "set",
+								"x-kubernetes-list-type": "map",
 							},
 						},
 						SchemaProps: spec.SchemaProps{

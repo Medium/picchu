@@ -37,10 +37,11 @@ type ReleaseManagerSpec struct {
 	Fleet  string `json:"fleet"`
 	App    string `json:"app"`
 	Target string `json:"target"`
-	// +listType=set
+	// +listType=map
 	Variants []Variant `json:"variants,omitempty"`
 }
-// +structType=atomic
+
+// +listMapKey=name
 type Variant struct {
 	Name    string `json:"name"`
 	Enabled bool   `json:"enabled"`
@@ -49,12 +50,12 @@ type Variant struct {
 // ReleaseManagerStatus defines the observed state of ReleaseManager
 // +k8s:openapi-gen=true
 type ReleaseManagerStatus struct {
-	// +listType=set
+	// +listType=map
 	Revisions   []ReleaseManagerRevisionStatus `json:"revisions,omitempty"`
 	LastUpdated *metav1.Time                   `json:"lastUpdated"`
 }
 
-// +structType=atomic
+// +listMapKey=tag
 type ReleaseManagerRevisionStatus struct {
 	Tag                          string                              `json:"tag"`
 	State                        ReleaseManagerRevisionStateStatus   `json:"state,omitempty"`
