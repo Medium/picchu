@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.0
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
   name: faultinjectors.picchu.medium.engineering
 spec:
@@ -42,9 +42,57 @@ spec:
                   number
                 properties:
                   fault:
-                    type: Any
+                    description: "HTTPFaultInjection can be used to specify one or
+                      more faults to inject while forwarding HTTP requests to the
+                      destination specified in a route. Fault specification is part
+                      of a VirtualService rule. Faults include aborting the Http request
+                      from downstream service, and/or delaying proxying of requests.
+                      A fault rule MUST HAVE delay or abort or both. \n *Note:* Delay
+                      and abort faults are independent of one another, even if both
+                      are specified simultaneously."
+                    properties:
+                      abort:
+                        description: Abort Http request attempts and return error
+                          codes back to downstream service, giving the impression
+                          that the upstream service is faulty.
+                        properties:
+                          percentage:
+                            description: Percentage of requests to be aborted with
+                              the error code provided.
+                            properties:
+                              value:
+                                type: number
+                            type: object
+                        type: object
+                      delay:
+                        description: Delay requests before forwarding, emulating various
+                          failures such as network issues, overloaded upstream service,
+                          etc.
+                        properties:
+                          percent:
+                            description: Percentage of requests on which the delay
+                              will be injected (0-100). Use of integer `percent` value
+                              is deprecated. Use the double `percentage` field instead.
+                            format: int32
+                            type: integer
+                          percentage:
+                            description: Percentage of requests on which the delay
+                              will be injected.
+                            properties:
+                              value:
+                                type: number
+                            type: object
+                        type: object
+                    type: object
                   portSelector:
-                    type: Any
+                    description: PortSelector specifies the number of a port to be
+                      used for matching or selection for final routing.
+                    properties:
+                      number:
+                        description: Valid port number
+                        format: int32
+                        type: integer
+                    type: object
                 type: object
               type: array
           required:
