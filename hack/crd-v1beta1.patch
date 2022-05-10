@@ -1,0 +1,12 @@
+diff --git a/deploy/crds/picchu.medium.engineering_revisions_crd.yaml b/deploy/crds/picchu.medium.engineering_revisions_crd.yaml
+index fedc530..65617f0 100644
+--- a/deploy/crds/picchu.medium.engineering_revisions_crd.yaml
++++ b/deploy/crds/picchu.medium.engineering_revisions_crd.yaml
+@@ -3632,6 +3632,7 @@ spec:
+                                 type: string
+                             required:
+                             - containerPort
++                            - protocol
+                             type: object
+                           type: array
+                           x-kubernetes-list-map-keys:
