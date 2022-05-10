@@ -1,7 +1,0 @@
-apiVersion: picchu.medium.engineering/v1alpha1
-kind: FaultInjector
-metadata:
-  name: example-faultinjector
-spec:
-  # Add fields here
-  size: 3

@@ -8,6 +8,7 @@ GROUPS := picchu/v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 OPERATOR_SDK_VERSION := v0.18.0
+CONTROLLER_GEN_VERSION := v0.4.0
 
 platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))
@@ -62,7 +63,10 @@ matcher: generators/matcher-gen
 	$< -i github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1 -p go.medium.engineering/picchu/pkg/test/monitoring/v1
 
 crds: generators/operator-sdk
-	$< generate crds
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
+	go mod tidy
+	go mod vendor
+	controller-gen +crd:allowDangerousTypes=true,crdVersions=v1beta1 paths=./pkg/... output:crd:dir=./deploy/crds output:stdout
 
 generators/%: go.sum
 	@mkdir -p generators

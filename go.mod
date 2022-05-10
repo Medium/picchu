@@ -64,4 +64,5 @@ replace (
 	k8s.io/metrics => k8s.io/metrics v0.20.0
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.20.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.6.0
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.4.0
 )
