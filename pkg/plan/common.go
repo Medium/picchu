@@ -8,7 +8,8 @@ import (
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/utils"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
@@ -256,9 +257,9 @@ func CreateOrUpdate(
 		if err != nil {
 			return err
 		}
-	case *slov1alpha1.ServiceLevel:
+	case *slov1.PrometheusServiceLevel:
 		typed := orig.DeepCopy()
-		sl := &slov1alpha1.ServiceLevel{
+		sl := &slov1.PrometheusServiceLevel{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      typed.Name,
 				Namespace: typed.Namespace,
