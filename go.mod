@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/Medium/service-level-operator v0.3.1-0.20200128160720-77476ad50a61
+	github.com/slok/sloth v0.10.0
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/coreos/prometheus-operator v0.38.1
 	github.com/go-logr/logr v0.2.0
