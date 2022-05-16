@@ -3,9 +3,10 @@ package plan
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -17,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -71,7 +73,7 @@ func resourceDiff(expected, actual runtime.Object) (string, error) {
 	return diff.LineDiff(eYaml, aYaml), nil
 }
 
-func K8sEqual(expected runtime.Object) gomock.Matcher {
+func K8sEqual(expected client.Object) gomock.Matcher {
 	description := "nil"
 	if expected != nil {
 		yaml, err := encodeResource(expected)
@@ -83,7 +85,7 @@ func K8sEqual(expected runtime.Object) gomock.Matcher {
 	}
 	return mocks.Callback(func(x interface{}) bool {
 		switch o := x.(type) {
-		case runtime.Object:
+		case client.Object:
 			r := reflect.DeepEqual(expected, o)
 			if !r && utils.MustGetKind(expected) == utils.MustGetKind(o) {
 				diff, err := resourceDiff(expected, o)

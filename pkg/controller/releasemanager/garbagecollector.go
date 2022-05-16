@@ -3,8 +3,9 @@ package releasemanager
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/controller/releasemanager/garbagecollector"
@@ -44,14 +45,12 @@ func markDeletable(ctx context.Context, log logr.Logger, cli client.Client, inca
 		return nil
 	}
 
-	key, err := client.ObjectKeyFromObject(incarnation.revision)
-	if err != nil {
-		return err
-	}
+	key := client.ObjectKeyFromObject(incarnation.revision)
+
 	// Get fresh copy of revision so there aren't any write conflicts due to concurrent revision_controller
 	// TODO(bob): retry on conflict?
 	revision := &picchu.Revision{}
-	err = cli.Get(ctx, key, revision)
+	err := cli.Get(ctx, key, revision)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

@@ -104,7 +104,7 @@ func (c *FakeMirrors) UpdateStatus(ctx context.Context, mirror *v1alpha1.Mirror,
 // Delete takes name of the mirror and deletes it. Returns an error if one occurs.
 func (c *FakeMirrors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(mirrorsResource, c.ns, name), &v1alpha1.Mirror{})
+		Invokes(testing.NewDeleteActionWithOptions(mirrorsResource, c.ns, name, opts), &v1alpha1.Mirror{})
 
 	return err
 }

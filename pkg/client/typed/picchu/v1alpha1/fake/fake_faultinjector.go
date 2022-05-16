@@ -104,7 +104,7 @@ func (c *FakeFaultInjectors) UpdateStatus(ctx context.Context, faultInjector *v1
 // Delete takes name of the faultInjector and deletes it. Returns an error if one occurs.
 func (c *FakeFaultInjectors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(faultinjectorsResource, c.ns, name), &v1alpha1.FaultInjector{})
+		Invokes(testing.NewDeleteActionWithOptions(faultinjectorsResource, c.ns, name, opts), &v1alpha1.FaultInjector{})
 
 	return err
 }

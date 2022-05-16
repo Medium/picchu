@@ -12,8 +12,6 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -32,15 +30,13 @@ func checkCache(key client.ObjectKey) (client.Client, bool) {
 
 // RemoteClient creates a k8s client from a cluster object.
 func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
-	key, err := client.ObjectKeyFromObject(cluster)
-	if err != nil {
-		return nil, err
-	}
+	key := client.ObjectKeyFromObject(cluster)
+
 	if client, ok := checkCache(key); ok {
 		return client, nil
 	}
 	secret := &corev1.Secret{}
-	if err = reader.Get(ctx, key, secret); err != nil {
+	if err := reader.Get(ctx, key, secret); err != nil {
 		return nil, err
 	}
 	config, err := cluster.Config(secret)
@@ -63,11 +59,11 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 }
 
 // UpdateStatus first tries new method of status update, and falls back to old.
-func UpdateStatus(ctx context.Context, client client.Client, obj runtime.Object) error {
+func UpdateStatus(ctx context.Context, client client.Client, obj client.Object) error {
 	return client.Status().Update(ctx, obj)
 }
 
-func MustGetKind(obj runtime.Object) schema.GroupVersionKind {
+func MustGetKind(obj client.Object) schema.GroupVersionKind {
 	kinds, _, err := scheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		fmt.Printf("Failed to get kind for (%#v)\n", obj)
@@ -79,7 +75,7 @@ func MustGetKind(obj runtime.Object) schema.GroupVersionKind {
 	return kinds[0]
 }
 
-func DeleteIfExists(ctx context.Context, cli client.Client, obj runtime.Object) error {
+func DeleteIfExists(ctx context.Context, cli client.Client, obj client.Object) error {
 	err := cli.Delete(ctx, obj)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
@@ -88,10 +84,11 @@ func DeleteIfExists(ctx context.Context, cli client.Client, obj runtime.Object) 
 }
 
 // MustExtractList panics if the object isn't a list
-func MustExtractList(obj runtime.Object) []runtime.Object {
-	list, err := meta.ExtractList(obj)
-	if err != nil {
-		panic(err)
-	}
-	return list
-}
+//func MustExtractList(obj client.Object) []client.Object {
+//	list, err := meta.ExtractList(obj)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return list
+//}
+//

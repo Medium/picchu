@@ -6,7 +6,7 @@ import (
 	v1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	assert "github.com/stretchr/testify/assert"
 	test "go.medium.engineering/kubernetes/pkg/test"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -18,55 +18,55 @@ func init() {
 
 func RegisterAsserts(comparator *test.Comparator) {
 	comparator.RegisterForType(&v1.Alertmanager{}, test.TypedAsserts{
-		Match: func(t *testing.T, a, b runtime.Object) {
+		Match: func(t *testing.T, a, b client.Object) {
 			Match_Alertmanager(t, a.(*v1.Alertmanager), b.(*v1.Alertmanager))
 		},
-		NoMatch: func(t *testing.T, a, b runtime.Object) {
+		NoMatch: func(t *testing.T, a, b client.Object) {
 			NoMatch_Alertmanager(t, a.(*v1.Alertmanager), b.(*v1.Alertmanager))
 		},
 	})
 
 	comparator.RegisterForType(&v1.PodMonitor{}, test.TypedAsserts{
-		Match: func(t *testing.T, a, b runtime.Object) {
+		Match: func(t *testing.T, a, b client.Object) {
 			Match_PodMonitor(t, a.(*v1.PodMonitor), b.(*v1.PodMonitor))
 		},
-		NoMatch: func(t *testing.T, a, b runtime.Object) {
+		NoMatch: func(t *testing.T, a, b client.Object) {
 			NoMatch_PodMonitor(t, a.(*v1.PodMonitor), b.(*v1.PodMonitor))
 		},
 	})
 
 	comparator.RegisterForType(&v1.Prometheus{}, test.TypedAsserts{
-		Match: func(t *testing.T, a, b runtime.Object) {
+		Match: func(t *testing.T, a, b client.Object) {
 			Match_Prometheus(t, a.(*v1.Prometheus), b.(*v1.Prometheus))
 		},
-		NoMatch: func(t *testing.T, a, b runtime.Object) {
+		NoMatch: func(t *testing.T, a, b client.Object) {
 			NoMatch_Prometheus(t, a.(*v1.Prometheus), b.(*v1.Prometheus))
 		},
 	})
 
 	comparator.RegisterForType(&v1.PrometheusRule{}, test.TypedAsserts{
-		Match: func(t *testing.T, a, b runtime.Object) {
+		Match: func(t *testing.T, a, b client.Object) {
 			Match_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
 		},
-		NoMatch: func(t *testing.T, a, b runtime.Object) {
+		NoMatch: func(t *testing.T, a, b client.Object) {
 			NoMatch_PrometheusRule(t, a.(*v1.PrometheusRule), b.(*v1.PrometheusRule))
 		},
 	})
 
 	comparator.RegisterForType(&v1.ServiceMonitor{}, test.TypedAsserts{
-		Match: func(t *testing.T, a, b runtime.Object) {
+		Match: func(t *testing.T, a, b client.Object) {
 			Match_ServiceMonitor(t, a.(*v1.ServiceMonitor), b.(*v1.ServiceMonitor))
 		},
-		NoMatch: func(t *testing.T, a, b runtime.Object) {
+		NoMatch: func(t *testing.T, a, b client.Object) {
 			NoMatch_ServiceMonitor(t, a.(*v1.ServiceMonitor), b.(*v1.ServiceMonitor))
 		},
 	})
 
 	comparator.RegisterForType(&v1.ThanosRuler{}, test.TypedAsserts{
-		Match: func(t *testing.T, a, b runtime.Object) {
+		Match: func(t *testing.T, a, b client.Object) {
 			Match_ThanosRuler(t, a.(*v1.ThanosRuler), b.(*v1.ThanosRuler))
 		},
-		NoMatch: func(t *testing.T, a, b runtime.Object) {
+		NoMatch: func(t *testing.T, a, b client.Object) {
 			NoMatch_ThanosRuler(t, a.(*v1.ThanosRuler), b.(*v1.ThanosRuler))
 		},
 	})

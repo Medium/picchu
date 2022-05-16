@@ -15,7 +15,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var (
@@ -125,7 +124,7 @@ func TestTaggedServiceLevels(t *testing.T) {
 	}
 
 	for i := range sltaggedexpected.Items {
-		for _, obj := range []runtime.Object{
+		for _, obj := range []client.Object{
 			&sltaggedexpected.Items[i],
 		} {
 			m.

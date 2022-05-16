@@ -82,11 +82,9 @@ func Kind(k string) gomock.Matcher {
 func NamespacedName(namespace, name string) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
-		case runtime.Object:
-			key, err := client.ObjectKeyFromObject(o)
-			if err != nil {
-				return false
-			}
+		case client.Object:
+			key := client.ObjectKeyFromObject(o)
+
 			return key.Namespace == namespace &&
 				key.Name == name
 		default:

@@ -8,7 +8,7 @@ GROUPS := picchu/v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 OPERATOR_SDK_VERSION := v0.18.0
-CONTROLLER_GEN_VERSION := v0.4.1
+CONTROLLER_GEN_VERSION := v0.11.0
 
 platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))

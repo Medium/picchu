@@ -26,7 +26,7 @@ type NoChangeNeededError error
 
 var ErrNoChangeNeeded = NoChangeNeededError(errors.New("no change needed"))
 
-func LogSync(log logr.Logger, op controllerutil.OperationResult, err error, resource runtime.Object) {
+func LogSync(log logr.Logger, op controllerutil.OperationResult, err error, resource client.Object) {
 	kind := utils.MustGetKind(resource).Kind
 	switch obj := resource.(type) {
 	case *autoscaling.HorizontalPodAutoscaler:

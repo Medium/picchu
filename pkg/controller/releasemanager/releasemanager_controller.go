@@ -177,11 +177,10 @@ type ReconcileReleaseManager struct {
 
 // Reconcile reads that state of the cluster for a ReleaseManager object and makes changes based on the state read
 // and what is in the ReleaseManager.Spec
-func (r *ReconcileReleaseManager) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileReleaseManager) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	start := time.Now()
 	traceID := uuid.New().String()
 	reqLog := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceID)
-	ctx := context.TODO()
 
 	// Fetch the ReleaseManager instance
 	rm := &picchuv1alpha1.ReleaseManager{}

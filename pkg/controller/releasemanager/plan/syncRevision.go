@@ -30,7 +30,7 @@ var (
 // TODO(bob): Move to Revision spec
 func init() {
 	defaultLivenessProbe = &corev1.Probe{
-		Handler: corev1.Handler{
+		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/running",
 				Port: intstr.FromString("status"),
@@ -44,7 +44,7 @@ func init() {
 	}
 
 	defaultReadinessProbe = &corev1.Probe{
-		Handler: corev1.Handler{
+		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/running",
 				Port: intstr.FromString("status"),

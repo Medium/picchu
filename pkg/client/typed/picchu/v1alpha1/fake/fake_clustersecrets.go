@@ -104,7 +104,7 @@ func (c *FakeClusterSecretses) UpdateStatus(ctx context.Context, clusterSecrets 
 // Delete takes name of the clusterSecrets and deletes it. Returns an error if one occurs.
 func (c *FakeClusterSecretses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(clustersecretsesResource, c.ns, name), &v1alpha1.ClusterSecrets{})
+		Invokes(testing.NewDeleteActionWithOptions(clustersecretsesResource, c.ns, name, opts), &v1alpha1.ClusterSecrets{})
 
 	return err
 }

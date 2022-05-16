@@ -14,7 +14,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -166,7 +165,7 @@ func TestSyncServiceMonitors(t *testing.T) {
 	}
 
 	for i := range smexpected.Items {
-		for _, obj := range []runtime.Object{
+		for _, obj := range []client.Object{
 			smexpected.Items[i],
 		} {
 			m.

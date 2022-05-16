@@ -16,7 +16,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -110,7 +109,7 @@ func TestSLORules(t *testing.T) {
 	}
 
 	for i := range slorexpected.Items {
-		for _, obj := range []runtime.Object{
+		for _, obj := range []client.Object{
 			slorexpected.Items[i],
 		} {
 			m.

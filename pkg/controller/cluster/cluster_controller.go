@@ -65,12 +65,12 @@ type ReconcileCluster struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileCluster) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 
 	// Fetch the Cluster instance
 	instance := &picchuv1alpha1.Cluster{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.client.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -87,7 +87,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	if !instance.IsDeleted() {
 		if instance.IsFinalized() {
 			instance.AddFinalizer()
-			return reconcile.Result{Requeue: true}, r.client.Update(context.TODO(), instance)
+			return reconcile.Result{Requeue: true}, r.client.Update(ctx, instance)
 		}
 		if !instance.Spec.Enabled {
 			reqLogger.Info("Disabled, no status")
@@ -98,7 +98,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 				Name:      instance.Name,
 				Namespace: instance.Namespace,
 			}
-			err = r.client.Get(context.TODO(), selector, secret)
+			err = r.client.Get(ctx, selector, secret)
 			if err != nil {
 				secret = nil
 			}
@@ -123,7 +123,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 				}
 			}
 		}
-		err = utils.UpdateStatus(context.TODO(), r.client, instance)
+		err = utils.UpdateStatus(ctx, r.client, instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update Cluster status")
 			return reconcile.Result{}, err
@@ -132,7 +132,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	if !instance.IsFinalized() {
 		instance.Finalize()
-		return reconcile.Result{}, r.client.Update(context.TODO(), instance)
+		return reconcile.Result{}, r.client.Update(ctx, instance)
 	}
 	return reconcile.Result{}, nil
 }
