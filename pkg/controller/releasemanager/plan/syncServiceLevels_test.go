@@ -11,7 +11,8 @@ import (
 	"go.medium.engineering/picchu/pkg/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,8 +57,8 @@ var (
 		}},
 	}
 
-	slexpected = &slov1alpha1.ServiceLevelList{
-		Items: []slov1alpha1.ServiceLevel{
+	slexpected = &slov1.PrometheusServiceLevelList{
+		Items: []slov1.PrometheusServiceLevel{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app-production-servicelevels",
@@ -67,28 +68,22 @@ var (
 						picchuv1alpha1.LabelK8sName: "test-app",
 					},
 				},
-				Spec: slov1alpha1.ServiceLevelSpec{
-					ServiceLevelName: "test-app",
-					ServiceLevelObjectives: []slov1alpha1.SLO{
+				Spec: slov1.PrometheusServiceLevelSpec{
+					Service: "test-app",
+					SLOs: []slov1.SLO{
 						{
-							Name:                         "test_app_availability",
-							AvailabilityObjectivePercent: 99.999,
-							Description:                  "test desc",
-							Disable:                      false,
-							Output: slov1alpha1.Output{
-								Prometheus: &slov1alpha1.PrometheusOutputSource{
-									Labels: map[string]string{
-										"severity": "test",
-										"team":     "test",
-									},
-								},
+							Name:        "test_app_availability",
+							Objective:   99.999,
+							Description: "test desc",
+							// Disable:                      false,
+							Labels: map[string]string{
+								"severity": "test",
+								"team":     "test",
 							},
-							ServiceLevelIndicator: slov1alpha1.SLI{
-								SLISource: slov1alpha1.SLISource{
-									Prometheus: &slov1alpha1.PrometheusSLISource{
-										ErrorQuery: "sum(test_app:test_app_availability:errors)",
-										TotalQuery: "sum(test_app:test_app_availability:total)",
-									},
+							SLI: slov1.SLI{
+								Events: &slov1.SLIEvents{
+									ErrorQuery: "sum(test_app:test_app_availability:errors)",
+									TotalQuery: "sum(test_app:test_app_availability:total)",
 								},
 							},
 						},
