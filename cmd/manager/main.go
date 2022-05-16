@@ -9,7 +9,6 @@ import (
 	"runtime/debug"
 	"time"
 
-	slo "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	monitoring "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -17,6 +16,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+	slo "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	"github.com/spf13/pflag"
 	"go.medium.engineering/picchu/pkg/apis"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"

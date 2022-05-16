@@ -6,33 +6,33 @@ require (
 	github.com/Medium/service-level-operator v0.3.1-0.20200128160720-77476ad50a61
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/coreos/prometheus-operator v0.38.1
-	github.com/go-logr/logr v0.2.0
+	github.com/go-logr/logr v1.2.0
 	github.com/go-logr/zapr v0.1.1
 	github.com/go-openapi/spec v0.19.7
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.3.0
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v2.3.2+incompatible
 	github.com/sirupsen/logrus v1.8.1
+	github.com/slok/sloth v0.10.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	go.medium.engineering/kubernetes v0.0.0-20200708143024-6f9f0aae51b2
 	go.uber.org/zap v1.13.0
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gomodules.xyz/jsonpatch/v2 v2.0.1
 	istio.io/api v0.0.0-20200617184712-fb83ff2d8228
 	istio.io/client-go v0.0.0-20200615164228-d77b0b53b6a0
-	k8s.io/api v0.21.1
-	k8s.io/apiextensions-apiserver v0.18.3 // indirect
-	k8s.io/apimachinery v0.21.1
+	k8s.io/api v0.23.0
+	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.18.3
-	k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29
-	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451
+	k8s.io/kube-openapi v0.0.0-20220413171646-5e7f5fdc6da6
+	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/controller-runtime v0.6.0
 )
 
