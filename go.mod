@@ -14,8 +14,8 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9
-	github.com/prometheus/client_golang v1.12.1
-	github.com/prometheus/common v0.34.0
+	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v2.3.2+incompatible
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
