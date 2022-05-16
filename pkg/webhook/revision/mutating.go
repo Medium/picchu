@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/prometheus/common/log"
+	// "github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
