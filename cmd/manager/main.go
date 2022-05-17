@@ -64,7 +64,7 @@ func main() {
 	prometheusQueryTTL := pflag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
 	humaneReleasesEnabled := pflag.Bool("humane-releases-enabled", true, "Release apps on the humane schedule")
 	prometheusEnabled := pflag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
-	serviceLevelsNamespace := pflag.String("service-levels-namespace", "service-levels", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
+	serviceLevelsNamespace := pflag.String("service-levels-namespace", "service-level-objectives", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
 	serviceLevelsFleet := pflag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 	concurrentRevisions := pflag.Int("concurrent-revisions", 20, "How many concurrent revisions to reconcile")
 	concurrentReleaseManagers := pflag.Int("concurrent-release-managers", 50, "How many concurrent release managers to reconcile")
