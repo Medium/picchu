@@ -96,7 +96,7 @@ fix:
 
 mocks: go.sum
 	@mkdir -p generators
-	go get github.com/golang/mock/mockgen
+	go install github.com/golang/mock/mockgen
 	mockgen -destination=pkg/mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
 	mockgen -destination=pkg/prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
 	mockgen -destination=pkg/controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controller/releasemanager Deployment

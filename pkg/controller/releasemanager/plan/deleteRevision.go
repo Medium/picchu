@@ -33,7 +33,7 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, cluster *
 	}
 
 	for _, list := range lists {
-		if err := cli.List(ctx, list.GetList(), opts); err != nil {
+		if err := cli.List(ctx, list.GetList().(client.ObjectList), opts); err != nil {
 			switch err.(type) {
 			case *meta.NoKindMatchError:
 				continue
@@ -48,7 +48,7 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, cluster *
 				"Item.Kind", kind,
 				"Item", item,
 			)
-			if err := cli.Delete(ctx, item); err != nil {
+			if err := cli.Delete(ctx, item.(client.Object)); err != nil {
 				log.Error(err, "Failed to delete resource", "labels", p.Labels, "Resource", list)
 				return err
 			}

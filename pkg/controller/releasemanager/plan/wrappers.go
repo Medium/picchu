@@ -5,12 +5,12 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type List interface {
-	GetItems() []runtime.Object
-	GetList() runtime.Object
+	GetItems() []client.Object
+	GetList() client.ObjectList
 }
 
 type SecretList struct {
@@ -53,57 +53,57 @@ func NewWorkerPodAutoscalerList() *WorkerPodAutoscalerList {
 	return &WorkerPodAutoscalerList{&wpav1.WorkerPodAutoScalerList{}}
 }
 
-func (s *SecretList) GetItems() (r []runtime.Object) {
+func (s *SecretList) GetItems() (r []client.Object) {
 	for _, i := range s.Item.Items {
 		r = append(r, &i)
 	}
 	return
 }
 
-func (s *ConfigMapList) GetItems() (r []runtime.Object) {
+func (s *ConfigMapList) GetItems() (r []client.Object) {
 	for _, i := range s.Item.Items {
 		r = append(r, &i)
 	}
 	return
 }
 
-func (s *ReplicaSetList) GetItems() (r []runtime.Object) {
+func (s *ReplicaSetList) GetItems() (r []client.Object) {
 	for _, i := range s.Item.Items {
 		r = append(r, &i)
 	}
 	return
 }
 
-func (s *HorizontalPodAutoscalerList) GetItems() (r []runtime.Object) {
+func (s *HorizontalPodAutoscalerList) GetItems() (r []client.Object) {
 	for _, i := range s.Item.Items {
 		r = append(r, &i)
 	}
 	return
 }
 
-func (s *WorkerPodAutoscalerList) GetItems() (r []runtime.Object) {
+func (s *WorkerPodAutoscalerList) GetItems() (r []client.Object) {
 	for _, i := range s.Item.Items {
 		r = append(r, &i)
 	}
 	return
 }
 
-func (s *SecretList) GetList() (r runtime.Object) {
+func (s *SecretList) GetList() (r client.ObjectList) {
 	return s.Item
 }
 
-func (s *ConfigMapList) GetList() (r runtime.Object) {
+func (s *ConfigMapList) GetList() (r client.ObjectList) {
 	return s.Item
 }
 
-func (s *ReplicaSetList) GetList() (r runtime.Object) {
+func (s *ReplicaSetList) GetList() (r client.ObjectList) {
 	return s.Item
 }
 
-func (s *HorizontalPodAutoscalerList) GetList() (r runtime.Object) {
+func (s *HorizontalPodAutoscalerList) GetList() (r client.ObjectList) {
 	return s.Item
 }
 
-func (s *WorkerPodAutoscalerList) GetList() (r runtime.Object) {
+func (s *WorkerPodAutoscalerList) GetList() (r client.ObjectList) {
 	return s.Item
 }

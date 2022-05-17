@@ -6,6 +6,8 @@
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -26,7 +28,7 @@ var faultinjectorsResource = schema.GroupVersionResource{Group: "picchu.medium.e
 var faultinjectorsKind = schema.GroupVersionKind{Group: "picchu.medium.engineering", Version: "v1alpha1", Kind: "FaultInjector"}
 
 // Get takes name of the faultInjector, and returns the corresponding faultInjector object, and an error if there is any.
-func (c *FakeFaultInjectors) Get(name string, options v1.GetOptions) (result *v1alpha1.FaultInjector, err error) {
+func (c *FakeFaultInjectors) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.FaultInjector, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(faultinjectorsResource, c.ns, name), &v1alpha1.FaultInjector{})
 
@@ -37,7 +39,7 @@ func (c *FakeFaultInjectors) Get(name string, options v1.GetOptions) (result *v1
 }
 
 // List takes label and field selectors, and returns the list of FaultInjectors that match those selectors.
-func (c *FakeFaultInjectors) List(opts v1.ListOptions) (result *v1alpha1.FaultInjectorList, err error) {
+func (c *FakeFaultInjectors) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.FaultInjectorList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(faultinjectorsResource, faultinjectorsKind, c.ns, opts), &v1alpha1.FaultInjectorList{})
 
@@ -59,14 +61,14 @@ func (c *FakeFaultInjectors) List(opts v1.ListOptions) (result *v1alpha1.FaultIn
 }
 
 // Watch returns a watch.Interface that watches the requested faultInjectors.
-func (c *FakeFaultInjectors) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeFaultInjectors) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(faultinjectorsResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a faultInjector and creates it.  Returns the server's representation of the faultInjector, and an error, if there is any.
-func (c *FakeFaultInjectors) Create(faultInjector *v1alpha1.FaultInjector) (result *v1alpha1.FaultInjector, err error) {
+func (c *FakeFaultInjectors) Create(ctx context.Context, faultInjector *v1alpha1.FaultInjector, opts v1.CreateOptions) (result *v1alpha1.FaultInjector, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(faultinjectorsResource, c.ns, faultInjector), &v1alpha1.FaultInjector{})
 
@@ -77,7 +79,7 @@ func (c *FakeFaultInjectors) Create(faultInjector *v1alpha1.FaultInjector) (resu
 }
 
 // Update takes the representation of a faultInjector and updates it. Returns the server's representation of the faultInjector, and an error, if there is any.
-func (c *FakeFaultInjectors) Update(faultInjector *v1alpha1.FaultInjector) (result *v1alpha1.FaultInjector, err error) {
+func (c *FakeFaultInjectors) Update(ctx context.Context, faultInjector *v1alpha1.FaultInjector, opts v1.UpdateOptions) (result *v1alpha1.FaultInjector, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(faultinjectorsResource, c.ns, faultInjector), &v1alpha1.FaultInjector{})
 
@@ -89,7 +91,7 @@ func (c *FakeFaultInjectors) Update(faultInjector *v1alpha1.FaultInjector) (resu
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFaultInjectors) UpdateStatus(faultInjector *v1alpha1.FaultInjector) (*v1alpha1.FaultInjector, error) {
+func (c *FakeFaultInjectors) UpdateStatus(ctx context.Context, faultInjector *v1alpha1.FaultInjector, opts v1.UpdateOptions) (*v1alpha1.FaultInjector, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(faultinjectorsResource, "status", c.ns, faultInjector), &v1alpha1.FaultInjector{})
 
@@ -100,23 +102,23 @@ func (c *FakeFaultInjectors) UpdateStatus(faultInjector *v1alpha1.FaultInjector)
 }
 
 // Delete takes name of the faultInjector and deletes it. Returns an error if one occurs.
-func (c *FakeFaultInjectors) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeFaultInjectors) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(faultinjectorsResource, c.ns, name), &v1alpha1.FaultInjector{})
+		Invokes(testing.NewDeleteActionWithOptions(faultinjectorsResource, c.ns, name, opts), &v1alpha1.FaultInjector{})
 
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeFaultInjectors) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(faultinjectorsResource, c.ns, listOptions)
+func (c *FakeFaultInjectors) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(faultinjectorsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.FaultInjectorList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched faultInjector.
-func (c *FakeFaultInjectors) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.FaultInjector, err error) {
+func (c *FakeFaultInjectors) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.FaultInjector, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(faultinjectorsResource, c.ns, name, pt, data, subresources...), &v1alpha1.FaultInjector{})
 

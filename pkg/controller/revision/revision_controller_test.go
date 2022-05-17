@@ -61,7 +61,7 @@ func TestReconcileRevision_Reconcile(t *testing.T) {
 	} {
 		t.Run(test.state, func(t *testing.T) {
 			assert := testify.New(t)
-			fixtures := []runtime.Object{
+			fixtures := []client.Object{
 				&picchu.Revision{
 					ObjectMeta: meta.ObjectMeta{
 						Name:      "rev",
@@ -108,7 +108,8 @@ func TestReconcileRevision_Reconcile(t *testing.T) {
 					},
 				},
 			}
-			cli := fake.NewFakeClientWithScheme(scheme, fixtures...)
+			//cli := fake.NewFakeClientWithScheme(scheme, fixtures...)
+			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(fixtures...).Build()
 			reconciler := ReconcileRevision{
 				client:       cli,
 				scheme:       scheme,
@@ -116,9 +117,9 @@ func TestReconcileRevision_Reconcile(t *testing.T) {
 				promAPI:      prometheus.InjectAPI(m, time.Duration(1)*time.Second),
 				customLogger: log,
 			}
-			key, err := client.ObjectKeyFromObject(fixtures[0])
-			assert.NoError(err)
-			res, err := reconciler.Reconcile(reconcile.Request{NamespacedName: key})
+			key := client.ObjectKeyFromObject(fixtures[0])
+			assert.NotNil(key)
+			res, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 			assert.NoError(err)
 			assert.NotNil(res)
 

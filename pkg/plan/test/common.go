@@ -3,9 +3,11 @@ package plan
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -85,7 +87,7 @@ func K8sEqual(expected runtime.Object) gomock.Matcher {
 		switch o := x.(type) {
 		case runtime.Object:
 			r := reflect.DeepEqual(expected, o)
-			if !r && utils.MustGetKind(expected) == utils.MustGetKind(o) {
+			if !r && utils.MustGetKind(expected.(client.Object)) == utils.MustGetKind(o.(client.Object)) {
 				diff, err := resourceDiff(expected, o)
 				if err != nil {
 					panic(err)

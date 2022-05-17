@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"k8s.io/apimachinery/pkg/runtime"
+	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -83,8 +84,15 @@ func NamespacedName(namespace, name string) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
 		case runtime.Object:
-			key, err := client.ObjectKeyFromObject(o)
-			if err != nil {
+			key := client.ObjectKeyFromObject(o.(client.Object))
+			if (key == types.NamespacedName{}) {
+				return false
+			}
+			return key.Namespace == namespace &&
+				key.Name == name
+		case client.Object:
+			key := client.ObjectKeyFromObject(o)
+			if (key == types.NamespacedName{}) {
 				return false
 			}
 			return key.Namespace == namespace &&
