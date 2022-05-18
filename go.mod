@@ -1,6 +1,6 @@
 module go.medium.engineering/picchu
 
-go 1.14
+go 1.16
 
 require (
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
@@ -25,13 +25,23 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0
 	istio.io/api v0.0.0-20200617184712-fb83ff2d8228
 	istio.io/client-go v0.0.0-20200615164228-d77b0b53b6a0
-	k8s.io/api v0.23.0
-	k8s.io/apimachinery v0.23.0
+	k8s.io/api v0.24.0
+	k8s.io/apimachinery v0.24.0
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.23.0
 	k8s.io/kube-openapi v0.0.0-20220413171646-5e7f5fdc6da6
-	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
+	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/controller-runtime v0.7.0
+)
+
+require (
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
+	golang.org/x/tools v0.1.10-0.20220218145154-897bd77cd717 // indirect
+	k8s.io/apiextensions-apiserver v0.24.0 // indirect
+	k8s.io/klog/v2 v2.60.1 // indirect
+	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 )
 
 // Override dependancy from k8s-worker-pod-autoscaler
