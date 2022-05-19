@@ -2,6 +2,9 @@ package plan
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	test2 "go.medium.engineering/kubernetes/pkg/test"
 	coreAsserts "go.medium.engineering/kubernetes/pkg/test/core/v1"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -11,8 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 var (
@@ -108,7 +109,7 @@ func TestIgnore(t *testing.T) {
 			},
 		},
 		{
-			Name: "UpdateNamepsace",
+			Name: "UpdateNamespace",
 			Existing: &core.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
@@ -132,7 +133,7 @@ func TestIgnore(t *testing.T) {
 			},
 		},
 		{
-			Name: "IgnoreNamepsace",
+			Name: "IgnoreNamespace",
 			Existing: &core.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",

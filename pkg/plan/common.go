@@ -96,6 +96,7 @@ func CreateOrUpdate(
 				return nil
 			}
 			namespace.Labels = CopyStringMap(typed.Labels)
+			namespace.Annotations = CopyStringMap(typed.Annotations)
 			return nil
 		})
 		LogSync(log, op, err, namespace)
