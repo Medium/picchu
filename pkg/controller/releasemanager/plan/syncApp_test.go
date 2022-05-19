@@ -345,8 +345,8 @@ var (
 			Name:      "testapp",
 			Namespace: "testnamespace",
 			Labels: map[string]string{
-				picchuv1alpha1.LabelApp: "testapp",
-				"test":                  "label",
+				//picchuv1alpha1.LabelApp: "testapp",
+				"test": "label",
 			},
 		},
 		Spec: monitoringv1.PrometheusRuleSpec{Groups: []monitoringv1.RuleGroup{
