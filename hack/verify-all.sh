@@ -12,9 +12,9 @@ if [[ -n "${GOFMT_OUT}" || -n "${GIT_STATUS}" ]]; then
     if [[ -n "${GOFMT_OUT}" ]]; then
       echo "${GOFMT_OUT}"
       echo "** gofmt FAILED"
+      git diff ${GOFMT_OUT}
     fi
     if [[ -n "${GIT_STATUS}" ]]; then
-      git diff ${GIT_STATUS}
       echo "${GIT_STATUS}"
       echo "** git status shows changes"
     fi
