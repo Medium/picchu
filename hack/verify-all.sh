@@ -13,6 +13,7 @@ if [[ -n "${GOFMT_OUT}" || -n "${GIT_STATUS}" ]]; then
       echo "${GOFMT_OUT}"
       echo "** gofmt FAILED"
       git diff ${GOFMT_OUT}
+      head ${GOFMT_OUT}
     fi
     if [[ -n "${GIT_STATUS}" ]]; then
       echo "${GIT_STATUS}"
