@@ -6,7 +6,7 @@ set -o pipefail
 set -x
 
 GIT_STATUS="$(git status --porcelain)"
-GOFMT_OUT="$(find ./{pkg,cmd}/ -name '*.go' -not -path './go/vendor/*' -exec gofmt -l -s {} \;)"
+GOFMT_OUT="$(find ./{pkg,cmd}/ -name '*.go' -not -path './go/vendor/*' -exec gofmt -l -s -w {} \;)"
 
 if [[ -n "${GOFMT_OUT}" || -n "${GIT_STATUS}" ]]; then
     if [[ -n "${GOFMT_OUT}" ]]; then
