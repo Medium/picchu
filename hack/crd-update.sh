@@ -11,4 +11,4 @@ find ./vendor/istio.io -type f -exec grep 'protobuf_oneof' -l {} \; -exec perl -
 #Using controller-gen to allow float64 type, no current flag for operator-sdk
 controller-gen --version
 controller-gen +crd:allowDangerousTypes=true,crdVersions=v1,ignoreUnexportedFields=true paths=./pkg/... output:crd:dir=./deploy/crds output:stdout
-for crd in $(find ./deploy/crds -type f|grep -v "_cr[d].yaml$"); do echo $crd; mv $crd ${crd%.yaml}_crd.yaml; done
+for crd in $(find ./deploy/crds -type f|grep -v "_cr[d]*.yaml$"); do echo $crd; mv $crd ${crd%.yaml}_crd.yaml; done
