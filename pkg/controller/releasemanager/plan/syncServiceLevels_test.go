@@ -42,7 +42,7 @@ var (
 			Name:        "test-app-availability",
 			Description: "test desc",
 			Objective:   99.999,
-			SLI: picchuv1alpha1.ServiceLevelIndicator{
+			SLI: picchuv1alpha1.SLI{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
 					AllowancePercent: 1,
