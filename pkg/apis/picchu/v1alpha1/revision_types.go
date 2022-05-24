@@ -147,12 +147,26 @@ type Canary struct {
 
 type ServiceLevelObjective struct {
 	Name                        string                      `json:"name,omitempty"`
-	Annotations                 map[string]string           `json:"annotations,omitempty"`
 	Description                 string                      `json:"description,omitempty"`
-	Enabled                     bool                        `json:"enabled"`
+	Objective                   float64                     `json:"objective"`
 	ObjectivePercentString      string                      `json:"objectivePercentString,omitempty"`
-	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
+	SLI                         ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
+	Alerting                    Alerting                    `json:"alerting"`
+}
+
+type Alerting struct {
+	Name        string            `json:"name,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	PageAlert   Alert             `json:"pageAlert,omitempty"`
+	TicketAlert Alert             `json:"ticketAlert,omitempty"`
+}
+
+type Alert struct {
+	Disable     bool              `json:"disable,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type ServiceLevelObjectiveLabels struct {
@@ -165,8 +179,25 @@ type ServiceLevelIndicator struct {
 	Canary     SLICanaryConfig `json:"canary,omitempty"`
 	TagKey     string          `json:"tagKey,omitempty"`
 	AlertAfter string          `json:"alertAfter,omitempty"`
-	TotalQuery string          `json:"totalQuery,omitempty"`
-	ErrorQuery string          `json:"errorQuery,omitempty"`
+	// TotalQuery string          `json:"totalQuery,omitempty"` Events ->
+	// ErrorQuery string          `json:"errorQuery,omitempty"` Events ->
+	Raw    *SLIRaw    `json:"raw,omitempty"`
+	Events *SLIEvents `json:"events,omitempty"`
+	Plugin *SLIPlugin `json:"plugin,omitempty"`
+}
+
+type SLIRaw struct {
+	ErrorRatioQuery string `json:"errorRatioQuery"`
+}
+
+type SLIEvents struct {
+	ErrorQuery string `json:"errorQuery,omitempty`
+	TotalQuery string `json:"totalQuery,omitempty"`
+}
+
+type SLIPlugin struct {
+	ID      string            `json:"id"`
+	Options map[string]string `json:"options,omitempty"`
 }
 
 type SLICanaryConfig struct {

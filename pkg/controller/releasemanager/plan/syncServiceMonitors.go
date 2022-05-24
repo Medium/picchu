@@ -105,14 +105,14 @@ func (p *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, 
 func (p *SyncServiceMonitors) parseMetricNames() ([]string, error) {
 	n := make(map[string]bool)
 	for i := range p.ServiceLevelObjectives {
-		totalQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.TotalQuery)
+		totalQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].SLI.Events.TotalQuery)
 		if err != nil {
 			return nil, err
 		}
 		for name := range totalQuery {
 			n[name] = true
 		}
-		errorQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.ErrorQuery)
+		errorQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].SLI.Events.ErrorQuery)
 		if err != nil {
 			return nil, err
 		}
