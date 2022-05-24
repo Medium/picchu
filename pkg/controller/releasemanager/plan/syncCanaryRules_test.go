@@ -45,7 +45,7 @@ var (
 			Name:        "test-app-availability",
 			Objective:   99.999,
 			Description: "Test description",
-			SLI: picchuv1alpha1.ServiceLevelIndicator{
+			SLI: picchuv1alpha1.SLI{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
 					AllowancePercent: 1,
@@ -162,7 +162,7 @@ func TestFormatAllowancePercent(t *testing.T) {
 	for _, i := range inputs {
 		c := SLOConfig{
 			SLO: &picchuv1alpha1.ServiceLevelObjective{
-				SLI: picchuv1alpha1.ServiceLevelIndicator{
+				SLI: picchuv1alpha1.SLI{
 					Canary: picchuv1alpha1.SLICanaryConfig{
 						AllowancePercent: i.float,
 					},

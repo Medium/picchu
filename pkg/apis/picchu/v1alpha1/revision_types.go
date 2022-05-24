@@ -149,7 +149,7 @@ type ServiceLevelObjective struct {
 	Name                        string                      `json:"name,omitempty"`
 	Description                 string                      `json:"description,omitempty"`
 	Objective                   float64                     `json:"objective"`
-	SLI                         ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
+	SLI                         SLI                         `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
 	Alerting                    Alerting                    `json:"alerting"`
 }
@@ -174,7 +174,7 @@ type ServiceLevelObjectiveLabels struct {
 	ServiceLevelLabels map[string]string `json:"serviceLevelLabels,omitempty"`
 }
 
-type ServiceLevelIndicator struct {
+type SLI struct {
 	Canary     SLICanaryConfig `json:"canary,omitempty"`
 	TagKey     string          `json:"tagKey,omitempty"`
 	AlertAfter string          `json:"alertAfter,omitempty"`
