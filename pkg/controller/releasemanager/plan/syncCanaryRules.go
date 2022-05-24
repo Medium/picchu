@@ -60,7 +60,7 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 	rule := p.prometheusRule()
 
 	for i := range p.ServiceLevelObjectives {
-		if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
+		if p.ServiceLevelObjectives[i].SLI.Canary.Enabled {
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
@@ -117,7 +117,7 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       s.canaryAlertName(),
-				For:         s.SLO.ServiceLevelIndicator.Canary.FailAfter,
+				For:         s.SLO.SLI.Canary.FailAfter,
 				Expr:        intstr.FromString(s.canaryQuery(log)),
 				Labels:      labels,
 				Annotations: s.canaryRuleAnnotations(log),
@@ -155,17 +155,17 @@ func (s *SLOConfig) canaryAlertName() string {
 
 func (s *SLOConfig) canaryQuery(log logr.Logger) string {
 	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > ignoring(%s) sum(%s) / sum(%s)",
-		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
-		s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
-		s.formatAllowancePercent(log), s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery())
+		s.errorQuery(), s.SLO.SLI.TagKey, s.Tag,
+		s.totalQuery(), s.SLO.SLI.TagKey, s.Tag,
+		s.formatAllowancePercent(log), s.SLO.SLI.TagKey, s.errorQuery(), s.totalQuery())
 }
 
 func (s *SLOConfig) formatAllowancePercent(log logr.Logger) string {
-	allowancePercent := s.SLO.ServiceLevelIndicator.Canary.AllowancePercent
-	if s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString != "" {
-		f, err := strconv.ParseFloat(s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString, 64)
+	allowancePercent := s.SLO.SLI.Canary.AllowancePercent
+	if s.SLO.SLI.Canary.AllowancePercentString != "" {
+		f, err := strconv.ParseFloat(s.SLO.SLI.Canary.AllowancePercentString, 64)
 		if err != nil {
-			log.Error(err, "Could not parse %v to float", s.SLO.ServiceLevelIndicator.Canary.AllowancePercentString)
+			log.Error(err, "Could not parse %v to float", s.SLO.SLI.Canary.AllowancePercentString)
 		} else {
 			allowancePercent = f
 		}

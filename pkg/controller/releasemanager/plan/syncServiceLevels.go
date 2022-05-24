@@ -47,7 +47,7 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1.PrometheusS
 	var slos []slov1.SLO
 
 	for i := range p.ServiceLevelObjectives {
-		if p.ServiceLevelObjectives[i].Enabled {
+		if !p.ServiceLevelObjectives[i].Alerting.TicketAlert.Disable {
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,

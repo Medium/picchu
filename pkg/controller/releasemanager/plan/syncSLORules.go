@@ -100,11 +100,11 @@ func (s *SLOConfig) recordingRules() []*monitoringv1.RuleGroup {
 		Rules: []monitoringv1.Rule{
 			{
 				Record: s.totalQuery(),
-				Expr:   intstr.FromString(s.SLO.ServiceLevelIndicator.TotalQuery),
+				Expr:   intstr.FromString(s.SLO.SLI.Events.TotalQuery),
 			},
 			{
 				Record: s.errorQuery(),
-				Expr:   intstr.FromString(s.SLO.ServiceLevelIndicator.ErrorQuery),
+				Expr:   intstr.FromString(s.SLO.SLI.Events.ErrorQuery),
 			},
 		},
 	}

@@ -37,11 +37,15 @@ var (
 			},
 		},
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
-			Enabled:                true,
+			Alerting: picchuv1alpha1.Alerting{
+				TicketAlert: picchuv1alpha1.Alert{
+					Disable: false,
+				},
+			},
 			Name:                   "test-app-availability",
 			ObjectivePercentString: "99.999",
 			Description:            "Test description",
-			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+			SLI: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
 					AllowancePercent: 1,
@@ -49,8 +53,10 @@ var (
 				},
 				TagKey:     "destination_workload",
 				AlertAfter: "1m",
-				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
-				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				Events: &picchuv1alpha1.SLIEvents{
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				},
 			},
 			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
 				AlertLabels: map[string]string{
@@ -156,7 +162,7 @@ func TestFormatAllowancePercent(t *testing.T) {
 	for _, i := range inputs {
 		c := SLOConfig{
 			SLO: &picchuv1alpha1.ServiceLevelObjective{
-				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+				SLI: picchuv1alpha1.ServiceLevelIndicator{
 					Canary: picchuv1alpha1.SLICanaryConfig{
 						AllowancePercent: i.float,
 					},

@@ -46,7 +46,7 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1.Prometh
 	var slos []slov1.SLO
 
 	for i := range p.ServiceLevelObjectives {
-		if p.ServiceLevelObjectives[i].Enabled {
+		if !p.ServiceLevelObjectives[i].Alerting.TicketAlert.Disable {
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
@@ -93,9 +93,9 @@ func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
 }
 
 func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.totalQuery(), s.SLO.SLI.TagKey, s.Tag)
 }
 
 func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.errorQuery(), s.SLO.SLI.TagKey, s.Tag)
 }
