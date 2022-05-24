@@ -39,8 +39,8 @@ var (
 					Disable: false,
 				},
 			},
-			Name:                   "test-app-availability",
-			ObjectivePercentString: "99.999",
+			Name:      "test-app-availability",
+			Objective: 99.999,
 			SLI: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
