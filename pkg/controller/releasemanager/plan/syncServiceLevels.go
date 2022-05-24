@@ -3,7 +3,6 @@ package plan
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
@@ -98,20 +97,15 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1.SLO {
 		labels[prometheus.TagLabel] = s.Tag
 	}
 
-	var objectivePercent float64
-	if s.SLO.ObjectivePercentString != "" {
-		f, err := strconv.ParseFloat(s.SLO.ObjectivePercentString, 64)
-		if err != nil {
-			log.Error(err, "Could not parse %v to float", s.SLO.ObjectivePercentString)
-		} else {
-			objectivePercent = f
-		}
-	}
 	slo := &slov1.SLO{
 		Name:        s.Name,
-		Objective:   objectivePercent,
+		Objective:   s.SLO.Objective,
 		Description: s.SLO.Description,
-		// Disable:                      false,
+		Alerting: slov1.Alerting{
+			TicketAlert: slov1.Alert{
+				Disable: false,
+			},
+		},
 		Labels: labels,
 	}
 	return slo

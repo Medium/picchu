@@ -149,7 +149,6 @@ type ServiceLevelObjective struct {
 	Name                        string                      `json:"name,omitempty"`
 	Description                 string                      `json:"description,omitempty"`
 	Objective                   float64                     `json:"objective"`
-	ObjectivePercentString      string                      `json:"objectivePercentString,omitempty"`
 	SLI                         ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
 	Alerting                    Alerting                    `json:"alerting"`
