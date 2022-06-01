@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"go.medium.engineering/picchu/pkg/client/scheme"
@@ -108,4 +109,14 @@ func convertRuntimeToClientList(runtimeObjs []runtime.Object) ([]client.Object, 
 		listObjects = append(listObjects, obj.(client.Object))
 	}
 	return listObjects, nil
+}
+
+//GetWatchNamespace return namespace from operator
+func GetWatchNamespace() (string, error) {
+	var watchNamespaceEnvVar = "WATCH_NAMESPACE"
+	ns, found := os.LookupEnv(watchNamespaceEnvVar)
+	if !found {
+		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
+	}
+	return ns, nil
 }

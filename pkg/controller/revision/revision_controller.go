@@ -425,7 +425,7 @@ func (r *ReconcileRevision) mirrorRevision(
 ) error {
 	log.Info("Mirroring revision", "Mirror", mirror.Spec.ClusterName)
 	cluster := &picchuv1alpha1.Cluster{}
-	key := types.NamespacedName{revision.Namespace, mirror.Spec.ClusterName}
+	key := types.NamespacedName{Namespace: revision.Namespace, Name: mirror.Spec.ClusterName}
 	if err := r.client.Get(ctx, key, cluster); err != nil {
 		return err
 	}

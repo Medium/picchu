@@ -1,107 +1,95 @@
-# Copyright © 2019 A Medium Corporation.
-# Licensed under the Apache License, Version 2.0; see the NOTICE file.
 
-DOMAIN := medium.engineering
-PACKAGE := go.$(DOMAIN)/picchu/pkg
-API_PACKAGE := $(PACKAGE)/apis
-GROUPS := picchu/v1alpha1
-BOILERPLATE := hack/header.go.txt
-GEN := zz_generated
-OPERATOR_SDK_VERSION := v0.18.0
-CONTROLLER_GEN_VERSION := v0.8.1-0.20220506033304-a260f1391b0f
+# Image URL to use all building/pushing image targets
+IMG ?= controller:latest
+# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
+CRD_OPTIONS ?= "crd:trivialVersions=true"
 
-platform_temp = $(subst -, ,$(ARCH))
-GOOS = $(word 1, $(platform_temp))
-GOARCH = $(word 2, $(platform_temp))
-export GOROOT = $(shell go env GOROOT)
-export GO111MODULE = on
-
-OPERATOR_SDK_PLATFORM := unknown
-
-UNAME := $(shell uname -s)
-ifeq ($(UNAME),Linux)
-	OPERATOR_SDK_PLATFORM = linux-gnu
-endif
-ifeq ($(UNAME),Darwin)
-	OPERATOR_SDK_PLATFORM = apple-darwin
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
 endif
 
-.PHONY: all build generate deepcopy defaulter openapi clientset crds ci test verify
+all: manager
 
-all: deps generate build
-ci: all verify generate test
-generate: deepcopy defaulter openapi clientset matcher
+# Run tests
+test: generate fmt vet manifests
+	go test ./... -coverprofile cover.out
 
-build:
-	@mkdir -p build/_output/bin
-	go build -o build/_output/bin/picchu ./cmd/manager
-	go build -o build/_output/bin/picchu-webhook ./cmd/webhook
+# Build manager binary
+manager: generate fmt vet
+	go build -o bin/manager main.go
 
-docker: generators/operator-sdk
-	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
-	$< build $(IMAGE)
-	docker build -t $(WEBHOOK_IMAGE) -f build/webhook.Dockerfile .
+# Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate fmt vet manifests
+	go run ./main.go
 
-deps:
-	go mod tidy
-	go mod vendor
+# Install CRDs into a cluster
+install: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
-deepcopy: generators/operator-sdk
-	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
-	$< generate k8s
+# Uninstall CRDs from a cluster
+uninstall: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-defaulter: generators/defaulter
-	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).defaults -h $(BOILERPLATE)
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests kustomize
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-openapi: generators/openapi-gen
-	$< -i $(API_PACKAGE)/$(GROUPS) -O $(GEN).openapi -p $(PACKAGE)/openapi -h $(BOILERPLATE)
+# Generate manifests e.g. CRD, RBAC etc.
+manifests: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-clientset: generators/client
-	$< -p $(PACKAGE) --input-base $(API_PACKAGE) --input $(GROUPS) -n client -h $(BOILERPLATE)
+# Run go fmt against code
+fmt:
+	go fmt ./...
 
-matcher: generators/matcher-gen
-	$< -i github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1 -p go.medium.engineering/picchu/pkg/test/monitoring/v1
+# Run go vet against code
+vet:
+	go vet ./...
 
-crds: generators/operator-sdk
-	hack/crd-update.sh $(CONTROLLER_GEN_VERSION)
-	# $< generate crds
+# Generate code
+generate: controller-gen
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-generators/%: go.sum
-	@mkdir -p generators
-	go build -o $@ k8s.io/code-generator/cmd/$*-gen
+# Build the docker image
+docker-build: test
+	docker build . -t ${IMG}
 
-generators/matcher-gen: go.sum
-	@mkdir -p generators
-	go build -o $@ go.medium.engineering/kubernetes/cmd/matcher-gen
+# Push the docker image
+docker-push:
+	docker push ${IMG}
 
-generators/openapi-gen: go.sum
-	@mkdir -p generators
-	go build -o ./generators/openapi-gen k8s.io/kube-openapi/cmd/openapi-gen
+# find or download controller-gen
+# download controller-gen if necessary
+controller-gen:
+ifeq (, $(shell which controller-gen))
+	@{ \
+	set -e ;\
+	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$CONTROLLER_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
+	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
+	}
+CONTROLLER_GEN=$(GOBIN)/controller-gen
+else
+CONTROLLER_GEN=$(shell which controller-gen)
+endif
 
-generators/operator-sdk:
-	@mkdir -p generators
-	curl -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
-	chmod +x generators/operator-sdk
-
-build-dirs:
-	@mkdir -p _output/bin/$(GOOS)/$(GOARCH)
-	@mkdir -p .go/src/$(PKG) .go/pkg .go/bin .go/std/$(GOOS)/$(GOARCH) .go/go-build
-
-test: build-dirs
-	hack/test.sh
-
-verify: crds
-	hack/verify-all.sh
-
-fix:
-	hack/fix-all.sh
-
-mocks: go.sum
-	@mkdir -p generators
-	go install github.com/golang/mock/mockgen
-	mockgen -destination=pkg/mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
-	mockgen -destination=pkg/prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
-	mockgen -destination=pkg/controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controller/releasemanager Deployment
-	mockgen -destination=pkg/controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controller/releasemanager Incarnations
-	mockgen -destination=pkg/controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controller/releasemanager/scaling ScalableTarget
-	mockgen -destination=pkg/plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
+kustomize:
+ifeq (, $(shell which kustomize))
+	@{ \
+	set -e ;\
+	KUSTOMIZE_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$KUSTOMIZE_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/kustomize/kustomize/v3@v3.5.4 ;\
+	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
+	}
+KUSTOMIZE=$(GOBIN)/kustomize
+else
+KUSTOMIZE=$(shell which kustomize)
+endif

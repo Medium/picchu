@@ -14,7 +14,7 @@ func TestIncarnation_getExternalTestStatus(t *ttesting.T) {
 	testIncarnation := createTestIncarnation("test", testing, 10)
 	recentLastUpdated := meta.NewTime(time.Now().Add(-5 * time.Minute))
 	oldLastUpdated := meta.NewTime(time.Now().Add(-15 * time.Minute))
-	timeout := meta.Duration{10 * time.Minute}
+	timeout := meta.Duration{Duration: 10 * time.Minute}
 
 	// ExternalTestDisabled
 	assertExternalTestStatus(t, testIncarnation, picchu.ExternalTest{
@@ -242,7 +242,7 @@ func Test_IsExpired(t *ttesting.T) {
 			assert := assert.New(t)
 			i := createTestIncarnation("test", "deployed", 0, &testClusters{Clusters: 1})
 			i.target().Release.TTL = int64(test.TTL / time.Second)
-			i.revision.CreationTimestamp = meta.Time{test.CreationTimestamp}
+			i.revision.CreationTimestamp = meta.Time{Time: test.CreationTimestamp}
 			assert.Equal(test.Expected, i.isExpired())
 		})
 	}

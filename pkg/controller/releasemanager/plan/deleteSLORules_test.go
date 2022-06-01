@@ -2,11 +2,12 @@ package plan
 
 import (
 	"context"
-	ktest "go.medium.engineering/kubernetes/pkg/test"
 	_ "runtime"
 	"testing"
 
-	monitoring "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	ktest "go.medium.engineering/kubernetes/pkg/test"
+
+	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	testify "github.com/stretchr/testify/assert"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/test"

@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	NotFoundError = &errors.StatusError{metav1.Status{
+	NotFoundError = &errors.StatusError{ErrStatus: metav1.Status{
 		Reason: metav1.StatusReasonNotFound,
 	}}
 	yamlSerializer runtime.Serializer

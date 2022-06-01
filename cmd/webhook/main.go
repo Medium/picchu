@@ -1,24 +1,24 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
-	"runtime"
 	"runtime/debug"
 
-	monitoring "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"github.com/operator-framework/operator-sdk/pkg/log/zap"
-	"github.com/operator-framework/operator-sdk/pkg/metrics"
-	sdkVersion "github.com/operator-framework/operator-sdk/version"
-	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
-	slo "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	"github.com/go-logr/logr"
 	"github.com/spf13/pflag"
+
+	//"github.com/operator-framework/operator-sdk/internal/log/zap"
+
+	//"github.com/operator-framework/operator-sdk/pkg/metrics"
+	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	slo "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	"go.medium.engineering/picchu/pkg/apis"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/client/scheme"
+	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/webhook"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -26,14 +26,12 @@ import (
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	core "k8s.io/api/core/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -43,16 +41,10 @@ var (
 )
 var log = logf.Log.WithName("cmd")
 
-func printVersion() {
-	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
-	log.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
-	log.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion.Version))
-}
-
 func main() {
 	// Add the zap logger flag set to the CLI. The flag set must
 	// be added before calling pflag.Parse().
-	pflag.CommandLine.AddFlagSet(zap.FlagSet())
+	pflag.CommandLine.AddFlagSet(&pflag.FlagSet{})
 
 	// Add flags registered by imported packages (e.g. glog and
 	// controller-runtime)
@@ -70,11 +62,9 @@ func main() {
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
-	logf.SetLogger(zap.Logger())
+	logf.SetLogger(logr.Logger{})
 
-	printVersion()
-
-	namespace, err := k8sutil.GetWatchNamespace()
+	namespace, err := utils.GetWatchNamespace()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
@@ -94,7 +84,7 @@ func main() {
 
 	webhook.Init(cli, int32(*webhookPort), namespace, log)
 
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{
@@ -140,13 +130,13 @@ func main() {
 	webhook.Register(mgr)
 
 	// Create Service object to expose the metrics port.
-	servicePorts := []core.ServicePort{
-		{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: core.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
-	}
-	_, err = metrics.CreateMetricsService(ctx, nil, servicePorts)
-	if err != nil {
-		log.Info(err.Error())
-	}
+	//servicePorts := []core.ServicePort{
+	//	{Port: metricsPort, Name: metrics.OperatorPortName, Protocol: core.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: metricsPort}},
+	//}
+	//_, err = metrics.CreateMetricsService(ctx, nil, servicePorts)
+	//if err != nil {
+	//	log.Info(err.Error())
+	//}
 
 	log.Info("Starting the Cmd.")
 

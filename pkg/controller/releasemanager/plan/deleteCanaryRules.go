@@ -2,8 +2,9 @@ package plan
 
 import (
 	"context"
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+
 	"github.com/go-logr/logr"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	"k8s.io/apimachinery/pkg/api/errors"

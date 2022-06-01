@@ -2,12 +2,14 @@ package prometheus
 
 import (
 	"errors"
-	promql "github.com/prometheus/prometheus/promql"
+	//promql "github.com/prometheus/prometheus/promql"
+	parser "github.com/prometheus/prometheus/promql/parser"
 )
 
 // MetricNames returns a map (set of keys) of unique metric names included in PromQL query string
 func MetricNames(query string) (map[string]bool, error) {
-	expr, err := promql.ParseExpr(query)
+
+	expr, err := parser.ParseExpr(query)
 	if err != nil {
 		return nil, err
 	}
@@ -21,42 +23,42 @@ func MetricNames(query string) (map[string]bool, error) {
 	return m, nil
 }
 
-func metricNames(m map[string]bool, node promql.Node) error {
+func metricNames(m map[string]bool, node parser.Node) error {
 	switch n := node.(type) {
-	case *promql.EvalStmt:
+	case *parser.EvalStmt:
 		metricNames(m, n.Expr)
 
-	case promql.Expressions:
+	case parser.Expressions:
 		for _, e := range n {
 			metricNames(m, e)
 		}
-	case *promql.AggregateExpr:
+	case *parser.AggregateExpr:
 		metricNames(m, n.Expr)
 
-	case *promql.SubqueryExpr:
+	case *parser.SubqueryExpr:
 		metricNames(m, n.Expr)
 
-	case *promql.BinaryExpr:
+	case *parser.BinaryExpr:
 		metricNames(m, n.LHS)
 		metricNames(m, n.RHS)
 
-	case *promql.Call:
+	case *parser.Call:
 		metricNames(m, n.Args)
 
-	case *promql.ParenExpr:
+	case *parser.ParenExpr:
 		metricNames(m, n.Expr)
 
-	case *promql.UnaryExpr:
+	case *parser.UnaryExpr:
 		metricNames(m, n.Expr)
 
-	case *promql.VectorSelector:
+	case *parser.VectorSelector:
 		m[n.Name] = true
 
-	case *promql.MatrixSelector:
-		// metricNames(m, n.VectorSelector)
-		m[n.Name] = true
+	case *parser.MatrixSelector:
+		metricNames(m, n.VectorSelector)
+		//m[n.Name] = true
 
-	case *promql.NumberLiteral, *promql.StringLiteral:
+	case *parser.NumberLiteral, *parser.StringLiteral:
 	// nothing to do
 
 	default:

@@ -10,8 +10,8 @@ import (
 	common "go.medium.engineering/picchu/pkg/plan/test"
 	"go.medium.engineering/picchu/pkg/test"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,7 +39,7 @@ var (
 						Interval: "15s",
 						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
 							Action:       "drop",
-							SourceLabels: []string{"__name__"},
+							SourceLabels: []monitoringv1.LabelName{"__name__"},
 						}},
 					}},
 				},
@@ -63,7 +63,7 @@ var (
 						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
 							Action:       "keep",
 							Regex:        "(.*)",
-							SourceLabels: []string{"__name__"},
+							SourceLabels: []monitoringv1.LabelName{"__name__"},
 						}},
 					}},
 				},
@@ -102,7 +102,7 @@ var (
 					MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
 						Action:       "drop",
 						Regex:        "test_metric|test_metric2",
-						SourceLabels: []string{"__name__"},
+						SourceLabels: []monitoringv1.LabelName{"__name__"},
 					}},
 				}},
 				NamespaceSelector: monitoringv1.NamespaceSelector{
@@ -129,7 +129,7 @@ var (
 						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
 							Action:       "keep",
 							Regex:        "(.*)",
-							SourceLabels: []string{"__name__"},
+							SourceLabels: []monitoringv1.LabelName{"__name__"},
 						}},
 					}},
 					NamespaceSelector: monitoringv1.NamespaceSelector{

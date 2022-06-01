@@ -3,8 +3,8 @@ package plan
 import (
 	"time"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	ktest "go.medium.engineering/kubernetes/pkg/test"
 	coreAsserts "go.medium.engineering/kubernetes/pkg/test/core/v1"

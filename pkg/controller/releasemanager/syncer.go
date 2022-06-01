@@ -10,8 +10,8 @@ import (
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/plan"
 
-	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	istio "istio.io/api/networking/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
