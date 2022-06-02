@@ -191,7 +191,7 @@ type SLIRaw struct {
 }
 
 type SLIEvents struct {
-	ErrorQuery string `json:"errorQuery,omitempty`
+	ErrorQuery string `json:"errorQuery,omitempty"`
 	TotalQuery string `json:"totalQuery,omitempty"`
 }
 
