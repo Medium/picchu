@@ -2892,18 +2892,55 @@ spec:
                     serviceLevelObjectives:
                       items:
                         properties:
-                          annotations:
-                            additionalProperties:
-                              type: string
+                          alerting:
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              name:
+                                type: string
+                              pageAlert:
+                                properties:
+                                  annotations:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                  disable:
+                                    type: boolean
+                                  labels:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                type: object
+                              ticketAlert:
+                                properties:
+                                  annotations:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                  disable:
+                                    type: boolean
+                                  labels:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                type: object
                             type: object
                           description:
                             type: string
-                          enabled:
-                            type: boolean
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
                           name:
                             type: string
-                          objectivePercentString:
-                            type: string
+                          objective:
+                            type: number
                           serviceLevelIndicator:
                             properties:
                               alertAfter:
@@ -2921,11 +2958,35 @@ spec:
                                 required:
                                 - enabled
                                 type: object
-                              errorQuery:
-                                type: string
+                              events:
+                                properties:
+                                  errorQuery:
+                                    type: string
+                                  totalQuery:
+                                    type: string
+                                type: object
+                              plugin:
+                                properties:
+                                  id:
+                                    type: string
+                                  options:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                required:
+                                - id
+                                type: object
+                              raw:
+                                description: TotalQuery string          `json:"totalQuery,omitempty"`
+                                  Events -> ErrorQuery string          `json:"errorQuery,omitempty"`
+                                  Events ->
+                                properties:
+                                  errorRatioQuery:
+                                    type: string
+                                required:
+                                - errorRatioQuery
+                                type: object
                               tagKey:
-                                type: string
-                              totalQuery:
                                 type: string
                             type: object
                           serviceLevelObjectiveLabels:
@@ -2944,7 +3005,8 @@ spec:
                                 type: object
                             type: object
                         required:
-                        - enabled
+                        - alerting
+                        - objective
                         type: object
                       type: array
                     serviceMonitors:
