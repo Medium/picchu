@@ -12,6 +12,7 @@ import (
 
 // see custom_deepcopy.go
 // +k8s:deepcopy-gen=false
+// +kubebuilder:pruning:PreserveUnknownFields
 type Istio struct {
 	TrafficPolicy *istio.TrafficPolicy `json:"trafficPolicy,omitempty"`
 	Sidecar       *IstioSidecar        `json:"sidecar,omitempty"`
@@ -145,6 +146,7 @@ type Canary struct {
 	TTL     int64  `json:"ttl"`
 }
 
+// +kubebuilder:pruning:PreserveUnknownFields
 type ServiceLevelObjective struct {
 	Name                        string                      `json:"name,omitempty"`
 	Description                 string                      `json:"description,omitempty"`

@@ -2191,6 +2191,7 @@ spec:
                               type: object
                           type: object
                       type: object
+                      x-kubernetes-preserve-unknown-fields: true
                     lifecycle:
                       description: Lifecycle describes actions that the management
                         system should take in response to container lifecycle events.
@@ -3008,6 +3009,7 @@ spec:
                         - alerting
                         - objective
                         type: object
+                        x-kubernetes-preserve-unknown-fields: true
                       type: array
                     serviceMonitors:
                       items:
