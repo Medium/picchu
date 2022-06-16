@@ -307,6 +307,11 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerSpec(ref common.ReferenceCall
 						},
 					},
 					"variants": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "atomic",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
 							Items: &spec.SchemaOrArray{
@@ -338,7 +343,7 @@ func schema_pkg_apis_picchu_v1alpha1_ReleaseManagerStatus(ref common.ReferenceCa
 					"revisions": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "set",
+								"x-kubernetes-list-type": "atomic",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
