@@ -9,8 +9,6 @@
 package v1alpha1
 
 import (
-	"reflect"
-
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -44,7 +42,7 @@ func SetObjectDefaults_Revision(in *Revision) {
 			b := &a.Sidecars[j]
 			for k := range b.Ports {
 				c := &b.Ports[k]
-				if reflect.ValueOf(c.Protocol).IsZero() {
+				if c.Protocol == "" {
 					c.Protocol = "TCP"
 				}
 			}
