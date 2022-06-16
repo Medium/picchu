@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/prometheus/common/log"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -34,13 +33,13 @@ func (r *revisionMutator) Handle(ctx context.Context, req admission.Request) adm
 	}
 	patches := r.getPatches(rev)
 	if len(patches) > 0 {
-		log.Info("Patching revision", "patches", patches)
+		clog.Info("Patching revision", "patches", patches)
 		resp.Result = &metav1.Status{Message: "patching revision"}
 		resp.Allowed = true
 		resp.Patches = patches
 		return *resp
 	}
-	log.Info("No patches needed")
+	clog.Info("No patches needed")
 	resp.Result = &metav1.Status{Message: "ok"}
 	resp.Allowed = true
 	return *resp

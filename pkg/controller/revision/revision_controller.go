@@ -127,7 +127,7 @@ type ReconcileRevision struct {
 func (r *ReconcileRevision) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	traceID := uuid.New().String()
 	reqLogger := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceID)
-	if r.customLogger != nil {
+	if r.customLogger != (logr.Logger{}) {
 		reqLogger = r.customLogger
 	}
 
