@@ -78,7 +78,7 @@ generators/openapi-gen: go.sum
 
 generators/operator-sdk:
 	@mkdir -p generators
-	curl -L https://github.com/Medium/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
+	curl -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
 	chmod +x generators/operator-sdk
 
 build-dirs:
