@@ -37,16 +37,16 @@ build:
 	go build -o build/_output/bin/picchu-webhook ./cmd/webhook
 
 docker: generators/operator-sdk
-	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
+	# https://github.com/Medium/operator-sdk/issues/1854#issuecomment-569285967
 	$< build $(IMAGE)
 	docker build -t $(WEBHOOK_IMAGE) -f build/webhook.Dockerfile .
 
 deps:
-	#go mod tidy
-	#go mod vendor
+	go mod tidy
+	go mod vendor
 
 deepcopy: generators/operator-sdk
-	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
+	# https://github.com/Medium/operator-sdk/issues/1854#issuecomment-569285967
 	$< generate k8s
 
 defaulter: generators/defaulter
@@ -78,7 +78,7 @@ generators/openapi-gen: go.sum
 
 generators/operator-sdk:
 	@mkdir -p generators
-	curl -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
+	curl -L https://github.com/Medium/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
 	chmod +x generators/operator-sdk
 
 build-dirs:

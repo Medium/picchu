@@ -12,7 +12,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.1.2
-	github.com/operator-framework/operator-sdk v0.8.2
+	github.com/operator-framework/operator-sdk v0.13.0
 	github.com/practo/k8s-worker-pod-autoscaler v1.1.1-0.20200722110630-c31dc858b6f9
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.28.0
@@ -74,11 +74,12 @@ require (
 	github.com/prometheus/tsdb v0.7.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/sys v0.0.0-20211029165221-6e7872819dc8 // indirect
+	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.5 // indirect
@@ -94,15 +95,12 @@ require (
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
-	k8s.io/kubernetes v1.20.1 // indirect
-	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 replace (
 	github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.39.0
-	github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.14.0
 	github.com/prometheus/common => github.com/prometheus/common v0.26.0
 	//github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20191111142012-edeb7a44cbf7
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v2.7.0+incompatible
@@ -128,6 +126,7 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.20.1
 	k8s.io/metrics => k8s.io/metrics v0.20.1
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.20.1
+	sigs.k8s.io/controller-runtime => github.com/Medium/controller-runtime v0.11.1-update
 )
 
 replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
@@ -146,3 +145,5 @@ replace k8s.io/mount-utils => k8s.io/mount-utils v0.20.5-rc.0
 replace k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.20.1
 
 replace k8s.io/sample-controller => k8s.io/sample-controller v0.20.1
+
+replace github.com/operator-framework/operator-sdk => github.com/Medium/operator-sdk v0.13.0-update
