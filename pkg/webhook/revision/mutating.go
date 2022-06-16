@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/common/log"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"gomodules.xyz/jsonpatch/v2"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -20,7 +20,7 @@ type revisionMutator struct {
 
 func (r *revisionMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	resp := &admission.Response{
-		AdmissionResponse: admissionv1beta1.AdmissionResponse{
+		AdmissionResponse: admissionv1.AdmissionResponse{
 			UID:     req.UID,
 			Allowed: false,
 		},

@@ -19,6 +19,7 @@ import (
 	"go.medium.engineering/picchu/pkg/test"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -61,7 +62,7 @@ func TestReconcileRevision_Reconcile(t *testing.T) {
 	} {
 		t.Run(test.state, func(t *testing.T) {
 			assert := testify.New(t)
-			fixtures := []runtime.Object{
+			fixtures := []client.Object{
 				&picchu.Revision{
 					ObjectMeta: meta.ObjectMeta{
 						Name:      "rev",
@@ -108,7 +109,7 @@ func TestReconcileRevision_Reconcile(t *testing.T) {
 					},
 				},
 			}
-			cli := fake.NewFakeClientWithScheme(scheme, fixtures...)
+			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(fixtures...).Build()
 			reconciler := ReconcileRevision{
 				client:       cli,
 				scheme:       scheme,
@@ -116,9 +117,9 @@ func TestReconcileRevision_Reconcile(t *testing.T) {
 				promAPI:      prometheus.InjectAPI(m, time.Duration(1)*time.Second),
 				customLogger: log,
 			}
-			key, err := client.ObjectKeyFromObject(fixtures[0])
-			assert.NoError(err)
-			res, err := reconciler.Reconcile(reconcile.Request{NamespacedName: key})
+			key := client.ObjectKeyFromObject(fixtures[0])
+			assert.NotEqual(key, types.NamespacedName{})
+			res, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 			assert.NoError(err)
 			assert.NotNil(res)
 

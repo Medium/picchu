@@ -42,8 +42,8 @@ docker: generators/operator-sdk
 	docker build -t $(WEBHOOK_IMAGE) -f build/webhook.Dockerfile .
 
 deps:
-	go mod tidy
-	go mod vendor
+	#go mod tidy
+	#go mod vendor
 
 deepcopy: generators/operator-sdk
 	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
