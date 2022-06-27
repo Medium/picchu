@@ -463,7 +463,7 @@ func TestSyncRevisionRetirement(t *testing.T) {
 	var twenty int32 = 20
 	existing.Spec.Replicas = &twenty
 	expected := retiredExpectedReplicaSet.DeepCopy()
-	expected.ObjectMeta.ResourceVersion = "1"
+	expected.ObjectMeta.ResourceVersion = "1000"
 	cli := fakeClient(existing)
 
 	rsl := &appsv1.ReplicaSetList{}

@@ -6,6 +6,8 @@
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -26,7 +28,7 @@ var releasemanagersResource = schema.GroupVersionResource{Group: "picchu.medium.
 var releasemanagersKind = schema.GroupVersionKind{Group: "picchu.medium.engineering", Version: "v1alpha1", Kind: "ReleaseManager"}
 
 // Get takes name of the releaseManager, and returns the corresponding releaseManager object, and an error if there is any.
-func (c *FakeReleaseManagers) Get(name string, options v1.GetOptions) (result *v1alpha1.ReleaseManager, err error) {
+func (c *FakeReleaseManagers) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ReleaseManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(releasemanagersResource, c.ns, name), &v1alpha1.ReleaseManager{})
 
@@ -37,7 +39,7 @@ func (c *FakeReleaseManagers) Get(name string, options v1.GetOptions) (result *v
 }
 
 // List takes label and field selectors, and returns the list of ReleaseManagers that match those selectors.
-func (c *FakeReleaseManagers) List(opts v1.ListOptions) (result *v1alpha1.ReleaseManagerList, err error) {
+func (c *FakeReleaseManagers) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ReleaseManagerList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(releasemanagersResource, releasemanagersKind, c.ns, opts), &v1alpha1.ReleaseManagerList{})
 
@@ -59,14 +61,14 @@ func (c *FakeReleaseManagers) List(opts v1.ListOptions) (result *v1alpha1.Releas
 }
 
 // Watch returns a watch.Interface that watches the requested releaseManagers.
-func (c *FakeReleaseManagers) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeReleaseManagers) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(releasemanagersResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a releaseManager and creates it.  Returns the server's representation of the releaseManager, and an error, if there is any.
-func (c *FakeReleaseManagers) Create(releaseManager *v1alpha1.ReleaseManager) (result *v1alpha1.ReleaseManager, err error) {
+func (c *FakeReleaseManagers) Create(ctx context.Context, releaseManager *v1alpha1.ReleaseManager, opts v1.CreateOptions) (result *v1alpha1.ReleaseManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(releasemanagersResource, c.ns, releaseManager), &v1alpha1.ReleaseManager{})
 
@@ -77,7 +79,7 @@ func (c *FakeReleaseManagers) Create(releaseManager *v1alpha1.ReleaseManager) (r
 }
 
 // Update takes the representation of a releaseManager and updates it. Returns the server's representation of the releaseManager, and an error, if there is any.
-func (c *FakeReleaseManagers) Update(releaseManager *v1alpha1.ReleaseManager) (result *v1alpha1.ReleaseManager, err error) {
+func (c *FakeReleaseManagers) Update(ctx context.Context, releaseManager *v1alpha1.ReleaseManager, opts v1.UpdateOptions) (result *v1alpha1.ReleaseManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(releasemanagersResource, c.ns, releaseManager), &v1alpha1.ReleaseManager{})
 
@@ -89,7 +91,7 @@ func (c *FakeReleaseManagers) Update(releaseManager *v1alpha1.ReleaseManager) (r
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeReleaseManagers) UpdateStatus(releaseManager *v1alpha1.ReleaseManager) (*v1alpha1.ReleaseManager, error) {
+func (c *FakeReleaseManagers) UpdateStatus(ctx context.Context, releaseManager *v1alpha1.ReleaseManager, opts v1.UpdateOptions) (*v1alpha1.ReleaseManager, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(releasemanagersResource, "status", c.ns, releaseManager), &v1alpha1.ReleaseManager{})
 
@@ -100,7 +102,7 @@ func (c *FakeReleaseManagers) UpdateStatus(releaseManager *v1alpha1.ReleaseManag
 }
 
 // Delete takes name of the releaseManager and deletes it. Returns an error if one occurs.
-func (c *FakeReleaseManagers) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeReleaseManagers) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(releasemanagersResource, c.ns, name), &v1alpha1.ReleaseManager{})
 
@@ -108,15 +110,15 @@ func (c *FakeReleaseManagers) Delete(name string, options *v1.DeleteOptions) err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeReleaseManagers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(releasemanagersResource, c.ns, listOptions)
+func (c *FakeReleaseManagers) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(releasemanagersResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.ReleaseManagerList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched releaseManager.
-func (c *FakeReleaseManagers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ReleaseManager, err error) {
+func (c *FakeReleaseManagers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ReleaseManager, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(releasemanagersResource, c.ns, name, pt, data, subresources...), &v1alpha1.ReleaseManager{})
 

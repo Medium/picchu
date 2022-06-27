@@ -37,7 +37,7 @@ build:
 	go build -o build/_output/bin/picchu-webhook ./cmd/webhook
 
 docker: generators/operator-sdk
-	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
+	# https://github.com/Medium/operator-sdk/issues/1854#issuecomment-569285967
 	$< build $(IMAGE)
 	docker build -t $(WEBHOOK_IMAGE) -f build/webhook.Dockerfile .
 
@@ -46,7 +46,7 @@ deps:
 	go mod vendor
 
 deepcopy: generators/operator-sdk
-	# https://github.com/operator-framework/operator-sdk/issues/1854#issuecomment-569285967
+	# https://github.com/Medium/operator-sdk/issues/1854#issuecomment-569285967
 	$< generate k8s
 
 defaulter: generators/defaulter

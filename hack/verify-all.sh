@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 GIT_STATUS="$(git status --porcelain)"
-GOFMT_OUT="$(find ./{pkg,cmd}/ -name '*.go' -not -path './go/vendor/*' -exec gofmt -l -s {} \;)"
+GOFMT_OUT="$(find ./{pkg,cmd}/ -name '*.go' -not -path './go/vendor/*' -not -path './pkg/apis/picchu/v1alpha1/zz_*.go' -exec gofmt -l -s {} \;)"
 
 if [[ -n "${GOFMT_OUT}" || -n "${GIT_STATUS}" ]]; then
     if [[ -n "${GOFMT_OUT}" ]]; then
