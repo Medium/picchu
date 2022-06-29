@@ -68,7 +68,17 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 func UpdateStatus(ctx context.Context, client client.Client, obj client.Object) error {
 	return client.Status().Update(ctx, obj)
 }
-
+func MustGetKindViaScheme(obj runtime.Object, remoteScheme *runtime.Scheme) schema.GroupVersionKind {
+	kinds, _, err := remoteScheme.ObjectKinds(obj)
+	if err != nil {
+		fmt.Printf("Failed to get kind for (%#v)\n", obj)
+		panic(err)
+	}
+	if len(kinds) <= 0 {
+		panic("Assertion failed!")
+	}
+	return kinds[0]
+}
 func MustGetKind(obj runtime.Object) schema.GroupVersionKind {
 	kinds, _, err := scheme.Scheme.ObjectKinds(obj)
 	if err != nil {
