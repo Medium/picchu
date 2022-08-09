@@ -58,7 +58,7 @@ func TestCanaryTestPending(t *testing.T) {
 	now := metav1.Now()
 	assert.True(t, target.IsCanaryPending(&now))
 
-	lastSecond := metav1.Time{time.Now().Add(-time.Second)}
+	lastSecond := metav1.Time{Time: time.Now().Add(-time.Second)}
 	assert.False(t, target.IsCanaryPending(&lastSecond))
 }
 

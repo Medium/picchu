@@ -3,9 +3,10 @@ package plan
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/mocks"
@@ -20,7 +21,7 @@ import (
 )
 
 var (
-	NotFoundError = &errors.StatusError{metav1.Status{
+	NotFoundError = &errors.StatusError{ErrStatus: metav1.Status{
 		Reason: metav1.StatusReasonNotFound,
 	}}
 	yamlSerializer runtime.Serializer
