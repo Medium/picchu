@@ -7,7 +7,7 @@ API_PACKAGE := $(PACKAGE)/apis
 GROUPS := picchu/v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
-OPERATOR_SDK_VERSION := v0.13.0
+OPERATOR_SDK_VERSION := v0.18.2
 
 platform_temp = $(subst -, ,$(ARCH))
 GOOS = $(word 1, $(platform_temp))
