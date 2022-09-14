@@ -119,8 +119,9 @@ type RevisionTarget struct {
 	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
 	Lifecycle      *corev1.Lifecycle           `json:"lifecycle,omitempty"`
 
-	Affinity    *corev1.Affinity    `json:"affinity,omitempty"`
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	Affinity          *corev1.Affinity    `json:"affinity,omitempty"`
+	PriorityClassName string              `json:"priorityClassName,omitempty"`
+	Tolerations       []corev1.Toleration `json:"tolerations,omitempty"`
 
 	ExternalTest        ExternalTest      `json:"externalTest,omitempty"`
 	Canary              Canary            `json:"canary,omitempty"`
