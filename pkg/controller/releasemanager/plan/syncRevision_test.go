@@ -60,6 +60,7 @@ var (
 				},
 			},
 		},
+		PriorityClassName: "default",
 		Tolerations: []corev1.Toleration{
 			{
 				Key:    "infrastructure",
@@ -292,6 +293,7 @@ var (
 							},
 						},
 					},
+					PriorityClassName: "default",
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "infrastructure",

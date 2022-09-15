@@ -394,6 +394,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Worker:             i.target().Scale.Worker,
 		Lifecycle:          i.target().Lifecycle,
 		Affinity:           i.target().Affinity,
+		PriorityClassName:  i.target().PriorityClassName,
 		Tolerations:        i.target().Tolerations,
 		EnvVars:            i.target().Env,
 		Volumes:            i.target().Volumes,

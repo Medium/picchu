@@ -76,6 +76,7 @@ type SyncRevision struct {
 	MinReadySeconds    int32
 	Worker             *picchuv1alpha1.WorkerScaleInfo
 	Lifecycle          *corev1.Lifecycle
+	PriorityClassName  string
 	Affinity           *corev1.Affinity
 	Tolerations        []corev1.Toleration
 	EnvVars            []corev1.EnvVar
@@ -102,6 +103,7 @@ func (p *SyncRevision) Printable() interface{} {
 		MinReadySeconds    int32
 		Lifecycle          *corev1.Lifecycle
 		Affinity           *corev1.Affinity
+		PriorityClassName  string
 	}{
 
 		App:                p.App,
@@ -120,6 +122,7 @@ func (p *SyncRevision) Printable() interface{} {
 		MinReadySeconds:    p.MinReadySeconds,
 		Lifecycle:          p.Lifecycle,
 		Affinity:           p.Affinity,
+		PriorityClassName:  p.PriorityClassName,
 	}
 }
 
@@ -282,6 +285,7 @@ func (p *SyncRevision) syncReplicaSet(
 			Containers:         containers,
 			DNSConfig:          DefaultDNSConfig(),
 			Affinity:           p.Affinity,
+			PriorityClassName:  p.PriorityClassName,
 			Tolerations:        p.Tolerations,
 			Volumes:            p.Volumes,
 		},
