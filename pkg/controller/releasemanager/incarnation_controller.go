@@ -126,6 +126,14 @@ func (i *IncarnationController) divideReplicas(count int32, percent int32) int32
 func (i *IncarnationController) expectedTotalReplicas(count int32, percent int32) int32 {
 	factor := float64(utils.Min(100, percent)) / float64(100)
 	answer := int(math.Ceil(factor * float64(count)))
+
+	log.Info(
+		"call to expectedTotalReplicas contains:",
+		"factor", factor,
+		"answer", answer
+		"expected percent", percent,
+		"target.Scale.Min", count,
+	)
 	return int32(i.clusterInfo.ExpectedReplicaCount(true, answer))
 }
 
