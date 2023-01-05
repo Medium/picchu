@@ -439,7 +439,7 @@ func (in *ExternalTest) DeepCopyInto(out *ExternalTest) {
 	if in.Timeout != nil {
 		in, out := &in.Timeout, &out.Timeout
 		*out = new(v1.Duration)
-		(*in).DeepCopyInto(*out)
+		**out = **in
 	}
 	if in.LastUpdated != nil {
 		in, out := &in.LastUpdated, &out.LastUpdated
@@ -564,7 +564,7 @@ func (in *GeometricScaling) DeepCopyInto(out *GeometricScaling) {
 	if in.Delay != nil {
 		in, out := &in.Delay, &out.Delay
 		*out = new(v1.Duration)
-		(*in).DeepCopyInto(*out)
+		**out = **in
 	}
 	return
 }
@@ -627,7 +627,7 @@ func (in *IstioHTTPPortConfig) DeepCopyInto(out *IstioHTTPPortConfig) {
 	if in.Timeout != nil {
 		in, out := &in.Timeout, &out.Timeout
 		*out = new(v1.Duration)
-		(*in).DeepCopyInto(*out)
+		**out = **in
 	}
 	return
 }
@@ -686,7 +686,7 @@ func (in *LinearScaling) DeepCopyInto(out *LinearScaling) {
 	if in.Delay != nil {
 		in, out := &in.Delay, &out.Delay
 		*out = new(v1.Duration)
-		(*in).DeepCopyInto(*out)
+		**out = **in
 	}
 	return
 }
@@ -1130,7 +1130,7 @@ func (in *Retries) DeepCopyInto(out *Retries) {
 	if in.PerTryTimeout != nil {
 		in, out := &in.PerTryTimeout, &out.PerTryTimeout
 		*out = new(v1.Duration)
-		(*in).DeepCopyInto(*out)
+		**out = **in
 	}
 	if in.RetryOn != nil {
 		in, out := &in.RetryOn, &out.RetryOn
