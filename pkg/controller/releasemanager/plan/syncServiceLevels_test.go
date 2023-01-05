@@ -33,11 +33,15 @@ var (
 			},
 		},
 		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
-			Enabled:                true,
-			Name:                   "test-app-availability",
-			Description:            "test desc",
-			ObjectivePercentString: "99.999",
-			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+			Alerting: picchuv1alpha1.Alerting{
+				TicketAlert: picchuv1alpha1.Alert{
+					Disable: false,
+				},
+			},
+			Name:        "test-app-availability",
+			Description: "test desc",
+			Objective:   99.999,
+			SLI: picchuv1alpha1.SLI{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
 					AllowancePercent: 1,
@@ -45,8 +49,10 @@ var (
 				},
 				TagKey:     "destination_workload",
 				AlertAfter: "1m",
-				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
-				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				Events: &picchuv1alpha1.SLIEvents{
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				},
 			},
 			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
 				ServiceLevelLabels: map[string]string{
@@ -56,8 +62,8 @@ var (
 		}},
 	}
 
-	slexpected = &slov1alpha1.ServiceLevelList{
-		Items: []slov1alpha1.ServiceLevel{
+	slexpected = &slov1alpha1.PrometheusServiceLevelList{
+		Items: []slov1alpha1.PrometheusServiceLevel{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app-production-servicelevels",
@@ -67,28 +73,22 @@ var (
 						picchuv1alpha1.LabelK8sName: "test-app",
 					},
 				},
-				Spec: slov1alpha1.ServiceLevelSpec{
-					ServiceLevelName: "test-app",
-					ServiceLevelObjectives: []slov1alpha1.SLO{
+				Spec: slov1alpha1.PrometheusServiceLevelSpec{
+					Service: "test-app",
+					SLOs: []slov1alpha1.SLO{
 						{
-							Name:                         "test_app_availability",
-							AvailabilityObjectivePercent: 99.999,
-							Description:                  "test desc",
-							Disable:                      false,
-							Output: slov1alpha1.Output{
-								Prometheus: &slov1alpha1.PrometheusOutputSource{
-									Labels: map[string]string{
-										"severity": "test",
-										"team":     "test",
-									},
-								},
+							Name:        "test_app_availability",
+							Objective:   99.999,
+							Description: "test desc",
+							// Disable:                      false,
+							Labels: map[string]string{
+								"severity": "test",
+								"team":     "test",
 							},
-							ServiceLevelIndicator: slov1alpha1.SLI{
-								SLISource: slov1alpha1.SLISource{
-									Prometheus: &slov1alpha1.PrometheusSLISource{
-										ErrorQuery: "sum(test_app:test_app_availability:errors)",
-										TotalQuery: "sum(test_app:test_app_availability:total)",
-									},
+							SLI: slov1alpha1.SLI{
+								Events: &slov1alpha1.SLIEvents{
+									ErrorQuery: "sum(test_app:test_app_availability:errors)",
+									TotalQuery: "sum(test_app:test_app_availability:total)",
 								},
 							},
 						},
