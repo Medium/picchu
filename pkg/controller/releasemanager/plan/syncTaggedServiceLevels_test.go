@@ -11,8 +11,8 @@ import (
 	"go.medium.engineering/picchu/pkg/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/golang/mock/gomock"
+	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

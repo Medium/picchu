@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
+	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,13 +39,13 @@ func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, 
 	return nil
 }
 
-func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.ServiceLevelList, error) {
-	sll := &slov1alpha1.ServiceLevelList{}
-	var sl []slov1alpha1.ServiceLevel
+func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.PrometheusServiceLevelList, error) {
+	sll := &slov1alpha1.PrometheusServiceLevelList{}
+	var sl []slov1alpha1.PrometheusServiceLevel
 	var slos []slov1alpha1.SLO
 
 	for i := range p.ServiceLevelObjectives {
-		if p.ServiceLevelObjectives[i].Enabled {
+		if p.ServiceLevelObjectives[i].Alerting.TicketAlert.Disable {
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
@@ -54,22 +54,22 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.S
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective(log)
-			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.taggedSLISource()
+			serviceLevelObjective.SLI.Events = config.taggedSLISource()
 
 			slos = append(slos, *serviceLevelObjective)
 		}
 	}
 
 	if len(slos) > 0 {
-		serviceLevel := &slov1alpha1.ServiceLevel{
+		serviceLevel := &slov1alpha1.PrometheusServiceLevel{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      p.taggedServiceLevelName(),
 				Namespace: p.Namespace,
 				Labels:    p.Labels,
 			},
-			Spec: slov1alpha1.ServiceLevelSpec{
-				ServiceLevelName:       p.App,
-				ServiceLevelObjectives: slos,
+			Spec: slov1alpha1.PrometheusServiceLevelSpec{
+				Service: p.App,
+				SLOs:    slos,
 			},
 		}
 		sl = append(sl, *serviceLevel)
@@ -79,8 +79,8 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.S
 	return sll, nil
 }
 
-func (s *SLOConfig) taggedSLISource() *slov1alpha1.PrometheusSLISource {
-	source := &slov1alpha1.PrometheusSLISource{
+func (s *SLOConfig) taggedSLISource() *slov1alpha1.SLIEvents {
+	source := &slov1alpha1.SLIEvents{
 		ErrorQuery: s.serviceLevelTaggedErrorQuery(),
 		TotalQuery: s.serviceLevelTaggedTotalQuery(),
 	}
@@ -92,9 +92,9 @@ func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
 }
 
 func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.totalQuery(), s.SLO.SLI.TagKey, s.Tag)
 }
 
 func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.errorQuery(), s.SLO.SLI.TagKey, s.Tag)
 }

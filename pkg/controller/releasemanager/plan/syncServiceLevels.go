@@ -3,11 +3,10 @@ package plan
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
+	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	prometheus "go.medium.engineering/picchu/pkg/prometheus"
@@ -41,12 +40,12 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluste
 	return nil
 }
 
-func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.ServiceLevel, error) {
-	var sl []*slov1alpha1.ServiceLevel
+func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.PrometheusServiceLevel, error) {
+	var sl []*slov1alpha1.PrometheusServiceLevel
 	var slos []slov1alpha1.SLO
 
 	for i := range p.ServiceLevelObjectives {
-		if p.ServiceLevelObjectives[i].Enabled {
+		if !p.ServiceLevelObjectives[i].Alerting.TicketAlert.Disable {
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
@@ -54,20 +53,20 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Servi
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective(log)
-			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.sliSource()
+			serviceLevelObjective.SLI.Events = config.sliSource()
 			slos = append(slos, *serviceLevelObjective)
 		}
 	}
 
-	serviceLevel := &slov1alpha1.ServiceLevel{
+	serviceLevel := &slov1alpha1.PrometheusServiceLevel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.serviceLevelName(),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
-		Spec: slov1alpha1.ServiceLevelSpec{
-			ServiceLevelName:       p.App,
-			ServiceLevelObjectives: slos,
+		Spec: slov1alpha1.PrometheusServiceLevelSpec{
+			Service: p.App,
+			SLOs:    slos,
 		},
 	}
 	sl = append(sl, serviceLevel)
@@ -75,8 +74,8 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Servi
 	return sl, nil
 }
 
-func (s *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
-	source := &slov1alpha1.PrometheusSLISource{
+func (s *SLOConfig) sliSource() *slov1alpha1.SLIEvents {
+	source := &slov1alpha1.SLIEvents{
 		ErrorQuery: s.serviceLevelErrorQuery(),
 		TotalQuery: s.serviceLevelTotalQuery(),
 	}
@@ -97,25 +96,16 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		labels[prometheus.TagLabel] = s.Tag
 	}
 
-	var objectivePercent float64
-	if s.SLO.ObjectivePercentString != "" {
-		f, err := strconv.ParseFloat(s.SLO.ObjectivePercentString, 64)
-		if err != nil {
-			log.Error(err, "Could not parse %v to float", s.SLO.ObjectivePercentString)
-		} else {
-			objectivePercent = f
-		}
-	}
 	slo := &slov1alpha1.SLO{
-		Name:                         s.Name,
-		AvailabilityObjectivePercent: objectivePercent,
-		Description:                  s.SLO.Description,
-		Disable:                      false,
-		Output: slov1alpha1.Output{
-			Prometheus: &slov1alpha1.PrometheusOutputSource{
-				Labels: labels,
+		Name:        s.Name,
+		Objective:   s.SLO.Objective,
+		Description: s.SLO.Description,
+		Alerting: slov1alpha1.Alerting{
+			TicketAlert: slov1alpha1.Alert{
+				Disable: false,
 			},
 		},
+		Labels: labels,
 	}
 	return slo
 }
