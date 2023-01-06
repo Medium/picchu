@@ -2585,9 +2585,6 @@ spec:
                               - id
                               type: object
                             raw:
-                              description: TotalQuery string          `json:"totalQuery,omitempty"`
-                                Events -> ErrorQuery string          `json:"errorQuery,omitempty"`
-                                Events ->
                               properties:
                                 errorRatioQuery:
                                   type: string
