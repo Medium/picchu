@@ -180,11 +180,9 @@ type SLI struct {
 	Canary     SLICanaryConfig `json:"canary,omitempty"`
 	TagKey     string          `json:"tagKey,omitempty"`
 	AlertAfter string          `json:"alertAfter,omitempty"`
-	// TotalQuery string          `json:"totalQuery,omitempty"` Events ->
-	// ErrorQuery string          `json:"errorQuery,omitempty"` Events ->
-	Raw    *SLIRaw    `json:"raw,omitempty"`
-	Events *SLIEvents `json:"events,omitempty"`
-	Plugin *SLIPlugin `json:"plugin,omitempty"`
+	Raw        *SLIRaw         `json:"raw,omitempty"`
+	Events     *SLIEvents      `json:"events,omitempty"`
+	Plugin     *SLIPlugin      `json:"plugin,omitempty"`
 }
 
 type SLIRaw struct {

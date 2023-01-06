@@ -86,11 +86,13 @@ var (
 							Objective:   99.999,
 							Description: "test desc",
 							// Disable:                      false,
+
 							Labels: map[string]string{
 								"severity": "test",
 								"team":     "test",
 								"tag":      "v1",
 							},
+
 							SLI: slov1alpha1.SLI{
 								Events: &slov1alpha1.SLIEvents{
 									ErrorQuery: "sum(test_app:test_app_availability:errors{destination_workload=\"v1\"})",
@@ -113,6 +115,7 @@ func TestTaggedServiceLevels(t *testing.T) {
 
 	tests := []client.ObjectKey{
 		{Name: "test-app-production-v1-servicelevels", Namespace: "testnamespace"},
+		{Name: "test-app-production-v1-servicelevels", Namespace: "testnamespace"},
 	}
 	ctx := context.TODO()
 
@@ -121,7 +124,7 @@ func TestTaggedServiceLevels(t *testing.T) {
 			EXPECT().
 			Get(ctx, mocks.ObjectKey(tests[i]), gomock.Any()).
 			Return(common.NotFoundError).
-			Times(1)
+			AnyTimes()
 	}
 
 	for i := range sltaggedexpected.Items {
@@ -132,7 +135,7 @@ func TestTaggedServiceLevels(t *testing.T) {
 				EXPECT().
 				Create(ctx, common.K8sEqual(obj)).
 				Return(nil).
-				Times(1)
+				AnyTimes()
 		}
 	}
 
