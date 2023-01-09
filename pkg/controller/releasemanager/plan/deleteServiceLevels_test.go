@@ -7,7 +7,7 @@ import (
 
 	ktest "go.medium.engineering/kubernetes/pkg/test"
 
-	slo "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	testify "github.com/stretchr/testify/assert"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/test"
@@ -24,7 +24,7 @@ func TestDeleteServiceLevels(t *testing.T) {
 		Namespace: "testnamespace",
 		Target:    "target",
 	}
-	sl := &slo.PrometheusServiceLevel{
+	sl := &slov1.PrometheusServiceLevel{
 		ObjectMeta: meta.ObjectMeta{
 			Name:      "test",
 			Namespace: "testnamespace",

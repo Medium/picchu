@@ -5,7 +5,7 @@ import (
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
-	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	ktest "go.medium.engineering/kubernetes/pkg/test"
 	coreAsserts "go.medium.engineering/kubernetes/pkg/test/core/v1"
 	istioAsserts "go.medium.engineering/kubernetes/pkg/test/istio/networking/v1alpha3"
@@ -64,7 +64,7 @@ func init() {
 		if err := v1alpha1.AddToScheme(s); err != nil {
 			panic(err)
 		}
-		if err := slov1alpha1.AddToScheme(s); err != nil {
+		if err := slov1.AddToScheme(s); err != nil {
 			panic(err)
 		}
 		if err := wpav1.AddToScheme(s); err != nil {

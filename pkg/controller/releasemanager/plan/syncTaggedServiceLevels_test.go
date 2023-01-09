@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/golang/mock/gomock"
-	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,8 +65,8 @@ var (
 		}},
 	}
 
-	sltaggedexpected = &slov1alpha1.PrometheusServiceLevelList{
-		Items: []slov1alpha1.PrometheusServiceLevel{
+	sltaggedexpected = &slov1.PrometheusServiceLevelList{
+		Items: []slov1.PrometheusServiceLevel{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app-production-v1-servicelevels",
@@ -78,9 +78,9 @@ var (
 						picchuv1alpha1.LabelK8sVersion: "v1",
 					},
 				},
-				Spec: slov1alpha1.PrometheusServiceLevelSpec{
+				Spec: slov1.PrometheusServiceLevelSpec{
 					Service: "test-app",
-					SLOs: []slov1alpha1.SLO{
+					SLOs: []slov1.SLO{
 						{
 							Name:        "test_app_availability",
 							Objective:   99.999,
@@ -93,8 +93,8 @@ var (
 								"tag":      "v1",
 							},
 
-							SLI: slov1alpha1.SLI{
-								Events: &slov1alpha1.SLIEvents{
+							SLI: slov1.SLI{
+								Events: &slov1.SLIEvents{
 									ErrorQuery: "sum(test_app:test_app_availability:errors{destination_workload=\"v1\"})",
 									TotalQuery: "sum(test_app:test_app_availability:total{destination_workload=\"v1\"})",
 								},

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -20,7 +20,7 @@ type DeleteTaggedServiceLevels struct {
 }
 
 func (p *DeleteTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	sllist := &slov1alpha1.PrometheusServiceLevelList{}
+	sllist := &slov1.PrometheusServiceLevelList{}
 
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,

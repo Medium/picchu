@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/plan"
 	prometheus "go.medium.engineering/picchu/pkg/prometheus"
@@ -40,9 +40,9 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluste
 	return nil
 }
 
-func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.PrometheusServiceLevel, error) {
-	var sl []*slov1alpha1.PrometheusServiceLevel
-	var slos []slov1alpha1.SLO
+func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1.PrometheusServiceLevel, error) {
+	var sl []*slov1.PrometheusServiceLevel
+	var slos []slov1.SLO
 
 	for i := range p.ServiceLevelObjectives {
 		if !p.ServiceLevelObjectives[i].Alerting.TicketAlert.Disable {
@@ -58,13 +58,13 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Prome
 		}
 	}
 
-	serviceLevel := &slov1alpha1.PrometheusServiceLevel{
+	serviceLevel := &slov1.PrometheusServiceLevel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.serviceLevelName(),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
-		Spec: slov1alpha1.PrometheusServiceLevelSpec{
+		Spec: slov1.PrometheusServiceLevelSpec{
 			Service: p.App,
 			SLOs:    slos,
 		},
@@ -74,15 +74,15 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Prome
 	return sl, nil
 }
 
-func (s *SLOConfig) sliSource() *slov1alpha1.SLIEvents {
-	source := &slov1alpha1.SLIEvents{
+func (s *SLOConfig) sliSource() *slov1.SLIEvents {
+	source := &slov1.SLIEvents{
 		ErrorQuery: s.serviceLevelErrorQuery(),
 		TotalQuery: s.serviceLevelTotalQuery(),
 	}
 	return source
 }
 
-func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
+func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1.SLO {
 	labels := make(map[string]string)
 	for k, v := range s.Labels.ServiceLevelLabels {
 		labels[k] = v
@@ -96,12 +96,12 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		labels[prometheus.TagLabel] = s.Tag
 	}
 
-	slo := &slov1alpha1.SLO{
+	slo := &slov1.SLO{
 		Name:        s.Name,
 		Objective:   s.SLO.Objective,
 		Description: s.SLO.Description,
-		Alerting: slov1alpha1.Alerting{
-			TicketAlert: slov1alpha1.Alert{
+		Alerting: slov1.Alerting{
+			TicketAlert: slov1.Alert{
 				Disable: false,
 			},
 		},

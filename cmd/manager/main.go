@@ -16,7 +16,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
-	slo "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	"github.com/spf13/pflag"
 	"go.medium.engineering/picchu/pkg/apis"
 	picchu "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
@@ -137,7 +137,7 @@ func main() {
 		picchu.AddToScheme,
 		istio.AddToScheme,
 		monitoring.AddToScheme,
-		slo.AddToScheme,
+		slov1.AddToScheme,
 		wpav1.AddToScheme,
 	}
 
