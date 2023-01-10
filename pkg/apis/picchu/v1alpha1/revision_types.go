@@ -156,6 +156,15 @@ type ServiceLevelObjective struct {
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
 }
 
+type SlothServiceLevelObjective struct {
+	Name                        string                      `json:"name,omitempty"`
+	Description                 string                      `json:"description,omitempty"`
+	Enabled                     bool                        `json:"enabled"`
+	Objective                   string                      `json:"objectivePercentString,omitempty"`
+	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
+	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
+}
+
 type ServiceLevelObjectiveLabels struct {
 	AlertLabels        map[string]string `json:"alertLabels,omitempty"`
 	RuleLabels         map[string]string `json:"ruleLabels,omitempty"`

@@ -12,6 +12,7 @@ import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/go-logr/logr"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
@@ -260,6 +261,28 @@ func CreateOrUpdate(
 	case *slov1alpha1.ServiceLevel:
 		typed := orig.DeepCopy()
 		sl := &slov1alpha1.ServiceLevel{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, sl, func() error {
+			if isIgnored(sl.ObjectMeta) {
+				kind := utils.MustGetKind(sl).Kind
+				log.Info("Resource is ignored", "namespace", sl.Namespace, "name", sl.Name, "kind", kind)
+				return nil
+			}
+			sl.Spec = typed.Spec
+			sl.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, sl)
+		if err != nil {
+			return err
+		}
+	case *slov1.PrometheusServiceLevel:
+		typed := orig.DeepCopy()
+		sl := &slov1.PrometheusServiceLevel{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      typed.Name,
 				Namespace: typed.Namespace,
