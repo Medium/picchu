@@ -30,6 +30,7 @@ type SyncSLORules struct {
 	Labels                      map[string]string
 	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
 	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
+	SlothServiceLevelObjectives []*picchuv1alpha1.SlothServiceLevelObjective
 }
 
 func (p *SyncSLORules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -55,20 +56,38 @@ func (p *SyncSLORules) SLORules() ([]monitoringv1.PrometheusRule, error) {
 
 	rule := p.prometheusRule()
 
-	for i := range p.ServiceLevelObjectives {
-		config := SLOConfig{
-			SLO:    p.ServiceLevelObjectives[i],
-			App:    p.App,
-			Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
-			Labels: p.ServiceLevelObjectiveLabels,
+	if p.ServiceLevelObjectives != nil {
+		for i := range p.ServiceLevelObjectives {
+			config := SLOConfig{
+				SLO:    p.ServiceLevelObjectives[i],
+				App:    p.App,
+				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
+				Labels: p.ServiceLevelObjectiveLabels,
+			}
+			recordingRules := config.recordingRules()
+			for j := range recordingRules {
+				rule.Spec.Groups = append(rule.Spec.Groups, *recordingRules[j])
+			}
 		}
-		recordingRules := config.recordingRules()
-		for j := range recordingRules {
-			rule.Spec.Groups = append(rule.Spec.Groups, *recordingRules[j])
+
+		prs = append(prs, *rule)
+	} else if p.SlothServiceLevelObjectives != nil {
+		for i := range p.SlothServiceLevelObjectives {
+			config := SlothSLOConfig{
+				SLO:    p.SlothServiceLevelObjectives[i],
+				App:    p.App,
+				Name:   sanitizeName(p.SlothServiceLevelObjectives[i].Name),
+				Labels: p.ServiceLevelObjectiveLabels,
+			}
+			recordingRules := config.recordingRules()
+			for j := range recordingRules {
+				rule.Spec.Groups = append(rule.Spec.Groups, *recordingRules[j])
+			}
 		}
+
+		prs = append(prs, *rule)
 	}
 
-	prs = append(prs, *rule)
 	return prs, nil
 }
 
@@ -113,7 +132,32 @@ func (s *SLOConfig) recordingRules() []*monitoringv1.RuleGroup {
 	return ruleGroups
 }
 
+func (s *SlothSLOConfig) recordingRules() []*monitoringv1.RuleGroup {
+	var ruleGroups []*monitoringv1.RuleGroup
+
+	ruleGroup := &monitoringv1.RuleGroup{
+		Name: s.recordingRuleName(),
+		Rules: []monitoringv1.Rule{
+			{
+				Record: s.totalQuery(),
+				Expr:   intstr.FromString(s.SLO.ServiceLevelIndicator.TotalQuery),
+			},
+			{
+				Record: s.errorQuery(),
+				Expr:   intstr.FromString(s.SLO.ServiceLevelIndicator.ErrorQuery),
+			},
+		},
+	}
+	ruleGroups = append(ruleGroups, ruleGroup)
+
+	return ruleGroups
+}
+
 func (s *SLOConfig) recordingRuleName() string {
+	return fmt.Sprintf("%s_record", s.Name)
+}
+
+func (s *SlothSLOConfig) recordingRuleName() string {
 	return fmt.Sprintf("%s_record", s.Name)
 }
 

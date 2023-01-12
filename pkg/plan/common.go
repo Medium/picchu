@@ -281,6 +281,7 @@ func CreateOrUpdate(
 			return err
 		}
 	case *slov1.PrometheusServiceLevel:
+		log.Info("\n AM I HERE? \n")
 		typed := orig.DeepCopy()
 		sl := &slov1.PrometheusServiceLevel{
 			ObjectMeta: metav1.ObjectMeta{
@@ -300,6 +301,7 @@ func CreateOrUpdate(
 		})
 		LogSync(log, op, err, sl)
 		if err != nil {
+			log.Info("\n Error? common . go \n")
 			return err
 		}
 	case *corev1.Secret:

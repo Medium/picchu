@@ -15,11 +15,12 @@ import (
 )
 
 type SyncServiceMonitors struct {
-	App                    string
-	Namespace              string
-	Labels                 map[string]string
-	ServiceMonitors        []*picchuv1alpha1.ServiceMonitor
-	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
+	App                         string
+	Namespace                   string
+	Labels                      map[string]string
+	ServiceMonitors             []*picchuv1alpha1.ServiceMonitor
+	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
+	SlothServiceLevelObjectives []*picchuv1alpha1.SlothServiceLevelObjective
 }
 
 func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -104,20 +105,39 @@ func (p *SyncServiceMonitors) serviceMonitor(sm *picchuv1alpha1.ServiceMonitor, 
 // return all unique metric names required by the ServiceLevelObjectives
 func (p *SyncServiceMonitors) parseMetricNames() ([]string, error) {
 	n := make(map[string]bool)
-	for i := range p.ServiceLevelObjectives {
-		totalQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.TotalQuery)
-		if err != nil {
-			return nil, err
+	if p.ServiceLevelObjectives != nil {
+		for i := range p.ServiceLevelObjectives {
+			totalQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.TotalQuery)
+			if err != nil {
+				return nil, err
+			}
+			for name := range totalQuery {
+				n[name] = true
+			}
+			errorQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.ErrorQuery)
+			if err != nil {
+				return nil, err
+			}
+			for name := range errorQuery {
+				n[name] = true
+			}
 		}
-		for name := range totalQuery {
-			n[name] = true
-		}
-		errorQuery, err := prometheus.MetricNames(p.ServiceLevelObjectives[i].ServiceLevelIndicator.ErrorQuery)
-		if err != nil {
-			return nil, err
-		}
-		for name := range errorQuery {
-			n[name] = true
+	} else if p.SlothServiceLevelObjectives != nil {
+		for i := range p.SlothServiceLevelObjectives {
+			totalQuery, err := prometheus.MetricNames(p.SlothServiceLevelObjectives[i].ServiceLevelIndicator.TotalQuery)
+			if err != nil {
+				return nil, err
+			}
+			for name := range totalQuery {
+				n[name] = true
+			}
+			errorQuery, err := prometheus.MetricNames(p.SlothServiceLevelObjectives[i].ServiceLevelIndicator.ErrorQuery)
+			if err != nil {
+				return nil, err
+			}
+			for name := range errorQuery {
+				n[name] = true
+			}
 		}
 	}
 

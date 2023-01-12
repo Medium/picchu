@@ -96,20 +96,21 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name                        string                      `json:"name"`
-	Fleet                       string                      `json:"fleet"`
-	Scale                       ScaleInfo                   `json:"scale"`
-	Release                     ReleaseInfo                 `json:"release,omitempty"`
-	ServiceMonitors             []*ServiceMonitor           `json:"serviceMonitors,omitempty"`
-	ServiceLevelObjectives      []*ServiceLevelObjective    `json:"serviceLevelObjectives,omitempty"`
-	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
-	AcceptanceTarget            bool                        `json:"acceptanceTarget,omitempty"`
-	ConfigSelector              *metav1.LabelSelector       `json:"configSelector,omitempty"`
-	AWS                         AWSInfo                     `json:"aws,omitempty"`
-	AlertRules                  []monitoringv1.Rule         `json:"alertRules,omitempty"`
-	Sidecars                    []corev1.Container          `json:"sidecars,omitempty"`
-	VolumeMounts                []corev1.VolumeMount        `json:"volumeMounts,omitempty"`
-	Volumes                     []corev1.Volume             `json:"volumes,omitempty"`
+	Name                        string                        `json:"name"`
+	Fleet                       string                        `json:"fleet"`
+	Scale                       ScaleInfo                     `json:"scale"`
+	Release                     ReleaseInfo                   `json:"release,omitempty"`
+	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
+	ServiceLevelObjectives      []*ServiceLevelObjective      `json:"serviceLevelObjectives,omitempty"`
+	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"slothServiceLevelObjectives,omitempty"`
+	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
+	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
+	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`
+	AWS                         AWSInfo                       `json:"aws,omitempty"`
+	AlertRules                  []monitoringv1.Rule           `json:"alertRules,omitempty"`
+	Sidecars                    []corev1.Container            `json:"sidecars,omitempty"`
+	VolumeMounts                []corev1.VolumeMount          `json:"volumeMounts,omitempty"`
+	Volumes                     []corev1.Volume               `json:"volumes,omitempty"`
 
 	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
 	ServiceAccountName string            `json:"serviceAccountName,omitempty"`

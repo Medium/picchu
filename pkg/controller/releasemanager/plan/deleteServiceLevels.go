@@ -20,7 +20,9 @@ type DeleteServiceLevels struct {
 }
 
 func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	// delete both sloth and legact slos
 	sllist := &slov1alpha1.ServiceLevelList{}
+	slothsllist := &slov1.PrometheusServiceLevelList{}
 
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,
@@ -46,26 +48,12 @@ func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, clus
 		}
 	}
 
-	return nil
-}
-
-func (p *DeleteServiceLevels) ApplySloth(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	sllist := &slov1.PrometheusServiceLevelList{}
-
-	opts := &client.ListOptions{
-		Namespace: p.Namespace,
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp:    p.App,
-			picchuv1alpha1.LabelTarget: p.Target,
-		}),
-	}
-
-	if err := cli.List(ctx, sllist, opts); err != nil {
+	if err := cli.List(ctx, slothsllist, opts); err != nil {
 		log.Error(err, "Failed to delete Service Levels")
 		return err
 	}
 
-	for _, sl := range sllist.Items {
+	for _, sl := range slothsllist.Items {
 		err := cli.Delete(ctx, &sl)
 		if err != nil && !errors.IsNotFound(err) {
 			plan.LogSync(log, "deleted", err, &sl)

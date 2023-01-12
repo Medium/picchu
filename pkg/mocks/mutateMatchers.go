@@ -5,7 +5,6 @@ import (
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/golang/mock/gomock"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
-	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2beta2"
 	corev1 "k8s.io/api/core/v1"
@@ -97,26 +96,12 @@ func InjectPrometheusRules(rules []monitoringv1.PrometheusRule) gomock.Matcher {
 	return Callback(fn, "injects PrometheusRules")
 }
 
+// where is this used? should i just incorporate sloth into this function?
 // InjectServiceLevels puts ServiceLevel into a *ServiceLevelList
 func InjectServiceLevels(sls []slov1alpha1.ServiceLevel) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
 		case *slov1alpha1.ServiceLevelList:
-			for i := range sls {
-				o.Items = append(o.Items, sls[i])
-			}
-			return true
-		default:
-			return false
-		}
-	}
-	return Callback(fn, "injects ServiceLevels")
-}
-
-func InjectServiceLevelsSloth(sls []slov1.PrometheusServiceLevel) gomock.Matcher {
-	fn := func(x interface{}) bool {
-		switch o := x.(type) {
-		case *slov1.PrometheusServiceLevelList:
 			for i := range sls {
 				o.Items = append(o.Items, sls[i])
 			}

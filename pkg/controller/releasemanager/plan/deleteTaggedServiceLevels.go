@@ -22,6 +22,7 @@ type DeleteTaggedServiceLevels struct {
 
 func (p *DeleteTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	sllist := &slov1alpha1.ServiceLevelList{}
+	slothsllist := &slov1.PrometheusServiceLevelList{}
 
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,
@@ -48,27 +49,12 @@ func (p *DeleteTaggedServiceLevels) Apply(ctx context.Context, cli client.Client
 		}
 	}
 
-	return nil
-}
-
-func (p *DeleteTaggedServiceLevels) ApplySloth(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	sllist := &slov1.PrometheusServiceLevelList{}
-
-	opts := &client.ListOptions{
-		Namespace: p.Namespace,
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			picchuv1alpha1.LabelApp:    p.App,
-			picchuv1alpha1.LabelTarget: p.Target,
-			picchuv1alpha1.LabelTag:    p.Tag,
-		}),
-	}
-
-	if err := cli.List(ctx, sllist, opts); err != nil {
-		log.Error(err, "Failed to delete tagged Service Levels")
+	if err := cli.List(ctx, slothsllist, opts); err != nil {
+		log.Error(err, "Failed to delete Service Levels")
 		return err
 	}
 
-	for _, sl := range sllist.Items {
+	for _, sl := range slothsllist.Items {
 		err := cli.Delete(ctx, &sl)
 		if err != nil && !errors.IsNotFound(err) {
 			plan.LogSync(log, "deleted", err, &sl)
