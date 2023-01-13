@@ -60,7 +60,7 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 
 	rule := p.prometheusRule()
 
-	if p.ServiceLevelObjectives != nil {
+	if p.ServiceLevelObjectives != nil && p.SlothServiceLevelObjectives == nil {
 		for i := range p.ServiceLevelObjectives {
 			if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
 				config := SLOConfig{
@@ -76,7 +76,7 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 				}
 			}
 		}
-	} else if p.SlothServiceLevelObjectives != nil {
+	} else {
 		for i := range p.SlothServiceLevelObjectives {
 			if p.SlothServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
 				config := SlothSLOConfig{

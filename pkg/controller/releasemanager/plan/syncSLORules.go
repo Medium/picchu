@@ -56,7 +56,7 @@ func (p *SyncSLORules) SLORules() ([]monitoringv1.PrometheusRule, error) {
 
 	rule := p.prometheusRule()
 
-	if p.ServiceLevelObjectives != nil {
+	if p.ServiceLevelObjectives != nil && p.SlothServiceLevelObjectives == nil {
 		for i := range p.ServiceLevelObjectives {
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
@@ -71,7 +71,7 @@ func (p *SyncSLORules) SLORules() ([]monitoringv1.PrometheusRule, error) {
 		}
 
 		prs = append(prs, *rule)
-	} else if p.SlothServiceLevelObjectives != nil {
+	} else {
 		for i := range p.SlothServiceLevelObjectives {
 			config := SlothSLOConfig{
 				SLO:    p.SlothServiceLevelObjectives[i],

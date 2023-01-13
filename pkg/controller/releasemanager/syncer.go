@@ -296,7 +296,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 			return err
 		}
 	} else {
-		if len(slos) > 0 {
+		if len(slos) > 0 && len(slothslos) == 0 {
 			if err := r.applyPlan(ctx, "Sync Service Monitors", &rmplan.SyncServiceMonitors{
 				App:                    r.instance.Spec.App,
 				Namespace:              r.instance.TargetNamespace(),
@@ -306,7 +306,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
-		} else if len(slothslos) > 0 {
+		} else {
 			if err := r.applyPlan(ctx, "Sync Service Monitors", &rmplan.SyncServiceMonitors{
 				App:                         r.instance.Spec.App,
 				Namespace:                   r.instance.TargetNamespace(),
@@ -335,7 +335,7 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 	if r.picchuConfig.ServiceLevelsFleet != "" && r.picchuConfig.ServiceLevelsNamespace != "" {
 		slos, slothslos, sloLabels := r.prepareServiceLevelObjectives()
 
-		if len(slos) > 0 {
+		if len(slos) > 0 && len(slothslos) == 0 {
 			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
 				Name: r.picchuConfig.ServiceLevelsNamespace,
 			}); err != nil {
@@ -355,7 +355,9 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
-		} else if len(slothslos) > 0 {
+		} else if len(slothslos) == 0 && len(slos) == 0 {
+			return r.delServiceLevels(ctx)
+		} else {
 			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
 				Name: r.picchuConfig.ServiceLevelsNamespace,
 			}); err != nil {
@@ -375,8 +377,6 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
-		} else {
-			return r.delServiceLevels(ctx)
 		}
 	} else {
 		r.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncServiceLevels")
@@ -386,7 +386,7 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 
 func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 	slos, slothslos, labels := r.prepareServiceLevelObjectives()
-	if len(slos) > 0 {
+	if len(slos) > 0 && len(slothslos) == 0 {
 		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
 			App:                         r.instance.Spec.App,
 			Namespace:                   r.instance.TargetNamespace(),
@@ -396,20 +396,20 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 		}); err != nil {
 			return err
 		}
-	} else if len(slothslos) > 0 {
+	} else if len(slothslos) == 0 && len(slos) == 0 {
+		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
+			App:       r.instance.Spec.App,
+			Namespace: r.instance.TargetNamespace(),
+		}); err != nil {
+			return err
+		}
+	} else {
 		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
 			App:                         r.instance.Spec.App,
 			Namespace:                   r.instance.TargetNamespace(),
 			Labels:                      r.defaultLabels(),
 			ServiceLevelObjectiveLabels: labels,
 			SlothServiceLevelObjectives: slothslos,
-		}); err != nil {
-			return err
-		}
-	} else {
-		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
-			App:       r.instance.Spec.App,
-			Namespace: r.instance.TargetNamespace(),
 		}); err != nil {
 			return err
 		}
@@ -466,9 +466,9 @@ func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.Serv
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
-				if len(i.target().ServiceLevelObjectives) > 0 {
+				if len(i.target().ServiceLevelObjectives) > 0 && len(i.target().SlothServiceLevelObjectives) == 0 {
 					return i.target().ServiceLevelObjectives, slothslos, i.target().ServiceLevelObjectiveLabels
-				} else if len(i.target().SlothServiceLevelObjectives) > 0 {
+				} else {
 					return slos, i.target().SlothServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
 				}
 

@@ -32,14 +32,15 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluste
 	if err != nil {
 		return err
 	}
-	// if legacy or sloth
-	if len(serviceLevels) > 0 {
+
+	if len(serviceLevels) > 0 && len(slothServiceLevels) == 0 {
 		for i := range serviceLevels {
 			if err := plan.CreateOrUpdate(ctx, log, cli, serviceLevels[i]); err != nil {
 				return err
 			}
 		}
-	} else if len(slothServiceLevels) > 0 {
+	} else {
+		// Sloth every other scenario -
 		for i := range slothServiceLevels {
 			if err := plan.CreateOrUpdate(ctx, log, cli, slothServiceLevels[i]); err != nil {
 				return err
@@ -56,7 +57,7 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Servi
 	var slothsl []*slov1.PrometheusServiceLevel
 	var slothslos []slov1.SLO
 
-	if p.ServiceLevelObjectives != nil {
+	if p.ServiceLevelObjectives != nil && p.SlothServiceLevelObjectives == nil {
 		for i := range p.ServiceLevelObjectives {
 			if p.ServiceLevelObjectives[i].Enabled {
 				config := SLOConfig{
@@ -83,7 +84,8 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Servi
 			},
 		}
 		sl = append(sl, serviceLevel)
-	} else if p.SlothServiceLevelObjectives != nil {
+	} else {
+		// Sloth every other scenario -
 		for i := range p.SlothServiceLevelObjectives {
 			if p.SlothServiceLevelObjectives[i].Enabled {
 				config := SlothSLOConfig{
