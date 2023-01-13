@@ -3,9 +3,10 @@ package plan
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"go.medium.engineering/picchu/pkg/controller/utils"
 	"go.medium.engineering/picchu/pkg/mocks"

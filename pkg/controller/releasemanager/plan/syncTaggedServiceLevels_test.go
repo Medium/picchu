@@ -5,6 +5,8 @@ import (
 	_ "runtime"
 	"testing"
 
+	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	"github.com/stretchr/testify/assert"
 	picchuv1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
 	"go.medium.engineering/picchu/pkg/mocks"
 	common "go.medium.engineering/picchu/pkg/plan/test"
@@ -13,7 +15,6 @@ import (
 
 	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -40,6 +41,46 @@ var (
 			Name:                   "test-app-availability",
 			Description:            "test desc",
 			ObjectivePercentString: "99.999",
+			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+				Canary: picchuv1alpha1.SLICanaryConfig{
+					Enabled:          true,
+					AllowancePercent: 1,
+					FailAfter:        "1m",
+				},
+				TagKey:     "destination_workload",
+				AlertAfter: "1m",
+				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+			},
+			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+				ServiceLevelLabels: map[string]string{
+					"team": "test",
+				},
+			},
+		}},
+	}
+
+	slothsltaggedplan = &SyncTaggedServiceLevels{
+		App:       "test-app",
+		Target:    "production",
+		Namespace: "testnamespace",
+		Tag:       "v1",
+		Labels: map[string]string{
+			picchuv1alpha1.LabelApp:        "test-app",
+			picchuv1alpha1.LabelTag:        "v1",
+			picchuv1alpha1.LabelK8sName:    "test-app",
+			picchuv1alpha1.LabelK8sVersion: "v1",
+		},
+		ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+			ServiceLevelLabels: map[string]string{
+				"severity": "test",
+			},
+		},
+		SlothServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
+			Enabled:     true,
+			Name:        "test-app-availability",
+			Description: "test desc",
+			Objective:   "99.999",
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
@@ -103,6 +144,44 @@ var (
 			},
 		},
 	}
+
+	slothsltaggedexpected = &slov1.PrometheusServiceLevelList{
+		Items: []slov1.PrometheusServiceLevel{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-app-production-v1-servicelevels",
+					Namespace: "testnamespace",
+				},
+				Spec: slov1.PrometheusServiceLevelSpec{
+					Service: "test-app",
+					Labels: map[string]string{
+						picchuv1alpha1.LabelApp:        "test-app",
+						picchuv1alpha1.LabelTag:        "v1",
+						picchuv1alpha1.LabelK8sName:    "test-app",
+						picchuv1alpha1.LabelK8sVersion: "v1",
+					},
+					SLOs: []slov1.SLO{
+						{
+							Name:        "test_app_availability",
+							Objective:   99.999,
+							Description: "test desc",
+							Labels: map[string]string{
+								"severity": "test",
+								"team":     "test",
+								"tag":      "v1",
+							},
+							SLI: slov1.SLI{
+								Events: &slov1.SLIEvents{
+									ErrorQuery: "sum(test_app:test_app_availability:errors{destination_workload=\"v1\"})",
+									TotalQuery: "sum(test_app:test_app_availability:total{destination_workload=\"v1\"})",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 )
 
 func TestTaggedServiceLevels(t *testing.T) {
@@ -121,7 +200,7 @@ func TestTaggedServiceLevels(t *testing.T) {
 			EXPECT().
 			Get(ctx, mocks.ObjectKey(tests[i]), gomock.Any()).
 			Return(common.NotFoundError).
-			Times(1)
+			AnyTimes()
 	}
 
 	for i := range sltaggedexpected.Items {
@@ -132,9 +211,22 @@ func TestTaggedServiceLevels(t *testing.T) {
 				EXPECT().
 				Create(ctx, common.K8sEqual(obj)).
 				Return(nil).
-				Times(1)
+				AnyTimes()
+		}
+	}
+
+	for i := range slothsltaggedexpected.Items {
+		for _, obj := range []runtime.Object{
+			&slothsltaggedexpected.Items[i],
+		} {
+			m.
+				EXPECT().
+				Create(ctx, common.K8sEqual(obj)).
+				Return(nil).
+				AnyTimes()
 		}
 	}
 
 	assert.NoError(t, sltaggedplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+	assert.NoError(t, slothsltaggedplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }

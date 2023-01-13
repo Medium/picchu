@@ -87,6 +87,74 @@ var (
 		}},
 	}
 
+	slothsmplan = &SyncServiceMonitors{
+		App:       "testapp",
+		Namespace: "testnamespace",
+		ServiceMonitors: []*picchuv1alpha1.ServiceMonitor{
+			{
+				Name:     "test1",
+				SLORegex: true,
+				Labels: map[string]string{
+					"test": "test",
+				},
+				Spec: monitoringv1.ServiceMonitorSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"test": "test",
+						},
+					},
+					Endpoints: []monitoringv1.Endpoint{{
+						Interval: "15s",
+						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
+							Action:       "drop",
+							SourceLabels: []string{"__name__"},
+						}},
+					}},
+				},
+			},
+			{
+				Name: "test2",
+				Labels: map[string]string{
+					"test": "test",
+				},
+				Annotations: map[string]string{
+					"test": "test",
+				},
+				Spec: monitoringv1.ServiceMonitorSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"test": "test",
+						},
+					},
+					Endpoints: []monitoringv1.Endpoint{{
+						Interval: "15s",
+						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
+							Action:       "keep",
+							Regex:        "(.*)",
+							SourceLabels: []string{"__name__"},
+						}},
+					}},
+				},
+			},
+		},
+		SlothServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
+			Enabled:   true,
+			Name:      "test-app-availability",
+			Objective: "99.999",
+			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+				Canary: picchuv1alpha1.SLICanaryConfig{
+					Enabled:          true,
+					AllowancePercent: 1,
+					FailAfter:        "1m",
+				},
+				TagKey:     "destination_workload",
+				AlertAfter: "1m",
+				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+			},
+		}},
+	}
+
 	smexpected = monitoringv1.ServiceMonitorList{
 		Items: []*monitoringv1.ServiceMonitor{{
 			ObjectMeta: metav1.ObjectMeta{
@@ -178,4 +246,39 @@ func TestSyncServiceMonitors(t *testing.T) {
 	}
 
 	assert.NoError(t, smplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+}
+
+func TestSyncServiceMonitorsSloth(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	tests := []client.ObjectKey{
+		{Name: "test1", Namespace: "testnamespace"},
+		{Name: "test2", Namespace: "testnamespace"},
+	}
+	ctx := context.TODO()
+
+	for i := range tests {
+		m.
+			EXPECT().
+			Get(ctx, mocks.ObjectKey(tests[i]), gomock.Any()).
+			Return(common.NotFoundError).
+			Times(1)
+	}
+
+	for i := range smexpected.Items {
+		for _, obj := range []runtime.Object{
+			smexpected.Items[i],
+		} {
+			m.
+				EXPECT().
+				Create(ctx, common.K8sEqual(obj)).
+				Return(nil).
+				Times(1)
+		}
+	}
+
+	assert.NoError(t, slothsmplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }

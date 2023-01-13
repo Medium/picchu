@@ -31,8 +31,6 @@ func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, 
 		return err
 	}
 
-	log.Info(fmt.Sprintf("SLSLOTHs %d \n", len(slothServiceLevels.Items)))
-
 	if serviceLevels.Items != nil {
 		for i := range serviceLevels.Items {
 			if err := plan.CreateOrUpdate(ctx, log, cli, &serviceLevels.Items[i]); err != nil {
@@ -40,10 +38,8 @@ func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, 
 			}
 		}
 	} else if slothServiceLevels.Items != nil {
-		log.Info("\n IN THE IF \n")
 		for i := range slothServiceLevels.Items {
 			if err := plan.CreateOrUpdate(ctx, log, cli, &slothServiceLevels.Items[i]); err != nil {
-				log.Info("\n ErrRRR \n")
 				return err
 			}
 		}
@@ -120,6 +116,7 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.S
 				Spec: slov1.PrometheusServiceLevelSpec{
 					Service: p.App,
 					SLOs:    slothslos,
+					Labels:  p.Labels,
 				},
 			}
 			slothsl = append(slothsl, *serviceLevel)
@@ -139,8 +136,8 @@ func (s *SLOConfig) taggedSLISource() *slov1alpha1.PrometheusSLISource {
 
 func (s *SlothSLOConfig) taggedSLISource() *slov1.SLIEvents {
 	source := &slov1.SLIEvents{
-		ErrorQuery: s.serviceLevelErrorQuery(),
-		TotalQuery: s.serviceLevelTotalQuery(),
+		ErrorQuery: s.serviceLevelTaggedErrorQuery(),
+		TotalQuery: s.serviceLevelTaggedTotalQuery(),
 	}
 	return source
 }
@@ -154,5 +151,13 @@ func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
 }
 
 func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+}
+
+func (s *SlothSLOConfig) serviceLevelTaggedTotalQuery() string {
+	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+}
+
+func (s *SlothSLOConfig) serviceLevelTaggedErrorQuery() string {
 	return fmt.Sprintf("sum(%s{%s=\"%s\"})", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }

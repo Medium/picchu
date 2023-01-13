@@ -85,7 +85,7 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Servi
 		sl = append(sl, serviceLevel)
 	} else if p.SlothServiceLevelObjectives != nil {
 		for i := range p.SlothServiceLevelObjectives {
-			if p.ServiceLevelObjectives[i].Enabled {
+			if p.SlothServiceLevelObjectives[i].Enabled {
 				config := SlothSLOConfig{
 					SLO:    p.SlothServiceLevelObjectives[i],
 					App:    p.App,
