@@ -22,3 +22,19 @@ func (s *SLOConfig) totalQuery() string {
 func (s *SLOConfig) errorQuery() string {
 	return fmt.Sprintf("%s:%s:%s", sanitizeName(s.App), sanitizeName(s.Name), "errors")
 }
+
+type SlothSLOConfig struct {
+	SLO    *picchuv1alpha1.SlothServiceLevelObjective
+	App    string
+	Name   string
+	Tag    string
+	Labels picchuv1alpha1.ServiceLevelObjectiveLabels
+}
+
+func (s *SlothSLOConfig) totalQuery() string {
+	return fmt.Sprintf("%s:%s:%s", sanitizeName(s.App), sanitizeName(s.Name), "total")
+}
+
+func (s *SlothSLOConfig) errorQuery() string {
+	return fmt.Sprintf("%s:%s:%s", sanitizeName(s.App), sanitizeName(s.Name), "errors")
+}

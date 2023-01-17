@@ -286,7 +286,7 @@ func (r *ResourceSyncer) defaultLabels() map[string]string {
 
 func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 	serviceMonitors := r.prepareServiceMonitors()
-	slos, _ := r.prepareServiceLevelObjectives()
+	slos, slothslos, _ := r.prepareServiceLevelObjectives()
 
 	if len(serviceMonitors) == 0 {
 		if err := r.applyPlan(ctx, "Delete Service Monitors", &rmplan.DeleteServiceMonitors{
@@ -296,15 +296,28 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 			return err
 		}
 	} else {
-		if err := r.applyPlan(ctx, "Sync Service Monitors", &rmplan.SyncServiceMonitors{
-			App:                    r.instance.Spec.App,
-			Namespace:              r.instance.TargetNamespace(),
-			Labels:                 r.defaultLabels(),
-			ServiceMonitors:        serviceMonitors,
-			ServiceLevelObjectives: slos,
-		}); err != nil {
-			return err
+		if len(slos) > 0 && len(slothslos) == 0 {
+			if err := r.applyPlan(ctx, "Sync Service Monitors", &rmplan.SyncServiceMonitors{
+				App:                    r.instance.Spec.App,
+				Namespace:              r.instance.TargetNamespace(),
+				Labels:                 r.defaultLabels(),
+				ServiceMonitors:        serviceMonitors,
+				ServiceLevelObjectives: slos,
+			}); err != nil {
+				return err
+			}
+		} else {
+			if err := r.applyPlan(ctx, "Sync Service Monitors", &rmplan.SyncServiceMonitors{
+				App:                         r.instance.Spec.App,
+				Namespace:                   r.instance.TargetNamespace(),
+				Labels:                      r.defaultLabels(),
+				ServiceMonitors:             serviceMonitors,
+				SlothServiceLevelObjectives: slothslos,
+			}); err != nil {
+				return err
+			}
 		}
+
 	}
 
 	return nil
@@ -320,8 +333,9 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 	if r.picchuConfig.ServiceLevelsFleet != "" && r.picchuConfig.ServiceLevelsNamespace != "" {
-		slos, sloLabels := r.prepareServiceLevelObjectives()
-		if len(slos) > 0 {
+		slos, slothslos, sloLabels := r.prepareServiceLevelObjectives()
+
+		if len(slos) > 0 && len(slothslos) == 0 {
 			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
 				Name: r.picchuConfig.ServiceLevelsNamespace,
 			}); err != nil {
@@ -341,8 +355,28 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
-		} else {
+		} else if len(slothslos) == 0 && len(slos) == 0 {
 			return r.delServiceLevels(ctx)
+		} else {
+			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+				Name: r.picchuConfig.ServiceLevelsNamespace,
+			}); err != nil {
+				return err
+			}
+
+			labels := r.defaultLabels()
+			labels[picchuv1alpha1.LabelTarget] = r.instance.Spec.Target
+
+			if err := r.applyDeliveryPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
+				App:                         r.instance.Spec.App,
+				Target:                      r.instance.Spec.Target,
+				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
+				Labels:                      labels,
+				ServiceLevelObjectiveLabels: sloLabels,
+				SlothServiceLevelObjectives: slothslos,
+			}); err != nil {
+				return err
+			}
 		}
 	} else {
 		r.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncServiceLevels")
@@ -351,8 +385,8 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
-	slos, labels := r.prepareServiceLevelObjectives()
-	if len(slos) > 0 {
+	slos, slothslos, labels := r.prepareServiceLevelObjectives()
+	if len(slos) > 0 && len(slothslos) == 0 {
 		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
 			App:                         r.instance.Spec.App,
 			Namespace:                   r.instance.TargetNamespace(),
@@ -362,10 +396,20 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 		}); err != nil {
 			return err
 		}
-	} else {
+	} else if len(slothslos) == 0 && len(slos) == 0 {
 		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
 			App:       r.instance.Spec.App,
 			Namespace: r.instance.TargetNamespace(),
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
+			App:                         r.instance.Spec.App,
+			Namespace:                   r.instance.TargetNamespace(),
+			Labels:                      r.defaultLabels(),
+			ServiceLevelObjectiveLabels: labels,
+			SlothServiceLevelObjectives: slothslos,
 		}); err != nil {
 			return err
 		}
@@ -413,19 +457,26 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 }
 
 // returns the PrometheusRules to support SLOs from the latest released revision
-func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.ServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
+func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.ServiceLevelObjective, []*picchuv1alpha1.SlothServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
 	var slos []*picchuv1alpha1.ServiceLevelObjective
+	var slothslos []*picchuv1alpha1.SlothServiceLevelObjective
 
+	// here should determine if legacy or sloth?
 	if len(r.incarnations.deployed()) > 0 {
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
-				return i.target().ServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
+				if len(i.target().ServiceLevelObjectives) > 0 && len(i.target().SlothServiceLevelObjectives) == 0 {
+					return i.target().ServiceLevelObjectives, slothslos, i.target().ServiceLevelObjectiveLabels
+				} else {
+					return slos, i.target().SlothServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
+				}
+
 			}
 		}
 	}
 
-	return slos, picchuv1alpha1.ServiceLevelObjectiveLabels{}
+	return slos, slothslos, picchuv1alpha1.ServiceLevelObjectiveLabels{}
 }
 
 func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {

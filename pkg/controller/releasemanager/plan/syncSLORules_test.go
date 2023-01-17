@@ -88,6 +88,74 @@ var (
 		},
 		},
 	}
+
+	slothslorplan = &SyncSLORules{
+		App:       "test-app",
+		Namespace: "testnamespace",
+		Labels: map[string]string{
+			picchuv1alpha1.LabelApp:     "test-app",
+			picchuv1alpha1.LabelK8sName: "test-app",
+		},
+		ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+			RuleLabels: map[string]string{
+				"severity": "test",
+			},
+		},
+		SlothServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
+			Enabled:   true,
+			Name:      "test-app-availability",
+			Objective: "99.999",
+			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+				Canary: picchuv1alpha1.SLICanaryConfig{
+					Enabled:          true,
+					AllowancePercent: 1,
+					FailAfter:        "1m",
+				},
+				TagKey:     "destination_workload",
+				AlertAfter: "1m",
+				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+			},
+			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+				RuleLabels: map[string]string{
+					"team": "test",
+				},
+			},
+		}},
+	}
+
+	slothslorexpected = &monitoringv1.PrometheusRuleList{
+		Items: []*monitoringv1.PrometheusRule{{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-app-slo",
+				Namespace: "testnamespace",
+				Labels: map[string]string{
+					picchuv1alpha1.LabelApp:      "test-app",
+					picchuv1alpha1.LabelK8sName:  "test-app",
+					picchuv1alpha1.LabelRuleType: RuleTypeSLO,
+					"severity":                   "test",
+				},
+			},
+			Spec: monitoringv1.PrometheusRuleSpec{
+				Groups: []monitoringv1.RuleGroup{
+					{
+						Name: "test_app_availability_record",
+						Rules: []monitoringv1.Rule{
+							{
+								Record: "test_app:test_app_availability:total",
+								Expr:   intstr.FromString("sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)"),
+							},
+							{
+								Record: "test_app:test_app_availability:errors",
+								Expr:   intstr.FromString("sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)"),
+							},
+						},
+					},
+				},
+			},
+		},
+		},
+	}
 )
 
 func TestSLORules(t *testing.T) {
@@ -122,6 +190,40 @@ func TestSLORules(t *testing.T) {
 	}
 
 	assert.NoError(t, slorplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+}
+
+func TestSLORulesSloth(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	tests := []client.ObjectKey{
+		{Name: "test-app-slo", Namespace: "testnamespace"},
+	}
+	ctx := context.TODO()
+
+	for i := range tests {
+		m.
+			EXPECT().
+			Get(ctx, mocks.ObjectKey(tests[i]), gomock.Any()).
+			Return(common.NotFoundError).
+			Times(1)
+	}
+
+	for i := range slothslorexpected.Items {
+		for _, obj := range []runtime.Object{
+			slothslorexpected.Items[i],
+		} {
+			m.
+				EXPECT().
+				Create(ctx, common.K8sEqual(obj)).
+				Return(nil).
+				Times(1)
+		}
+	}
+
+	assert.NoError(t, slothslorplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
 }
 
 func TestSanitizeName(t *testing.T) {

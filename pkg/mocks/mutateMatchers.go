@@ -96,6 +96,7 @@ func InjectPrometheusRules(rules []monitoringv1.PrometheusRule) gomock.Matcher {
 	return Callback(fn, "injects PrometheusRules")
 }
 
+// where is this used? should i just incorporate sloth into this function?
 // InjectServiceLevels puts ServiceLevel into a *ServiceLevelList
 func InjectServiceLevels(sls []slov1alpha1.ServiceLevel) gomock.Matcher {
 	fn := func(x interface{}) bool {

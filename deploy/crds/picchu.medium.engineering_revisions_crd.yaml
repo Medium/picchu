@@ -4125,6 +4125,59 @@ spec:
                       - name
                       type: object
                     type: array
+                  slothServiceLevelObjectives:
+                    items:
+                      properties:
+                        description:
+                          type: string
+                        enabled:
+                          type: boolean
+                        name:
+                          type: string
+                        objectivePercentString:
+                          type: string
+                        serviceLevelIndicator:
+                          properties:
+                            alertAfter:
+                              type: string
+                            canary:
+                              properties:
+                                allowancePercent: {}
+                                allowancePercentString:
+                                  type: string
+                                enabled:
+                                  type: boolean
+                                failAfter:
+                                  type: string
+                              required:
+                              - enabled
+                              type: object
+                            errorQuery:
+                              type: string
+                            tagKey:
+                              type: string
+                            totalQuery:
+                              type: string
+                          type: object
+                        serviceLevelObjectiveLabels:
+                          properties:
+                            alertLabels:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            ruleLabels:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            serviceLevelLabels:
+                              additionalProperties:
+                                type: string
+                              type: object
+                          type: object
+                      required:
+                      - enabled
+                      type: object
+                    type: array
                   tolerations:
                     items:
                       description: The pod this Toleration is attached to tolerates
