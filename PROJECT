@@ -1,0 +1,23 @@
+domain: picchu.medium.engineering
+layout: go.kubebuilder.io/v2
+projectName: new-picchu
+repo: go.medium.engineering/picchu
+resources:
+- group: picchu.medium.engineering
+  kind: Cluster
+  version: v1alpha1
+- group: picchu.medium.engineering
+  kind: ReleaseManager
+  version: v1alpha1
+- group: picchu.medium.engineering
+  kind: Mirror
+  version: v1alpha1
+- group: picchu.medium.engineering
+  kind: ClusterSecrets
+  version: v1alpha1
+- group: picchu.medium.engineering
+  kind: Revision
+  version: v1alpha1
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}

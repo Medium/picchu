@@ -1,0 +1,7 @@
+apiVersion: picchu.medium.engineering.picchu.medium.engineering/v1alpha1
+kind: Mirror
+metadata:
+  name: mirror-sample
+spec:
+  # Add fields here
+  foo: bar

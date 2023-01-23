@@ -1,0 +1,24 @@
+# permissions for end users to edit mirrors.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mirror-editor-role
+rules:
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - mirrors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - mirrors/status
+  verbs:
+  - get

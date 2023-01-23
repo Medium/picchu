@@ -1,0 +1,20 @@
+# permissions for end users to view revisions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: revision-viewer-role
+rules:
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - revisions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - revisions/status
+  verbs:
+  - get

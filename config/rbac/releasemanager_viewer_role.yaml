@@ -1,0 +1,20 @@
+# permissions for end users to view releasemanagers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: releasemanager-viewer-role
+rules:
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - releasemanagers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - releasemanagers/status
+  verbs:
+  - get

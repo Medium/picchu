@@ -1,0 +1,24 @@
+# permissions for end users to edit releasemanagers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: releasemanager-editor-role
+rules:
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - releasemanagers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - picchu.medium.engineering.picchu.medium.engineering
+  resources:
+  - releasemanagers/status
+  verbs:
+  - get
