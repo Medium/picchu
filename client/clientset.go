@@ -8,7 +8,7 @@ package client
 import (
 	"fmt"
 
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/client/typed/picchu/v1alpha1"
+	picchuv1alpha1 "go.medium.engineering/picchu/client/typed/picchu/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

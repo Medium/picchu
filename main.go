@@ -99,14 +99,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ReleaseManager")
 		os.Exit(1)
 	}
-	if err = (&controllers.MirrorReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Mirror"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Mirror")
-		os.Exit(1)
-	}
 	if err = (&controllers.ClusterSecretsReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ClusterSecrets"),

@@ -6,8 +6,8 @@
 package v1alpha1
 
 import (
-	v1alpha1 "go.medium.engineering/picchu/pkg/apis/picchu/v1alpha1"
-	"go.medium.engineering/picchu/pkg/client/scheme"
+	v1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
+	"go.medium.engineering/picchu/client/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

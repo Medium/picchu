@@ -24,7 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	picchumediumengineeringv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
+	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 )
 
 // ReleaseManagerReconciler reconciles a ReleaseManager object
@@ -37,7 +37,7 @@ type ReleaseManagerReconciler struct {
 // +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=releasemanagers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=releasemanagers/status,verbs=get;update;patch
 
-func (r *ReleaseManagerReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("releasemanager", req.NamespacedName)
 
@@ -48,6 +48,6 @@ func (r *ReleaseManagerReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 
 func (r *ReleaseManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&picchumediumengineeringv1alpha1.ReleaseManager{}).
+		For(&picchuv1alpha1.ReleaseManager{}).
 		Complete(r)
 }

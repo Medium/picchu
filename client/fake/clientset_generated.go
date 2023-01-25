@@ -6,9 +6,9 @@
 package fake
 
 import (
-	clientset "go.medium.engineering/picchu/pkg/client"
-	picchuv1alpha1 "go.medium.engineering/picchu/pkg/client/typed/picchu/v1alpha1"
-	fakepicchuv1alpha1 "go.medium.engineering/picchu/pkg/client/typed/picchu/v1alpha1/fake"
+	clientset "go.medium.engineering/picchu/client"
+	picchuv1alpha1 "go.medium.engineering/picchu/client/typed/picchu/v1alpha1"
+	fakepicchuv1alpha1 "go.medium.engineering/picchu/client/typed/picchu/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

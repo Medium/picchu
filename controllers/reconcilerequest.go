@@ -21,10 +21,10 @@ type reconcileRequest struct {
 	instance *picchuv1alpha1.ClusterSecrets
 }
 
-func newReconcileRequest(r *ReconcileClusterSecrets, instance *picchuv1alpha1.ClusterSecrets, log logr.Logger) *reconcileRequest {
+func newReconcileRequest(r *ClusterSecretsReconciler, instance *picchuv1alpha1.ClusterSecrets, log logr.Logger) *reconcileRequest {
 	return &reconcileRequest{
-		client:   r.client,
-		scheme:   r.scheme,
+		client:   r.Client,
+		scheme:   r.Scheme,
 		config:   r.config,
 		instance: instance,
 		log:      log,
