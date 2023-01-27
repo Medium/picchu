@@ -1,3 +1,14 @@
+# Copyright © 2019 A Medium Corporation.
+# Licensed under the Apache License, Version 2.0; see the NOTICE file.
+
+DOMAIN := medium.engineering
+PACKAGE := go.$(DOMAIN)/picchu
+API_PACKAGE := $(PACKAGE)/apis
+GROUPS := picchu/v1alpha1
+BOILERPLATE := hack/header.go.txt
+GEN := zz_generated
+OPERATOR_SDK_VERSION := v1.0.0
+
 # Current Operator version
 VERSION ?= 0.0.1
 # Default bundle image tag
@@ -118,3 +129,13 @@ bundle: manifests
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+
+mocks: go.sum
+	go get github.com/golang/mock/mockgen
+	mockgen --build_flags=--mod=mod -destination=mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
+	mockgen --build_flags=--mod=mod -destination=prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
+	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controllers/releasemanager Deployment
+	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controllers/releasemanager Incarnations
+	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/releasemanager/scaling ScalableTarget
+	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan

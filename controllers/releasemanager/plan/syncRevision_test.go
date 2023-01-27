@@ -81,7 +81,7 @@ var (
 			},
 		}},
 		Lifecycle: &corev1.Lifecycle{
-			PreStop: &corev1.Handler{
+			PreStop: &corev1.LifecycleHandler{
 				Exec: &corev1.ExecAction{
 					Command: []string{"/bin/sh", "-c", "sleep 20"},
 				},
@@ -216,7 +216,7 @@ var (
 							},
 						},
 						LivenessProbe: &corev1.Probe{
-							Handler: corev1.Handler{
+							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/running",
 									Port: intstr.FromString("status"),
@@ -229,7 +229,7 @@ var (
 							FailureThreshold:    7,
 						},
 						ReadinessProbe: &corev1.Probe{
-							Handler: corev1.Handler{
+							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/running",
 									Port: intstr.FromString("status"),
@@ -242,7 +242,7 @@ var (
 							FailureThreshold:    3,
 						},
 						Lifecycle: &corev1.Lifecycle{
-							PreStop: &corev1.Handler{
+							PreStop: &corev1.LifecycleHandler{
 								Exec: &corev1.ExecAction{
 									Command: []string{"/bin/sh", "-c", "sleep 20"},
 								},
@@ -374,7 +374,7 @@ var (
 							},
 						},
 						LivenessProbe: &corev1.Probe{
-							Handler: corev1.Handler{
+							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/running",
 									Port: intstr.FromString("status"),
@@ -387,7 +387,7 @@ var (
 							FailureThreshold:    7,
 						},
 						ReadinessProbe: &corev1.Probe{
-							Handler: corev1.Handler{
+							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
 									Path: "/running",
 									Port: intstr.FromString("status"),

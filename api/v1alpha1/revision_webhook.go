@@ -27,6 +27,8 @@ import (
 var revisionlog = logf.Log.WithName("revision-resource")
 
 func (r *Revision) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	mgr.GetWebhookServer().Register("/validate-revisions", &webhook.Admission{Handler: &revisionValidator{}})
+	mgr.GetWebhookServer().Register("/mutate-revisions", &webhook.Admission{Handler: &revisionMutator{}})
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()

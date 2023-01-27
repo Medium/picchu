@@ -117,7 +117,7 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       s.canaryAlertName(),
-				For:         s.SLO.ServiceLevelIndicator.Canary.FailAfter,
+				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
 				Expr:        intstr.FromString(s.canaryQuery(log)),
 				Labels:      labels,
 				Annotations: s.canaryRuleAnnotations(log),

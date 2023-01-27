@@ -13,8 +13,8 @@ import (
 	"go.medium.engineering/picchu/plan"
 
 	"github.com/go-logr/logr"
-	"github.com/gogo/protobuf/types"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"google.golang.org/protobuf/types/known/durationpb"
 	istio "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
@@ -384,15 +384,15 @@ func (p *SyncApp) makeRoute(
 			Attempts: http.Retries.Attempts,
 		}
 		if http.Retries.PerTryTimeout != nil {
-			retries.PerTryTimeout = types.DurationProto(http.Retries.PerTryTimeout.Duration)
+			retries.PerTryTimeout = durationpb.New(http.Retries.PerTryTimeout.Duration) //types.DurationProto(http.Retries.PerTryTimeout.Duration)
 		}
 		if http.Retries.RetryOn != nil {
 			retries.RetryOn = *http.Retries.RetryOn
 		}
 	}
-	var timeout *types.Duration
+	var timeout *durationpb.Duration //*types.Duration
 	if http.Timeout != nil {
-		timeout = types.DurationProto(http.Timeout.Duration)
+		timeout = durationpb.New(http.Timeout.Duration) //types.DurationProto(http.Timeout.Duration)
 	}
 	return &istio.HTTPRoute{
 		Name:    name,
