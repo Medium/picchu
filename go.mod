@@ -20,6 +20,7 @@ require (
 	go.medium.engineering/kubernetes v0.1.6
 	go.uber.org/zap v1.24.0
 	golang.org/x/sync v0.1.0
+	gomodules.xyz/jsonpatch/v2 v2.2.0
 	google.golang.org/protobuf v1.28.1
 	istio.io/api v0.0.0-20230119194213-9edaf24590d3
 	istio.io/client-go v1.16.1
@@ -73,15 +74,12 @@ require (
 	go.uber.org/goleak v1.2.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/exp v0.0.0-20221212164502-fae10dda9338 // indirect
-	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/oauth2 v0.3.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/term v0.3.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.4.0 // indirect
-	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect

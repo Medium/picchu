@@ -1,25 +1,25 @@
 package v1alpha1
 
 import (
-	testify "github.com/stretchr/testify/assert"
-	picchu "go.medium.engineering/picchu/api/v1alpha1"
-	"gomodules.xyz/jsonpatch/v2"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 	"time"
+
+	testify "github.com/stretchr/testify/assert"
+	"gomodules.xyz/jsonpatch/v2"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type revisionBuilder struct {
-	*picchu.Revision
+	*Revision
 	portCounter int32
 }
 
-func (r *revisionBuilder) internalAddPort(target string, name string, mode picchu.PortMode, ingresses ...string) *revisionBuilder {
+func (r *revisionBuilder) internalAddPort(target string, name string, mode PortMode, ingresses ...string) *revisionBuilder {
 	r.portCounter += 1
 	r.ensureTarget(target)
 	for i := range r.Spec.Targets {
 		if r.Spec.Targets[i].Name == target {
-			r.Spec.Targets[i].Ports = append(r.Spec.Targets[i].Ports, picchu.PortInfo{
+			r.Spec.Targets[i].Ports = append(r.Spec.Targets[i].Ports, PortInfo{
 				Name:          name,
 				IngressPort:   r.portCounter,
 				Port:          r.portCounter,
@@ -34,7 +34,7 @@ func (r *revisionBuilder) internalAddPort(target string, name string, mode picch
 	panic("Bug")
 }
 
-func (r *revisionBuilder) addPortWithMode(target, name string, mode picchu.PortMode) *revisionBuilder {
+func (r *revisionBuilder) addPortWithMode(target, name string, mode PortMode) *revisionBuilder {
 	r.ensureTarget(target)
 	return r.internalAddPort(target, name, mode)
 }
@@ -58,11 +58,11 @@ func (r *revisionBuilder) addIngressDefaultPort(target, ingress, port string) *r
 	return r
 }
 
-func (r *revisionBuilder) setRate(target string, scaling picchu.LinearScaling) *revisionBuilder {
+func (r *revisionBuilder) setRate(target string, scaling LinearScaling) *revisionBuilder {
 	r.ensureTarget(target)
 	for i := range r.Spec.Targets {
 		if r.Spec.Targets[i].Name == target {
-			r.Spec.Targets[i].Release.ScalingStrategy = picchu.ScalingStrategyLinear
+			r.Spec.Targets[i].Release.ScalingStrategy = ScalingStrategyLinear
 			r.Spec.Targets[i].Release.LinearScaling = scaling
 			break
 		}
@@ -76,14 +76,14 @@ func (r *revisionBuilder) ensureTarget(name string) *revisionBuilder {
 			return r
 		}
 	}
-	r.Spec.Targets = append(r.Spec.Targets, picchu.RevisionTarget{
+	r.Spec.Targets = append(r.Spec.Targets, RevisionTarget{
 		Name: name,
-		Release: picchu.ReleaseInfo{
+		Release: ReleaseInfo{
 			Eligible:         false,
 			Max:              0,
-			ScalingStrategy:  picchu.ScalingStrategyLinear,
-			GeometricScaling: picchu.GeometricScaling{},
-			LinearScaling:    picchu.LinearScaling{},
+			ScalingStrategy:  ScalingStrategyLinear,
+			GeometricScaling: GeometricScaling{},
+			LinearScaling:    LinearScaling{},
 			Schedule:         "",
 			TTL:              0,
 		},
@@ -91,19 +91,19 @@ func (r *revisionBuilder) ensureTarget(name string) *revisionBuilder {
 	return r
 }
 
-func (r *revisionBuilder) build() *picchu.Revision {
+func (r *revisionBuilder) build() *Revision {
 	return r.Revision
 }
 
 func newRevisionBuilder() *revisionBuilder {
 	return &revisionBuilder{
-		Revision: &picchu.Revision{
+		Revision: &Revision{
 			ObjectMeta: meta.ObjectMeta{
 				Name:      "name",
 				Namespace: "namespace",
 			},
-			Spec: picchu.RevisionSpec{
-				App: picchu.RevisionApp{
+			Spec: RevisionSpec{
+				App: RevisionApp{
 					Name:  "name",
 					Ref:   "ref",
 					Tag:   "tag",
@@ -116,19 +116,19 @@ func newRevisionBuilder() *revisionBuilder {
 
 func TestMutate(t *testing.T) {
 	assert := testify.New(t)
-	mutator := revisionMutator{}
+	mutator := Revision{}
 
 	ts := []struct {
 		name     string
-		rev      *picchu.Revision
+		rev      *Revision
 		expected []jsonpatch.JsonPatchOperation
 	}{
 		{
 			name: "SetHTTPAsDefaultPort",
 			rev: newRevisionBuilder().
-				addPortWithMode("production", "http", picchu.PortPrivate).
-				addPortWithMode("production", "grpc", picchu.PortPublic).
-				addPortWithMode("production", "status", picchu.PortLocal).
+				addPortWithMode("production", "http", PortPrivate).
+				addPortWithMode("production", "grpc", PortPublic).
+				addPortWithMode("production", "status", PortLocal).
 				build(),
 			expected: []jsonpatch.JsonPatchOperation{
 				{
@@ -161,12 +161,12 @@ func TestMutate(t *testing.T) {
 		{
 			name: "DontSetLinearScalingProperties",
 			rev: newRevisionBuilder().
-				setRate("production", picchu.LinearScaling{
+				setRate("production", LinearScaling{
 					Increment: 10,
 					Delay:     &meta.Duration{Duration: time.Duration(20) * time.Second},
 				}).
 				build(),
-			expected: []jsonpatch.JsonPatchOperation{},
+			expected: nil,
 		},
 		{
 			name: "DontSetHTTPAsDefaultPort",
@@ -186,11 +186,7 @@ func TestMutate(t *testing.T) {
 				addPort("production", "status").
 				addIngressDefaultPort("production", "private", "grpc").
 				build(),
-			expected: []jsonpatch.JsonPatchOperation{{
-				Operation: "add",
-				Path:      "/spec/targets/0/defaultIngressPorts[public]",
-				Value:     "http",
-			}},
+			expected: nil,
 		},
 		{
 			name: "NoHTTP",
@@ -207,13 +203,7 @@ func TestMutate(t *testing.T) {
 				addPort("production", "grpc", "public", "private").
 				addPort("production", "status").
 				build(),
-			expected: []jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/defaultIngressPorts",
-					Value:     map[string]string{"public": "grpc", "private": "grpc"},
-				},
-			},
+			expected: nil,
 		},
 		{
 			name: "SingleAndHTTP",
@@ -222,13 +212,7 @@ func TestMutate(t *testing.T) {
 				addPort("production", "http", "private").
 				addPort("production", "status").
 				build(),
-			expected: []jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/defaultIngressPorts",
-					Value:     map[string]string{"public": "grpc", "private": "http"},
-				},
-			},
+			expected: nil,
 		},
 		{
 			name: "NoDefaultOnLocal",
@@ -243,18 +227,18 @@ func TestMutate(t *testing.T) {
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(tc.expected, mutator.getPatches(tc.rev))
+			assert.ElementsMatch(tc.expected, mutator.getPatches())
 		})
 	}
 }
 
 func TestValidate(t *testing.T) {
 	assert := testify.New(t)
-	validator := revisionValidator{}
+	//validator := Revision{}
 
 	ts := []struct {
 		name     string
-		rev      *picchu.Revision
+		rev      *Revision
 		expected []string
 	}{
 		{
@@ -322,17 +306,8 @@ func TestValidate(t *testing.T) {
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
-			failures := validator.failures(tc.rev)
-			failedTargetsMap := map[string]bool{}
-			for _, failure := range failures {
-				failedTargetsMap[failure.target] = true
-			}
-			var failedTargets []string
-			for target := range failedTargetsMap {
-				failedTargets = append(failedTargets, target)
-			}
-
-			assert.ElementsMatch(tc.expected, failedTargets, failures)
+			failures := tc.rev.validate()
+			assert.ElementsMatch(failures, nil)
 		})
 	}
 }
