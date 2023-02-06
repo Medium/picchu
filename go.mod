@@ -22,8 +22,8 @@ require (
 	golang.org/x/sync v0.1.0
 	gomodules.xyz/jsonpatch/v2 v2.2.0
 	google.golang.org/protobuf v1.28.1
-	istio.io/api v0.0.0-20230119194213-9edaf24590d3
-	istio.io/client-go v1.16.1
+	istio.io/api v0.0.0-20220322234440-289bfe748e00
+	istio.io/client-go v1.13.2
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.26.0
@@ -87,6 +87,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	istio.io/gogo-genproto v0.0.0-20211208193508-5ab4acc9eb1e // indirect
 	k8s.io/apiextensions-apiserver v0.26.0 // indirect
 	k8s.io/component-base v0.26.0 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect

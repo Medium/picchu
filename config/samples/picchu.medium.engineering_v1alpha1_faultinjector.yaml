@@ -1,4 +1,4 @@
-apiVersion: picchu.medium.engineering.picchu.medium.engineering/v1alpha1
+apiVersion: picchu.medium.engineering/v1alpha1
 kind: FaultInjector
 metadata:
   name: faultinjector-sample

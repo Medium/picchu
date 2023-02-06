@@ -36,8 +36,8 @@ type ClusterSecretsReconciler struct {
 	config utils.Config
 }
 
-// +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=clustersecrets,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=clustersecrets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=picchu.medium.engineering,resources=clustersecrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=picchu.medium.engineering,resources=clustersecrets/status,verbs=get;update;patch
 
 func (r *ClusterSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -70,8 +70,6 @@ func (r *ClusterSecretsReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if !instance.IsFinalized() {
 		return ctrl.Result{}, rreq.finalize(ctx)
 	}
-
-	return ctrl.Result{}, nil
 
 	return ctrl.Result{}, nil
 }

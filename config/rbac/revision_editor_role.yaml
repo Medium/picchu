@@ -5,7 +5,7 @@ metadata:
   name: revision-editor-role
 rules:
 - apiGroups:
-  - picchu.medium.engineering.picchu.medium.engineering
+  - picchu.medium.engineering
   resources:
   - revisions
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - picchu.medium.engineering.picchu.medium.engineering
+  - picchu.medium.engineering
   resources:
   - revisions/status
   verbs:

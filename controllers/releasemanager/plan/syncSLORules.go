@@ -121,7 +121,7 @@ func (p *SyncSLORules) prometheusRuleName() string {
 	return fmt.Sprintf("%s-slo", strings.ToLower(p.App))
 }
 
-//ToLower and non-numeric characters replaced with underscores
+// ToLower and non-numeric characters replaced with underscores
 func sanitizeName(name string) string {
 	return strings.ToLower(rgNameRegex.ReplaceAllString(name, "_"))
 }

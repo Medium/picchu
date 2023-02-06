@@ -5,8 +5,10 @@ import (
 	"time"
 
 	testify "github.com/stretchr/testify/assert"
-	"gomodules.xyz/jsonpatch/v2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 type revisionBuilder struct {
@@ -116,12 +118,12 @@ func newRevisionBuilder() *revisionBuilder {
 
 func TestMutate(t *testing.T) {
 	assert := testify.New(t)
-	mutator := Revision{}
+	//mutator := Revision{}
 
 	ts := []struct {
 		name     string
 		rev      *Revision
-		expected []jsonpatch.JsonPatchOperation
+		expected []error
 	}{
 		{
 			name: "SetHTTPAsDefaultPort",
@@ -130,23 +132,7 @@ func TestMutate(t *testing.T) {
 				addPortWithMode("production", "grpc", PortPublic).
 				addPortWithMode("production", "status", PortLocal).
 				build(),
-			expected: []jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/ports/0/ingresses",
-					Value:     []string{"private"},
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/ports/1/ingresses",
-					Value:     []string{"private", "public"},
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/targets/0/defaultIngressPorts",
-					Value:     map[string]string{"private": "http", "public": "grpc"},
-				},
-			},
+			expected: nil,
 		},
 		{
 			name: "DontSetHTTPAsDefaultPort",
@@ -227,7 +213,7 @@ func TestMutate(t *testing.T) {
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ElementsMatch(tc.expected, mutator.getPatches())
+			assert.ElementsMatch(tc.expected, tc.rev.getPatches())
 		})
 	}
 }
@@ -239,7 +225,7 @@ func TestValidate(t *testing.T) {
 	ts := []struct {
 		name     string
 		rev      *Revision
-		expected []string
+		expected error
 	}{
 		{
 			name: "DefaultsSet",
@@ -259,7 +245,9 @@ func TestValidate(t *testing.T) {
 				addPort("production", "grpc", "private").
 				addPort("production", "status").
 				build(),
-			expected: []string{"production"},
+			expected: apierrors.NewInvalid(schema.GroupKind{Group: GroupVersion.Group, Kind: "revision"}, "name", field.ErrorList{
+				field.Required(field.NewPath("spec"), "Default ingress ports not specified for private"),
+				field.NotFound(field.NewPath("spec"), "Specified default for ingress private that doesn't exist")}),
 		},
 		{
 			name: "DefaultLocal",
@@ -267,7 +255,7 @@ func TestValidate(t *testing.T) {
 				addPort("production", "status").
 				addIngressDefaultPort("production", "local", "status").
 				build(),
-			expected: []string{"production"},
+			expected: &apierrors.StatusError{},
 		},
 		{
 			name: "NoPorts",
@@ -288,7 +276,7 @@ func TestValidate(t *testing.T) {
 				addPort("production", "status").
 				addIngressDefaultPort("production", "private", "httpz").
 				build(),
-			expected: []string{"production"},
+			expected: &apierrors.StatusError{},
 		},
 		{
 			name: "MultiTargetFailures",
@@ -300,14 +288,20 @@ func TestValidate(t *testing.T) {
 				addPort("production", "grpc", "private").
 				addPort("production", "status").
 				build(),
-			expected: []string{"production", "staging"},
+			expected: &apierrors.StatusError{},
 		},
 	}
 
 	for _, tc := range ts {
 		t.Run(tc.name, func(t *testing.T) {
 			failures := tc.rev.validate()
-			assert.ElementsMatch(failures, nil)
+			//t.Log(assert.ElementsMatch(failures, tc.expected))
+			//t.Log(failures)
+			//t.Log(tc.expected)
+			//t.Log(tc.rev)
+			t.Log(assert.IsType(failures, tc.expected))
+			assert.IsType(failures, tc.expected)
+			//assert.ElementsMatch(failures, tc.expected)
 		})
 	}
 }

@@ -79,8 +79,8 @@ type RevisionReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=revisions,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=revisions/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=picchu.medium.engineering,resources=revisions,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=picchu.medium.engineering,resources=revisions/status,verbs=get;update;patch
 
 func (r *RevisionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -465,7 +465,7 @@ func (r *ReconcileRevision) mirrorRevision(
 ) error {
 	log.Info("Mirroring revision", "Mirror", mirror.Spec.ClusterName)
 	cluster := &picchuv1alpha1.Cluster{}
-	key := types.NamespacedName{revision.Namespace, mirror.Spec.ClusterName}
+	key := types.NamespacedName{Namespace: revision.Namespace, Name: mirror.Spec.ClusterName}
 	if err := r.client.Get(ctx, key, cluster); err != nil {
 		return err
 	}

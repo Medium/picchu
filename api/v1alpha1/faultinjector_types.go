@@ -26,7 +26,7 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // HTTPPortFault allows injecting faults into apps by port number
-// +k8s:deepcopy-gen=false
+// +k8s:deepcopy-gen=true
 type HTTPPortFault struct {
 	PortSelector *istio.PortSelector       `json:"portSelector,omitempty"`
 	HTTPFault    *istio.HTTPFaultInjection `json:"fault,omitempty"`

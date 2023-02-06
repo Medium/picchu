@@ -39,7 +39,7 @@ func (r *Revision) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-// +kubebuilder:webhook:path=/mutate-picchu-medium-engineering-picchu-medium-engineering-v1alpha1-revision,mutating=true,failurePolicy=fail,groups=medium.engineering.medium.engineering,resources=revisions,verbs=create;update,versions=v1alpha1,name=mrevision.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/mutate-picchu-medium-engineering-v1alpha1-revision,mutating=true,failurePolicy=fail,groups=picchu.medium.engineering,resources=revisions,verbs=create;update,versions=v1alpha1,name=mrevision.kb.io,admissionReviewVersions=v1,sideEffects=None
 
 var _ webhook.Defaulter = &Revision{}
 
@@ -125,7 +125,7 @@ func (r *Revision) getIngressDefaultPortPatches() error {
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-// +kubebuilder:webhook:verbs=create;update,path=/validate-picchu-medium-engineering-picchu-medium-engineering-v1alpha1-revision,mutating=false,failurePolicy=fail,groups=medium.engineering.medium.engineering,resources=revisions,versions=v1alpha1,name=vrevision.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-picchu-medium-engineering-v1alpha1-revision,mutating=false,failurePolicy=fail,groups=picchu.medium.engineering,resources=revisions,versions=v1alpha1,name=vrevision.kb.io,admissionReviewVersions=v1,sideEffects=None
 
 var _ webhook.Validator = &Revision{}
 
@@ -191,7 +191,10 @@ func (r *Revision) validate() error {
 			}
 		}
 	}
-	return apierrors.NewInvalid(schema.GroupKind{Group: GroupVersion.Group, Kind: r.Kind}, r.Name, allErrors)
+	if len(allErrors) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(schema.GroupKind{Group: GroupVersion.Group, Kind: "revision"}, r.GetName(), allErrors)
 }
 
 type portInfo struct {

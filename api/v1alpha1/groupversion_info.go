@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1alpha1 contains API Schema definitions for the picchu.medium.engineering v1alpha1 API group
 // +kubebuilder:object:generate=true
-// +groupName=picchu.medium.engineering.picchu.medium.engineering
+// +groupName=picchu.medium.engineering
 package v1alpha1
 
 import (

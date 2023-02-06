@@ -34,8 +34,8 @@ type ReleaseManagerReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=releasemanagers,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=picchu.medium.engineering.picchu.medium.engineering,resources=releasemanagers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=picchu.medium.engineering,resources=releasemanagers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=picchu.medium.engineering,resources=releasemanagers/status,verbs=get;update;patch
 
 func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()

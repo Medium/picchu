@@ -3,8 +3,8 @@
 
 DOMAIN := medium.engineering
 PACKAGE := go.$(DOMAIN)/picchu
-API_PACKAGE := $(PACKAGE)/apis
-GROUPS := picchu/v1alpha1
+API_PACKAGE := $(PACKAGE)/api
+GROUPS := v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 OPERATOR_SDK_VERSION := v1.0.0
@@ -25,7 +25,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd"
+CRD_OPTIONS ?= "crd:allowDangerousTypes=true"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -139,3 +139,7 @@ mocks: go.sum
 	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controllers/releasemanager Incarnations
 	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/releasemanager/scaling ScalableTarget
 	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
+
+deps:
+		go mod tidy
+		go mod vendor

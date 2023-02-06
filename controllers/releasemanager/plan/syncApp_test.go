@@ -11,9 +11,9 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/test"
 
+	"github.com/gogo/protobuf/types"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	testify "github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/types/known/durationpb"
 	istio "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
@@ -166,9 +166,9 @@ var (
 					Retries: &istio.HTTPRetry{
 						Attempts:      2,
 						RetryOn:       defaultRetryOn,
-						PerTryTimeout: durationpb.New(time.Duration(3000000) * time.Nanosecond), //types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond), //types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 					},
-					Timeout: durationpb.New(time.Duration(3000000) * time.Nanosecond), //types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond), //types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // Tagged status route
 					Name: "00_tagged-testtag-status",
@@ -237,9 +237,9 @@ var (
 					Retries: &istio.HTTPRetry{
 						Attempts:      2,
 						RetryOn:       defaultRetryOn,
-						PerTryTimeout: durationpb.New(time.Duration(3000000) * time.Nanosecond), //types.DurationProto(time.Duration(3000000) * time.Nanosecond),
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond), //types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 					},
-					Timeout: durationpb.New(time.Duration(3000000) * time.Nanosecond),
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // release status route
 					Name: "01_release-status",
@@ -733,9 +733,9 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 					Retries: &istio.HTTPRetry{
 						Attempts:      2,
 						RetryOn:       defaultRetryOn,
-						PerTryTimeout: durationpb.New(time.Duration(3000000) * time.Nanosecond),
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 					},
-					Timeout: durationpb.New(time.Duration(3000000) * time.Nanosecond),
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // Tagged status route
 					Name: "00_tagged-testtag-status",
@@ -804,9 +804,9 @@ func TestHostsWithVariantsEnabled(t *testing.T) {
 					Retries: &istio.HTTPRetry{
 						Attempts:      2,
 						RetryOn:       defaultRetryOn,
-						PerTryTimeout: durationpb.New(time.Duration(3000000) * time.Nanosecond),
+						PerTryTimeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 					},
-					Timeout: durationpb.New(time.Duration(3000000) * time.Nanosecond),
+					Timeout: types.DurationProto(time.Duration(3000000) * time.Nanosecond),
 				},
 				{ // release status route
 					Name: "01_release-status",

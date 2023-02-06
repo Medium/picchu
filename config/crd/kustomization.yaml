@@ -2,12 +2,12 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/picchu.medium.engineering.picchu.medium.engineering_clusters.yaml
-- bases/picchu.medium.engineering.picchu.medium.engineering_releasemanagers.yaml
-- bases/picchu.medium.engineering.picchu.medium.engineering_mirrors.yaml
-- bases/picchu.medium.engineering.picchu.medium.engineering_clustersecrets.yaml
-- bases/picchu.medium.engineering.picchu.medium.engineering_revisions.yaml
-- bases/picchu.medium.engineering.picchu.medium.engineering_faultinjectors.yaml
+- bases/picchu.medium.engineering_clusters.yaml
+- bases/picchu.medium.engineering_releasemanagers.yaml
+- bases/picchu.medium.engineering_mirrors.yaml
+- bases/picchu.medium.engineering_clustersecrets.yaml
+- bases/picchu.medium.engineering_revisions.yaml
+- bases/picchu.medium.engineering_faultinjectors.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
@@ -17,7 +17,7 @@ patchesStrategicMerge:
 #- patches/webhook_in_releasemanagers.yaml
 #- patches/webhook_in_mirrors.yaml
 #- patches/webhook_in_clustersecrets.yaml
-#- patches/webhook_in_revisions.yaml
+- patches/webhook_in_revisions.yaml
 #- patches/webhook_in_faultinjectors.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
