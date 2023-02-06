@@ -5,9 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: mirrors.picchu.medium.engineering.picchu.medium.engineering
+  name: mirrors.picchu.medium.engineering
 spec:
-  group: picchu.medium.engineering.picchu.medium.engineering
+  group: picchu.medium.engineering
   names:
     kind: Mirror
     listKind: MirrorList

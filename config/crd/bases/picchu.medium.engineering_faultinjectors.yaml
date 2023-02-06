@@ -5,9 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: faultinjectors.picchu.medium.engineering.picchu.medium.engineering
+  name: faultinjectors.picchu.medium.engineering
 spec:
-  group: picchu.medium.engineering.picchu.medium.engineering
+  group: picchu.medium.engineering
   names:
     kind: FaultInjector
     listKind: FaultInjectorList
@@ -59,10 +59,10 @@ spec:
                           properties:
                             percentage:
                               description: Percentage of requests to be aborted with
-                                the error code provided. If not specified, no request
-                                will be aborted.
+                                the error code provided.
                               properties:
-                                value: {}
+                                value:
+                                  type: number
                               type: object
                           type: object
                         delay:
@@ -71,18 +71,18 @@ spec:
                             service, etc.
                           properties:
                             percent:
-                              description: "Percentage of requests on which the delay
+                              description: Percentage of requests on which the delay
                                 will be injected (0-100). Use of integer `percent`
                                 value is deprecated. Use the double `percentage` field
-                                instead. \n Deprecated: Do not use."
+                                instead.
                               format: int32
                               type: integer
                             percentage:
                               description: Percentage of requests on which the delay
-                                will be injected. If left unspecified, no request
-                                will be delayed.
+                                will be injected.
                               properties:
-                                value: {}
+                                value:
+                                  type: number
                               type: object
                           type: object
                       type: object
