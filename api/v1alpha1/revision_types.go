@@ -188,7 +188,6 @@ type RevisionReleaseStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-
 // Revision is the Schema for the revisions API
 type Revision struct {
 	metav1.TypeMeta   `json:",inline"`

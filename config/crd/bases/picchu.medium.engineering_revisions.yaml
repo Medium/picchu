@@ -1,9 +1,653 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: clusters.picchu.medium.engineering
+spec:
+  group: picchu.medium.engineering
+  names:
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Cluster is the Schema for the clusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterSpec defines the desired state of Cluster
+            properties:
+              config:
+                properties:
+                  certificate-authority-data:
+                    format: byte
+                    type: string
+                  server:
+                    type: string
+                required:
+                - certificate-authority-data
+                - server
+                type: object
+              devRouteTagTemplate:
+                type: string
+              enableDevRoutes:
+                type: boolean
+              enabled:
+                type: boolean
+              hotStandby:
+                type: boolean
+              ingresses:
+                properties:
+                  private:
+                    properties:
+                      defaultDomains:
+                        items:
+                          type: string
+                        type: array
+                      dnsName:
+                        type: string
+                      gateway:
+                        type: string
+                    required:
+                    - defaultDomains
+                    - dnsName
+                    type: object
+                  public:
+                    properties:
+                      defaultDomains:
+                        items:
+                          type: string
+                        type: array
+                      dnsName:
+                        type: string
+                      gateway:
+                        type: string
+                    required:
+                    - defaultDomains
+                    - dnsName
+                    type: object
+                required:
+                - private
+                - public
+                type: object
+              scalingFactorString:
+                type: string
+            required:
+            - enabled
+            - ingresses
+            type: object
+          status:
+            description: ClusterStatus defines the observed state of Cluster
+            properties:
+              kubernetes:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                properties:
+                  ready:
+                    type: boolean
+                  version:
+                    type: string
+                required:
+                - ready
+                - version
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: clustersecrets.picchu.medium.engineering
+spec:
+  group: picchu.medium.engineering
+  names:
+    kind: ClusterSecrets
+    listKind: ClusterSecretsList
+    plural: clustersecrets
+    singular: clustersecrets
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ClusterSecrets is the Schema for the clustersecrets API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterSecretsSpec defines the desired state of ClusterSecrets
+            properties:
+              source:
+                description: Foo is an example field of ClusterSecrets. Edit ClusterSecrets_types.go
+                  to remove/update
+                properties:
+                  fieldSelector:
+                    type: string
+                  labelSelector:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - namespace
+                type: object
+              target:
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to add to the copied secrets
+                    type: object
+                  fieldSelector:
+                    description: FieldSelector of clusters to copy secrets to
+                    type: string
+                  labelSelector:
+                    description: LabelSelector of clusters to copy secrets to
+                    type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to add to the copied secrets
+                    type: object
+                  namespace:
+                    description: Namespace to copy secrets to
+                    type: string
+                required:
+                - namespace
+                type: object
+            required:
+            - source
+            - target
+            type: object
+          status:
+            description: ClusterSecretsStatus defines the observed state of ClusterSecrets
+            properties:
+              secrets:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: faultinjectors.picchu.medium.engineering
+spec:
+  group: picchu.medium.engineering
+  names:
+    kind: FaultInjector
+    listKind: FaultInjectorList
+    plural: faultinjectors
+    singular: faultinjector
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: FaultInjector is the Schema for the faultinjectors API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: FaultInjectorSpec defines the desired state of FaultInjector
+            properties:
+              httpPortFaults:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
+                items:
+                  description: HTTPPortFault allows injecting faults into apps by
+                    port number
+                  properties:
+                    fault:
+                      description: "HTTPFaultInjection can be used to specify one
+                        or more faults to inject while forwarding HTTP requests to
+                        the destination specified in a route. Fault specification
+                        is part of a VirtualService rule. Faults include aborting
+                        the Http request from downstream service, and/or delaying
+                        proxying of requests. A fault rule MUST HAVE delay or abort
+                        or both. \n *Note:* Delay and abort faults are independent
+                        of one another, even if both are specified simultaneously."
+                      properties:
+                        abort:
+                          description: Abort Http request attempts and return error
+                            codes back to downstream service, giving the impression
+                            that the upstream service is faulty.
+                          properties:
+                            percentage:
+                              description: Percentage of requests to be aborted with
+                                the error code provided.
+                              properties:
+                                value:
+                                  type: number
+                              type: object
+                          type: object
+                        delay:
+                          description: Delay requests before forwarding, emulating
+                            various failures such as network issues, overloaded upstream
+                            service, etc.
+                          properties:
+                            percent:
+                              description: Percentage of requests on which the delay
+                                will be injected (0-100). Use of integer `percent`
+                                value is deprecated. Use the double `percentage` field
+                                instead.
+                              format: int32
+                              type: integer
+                            percentage:
+                              description: Percentage of requests on which the delay
+                                will be injected.
+                              properties:
+                                value:
+                                  type: number
+                              type: object
+                          type: object
+                      type: object
+                    portSelector:
+                      description: PortSelector specifies the number of a port to
+                        be used for matching or selection for final routing.
+                      properties:
+                        number:
+                          description: Valid port number
+                          format: int32
+                          type: integer
+                      type: object
+                  type: object
+                type: array
+            required:
+            - httpPortFaults
+            type: object
+          status:
+            description: FaultInjectorStatus defines the observed state of FaultInjector
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: mirrors.picchu.medium.engineering
+spec:
+  group: picchu.medium.engineering
+  names:
+    kind: Mirror
+    listKind: MirrorList
+    plural: mirrors
+    singular: mirror
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Mirror is the Schema for the mirrors API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MirrorSpec defines the desired state of Mirror
+            properties:
+              additionalConfigSelectors:
+                items:
+                  properties:
+                    appLabelName:
+                      type: string
+                    labelSelector:
+                      description: A label selector is a label query over a set of
+                        resources. The result of matchLabels and matchExpressions
+                        are ANDed. An empty label selector matches all objects. A
+                        null label selector matches no objects.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: A label selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: operator represents a key's relationship
+                                  to a set of values. Valid operators are In, NotIn,
+                                  Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: values is an array of string values.
+                                  If the operator is In or NotIn, the values array
+                                  must be non-empty. If the operator is Exists or
+                                  DoesNotExist, the values array must be empty. This
+                                  array is replaced during a strategic merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: matchLabels is a map of {key,value} pairs.
+                            A single {key,value} in the matchLabels map is equivalent
+                            to an element of matchExpressions, whose key field is
+                            "key", the operator is "In", and the values array contains
+                            only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                    namespace:
+                      type: string
+                    tagLabelName:
+                      type: string
+                  required:
+                  - appLabelName
+                  - tagLabelName
+                  type: object
+                type: array
+              clusterName:
+                type: string
+            required:
+            - clusterName
+            type: object
+          status:
+            description: MirrorStatus defines the observed state of Mirror
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: releasemanagers.picchu.medium.engineering
+spec:
+  group: picchu.medium.engineering
+  names:
+    kind: ReleaseManager
+    listKind: ReleaseManagerList
+    plural: releasemanagers
+    singular: releasemanager
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ReleaseManager is the Schema for the releasemanagers API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ReleaseManagerSpec defines the desired state of ReleaseManager
+            properties:
+              app:
+                type: string
+              fleet:
+                type: string
+              target:
+                type: string
+              variants:
+                items:
+                  properties:
+                    enabled:
+                      type: boolean
+                    name:
+                      type: string
+                  required:
+                  - enabled
+                  - name
+                  type: object
+                type: array
+            required:
+            - app
+            - fleet
+            - target
+            type: object
+          status:
+            description: ReleaseManagerStatus defines the observed state of ReleaseManager
+            properties:
+              lastUpdated:
+                format: date-time
+                type: string
+              revisions:
+                items:
+                  properties:
+                    canaryStartTimestamp:
+                      format: date-time
+                      type: string
+                    currentPercent:
+                      format: int32
+                      type: integer
+                    deleted:
+                      type: boolean
+                    deployingStartTimestamp:
+                      format: date-time
+                      type: string
+                    gitTimestamp:
+                      format: date-time
+                      type: string
+                    lastUpdated:
+                      format: date-time
+                      type: string
+                    metrics:
+                      description: ReleaseManagerRevisionMetricsStatus defines the
+                        observed state of ReleaseManagerRevisionMetrics
+                      properties:
+                        canarySecondsInt:
+                          type: integer
+                        deploySecondsInt:
+                          type: integer
+                        gitCanarySecondsInt:
+                          type: integer
+                        gitCreateSecondsInt:
+                          type: integer
+                        gitDeploySecondsInt:
+                          type: integer
+                        gitPendingReleaseSecondsInt:
+                          type: integer
+                        gitReleaseSecondsInt:
+                          type: integer
+                        releaseSecondsInt:
+                          type: integer
+                        revisionCanarySecondsInt:
+                          type: integer
+                        revisionDeploySecondsInt:
+                          type: integer
+                        revisionPendingReleaseSecondsInt:
+                          type: integer
+                        revisionReleaseSecondsInt:
+                          type: integer
+                        revisionRollbackSecondsInt:
+                          type: integer
+                      type: object
+                    peakPercent:
+                      format: int32
+                      type: integer
+                    pendingReleaseStartTimestamp:
+                      format: date-time
+                      type: string
+                    releaseEligible:
+                      type: boolean
+                    releaseStartTimestamp:
+                      format: date-time
+                      type: string
+                    revisionTimestamp:
+                      format: date-time
+                      type: string
+                    scale:
+                      properties:
+                        Current:
+                          format: int32
+                          type: integer
+                        Desired:
+                          format: int32
+                          type: integer
+                        Peak:
+                          format: int32
+                          type: integer
+                      type: object
+                    state:
+                      properties:
+                        current:
+                          type: string
+                        lastUpdated:
+                          format: date-time
+                          type: string
+                        target:
+                          type: string
+                      required:
+                      - current
+                      - target
+                      type: object
+                    tag:
+                      type: string
+                    triggeredAlerts:
+                      items:
+                        type: string
+                      type: array
+                    ttl:
+                      format: int64
+                      type: integer
+                  required:
+                  - currentPercent
+                  - lastUpdated
+                  - peakPercent
+                  - releaseEligible
+                  - scale
+                  - tag
+                  type: object
+                type: array
+            required:
+            - lastUpdated
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
   name: revisions.picchu.medium.engineering
 spec:
@@ -177,7 +821,6 @@ spec:
                                           type: object
                                         type: array
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   weight:
                                     description: Weight associated with matching the
                                       corresponding nodeSelectorTerm, in the range
@@ -284,12 +927,10 @@ spec:
                                           type: object
                                         type: array
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   type: array
                               required:
                               - nodeSelectorTerms
                               type: object
-                              x-kubernetes-map-type: atomic
                           type: object
                         podAffinity:
                           description: Describes pod affinity scheduling rules (e.g.
@@ -370,7 +1011,6 @@ spec:
                                               only "value". The requirements are ANDed.
                                             type: object
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                       namespaceSelector:
                                         description: A label query over the set of
                                           namespaces that the term applies to. The
@@ -429,7 +1069,6 @@ spec:
                                               only "value". The requirements are ANDed.
                                             type: object
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                       namespaces:
                                         description: namespaces specifies a static
                                           list of namespace names that the term applies
@@ -537,7 +1176,6 @@ spec:
                                           "value". The requirements are ANDed.
                                         type: object
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   namespaceSelector:
                                     description: A label query over the set of namespaces
                                       that the term applies to. The term is applied
@@ -594,7 +1232,6 @@ spec:
                                           "value". The requirements are ANDed.
                                         type: object
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   namespaces:
                                     description: namespaces specifies a static list
                                       of namespace names that the term applies to.
@@ -700,7 +1337,6 @@ spec:
                                               only "value". The requirements are ANDed.
                                             type: object
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                       namespaceSelector:
                                         description: A label query over the set of
                                           namespaces that the term applies to. The
@@ -759,7 +1395,6 @@ spec:
                                               only "value". The requirements are ANDed.
                                             type: object
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                       namespaces:
                                         description: namespaces specifies a static
                                           list of namespace names that the term applies
@@ -867,7 +1502,6 @@ spec:
                                           "value". The requirements are ANDed.
                                         type: object
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   namespaceSelector:
                                     description: A label query over the set of namespaces
                                       that the term applies to. The term is applied
@@ -924,7 +1558,6 @@ spec:
                                           "value". The requirements are ANDed.
                                         type: object
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                   namespaces:
                                     description: namespaces specifies a static list
                                       of namespace names that the term applies to.
@@ -1062,7 +1695,6 @@ spec:
                             only "value". The requirements are ANDed.
                           type: object
                       type: object
-                      x-kubernetes-map-type: atomic
                     defaultIngressPorts:
                       additionalProperties:
                         type: string
@@ -1111,7 +1743,6 @@ spec:
                                 required:
                                 - key
                                 type: object
-                                x-kubernetes-map-type: atomic
                               fieldRef:
                                 description: 'Selects a field of the pod: supports
                                   metadata.name, metadata.namespace, `metadata.labels[''<KEY>'']`,
@@ -1130,7 +1761,6 @@ spec:
                                 required:
                                 - fieldPath
                                 type: object
-                                x-kubernetes-map-type: atomic
                               resourceFieldRef:
                                 description: 'Selects a resource of the container:
                                   only resources limits and requests (limits.cpu,
@@ -1156,7 +1786,6 @@ spec:
                                 required:
                                 - resource
                                 type: object
-                                x-kubernetes-map-type: atomic
                               secretKeyRef:
                                 description: Selects a key of a secret in the pod's
                                   namespace
@@ -1178,7 +1807,6 @@ spec:
                                 required:
                                 - key
                                 type: object
-                                x-kubernetes-map-type: atomic
                             type: object
                         required:
                         - name
@@ -1524,26 +2152,26 @@ spec:
                                         n-1 labels match. \n It can be any label specified
                                         on both client and server workloads. The following
                                         labels which have special semantic meaning
-                                        are also supported: \n - `topology.istio.io/network`
+                                        are also supported: \n   - `topology.istio.io/network`
                                         is used to match the network metadata of an
                                         endpoint, which can be specified by pod/namespace
                                         label `topology.istio.io/network`, sidecar
                                         env `ISTIO_META_NETWORK` or MeshNetworks.
-                                        - `topology.istio.io/cluster` is used to match
-                                        the clusterID of an endpoint, which can be
-                                        specified by pod label `topology.istio.io/cluster`
-                                        or pod env `ISTIO_META_CLUSTER_ID`. - `topology.kubernetes.io/region`
+                                        \  - `topology.istio.io/cluster` is used to
+                                        match the clusterID of an endpoint, which
+                                        can be specified by pod label `topology.istio.io/cluster`
+                                        or pod env `ISTIO_META_CLUSTER_ID`.   - `topology.kubernetes.io/region`
                                         is used to match the region metadata of an
                                         endpoint, which maps to Kubernetes node label
                                         `topology.kubernetes.io/region` or the deprecated
                                         label `failure-domain.beta.kubernetes.io/region`.
-                                        - `topology.kubernetes.io/zone` is used to
-                                        match the zone metadata of an endpoint, which
-                                        maps to Kubernetes node label `topology.kubernetes.io/zone`
+                                        \  - `topology.kubernetes.io/zone` is used
+                                        to match the zone metadata of an endpoint,
+                                        which maps to Kubernetes node label `topology.kubernetes.io/zone`
                                         or the deprecated label `failure-domain.beta.kubernetes.io/zone`.
-                                        - `topology.istio.io/subzone` is used to match
-                                        the subzone metadata of an endpoint, which
-                                        maps to Istio node label `topology.istio.io/subzone`.
+                                        \  - `topology.istio.io/subzone` is used to
+                                        match the subzone metadata of an endpoint,
+                                        which maps to Istio node label `topology.istio.io/subzone`.
                                         \n The below topology config indicates the
                                         following priority levels: \n ```yaml failoverPriority:
                                         - \"topology.istio.io/network\" - \"topology.kubernetes.io/region\"
@@ -2109,32 +2737,32 @@ spec:
                                               both client and server workloads. The
                                               following labels which have special
                                               semantic meaning are also supported:
-                                              \n - `topology.istio.io/network` is
+                                              \n   - `topology.istio.io/network` is
                                               used to match the network metadata of
                                               an endpoint, which can be specified
                                               by pod/namespace label `topology.istio.io/network`,
                                               sidecar env `ISTIO_META_NETWORK` or
-                                              MeshNetworks. - `topology.istio.io/cluster`
+                                              MeshNetworks.   - `topology.istio.io/cluster`
                                               is used to match the clusterID of an
                                               endpoint, which can be specified by
                                               pod label `topology.istio.io/cluster`
                                               or pod env `ISTIO_META_CLUSTER_ID`.
-                                              - `topology.kubernetes.io/region` is
-                                              used to match the region metadata of
-                                              an endpoint, which maps to Kubernetes
+                                              \  - `topology.kubernetes.io/region`
+                                              is used to match the region metadata
+                                              of an endpoint, which maps to Kubernetes
                                               node label `topology.kubernetes.io/region`
                                               or the deprecated label `failure-domain.beta.kubernetes.io/region`.
-                                              - `topology.kubernetes.io/zone` is used
-                                              to match the zone metadata of an endpoint,
-                                              which maps to Kubernetes node label
-                                              `topology.kubernetes.io/zone` or the
-                                              deprecated label `failure-domain.beta.kubernetes.io/zone`.
-                                              - `topology.istio.io/subzone` is used
-                                              to match the subzone metadata of an
-                                              endpoint, which maps to Istio node label
-                                              `topology.istio.io/subzone`. \n The
-                                              below topology config indicates the
-                                              following priority levels: \n ```yaml
+                                              \  - `topology.kubernetes.io/zone` is
+                                              used to match the zone metadata of an
+                                              endpoint, which maps to Kubernetes node
+                                              label `topology.kubernetes.io/zone`
+                                              or the deprecated label `failure-domain.beta.kubernetes.io/zone`.
+                                              \  - `topology.istio.io/subzone` is
+                                              used to match the subzone metadata of
+                                              an endpoint, which maps to Istio node
+                                              label `topology.istio.io/subzone`. \n
+                                              The below topology config indicates
+                                              the following priority levels: \n ```yaml
                                               failoverPriority: - \"topology.istio.io/network\"
                                               - \"topology.kubernetes.io/region\"
                                               - \"topology.kubernetes.io/zone\" -
@@ -3181,6 +3809,7 @@ spec:
                             required:
                             - name
                             type: object
+                            x-kubernetes-map-type: atomic
                           type: array
                           x-kubernetes-list-type: set
                         limits:
@@ -3397,7 +4026,6 @@ spec:
                                           required:
                                           - key
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         type:
                                           description: Set the authentication type.
                                             Defaults to Bearer, Basic will cause an
@@ -3432,7 +4060,6 @@ spec:
                                           required:
                                           - key
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         username:
                                           description: The secret in the service monitor
                                             namespace that contains the username for
@@ -3456,7 +4083,6 @@ spec:
                                           required:
                                           - key
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                       type: object
                                     bearerTokenFile:
                                       description: File to read bearer token for scraping
@@ -3485,7 +4111,6 @@ spec:
                                       required:
                                       - key
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     enableHttp2:
                                       description: Whether to enable HTTP2.
                                       type: boolean
@@ -3622,7 +4247,6 @@ spec:
                                               required:
                                               - key
                                               type: object
-                                              x-kubernetes-map-type: atomic
                                             secret:
                                               description: Secret containing data
                                                 to use for the targets.
@@ -3645,7 +4269,6 @@ spec:
                                               required:
                                               - key
                                               type: object
-                                              x-kubernetes-map-type: atomic
                                           type: object
                                         clientSecret:
                                           description: The secret containing the OAuth2
@@ -3669,7 +4292,6 @@ spec:
                                           required:
                                           - key
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         endpointParams:
                                           additionalProperties:
                                             type: string
@@ -3845,7 +4467,6 @@ spec:
                                               required:
                                               - key
                                               type: object
-                                              x-kubernetes-map-type: atomic
                                             secret:
                                               description: Secret containing data
                                                 to use for the targets.
@@ -3868,7 +4489,6 @@ spec:
                                               required:
                                               - key
                                               type: object
-                                              x-kubernetes-map-type: atomic
                                           type: object
                                         caFile:
                                           description: Path to the CA cert in the
@@ -3898,7 +4518,6 @@ spec:
                                               required:
                                               - key
                                               type: object
-                                              x-kubernetes-map-type: atomic
                                             secret:
                                               description: Secret containing data
                                                 to use for the targets.
@@ -3921,7 +4540,6 @@ spec:
                                               required:
                                               - key
                                               type: object
-                                              x-kubernetes-map-type: atomic
                                           type: object
                                         certFile:
                                           description: Path to the client cert file
@@ -3957,7 +4575,6 @@ spec:
                                           required:
                                           - key
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         serverName:
                                           description: Used to verify the hostname
                                             for the targets.
@@ -4068,7 +4685,6 @@ spec:
                                       The requirements are ANDed.
                                     type: object
                                 type: object
-                                x-kubernetes-map-type: atomic
                               targetLabels:
                                 description: TargetLabels transfers labels from the
                                   Kubernetes `Service` onto the created metrics.
@@ -4170,7 +4786,6 @@ spec:
                                       required:
                                       - key
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     fieldRef:
                                       description: 'Selects a field of the pod: supports
                                         metadata.name, metadata.namespace, `metadata.labels[''<KEY>'']`,
@@ -4189,7 +4804,6 @@ spec:
                                       required:
                                       - fieldPath
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     resourceFieldRef:
                                       description: 'Selects a resource of the container:
                                         only resources limits and requests (limits.cpu,
@@ -4216,7 +4830,6 @@ spec:
                                       required:
                                       - resource
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     secretKeyRef:
                                       description: Selects a key of a secret in the
                                         pod's namespace
@@ -4238,7 +4851,6 @@ spec:
                                       required:
                                       - key
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                   type: object
                               required:
                               - name
@@ -4271,7 +4883,6 @@ spec:
                                         be defined
                                       type: boolean
                                   type: object
-                                  x-kubernetes-map-type: atomic
                                 prefix:
                                   description: An optional identifier to prepend to
                                     each key in the ConfigMap. Must be a C_IDENTIFIER.
@@ -4290,7 +4901,6 @@ spec:
                                         be defined
                                       type: boolean
                                   type: object
-                                  x-kubernetes-map-type: atomic
                               type: object
                             type: array
                           image:
@@ -4897,6 +5507,7 @@ spec:
                                   required:
                                   - name
                                   type: object
+                                  x-kubernetes-map-type: atomic
                                 type: array
                                 x-kubernetes-list-type: set
                               limits:
@@ -5600,7 +6211,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                               user:
                                 description: 'user is optional: User is the rados
                                   user name, default is admin More info: https://examples.k8s.io/volumes/cephfs/README.md#how-to-use-it'
@@ -5636,7 +6246,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                               volumeID:
                                 description: 'volumeID used to identify the volume
                                   in cinder. More info: https://examples.k8s.io/mysql-cinder-pd/README.md'
@@ -5713,7 +6322,6 @@ spec:
                                   or its keys must be defined
                                 type: boolean
                             type: object
-                            x-kubernetes-map-type: atomic
                           csi:
                             description: csi (Container Storage Interface) represents
                               ephemeral storage that is handled by certain external
@@ -5746,7 +6354,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                               readOnly:
                                 description: readOnly specifies a read-only configuration
                                   for the volume. Defaults to false (read/write).
@@ -5802,7 +6409,6 @@ spec:
                                       required:
                                       - fieldPath
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     mode:
                                       description: 'Optional: mode bits used to set
                                         permissions on this file, must be an octal
@@ -5848,7 +6454,6 @@ spec:
                                       required:
                                       - resource
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                   required:
                                   - path
                                   type: object
@@ -5887,12 +6492,12 @@ spec:
                               before the pod starts, and deleted when the pod is removed.
                               \n Use this if: a) the volume is only needed while the
                               pod runs, b) features of normal volumes like restoring
-                              from snapshot or capacity tracking are needed, c) the
-                              storage driver is specified through a storage class,
+                              from snapshot or capacity    tracking are needed, c)
+                              the storage driver is specified through a storage class,
                               and d) the storage driver supports dynamic volume provisioning
-                              through a PersistentVolumeClaim (see EphemeralVolumeSource
-                              for more information on the connection between this
-                              volume type and PersistentVolumeClaim). \n Use PersistentVolumeClaim
+                              through    a PersistentVolumeClaim (see EphemeralVolumeSource
+                              for more    information on the connection between this
+                              volume type    and PersistentVolumeClaim). \n Use PersistentVolumeClaim
                               or one of the vendor-specific APIs for volumes that
                               persist for longer than the lifecycle of an individual
                               pod. \n Use CSI for light-weight local ephemeral volumes
@@ -5980,7 +6585,6 @@ spec:
                                         - kind
                                         - name
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                       dataSourceRef:
                                         description: 'dataSourceRef specifies the
                                           object from which to populate the volume
@@ -6005,14 +6609,14 @@ spec:
                                           are three important differences between
                                           dataSource and dataSourceRef: * While dataSource
                                           only allows two specific types of objects,
-                                          dataSourceRef allows any non-core object,
+                                          dataSourceRef   allows any non-core object,
                                           as well as PersistentVolumeClaim objects.
                                           * While dataSource ignores disallowed values
-                                          (dropping them), dataSourceRef preserves
+                                          (dropping them), dataSourceRef   preserves
                                           all values, and generates an error if a
-                                          disallowed value is specified. * While dataSource
-                                          only allows local objects, dataSourceRef
-                                          allows objects in any namespaces. (Beta)
+                                          disallowed value is   specified. * While
+                                          dataSource only allows local objects, dataSourceRef
+                                          allows objects   in any namespaces. (Beta)
                                           Using this field requires the AnyVolumeDataSource
                                           feature gate to be enabled. (Alpha) Using
                                           the namespace field of dataSourceRef requires
@@ -6080,6 +6684,7 @@ spec:
                                               required:
                                               - name
                                               type: object
+                                              x-kubernetes-map-type: atomic
                                             type: array
                                             x-kubernetes-list-type: set
                                           limits:
@@ -6160,7 +6765,6 @@ spec:
                                               only "value". The requirements are ANDed.
                                             type: object
                                         type: object
-                                        x-kubernetes-map-type: atomic
                                       storageClassName:
                                         description: 'storageClassName is the name
                                           of the StorageClass required by the claim.
@@ -6258,7 +6862,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                             required:
                             - driver
                             type: object
@@ -6445,7 +7048,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                               targetPortal:
                                 description: targetPortal is iSCSI Target Portal.
                                   The Portal is either an IP or ip_addr:port if the
@@ -6626,7 +7228,6 @@ spec:
                                             ConfigMap or its keys must be defined
                                           type: boolean
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     downwardAPI:
                                       description: downwardAPI information about the
                                         downwardAPI data to project
@@ -6657,7 +7258,6 @@ spec:
                                                 required:
                                                 - fieldPath
                                                 type: object
-                                                x-kubernetes-map-type: atomic
                                               mode:
                                                 description: 'Optional: mode bits
                                                   used to set permissions on this
@@ -6711,7 +7311,6 @@ spec:
                                                 required:
                                                 - resource
                                                 type: object
-                                                x-kubernetes-map-type: atomic
                                             required:
                                             - path
                                             type: object
@@ -6782,7 +7381,6 @@ spec:
                                             the Secret or its key must be defined
                                           type: boolean
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     serviceAccountToken:
                                       description: serviceAccountToken is information
                                         about the serviceAccountToken data to project
@@ -6907,7 +7505,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                               user:
                                 description: 'user is the rados user name. Default
                                   is admin. More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it'
@@ -6951,7 +7548,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                               sslEnabled:
                                 description: sslEnabled Flag enable/disable SSL communication
                                   with Gateway, default false
@@ -7074,7 +7670,6 @@ spec:
                                       uid?'
                                     type: string
                                 type: object
-                                x-kubernetes-map-type: atomic
                               volumeName:
                                 description: volumeName is the human-readable name
                                   of the StorageOS volume.  Volume names are only
@@ -7192,3 +7787,9 @@ spec:
     storage: true
     subresources:
       status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

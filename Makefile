@@ -8,6 +8,7 @@ GROUPS := v1alpha1
 BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 OPERATOR_SDK_VERSION := v1.0.0
+ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 
 # Current Operator version
 VERSION ?= 0.0.1
@@ -38,7 +39,9 @@ all: manager
 
 # Run tests
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out
+	mkdir -p ${ENVTEST_ASSETS_DIR}
+	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh 
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet
@@ -64,6 +67,8 @@ deploy: manifests kustomize
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(KUSTOMIZE) build config/crd > /tmp/1
+	mv /tmp/1 ./config/crd/bases/picchu.medium.engineering_revisions.yaml
 
 # Run go fmt against code
 fmt:
