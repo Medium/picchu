@@ -9,6 +9,7 @@ BOILERPLATE := hack/header.go.txt
 GEN := zz_generated
 OPERATOR_SDK_VERSION := v1.0.0
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
+SHELL := /bin/bash
 
 OPERATOR_SDK_PLATFORM := unknown
 
@@ -51,7 +52,7 @@ ci: test
 test: generate fmt vet manifests
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.0/hack/setup-envtest.sh
-	. ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet
@@ -165,6 +166,3 @@ generators/operator-sdk:
 	@mkdir -p generators
 	test -f generators/operator-sdk || curl -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
 	chmod +x generators/operator-sdk
-
-
- https://raw.githubusercontent.com/kubernetes-sigs/kustomize/v3.5.4/hack/install_kustomize.sh
