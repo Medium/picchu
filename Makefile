@@ -10,6 +10,16 @@ GEN := zz_generated
 OPERATOR_SDK_VERSION := v1.0.0
 ENVTEST_ASSETS_DIR := $(shell pwd)/testbin
 
+OPERATOR_SDK_PLATFORM := unknown
+
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Linux)
+	OPERATOR_SDK_PLATFORM = linux-gnu
+endif
+ifeq ($(UNAME),Darwin)
+	OPERATOR_SDK_PLATFORM = apple-darwin
+endif
+
 # Current Operator version
 VERSION ?= 0.0.1
 # Default bundle image tag
@@ -36,11 +46,11 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 all: manager
-
+ci: test
 # Run tests
 test: generate fmt vet manifests
 	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh 
+	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.0/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
 # Build manager binary
@@ -124,11 +134,11 @@ endif
 
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: bundle
-bundle: manifests
-	operator-sdk generate kustomize manifests -q
+bundle: manifests generators/operator-sdk
+	generators/operator-sdk generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
-	operator-sdk bundle validate ./bundle
+	$(KUSTOMIZE) build config/manifests | generators/operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	generators/operator-sdk bundle validate ./bundle
 
 # Build the bundle image.
 .PHONY: bundle-build
@@ -149,3 +159,8 @@ deps:
 		go mod tidy
 		go mod vendor
 		find ./vendor/istio.io -type f -exec grep 'protobuf_oneof' -l {} \; -exec perl -i -pe's/(protobuf_oneof.*)`$/$1 json:\"-\"`/g' {} \;
+
+generators/operator-sdk:
+	@mkdir -p generators
+	test -f generators/operator-sdk || curl -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk-$(OPERATOR_SDK_VERSION)-x86_64-$(OPERATOR_SDK_PLATFORM) -o $@
+	chmod +x generators/operator-sdk
