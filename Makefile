@@ -89,7 +89,7 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen deps
+generate: deps
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
@@ -109,7 +109,8 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.5.0 ;\
+	which controller-gen;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -155,7 +156,7 @@ mocks: go.sum
 	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/releasemanager/scaling ScalableTarget
 	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
 
-deps:
+deps:  controller-gen
 		go mod tidy
 		go mod vendor
 		hack/fix.sh
