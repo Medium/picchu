@@ -99,5 +99,3 @@ require (
 replace github.com/prometheus/common => github.com/prometheus/common v0.26.0
 
 replace github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.0
-
-

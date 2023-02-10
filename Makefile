@@ -89,7 +89,7 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate: controller-gen deps
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
@@ -158,7 +158,7 @@ mocks: go.sum
 deps:
 		go mod tidy
 		go mod vendor
-		find ./vendor/istio.io -type f -exec grep 'protobuf_oneof' -l {} \; -exec perl -i -pe's/(protobuf_oneof.*)`$/$1 json:\"-\"`/g' {} \;
+		hack/fix.sh
 
 generators/operator-sdk:
 	@mkdir -p generators
