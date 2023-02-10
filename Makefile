@@ -156,7 +156,7 @@ mocks: go.sum
 	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/releasemanager/scaling ScalableTarget
 	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
 
-deps:  controller-gen
+deps: controller-gen kustomize
 		go mod tidy
 		go mod vendor
 		hack/fix.sh
