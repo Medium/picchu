@@ -14,8 +14,13 @@ else
     exit 1
 fi
 
-yq --version || (wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -O - |\
-  tar xz && mv ${BINARY} /usr/local/bin/yq)
+which yq 
+if [ $? != 0 ]
+then
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -O - |\
+  tar xz && export PATH=$PATH:$PWD
+fi
+
 pushd resources
 kustomize build ../config/crd | csplit - '/^---$/' {4} 
 for files in $(ls xx*)
