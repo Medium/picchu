@@ -1,7 +1,7 @@
 #!/bin/bash
-
+set -x
 mkdir -p resources
-VERSION=v4.2.0
+VERSION=v3.1.0
 UNAME=$(uname -s)
 if [ ${UNAME} == "Linux" ]
 then
