@@ -14,11 +14,11 @@ else
     exit 1
 fi
 
+
 which yq 
 if [ $? != 0 ]
 then
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -O - |\
-  tar xz && mv ${BINARY} yq && export PATH=$PATH:$PWD
+    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} && mv ${BINARY} yq && chmod +x yq && export PATH=$PATH:$PWD
 fi
 
 pushd resources
