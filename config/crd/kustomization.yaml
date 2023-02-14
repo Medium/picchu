@@ -8,6 +8,9 @@ resources:
 - bases/picchu.medium.engineering_clustersecrets.yaml
 - bases/picchu.medium.engineering_revisions.yaml
 - bases/picchu.medium.engineering_faultinjectors.yaml
+
+buildMetadata: [originAnnotations]
+
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

@@ -78,8 +78,10 @@ deploy: manifests kustomize
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	$(KUSTOMIZE) build config/crd > /tmp/1
-	mv /tmp/1 ./config/crd/bases/picchu.medium.engineering_revisions.yaml
+	./hack/kustom-parse.sh
+	
+#	$(KUSTOMIZE) build config/crd > /tmp/1
+#	mv /tmp/1 ./config/crd/bases/picchu.medium.engineering_revisions.yaml
 
 # Run go fmt against code
 fmt:

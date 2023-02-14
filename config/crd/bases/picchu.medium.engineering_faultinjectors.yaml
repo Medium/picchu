@@ -1,9 +1,10 @@
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    config.kubernetes.io/origin: |
+      path: bases/picchu.medium.engineering_faultinjectors.yaml
     controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
   name: faultinjectors.picchu.medium.engineering
@@ -22,10 +23,14 @@ spec:
         description: FaultInjector is the Schema for the faultinjectors API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -33,32 +38,50 @@ spec:
             description: FaultInjectorSpec defines the desired state of FaultInjector
             properties:
               httpPortFaults:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file'
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
                 items:
-                  description: HTTPPortFault allows injecting faults into apps by port number
+                  description: HTTPPortFault allows injecting faults into apps by
+                    port number
                   properties:
                     fault:
-                      description: "HTTPFaultInjection can be used to specify one or more faults to inject while forwarding HTTP requests to the destination specified in a route. Fault specification is part of a VirtualService rule. Faults include aborting the Http request from downstream service, and/or delaying proxying of requests. A fault rule MUST HAVE delay or abort or both. \n *Note:* Delay and abort faults are independent of one another, even if both are specified simultaneously."
+                      description: "HTTPFaultInjection can be used to specify one
+                        or more faults to inject while forwarding HTTP requests to
+                        the destination specified in a route. Fault specification
+                        is part of a VirtualService rule. Faults include aborting
+                        the Http request from downstream service, and/or delaying
+                        proxying of requests. A fault rule MUST HAVE delay or abort
+                        or both. \n *Note:* Delay and abort faults are independent
+                        of one another, even if both are specified simultaneously."
                       properties:
                         abort:
-                          description: Abort Http request attempts and return error codes back to downstream service, giving the impression that the upstream service is faulty.
+                          description: Abort Http request attempts and return error
+                            codes back to downstream service, giving the impression
+                            that the upstream service is faulty.
                           properties:
                             percentage:
-                              description: Percentage of requests to be aborted with the error code provided.
+                              description: Percentage of requests to be aborted with
+                                the error code provided.
                               properties:
                                 value:
                                   type: number
                               type: object
                           type: object
                         delay:
-                          description: Delay requests before forwarding, emulating various failures such as network issues, overloaded upstream service, etc.
+                          description: Delay requests before forwarding, emulating
+                            various failures such as network issues, overloaded upstream
+                            service, etc.
                           properties:
                             percent:
-                              description: Percentage of requests on which the delay will be injected (0-100). Use of integer `percent` value is deprecated. Use the double `percentage` field instead.
+                              description: Percentage of requests on which the delay
+                                will be injected (0-100). Use of integer `percent`
+                                value is deprecated. Use the double `percentage` field
+                                instead.
                               format: int32
                               type: integer
                             percentage:
-                              description: Percentage of requests on which the delay will be injected.
+                              description: Percentage of requests on which the delay
+                                will be injected.
                               properties:
                                 value:
                                   type: number
@@ -66,7 +89,8 @@ spec:
                           type: object
                       type: object
                     portSelector:
-                      description: PortSelector specifies the number of a port to be used for matching or selection for final routing.
+                      description: PortSelector specifies the number of a port to
+                        be used for matching or selection for final routing.
                       properties:
                         number:
                           description: Valid port number

@@ -19,7 +19,7 @@ package controllers
 import (
 	"context"
 	"path/filepath"
-	"testing"
+	testinglib "testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,7 +44,7 @@ var testEnv *envtest.Environment
 var ctx context.Context
 var cancel context.CancelFunc
 
-func TestAPIs(t *testing.T) {
+func TestAPIs(t *testinglib.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Controller Suite")
 
