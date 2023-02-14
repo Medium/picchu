@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 mkdir -p resources
-VERSION=3.1.0
+VERSION=v3.1.0
 UNAME=$(uname -s)
 if [ ${UNAME} == "Linux" ]
 then
@@ -13,13 +13,13 @@ else
     echo "Unsupported platform ${UNAME}"
     exit 1
 fi
-
-
-which yq 
-if [ $? != 0 ]
-then
-    wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} && mv ${BINARY} yq && chmod +x yq && export PATH=$PATH:$PWD
-fi
+#https://github.com/kislyuk/yq/archive/refs/tags/v3.1.0.tar.gz
+which yq || pip install yq
+#if [ $? != 0 ]
+#then
+#    wget https://github.com/kislyuk/yq/archive/refs/tags/${VERSION}.tar.gz -O - |\
+#  tar xz && mv ${BINARY} yq && export PATH=$PATH:$PWD
+#fi
 
 pushd resources
 kustomize build ../config/crd | csplit - '/^---$/' {4} 
