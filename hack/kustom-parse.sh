@@ -1,25 +1,8 @@
 #!/bin/bash
-set -x
+
 mkdir -p resources
-VERSION=v3.1.0
-UNAME=$(uname -s)
-if [ ${UNAME} == "Linux" ]
-then
-    BINARY=yq_linux_amd64
-elif [ ${UNAME} == "Darwin" ]
-then 
-    BINARY=yq_darwin_amd64
-else
-    echo "Unsupported platform ${UNAME}"
-    exit 1
-fi
-#https://github.com/kislyuk/yq/archive/refs/tags/v3.1.0.tar.gz
+
 which yq || pip install yq
-#if [ $? != 0 ]
-#then
-#    wget https://github.com/kislyuk/yq/archive/refs/tags/${VERSION}.tar.gz -O - |\
-#  tar xz && mv ${BINARY} yq && export PATH=$PATH:$PWD
-#fi
 
 pushd resources
 kustomize build ../config/crd | csplit - '/^---$/' {4} 
