@@ -18,7 +18,7 @@ which yq
 if [ $? != 0 ]
 then
     wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY}.tar.gz -O - |\
-  tar xz && export PATH=$PATH:$PWD
+  tar xz && mv ${BINARY} yq && export PATH=$PATH:$PWD
 fi
 
 pushd resources
