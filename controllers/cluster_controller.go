@@ -99,11 +99,13 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				}
 			}
 		}
+		reqLogger.Info("Before Update Status")
 		err = utils.UpdateStatus(context.TODO(), r.Client, instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update Cluster status")
 			return ctrl.Result{}, err
 		}
+		reqLogger.Info("Success Update Status")
 		return ctrl.Result{RequeueAfter: r.config.RequeueAfter}, nil
 	}
 	if !instance.IsFinalized() {

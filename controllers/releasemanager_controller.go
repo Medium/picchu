@@ -420,7 +420,11 @@ func (r *ReleaseManagerReconciler) newPlanApplier(ctx context.Context, log logr.
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-
+			//TODO: figure out why the remote client doesn't have istio v1alpha3 scheme
+			//sch := remoteClient.Scheme()
+			//*sch = *r.Client.Scheme()
+			//fmt.Println("Remote Client", remoteClient.Scheme().AllKnownTypes())
+			//fmt.Println("R Client", r.Client.Scheme().AllKnownTypes())
 			appliers[i] = plan.NewClusterApplier(remoteClient, &cluster, log.WithValues("Cluster", cluster.Name))
 			return nil
 		})

@@ -36,7 +36,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"go.medium.engineering/picchu/controllers/utils"
-	promapi "go.medium.engineering/picchu/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,24 +71,8 @@ var (
 	}, []string{"app", "mirror"})
 )
 
-// RevisionReconciler reconciles a Revision object
-type RevisionReconciler struct {
-	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
-}
-
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=revisions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=revisions/status,verbs=get;update;patch
-
-func (r *RevisionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("revision", req.NamespacedName)
-
-	// your logic here
-
-	return ctrl.Result{}, nil
-}
 
 func (r *RevisionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -105,27 +88,6 @@ type NoopPromAPI struct{}
 
 func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error) {
 	return false, nil, nil
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, c utils.Config) reconcile.Reconciler {
-	var err error
-	var api PromAPI
-	if c.PrometheusQueryAddress != "" {
-		api, err = promapi.NewAPI(c.PrometheusQueryAddress, c.PrometheusQueryTTL)
-	} else {
-		api = &NoopPromAPI{}
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	return &ReconcileRevision{
-		client:  mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
-		config:  c,
-		promAPI: api,
-	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -145,17 +107,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler, c utils.Config) error {
 	return nil
 }
 
-var _ reconcile.Reconciler = &ReconcileRevision{}
+var _ reconcile.Reconciler = &RevisionReconciler{}
 
-// ReconcileRevision reconciles a Revision object
-type ReconcileRevision struct {
+// RevisionReconciler reconciles a Revision object
+type RevisionReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client       client.Client
-	scheme       *runtime.Scheme
-	config       utils.Config
-	promAPI      PromAPI
-	customLogger logr.Logger
+	Client       client.Client
+	Scheme       *runtime.Scheme
+	Config       utils.Config
+	PromAPI      PromAPI
+	CustomLogger logr.Logger
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
@@ -163,17 +125,17 @@ type ReconcileRevision struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileRevision) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	traceID := uuid.New().String()
 	reqLogger := clog.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Trace", traceID)
-	if r.customLogger != (logr.Logger{}) {
-		reqLogger = r.customLogger
+	if r.CustomLogger != (logr.Logger{}) {
+		reqLogger = r.CustomLogger
 	}
 
 	// Fetch the Revision instance
 
 	instance := &picchuv1alpha1.Revision{}
-	err := r.client.Get(ctx, request.NamespacedName, instance)
+	err := r.Client.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -184,13 +146,13 @@ func (r *ReconcileRevision) Reconcile(ctx context.Context, request reconcile.Req
 		// Error reading the object - requeue the request.
 		return r.Requeue(reqLogger, err)
 	}
-	r.scheme.Default(instance)
+	r.Scheme.Default(instance)
 	log := reqLogger.WithValues("App", instance.Spec.App.Name, "Tag", instance.Spec.App.Tag)
 
 	mirrors := &picchuv1alpha1.MirrorList{}
-	err = r.client.List(ctx, mirrors)
+	err = r.Client.List(ctx, mirrors)
 	if err != nil {
-		return r.Requeue(log, err)
+		return r.Requeue(log, nil)
 	}
 
 	if err = r.LabelWithAppAndFleets(log, instance); err != nil {
@@ -237,7 +199,7 @@ func (r *ReconcileRevision) Reconcile(ctx context.Context, request reconcile.Req
 		}
 	}
 
-	triggered, alarms, err := r.promAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
+	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
 		return r.Requeue(log, err)
 	}
@@ -280,7 +242,7 @@ func (r *ReconcileRevision) Reconcile(ctx context.Context, request reconcile.Req
 					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
 					revisionStatus.TriggeredAlarms = alarms
 					rm.UpdateRevisionStatus(revisionStatus)
-					if err := utils.UpdateStatus(ctx, r.client, rm); err != nil {
+					if err := utils.UpdateStatus(ctx, r.Client, rm); err != nil {
 						log.Error(err, "Could not save alarms to RevisionStatus", "alarms", alarms)
 					}
 				}
@@ -290,7 +252,7 @@ func (r *ReconcileRevision) Reconcile(ctx context.Context, request reconcile.Req
 	}
 
 	if revisionFailing {
-		op, err := controllerutil.CreateOrUpdate(ctx, r.client, instance, func() error {
+		op, err := controllerutil.CreateOrUpdate(ctx, r.Client, instance, func() error {
 			instance.Fail()
 			return nil
 		})
@@ -304,22 +266,22 @@ func (r *ReconcileRevision) Reconcile(ctx context.Context, request reconcile.Req
 	}
 
 	instance.Status = status
-	if err = r.client.Status().Update(context.TODO(), instance); err != nil {
+	if err = r.Client.Status().Update(context.TODO(), instance); err != nil {
 		return r.Requeue(log, err)
 	}
 
 	return r.Requeue(log, nil)
 }
 
-func (r *ReconcileRevision) Requeue(log logr.Logger, err error) (reconcile.Result, error) {
+func (r *RevisionReconciler) Requeue(log logr.Logger, err error) (reconcile.Result, error) {
 	if err != nil {
 		log.Error(err, "Reconcile resulted in error")
 		return reconcile.Result{}, err
 	}
-	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
+	return reconcile.Result{RequeueAfter: r.Config.RequeueAfter}, nil
 }
 
-func (r *ReconcileRevision) NoRequeue(log logr.Logger, err error) (reconcile.Result, error) {
+func (r *RevisionReconciler) NoRequeue(log logr.Logger, err error) (reconcile.Result, error) {
 	if err != nil {
 		log.Error(err, "Reconcile resulted in error")
 		return reconcile.Result{}, err
@@ -327,7 +289,7 @@ func (r *ReconcileRevision) NoRequeue(log logr.Logger, err error) (reconcile.Res
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *picchuv1alpha1.Revision) error {
+func (r *RevisionReconciler) LabelWithAppAndFleets(log logr.Logger, revision *picchuv1alpha1.Revision) error {
 	var fleetLabels []string
 	updated := false
 	for _, target := range revision.Spec.Targets {
@@ -360,12 +322,12 @@ func (r *ReconcileRevision) LabelWithAppAndFleets(log logr.Logger, revision *pic
 	}
 
 	if updated {
-		return r.client.Update(context.TODO(), revision)
+		return r.Client.Update(context.TODO(), revision)
 	}
 	return nil
 }
 
-func (r *ReconcileRevision) getReleaseManager(
+func (r *RevisionReconciler) getReleaseManager(
 	log logr.Logger,
 	target *picchuv1alpha1.RevisionTarget,
 	revision *picchuv1alpha1.Revision,
@@ -380,7 +342,7 @@ func (r *ReconcileRevision) getReleaseManager(
 		Namespace:     revision.Namespace,
 		LabelSelector: labels.SelectorFromSet(lbls),
 	}
-	r.client.List(context.TODO(), rms, opts)
+	r.Client.List(context.TODO(), rms, opts)
 	if len(rms.Items) > 1 {
 		panic(fmt.Sprintf("Too many ReleaseManagers matching %#v", lbls))
 	}
@@ -391,7 +353,7 @@ func (r *ReconcileRevision) getReleaseManager(
 	return
 }
 
-func (r *ReconcileRevision) getOrCreateReleaseManager(
+func (r *RevisionReconciler) getOrCreateReleaseManager(
 	log logr.Logger,
 	target *picchuv1alpha1.RevisionTarget,
 	revision *picchuv1alpha1.Revision,
@@ -416,7 +378,7 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 			Target: target.Name,
 		},
 	}
-	if err := r.client.Create(context.TODO(), rm); err != nil {
+	if err := r.Client.Create(context.TODO(), rm); err != nil {
 		log.Error(err, "Failed to sync releaseManager")
 		return nil, err
 	}
@@ -425,7 +387,7 @@ func (r *ReconcileRevision) getOrCreateReleaseManager(
 	return
 }
 
-func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
+func (r *RevisionReconciler) syncReleaseManager(log logr.Logger, revision *picchuv1alpha1.Revision) (picchuv1alpha1.RevisionStatus, error) {
 	// Sync releasemanagers
 	rstatus := picchuv1alpha1.RevisionStatus{}
 	for _, target := range revision.Spec.Targets {
@@ -441,7 +403,7 @@ func (r *ReconcileRevision) syncReleaseManager(log logr.Logger, revision *picchu
 	return rstatus, nil
 }
 
-func (r *ReconcileRevision) deleteIfMarked(log logr.Logger, revision *picchuv1alpha1.Revision) (bool, error) {
+func (r *RevisionReconciler) deleteIfMarked(log logr.Logger, revision *picchuv1alpha1.Revision) (bool, error) {
 	for _, target := range revision.Spec.Targets {
 		label := fmt.Sprintf("%s%s", picchuv1alpha1.LabelTargetDeletablePrefix, target.Name)
 		if val, ok := revision.Labels[label]; !ok && val != "true" {
@@ -450,14 +412,14 @@ func (r *ReconcileRevision) deleteIfMarked(log logr.Logger, revision *picchuv1al
 	}
 
 	log.Info("Deleting revision marked for deletion in all targets")
-	err := r.client.Delete(context.TODO(), revision)
+	err := r.Client.Delete(context.TODO(), revision)
 	if err != nil && !errors.IsNotFound(err) {
 		return true, err
 	}
 	return true, nil
 }
 
-func (r *ReconcileRevision) mirrorRevision(
+func (r *RevisionReconciler) mirrorRevision(
 	ctx context.Context,
 	log logr.Logger,
 	mirror *picchuv1alpha1.Mirror,
@@ -466,10 +428,10 @@ func (r *ReconcileRevision) mirrorRevision(
 	log.Info("Mirroring revision", "Mirror", mirror.Spec.ClusterName)
 	cluster := &picchuv1alpha1.Cluster{}
 	key := types.NamespacedName{Namespace: revision.Namespace, Name: mirror.Spec.ClusterName}
-	if err := r.client.Get(ctx, key, cluster); err != nil {
+	if err := r.Client.Get(ctx, key, cluster); err != nil {
 		return err
 	}
-	remoteClient, err := utils.RemoteClient(ctx, log, r.client, cluster)
+	remoteClient, err := utils.RemoteClient(ctx, log, r.Client, cluster)
 	if err != nil {
 		log.Error(err, "Failed to initialize remote client")
 		return err
@@ -488,7 +450,7 @@ func (r *ReconcileRevision) mirrorRevision(
 		}
 		configMapList := &corev1.ConfigMapList{}
 		log.Info("Listing configMaps")
-		if err := r.client.List(ctx, configMapList, opts); err != nil {
+		if err := r.Client.List(ctx, configMapList, opts); err != nil {
 			log.Error(err, "Failed to list target configMaps")
 			return err
 		}
@@ -498,7 +460,7 @@ func (r *ReconcileRevision) mirrorRevision(
 		}
 		secretList := &corev1.SecretList{}
 		log.Info("Listing secrets")
-		if err := r.client.List(ctx, secretList, opts); err != nil {
+		if err := r.Client.List(ctx, secretList, opts); err != nil {
 			log.Error(err, "Failed to list target secrets")
 			return err
 		}
@@ -534,7 +496,7 @@ func (r *ReconcileRevision) mirrorRevision(
 			Namespace:     configSelector.Namespace,
 		}
 		configMapList := &corev1.ConfigMapList{}
-		if err := r.client.List(ctx, configMapList, opts); err != nil {
+		if err := r.Client.List(ctx, configMapList, opts); err != nil {
 			log.Error(err, "Failed to list additionalConfigSelector configMaps")
 			return err
 		}
@@ -544,7 +506,7 @@ func (r *ReconcileRevision) mirrorRevision(
 		}
 
 		secretList := &corev1.SecretList{}
-		if err := r.client.List(ctx, secretList, opts); err != nil {
+		if err := r.Client.List(ctx, secretList, opts); err != nil {
 			log.Error(err, "Failed to list additionalConfigSelector secrets")
 			return err
 		}
@@ -577,7 +539,7 @@ func (r *ReconcileRevision) mirrorRevision(
 	return err
 }
 
-func (r *ReconcileRevision) copyConfigMapList(
+func (r *RevisionReconciler) copyConfigMapList(
 	ctx context.Context,
 	log logr.Logger,
 	remoteClient client.Client,
@@ -606,7 +568,7 @@ func (r *ReconcileRevision) copyConfigMapList(
 	return nil
 }
 
-func (r *ReconcileRevision) copySecretList(
+func (r *RevisionReconciler) copySecretList(
 	ctx context.Context,
 	log logr.Logger,
 	remoteClient client.Client,

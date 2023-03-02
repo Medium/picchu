@@ -4,7 +4,7 @@ metadata:
   annotations:
     config.kubernetes.io/origin: |
       path: bases/picchu.medium.engineering_clusters.yaml
-    controller-gen.kubebuilder.io/version: v0.5.0
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: clusters.picchu.medium.engineering
 spec:
@@ -117,9 +117,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

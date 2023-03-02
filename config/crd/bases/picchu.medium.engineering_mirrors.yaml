@@ -5,7 +5,7 @@ metadata:
   annotations:
     config.kubernetes.io/origin: |
       path: bases/picchu.medium.engineering_mirrors.yaml
-    controller-gen.kubebuilder.io/version: v0.5.0
+    controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
   name: mirrors.picchu.medium.engineering
 spec:
@@ -89,6 +89,7 @@ spec:
                             only "value". The requirements are ANDed.
                           type: object
                       type: object
+                      x-kubernetes-map-type: atomic
                     namespace:
                       type: string
                     tagLabelName:
@@ -111,9 +112,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
