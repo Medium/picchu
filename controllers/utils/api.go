@@ -33,7 +33,7 @@ func checkCache(key client.ObjectKey) (client.Client, bool) {
 }
 
 // RemoteClient creates a k8s client from a cluster object.
-func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
+func RemoteClient(ctx context.Context, log logr.Logger, reader client.Client, cluster *picchuv1alpha1.Cluster) (client.Client, error) {
 	key := client.ObjectKeyFromObject(cluster)
 	if key == (types.NamespacedName{}) {
 		return nil, errorsGen.New("NamespacedName is empty")
@@ -54,7 +54,7 @@ func RemoteClient(ctx context.Context, log logr.Logger, reader client.Reader, cl
 		log.Error(err, "cluster config nil", "Cluster", cluster.Name)
 		return nil, err
 	}
-	cli, err := client.New(config, client.Options{})
+	cli, err := client.New(config, client.Options{Scheme: reader.Scheme()})
 	if err != nil {
 		return cli, err
 	}
