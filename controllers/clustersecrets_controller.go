@@ -33,7 +33,7 @@ type ClusterSecretsReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
-	config utils.Config
+	Config utils.Config
 }
 
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=clustersecrets,verbs=get;list;watch;create;update;patch;delete

@@ -23,8 +23,8 @@ import (
 
 	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
-	slo "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+	slo "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	picchumediumengineeringv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	apis "go.medium.engineering/picchu/api/v1alpha1/apis"
@@ -155,6 +155,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
 		Scheme: mgr.GetScheme(),
+		Config: cconfig,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
@@ -163,6 +164,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ReleaseManager"),
 		Scheme: mgr.GetScheme(),
+		Config: cconfig,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ReleaseManager")
 		os.Exit(1)
@@ -171,6 +173,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ClusterSecrets"),
 		Scheme: mgr.GetScheme(),
+		Config: cconfig,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterSecrets")
 		os.Exit(1)

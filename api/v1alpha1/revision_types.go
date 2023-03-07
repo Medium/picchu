@@ -59,20 +59,20 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name                        string                      `json:"name"`
-	Fleet                       string                      `json:"fleet"`
-	Scale                       ScaleInfo                   `json:"scale"`
-	Release                     ReleaseInfo                 `json:"release,omitempty"`
-	ServiceMonitors             []*ServiceMonitor           `json:"serviceMonitors,omitempty"`
-	ServiceLevelObjectives      []*ServiceLevelObjective    `json:"serviceLevelObjectives,omitempty"`
-	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
-	AcceptanceTarget            bool                        `json:"acceptanceTarget,omitempty"`
-	ConfigSelector              *metav1.LabelSelector       `json:"configSelector,omitempty"`
-	AWS                         AWSInfo                     `json:"aws,omitempty"`
-	AlertRules                  []monitoringv1.Rule         `json:"alertRules,omitempty"`
-	Sidecars                    []corev1.Container          `json:"sidecars,omitempty"`
-	VolumeMounts                []corev1.VolumeMount        `json:"volumeMounts,omitempty"`
-	Volumes                     []corev1.Volume             `json:"volumes,omitempty"`
+	Name                        string                        `json:"name"`
+	Fleet                       string                        `json:"fleet"`
+	Scale                       ScaleInfo                     `json:"scale"`
+	Release                     ReleaseInfo                   `json:"release,omitempty"`
+	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
+	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
+	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
+	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
+	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`
+	AWS                         AWSInfo                       `json:"aws,omitempty"`
+	AlertRules                  []monitoringv1.Rule           `json:"alertRules,omitempty"`
+	Sidecars                    []corev1.Container            `json:"sidecars,omitempty"`
+	VolumeMounts                []corev1.VolumeMount          `json:"volumeMounts,omitempty"`
+	Volumes                     []corev1.Volume               `json:"volumes,omitempty"`
 
 	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
 	ServiceAccountName string            `json:"serviceAccountName,omitempty"`
@@ -109,12 +109,11 @@ type Canary struct {
 	TTL     int64  `json:"ttl"`
 }
 
-type ServiceLevelObjective struct {
+type SlothServiceLevelObjective struct {
 	Name                        string                      `json:"name,omitempty"`
-	Annotations                 map[string]string           `json:"annotations,omitempty"`
 	Description                 string                      `json:"description,omitempty"`
 	Enabled                     bool                        `json:"enabled"`
-	ObjectivePercentString      string                      `json:"objectivePercentString,omitempty"`
+	Objective                   string                      `json:"objectivePercentString,omitempty"`
 	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
 }

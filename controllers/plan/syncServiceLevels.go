@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/go-logr/logr"
+	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
 	prometheus "go.medium.engineering/picchu/prometheus"
@@ -22,7 +22,7 @@ type SyncServiceLevels struct {
 	Namespace                   string
 	Labels                      map[string]string
 	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
-	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
+	ServiceLevelObjectives      []*picchuv1alpha1.SlothServiceLevelObjective
 }
 
 func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -41,8 +41,8 @@ func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluste
 	return nil
 }
 
-func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.ServiceLevel, error) {
-	var sl []*slov1alpha1.ServiceLevel
+func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.PrometheusServiceLevel, error) {
+	var sl []*slov1alpha1.PrometheusServiceLevel
 	var slos []slov1alpha1.SLO
 
 	for i := range p.ServiceLevelObjectives {
@@ -54,20 +54,20 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Servi
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective(log)
-			serviceLevelObjective.ServiceLevelIndicator.SLISource.Prometheus = config.sliSource()
+			serviceLevelObjective.SLI.Events = config.sliSource()
 			slos = append(slos, *serviceLevelObjective)
 		}
 	}
 
-	serviceLevel := &slov1alpha1.ServiceLevel{
+	serviceLevel := &slov1alpha1.PrometheusServiceLevel{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.serviceLevelName(),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
-		Spec: slov1alpha1.ServiceLevelSpec{
-			ServiceLevelName:       p.App,
-			ServiceLevelObjectives: slos,
+		Spec: slov1alpha1.PrometheusServiceLevelSpec{
+			Service: p.App,
+			SLOs:    slos,
 		},
 	}
 	sl = append(sl, serviceLevel)
@@ -75,8 +75,8 @@ func (p *SyncServiceLevels) serviceLevels(log logr.Logger) ([]*slov1alpha1.Servi
 	return sl, nil
 }
 
-func (s *SLOConfig) sliSource() *slov1alpha1.PrometheusSLISource {
-	source := &slov1alpha1.PrometheusSLISource{
+func (s *SLOConfig) sliSource() *slov1alpha1.SLIEvents {
+	source := &slov1alpha1.SLIEvents{
 		ErrorQuery: s.serviceLevelErrorQuery(),
 		TotalQuery: s.serviceLevelTotalQuery(),
 	}
@@ -98,24 +98,19 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 	}
 
 	var objectivePercent float64
-	if s.SLO.ObjectivePercentString != "" {
-		f, err := strconv.ParseFloat(s.SLO.ObjectivePercentString, 64)
+	if s.SLO.Objective != "" {
+		f, err := strconv.ParseFloat(s.SLO.Objective, 64)
 		if err != nil {
-			log.Error(err, "Could not parse %v to float", s.SLO.ObjectivePercentString)
+			log.Error(err, "Could not parse %v to float", s.SLO.Objective)
 		} else {
 			objectivePercent = f
 		}
 	}
 	slo := &slov1alpha1.SLO{
-		Name:                         s.Name,
-		AvailabilityObjectivePercent: objectivePercent,
-		Description:                  s.SLO.Description,
-		Disable:                      false,
-		Output: slov1alpha1.Output{
-			Prometheus: &slov1alpha1.PrometheusOutputSource{
-				Labels: labels,
-			},
-		},
+		Name:        s.Name,
+		Objective:   objectivePercent,
+		Description: s.SLO.Description,
+		Labels:      labels,
 	}
 	return slo
 }

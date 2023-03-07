@@ -415,7 +415,7 @@ func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
 		Tag:                         i.tag,
 		Labels:                      i.defaultLabels(),
 		ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
-		ServiceLevelObjectives:      i.target().ServiceLevelObjectives,
+		ServiceLevelObjectives:      i.target().SlothServiceLevelObjectives,
 	})
 }
 
@@ -443,7 +443,7 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 			Tag:                         i.tag,
 			Labels:                      i.defaultLabels(),
 			ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
-			ServiceLevelObjectives:      i.target().ServiceLevelObjectives,
+			ServiceLevelObjectives:      i.target().SlothServiceLevelObjectives,
 		})
 	}
 

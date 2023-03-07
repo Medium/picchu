@@ -36,11 +36,11 @@ var (
 				"severity": "test",
 			},
 		},
-		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
-			Enabled:                true,
-			Name:                   "test-app-availability",
-			ObjectivePercentString: "99.999",
-			Description:            "Test description",
+		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
+			Enabled:     true,
+			Name:        "test-app-availability",
+			Objective:   "99.999",
+			Description: "Test description",
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
@@ -155,7 +155,7 @@ func TestFormatAllowancePercent(t *testing.T) {
 
 	for _, i := range inputs {
 		c := SLOConfig{
-			SLO: &picchuv1alpha1.ServiceLevelObjective{
+			SLO: &picchuv1alpha1.SlothServiceLevelObjective{
 				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 					Canary: picchuv1alpha1.SLICanaryConfig{
 						AllowancePercent: i.float,

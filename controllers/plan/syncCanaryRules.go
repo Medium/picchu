@@ -33,7 +33,7 @@ type SyncCanaryRules struct {
 	Tag                         string
 	Labels                      map[string]string
 	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
-	ServiceLevelObjectives      []*picchuv1alpha1.ServiceLevelObjective
+	ServiceLevelObjectives      []*picchuv1alpha1.SlothServiceLevelObjective
 }
 
 func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {

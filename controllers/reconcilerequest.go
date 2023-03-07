@@ -25,7 +25,7 @@ func newReconcileRequest(r *ClusterSecretsReconciler, instance *picchuv1alpha1.C
 	return &reconcileRequest{
 		client:   r.Client,
 		scheme:   r.Scheme,
-		config:   r.config,
+		config:   r.Config,
 		instance: instance,
 		log:      log,
 	}

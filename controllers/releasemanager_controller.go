@@ -135,7 +135,7 @@ type ReleaseManagerReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
-	config utils.Config
+	Config utils.Config
 }
 
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=releasemanagers,verbs=get;list;watch;create;update;patch;delete
@@ -206,9 +206,9 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return r.requeue(rmLog, err)
 	}
 
-	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.config.ServiceLevelsFleet)
+	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.Config.ServiceLevelsFleet)
 	if err != nil {
-		return r.requeue(rmLog, fmt.Errorf("failed to get delivery clusters for fleet %s: %w", r.config.ServiceLevelsFleet, err))
+		return r.requeue(rmLog, fmt.Errorf("failed to get delivery clusters for fleet %s: %w", r.Config.ServiceLevelsFleet, err))
 	}
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
@@ -268,10 +268,10 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		planApplier:     planApplier,
 		observer:        observer,
 		instance:        rm,
-		incarnations:    newIncarnationCollection(ic, revisions, observation, r.config),
+		incarnations:    newIncarnationCollection(ic, revisions, observation, r.Config),
 		reconciler:      r,
 		log:             rmLog,
-		picchuConfig:    r.config,
+		picchuConfig:    r.Config,
 		faults:          faults,
 	}
 
@@ -384,7 +384,7 @@ func (r *ReleaseManagerReconciler) requeue(log logr.Logger, err error) (reconcil
 		log.Error(err, "An error occurred during reconciliation")
 		return reconcile.Result{}, err
 	}
-	return reconcile.Result{RequeueAfter: r.config.RequeueAfter}, nil
+	return reconcile.Result{RequeueAfter: r.Config.RequeueAfter}, nil
 }
 
 func (r *ReleaseManagerReconciler) getClustersByFleet(ctx context.Context, namespace string, fleet string) ([]picchuv1alpha1.Cluster, error) {
@@ -420,11 +420,6 @@ func (r *ReleaseManagerReconciler) newPlanApplier(ctx context.Context, log logr.
 				log.Error(err, "Failed to create remote client")
 				return err
 			}
-			//TODO: figure out why the remote client doesn't have istio v1alpha3 scheme
-			//sch := remoteClient.Scheme()
-			//*sch = *r.Client.Scheme()
-			//fmt.Println("Remote Client", remoteClient.Scheme().AllKnownTypes())
-			//fmt.Println("R Client", r.Client.Scheme().AllKnownTypes())
 			appliers[i] = plan.NewClusterApplier(remoteClient, &cluster, log.WithValues("Cluster", cluster.Name))
 			return nil
 		})
@@ -479,7 +474,7 @@ func (r *ReleaseManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		reconcileInterval,
 	)
 	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(controller.Options{MaxConcurrentReconciles: r.config.ConcurrentReleaseManagers}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.ConcurrentReleaseManagers}).
 		For(&picchuv1alpha1.ReleaseManager{}).
 		Complete(r)
 }

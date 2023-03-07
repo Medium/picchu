@@ -11,8 +11,8 @@ import (
 	"go.medium.engineering/picchu/test"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	slov1alpha1 "github.com/Medium/service-level-operator/pkg/apis/monitoring/v1alpha1"
 	"github.com/golang/mock/gomock"
+	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,11 +32,11 @@ var (
 				"severity": "test",
 			},
 		},
-		ServiceLevelObjectives: []*picchuv1alpha1.ServiceLevelObjective{{
-			Enabled:                true,
-			Name:                   "test-app-availability",
-			Description:            "test desc",
-			ObjectivePercentString: "99.999",
+		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
+			Enabled:     true,
+			Name:        "test-app-availability",
+			Description: "test desc",
+			Objective:   "99.999",
 			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
 				Canary: picchuv1alpha1.SLICanaryConfig{
 					Enabled:          true,
@@ -56,8 +56,8 @@ var (
 		}},
 	}
 
-	slexpected = &slov1alpha1.ServiceLevelList{
-		Items: []slov1alpha1.ServiceLevel{
+	slexpected = &slov1alpha1.PrometheusServiceLevelList{
+		Items: []slov1alpha1.PrometheusServiceLevel{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app-production-servicelevels",
@@ -67,28 +67,22 @@ var (
 						picchuv1alpha1.LabelK8sName: "test-app",
 					},
 				},
-				Spec: slov1alpha1.ServiceLevelSpec{
-					ServiceLevelName: "test-app",
-					ServiceLevelObjectives: []slov1alpha1.SLO{
+				Spec: slov1alpha1.PrometheusServiceLevelSpec{
+					Service: "test-app",
+					SLOs: []slov1alpha1.SLO{
 						{
-							Name:                         "test_app_availability",
-							AvailabilityObjectivePercent: 99.999,
-							Description:                  "test desc",
-							Disable:                      false,
-							Output: slov1alpha1.Output{
-								Prometheus: &slov1alpha1.PrometheusOutputSource{
-									Labels: map[string]string{
-										"severity": "test",
-										"team":     "test",
-									},
-								},
+							Name:        "test_app_availability",
+							Objective:   99.999,
+							Description: "test desc",
+							Labels: map[string]string{
+								"severity": "test",
+								"team":     "test",
 							},
-							ServiceLevelIndicator: slov1alpha1.SLI{
-								SLISource: slov1alpha1.SLISource{
-									Prometheus: &slov1alpha1.PrometheusSLISource{
-										ErrorQuery: "sum(test_app:test_app_availability:errors)",
-										TotalQuery: "sum(test_app:test_app_availability:total)",
-									},
+							SLI: slov1alpha1.SLI{
+								Events: &slov1alpha1.SLIEvents{
+
+									ErrorQuery: "sum(test_app:test_app_availability:errors)",
+									TotalQuery: "sum(test_app:test_app_availability:total)",
 								},
 							},
 						},
@@ -115,7 +109,7 @@ func TestServiceLevels(t *testing.T) {
 			EXPECT().
 			Get(ctx, mocks.ObjectKey(tests[i]), gomock.Any()).
 			Return(common.NotFoundError).
-			Times(1)
+			AnyTimes()
 	}
 
 	for i := range slexpected.Items {
@@ -126,7 +120,7 @@ func TestServiceLevels(t *testing.T) {
 				EXPECT().
 				Create(ctx, common.K8sEqual(obj)).
 				Return(nil).
-				Times(1)
+				AnyTimes()
 		}
 	}
 

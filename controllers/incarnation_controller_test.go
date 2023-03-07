@@ -119,7 +119,7 @@ func TestGetFaults(t *T.T) {
 	controller := ReleaseManagerReconciler{
 		Client: cli,
 		Scheme: scheme,
-		config: utils.Config{},
+		Config: utils.Config{},
 	}
 	faults, err := controller.getFaults(ctx, log, "picchu", "echo", "delivery")
 	assert.NoError(err)

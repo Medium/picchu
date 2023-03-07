@@ -413,14 +413,14 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 }
 
 // returns the PrometheusRules to support SLOs from the latest released revision
-func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.ServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
-	var slos []*picchuv1alpha1.ServiceLevelObjective
+func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.SlothServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
+	var slos []*picchuv1alpha1.SlothServiceLevelObjective
 
 	if len(r.incarnations.deployed()) > 0 {
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
-				return i.target().ServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
+				return i.target().SlothServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
 			}
 		}
 	}

@@ -19,7 +19,7 @@ type SyncServiceMonitors struct {
 	Namespace              string
 	Labels                 map[string]string
 	ServiceMonitors        []*picchuv1alpha1.ServiceMonitor
-	ServiceLevelObjectives []*picchuv1alpha1.ServiceLevelObjective
+	ServiceLevelObjectives []*picchuv1alpha1.SlothServiceLevelObjective
 }
 
 func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {

@@ -8,7 +8,7 @@ import (
 
 // Receiver pointer functions for SLOConfig can be found next to relevant syncer
 type SLOConfig struct {
-	SLO    *picchuv1alpha1.ServiceLevelObjective
+	SLO    *picchuv1alpha1.SlothServiceLevelObjective
 	App    string
 	Name   string
 	Tag    string

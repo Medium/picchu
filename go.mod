@@ -3,7 +3,6 @@ module go.medium.engineering/picchu
 go 1.19
 
 require (
-	github.com/Medium/service-level-operator v0.5.2
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/go-logr/logr v1.2.3
 	github.com/go-logr/zapr v1.2.3
@@ -17,6 +16,7 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.39.0
 	github.com/prometheus/prometheus v0.41.0
+	github.com/slok/sloth v0.11.0
 	github.com/stretchr/testify v1.8.1
 	go.medium.engineering/kubernetes v0.1.6
 	go.uber.org/zap v1.24.0
@@ -66,7 +66,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
