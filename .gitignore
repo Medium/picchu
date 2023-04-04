@@ -81,3 +81,6 @@ tags
 secrets/*
 .idea
 cmd/manager/picchuDebug
+
+testbin/*
+

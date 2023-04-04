@@ -1,0 +1,7 @@
+apiVersion: picchu.medium.engineering/v1alpha1
+kind: Revision
+metadata:
+  name: revision-sample
+spec:
+  # Add fields here
+  foo: bar

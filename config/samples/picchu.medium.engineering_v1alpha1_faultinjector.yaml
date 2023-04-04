@@ -1,0 +1,7 @@
+apiVersion: picchu.medium.engineering/v1alpha1
+kind: FaultInjector
+metadata:
+  name: faultinjector-sample
+spec:
+  # Add fields here
+  foo: bar

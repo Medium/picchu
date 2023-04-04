@@ -1,0 +1,87 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - clusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - clusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - clustersecrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - clustersecrets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - releasemanagers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - releasemanagers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - revisions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - picchu.medium.engineering
+  resources:
+  - revisions/status
+  verbs:
+  - get
+  - patch
+  - update

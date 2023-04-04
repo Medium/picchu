@@ -1,0 +1,8 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- picchu.medium.engineering_v1alpha1_cluster.yaml
+- picchu.medium.engineering_v1alpha1_releasemanager.yaml
+- picchu.medium.engineering_v1alpha1_mirror.yaml
+- picchu.medium.engineering_v1alpha1_clustersecrets.yaml
+- picchu.medium.engineering_v1alpha1_revision.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
