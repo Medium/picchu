@@ -2,25 +2,25 @@ apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    control-plane: controller-manager
+    control-plane: picchu
   name: system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
-  namespace: system
+  name: picchu
+  namespace: picchu
   labels:
-    control-plane: controller-manager
+    control-plane: picchu
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: picchu
   replicas: 1
   template:
     metadata:
       labels:
-        control-plane: controller-manager
+        control-plane: picchu
     spec:
       containers:
       - command:

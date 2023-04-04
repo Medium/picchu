@@ -9,7 +9,6 @@ kustomize build ../config/crd | csplit - '/^---$/' {4}
 for files in $(ls xx*)
     do new_path=$(cat $files | yq '.metadata.annotations."config.kubernetes.io/origin"'|cut -d: -f2|cut -d \\ -f1|xargs)
     echo "Copying $files --> $new_path"
-    #cp $files ../config/crd/finalized/${new_path}
     mv $files ../config/crd/${new_path}
     
 done

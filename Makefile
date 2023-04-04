@@ -79,9 +79,9 @@ deploy: manifests kustomize
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	./hack/kustom-parse.sh
-	
-#	$(KUSTOMIZE) build config/crd > /tmp/1
-#	mv /tmp/1 ./config/crd/bases/picchu.medium.engineering_revisions.yaml
+
+parse:
+	./hack/kustom-parse-all.sh
 
 # Run go fmt against code
 fmt:
@@ -96,7 +96,7 @@ generate: deps
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test
+docker-build:
 	docker build . -t ${IMG}
 
 # Push the docker image
