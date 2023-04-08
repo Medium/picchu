@@ -15,7 +15,7 @@ import (
 	monitoringAsserts "go.medium.engineering/picchu/test/monitoring/v1"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	apps "k8s.io/api/apps/v1"
-	autoscaling "k8s.io/api/autoscaling/v2beta2"
+	autoscaling "k8s.io/api/autoscaling/v2"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
