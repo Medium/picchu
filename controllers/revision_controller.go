@@ -76,6 +76,7 @@ var (
 
 func (r *RevisionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.ConcurrentRevisions}).
 		For(&picchuv1alpha1.Revision{}).
 		Complete(r)
 }
