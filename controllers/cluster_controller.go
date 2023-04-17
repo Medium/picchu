@@ -44,6 +44,7 @@ type ClusterReconciler struct {
 
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=clusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs="*"
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
