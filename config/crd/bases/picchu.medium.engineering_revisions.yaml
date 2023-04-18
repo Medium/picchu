@@ -3282,6 +3282,45 @@ spec:
                     serviceLevelObjectives:
                       items:
                         properties:
+                          alerting:
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              name:
+                                type: string
+                              pageAlert:
+                                properties:
+                                  annotations:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                  disable:
+                                    type: boolean
+                                  labels:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                type: object
+                              ticketAlert:
+                                properties:
+                                  annotations:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                  disable:
+                                    type: boolean
+                                  labels:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
+                                type: object
+                            type: object
                           description:
                             type: string
                           enabled:

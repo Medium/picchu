@@ -116,6 +116,7 @@ type SlothServiceLevelObjective struct {
 	Objective                   string                      `json:"objectivePercentString,omitempty"`
 	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
+	Alerting                    Alerting                    `json:"alerting,omitempty"`
 }
 
 type ServiceLevelObjectiveLabels struct {
@@ -146,6 +147,20 @@ type ServiceMonitor struct {
 	Annotations map[string]string               `json:"annotations,omitempty"`
 	Labels      map[string]string               `json:"labels,omitempty"`
 	Spec        monitoringv1.ServiceMonitorSpec `json:"spec,omitempty"`
+}
+
+type Alerting struct {
+	Name        string            `json:"name,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	PageAlert   AlertMeta         `json:"pageAlert,omitempty"`
+	TicketAlert AlertMeta         `json:"ticketAlert,omitempty"`
+}
+
+type AlertMeta struct {
+	Disable     bool              `json:"disable,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // RevisionStatus defines the observed state of Revision
