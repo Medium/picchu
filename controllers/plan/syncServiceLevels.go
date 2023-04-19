@@ -111,7 +111,9 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		Objective:   objectivePercent,
 		Description: s.SLO.Description,
 		Labels:      labels,
+		Alerting:    s.SLO.Alerting,
 	}
+
 	return slo
 }
 
@@ -120,9 +122,9 @@ func (p *SyncServiceLevels) serviceLevelName() string {
 }
 
 func (s *SLOConfig) serviceLevelTotalQuery() string {
-	return fmt.Sprintf("sum(%s)", s.totalQuery())
+	return fmt.Sprintf("sum(%s[{{.window}}])", s.totalQuery())
 }
 
 func (s *SLOConfig) serviceLevelErrorQuery() string {
-	return fmt.Sprintf("sum(%s)", s.errorQuery())
+	return fmt.Sprintf("sum(%s[{{.window}}])", s.errorQuery())
 }
