@@ -22,7 +22,6 @@ import (
 	istio "istio.io/api/networking/v1alpha3"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -117,7 +116,7 @@ type SlothServiceLevelObjective struct {
 	Objective                   string                      `json:"objectivePercentString,omitempty"`
 	ServiceLevelIndicator       ServiceLevelIndicator       `json:"serviceLevelIndicator,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels `json:"serviceLevelObjectiveLabels,omitempty"`
-	Alerting                    slov1alpha1.Alerting        `json:"alerting,omitempty"`
+	Alerting                    Alerting                    `json:"alerting,omitempty"`
 }
 
 type ServiceLevelObjectiveLabels struct {
@@ -148,6 +147,14 @@ type ServiceMonitor struct {
 	Annotations map[string]string               `json:"annotations,omitempty"`
 	Labels      map[string]string               `json:"labels,omitempty"`
 	Spec        monitoringv1.ServiceMonitorSpec `json:"spec,omitempty"`
+}
+
+type Alerting struct {
+	Name        string            `json:"name,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	PageAlert   AlertMeta         `json:"pageAlert,omitempty"`
+	TicketAlert AlertMeta         `json:"ticketAlert,omitempty"`
 }
 
 type AlertMeta struct {
