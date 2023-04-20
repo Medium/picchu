@@ -112,6 +112,24 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		Description: s.SLO.Description,
 		Labels:      labels,
 	}
+	if s.SLO.Alerting.Name != "" {
+		alerting := slov1alpha1.Alerting{
+			Name:        s.SLO.Alerting.Name,
+			Labels:      s.SLO.Alerting.Labels,
+			Annotations: s.SLO.Alerting.Annotations,
+			PageAlert: slov1alpha1.Alert{
+				Disable:     s.SLO.Alerting.PageAlert.Disable,
+				Labels:      s.SLO.Alerting.PageAlert.Labels,
+				Annotations: s.SLO.Alerting.PageAlert.Annotations,
+			},
+			TicketAlert: slov1alpha1.Alert{
+				Disable:     s.SLO.Alerting.TicketAlert.Disable,
+				Labels:      s.SLO.Alerting.TicketAlert.Labels,
+				Annotations: s.SLO.Alerting.TicketAlert.Annotations,
+			},
+		}
+		slo.Alerting = alerting
+	}
 	return slo
 }
 
@@ -120,9 +138,9 @@ func (p *SyncServiceLevels) serviceLevelName() string {
 }
 
 func (s *SLOConfig) serviceLevelTotalQuery() string {
-	return fmt.Sprintf("sum(%s)", s.totalQuery())
+	return fmt.Sprintf("sum(%s[{{.window}}])", s.totalQuery())
 }
 
 func (s *SLOConfig) serviceLevelErrorQuery() string {
-	return fmt.Sprintf("sum(%s)", s.errorQuery())
+	return fmt.Sprintf("sum(%s[{{.window}}])", s.errorQuery())
 }
