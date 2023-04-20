@@ -86,8 +86,8 @@ var (
 							},
 							SLI: slov1alpha1.SLI{
 								Events: &slov1alpha1.SLIEvents{
-									ErrorQuery: "sum(test_app:test_app_availability:errors{destination_workload=\"v1\"})",
-									TotalQuery: "sum(test_app:test_app_availability:total{destination_workload=\"v1\"})",
+									ErrorQuery: "sum(test_app:test_app_availability:errors{destination_workload=\"v1\"}[{{.window}}])",
+									TotalQuery: "sum(test_app:test_app_availability:total{destination_workload=\"v1\"}[{{.window}}])",
 								},
 							},
 						},
