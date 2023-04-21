@@ -92,9 +92,9 @@ func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
 }
 
 func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("sum(%s{%s=\"%s\"}[{{.window}}])", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
 
 func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("sum(%s{%s=\"%s\"}[{{.window}}])", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
