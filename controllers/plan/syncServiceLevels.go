@@ -138,9 +138,9 @@ func (p *SyncServiceLevels) serviceLevelName() string {
 }
 
 func (s *SLOConfig) serviceLevelTotalQuery() string {
-	return fmt.Sprintf("sum(%s[{{.window}}])", s.totalQuery())
+	return fmt.Sprintf("sum(rate(%s[{{.window}}]))", s.totalQuery())
 }
 
 func (s *SLOConfig) serviceLevelErrorQuery() string {
-	return fmt.Sprintf("sum(%s[{{.window}}])", s.errorQuery())
+	return fmt.Sprintf("sum(rate(%s[{{.window}}]))", s.errorQuery())
 }

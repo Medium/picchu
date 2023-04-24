@@ -81,8 +81,8 @@ var (
 							SLI: slov1alpha1.SLI{
 								Events: &slov1alpha1.SLIEvents{
 
-									ErrorQuery: "sum(test_app:test_app_availability:errors[{{.window}}])",
-									TotalQuery: "sum(test_app:test_app_availability:total[{{.window}}])",
+									ErrorQuery: "sum(rate(test_app:test_app_availability:errors[{{.window}}]))",
+									TotalQuery: "sum(rate(test_app:test_app_availability:total[{{.window}}]))",
 								},
 							},
 						},
