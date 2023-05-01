@@ -31,7 +31,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -476,5 +478,12 @@ func (r *ReleaseManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.ConcurrentReleaseManagers}).
 		For(&picchuv1alpha1.ReleaseManager{}).
+		WithEventFilter(predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldObject := e.ObjectOld.(*picchuv1alpha1.ReleaseManager)
+				newObject := e.ObjectNew.(*picchuv1alpha1.ReleaseManager)
+				return oldObject.Status.LastUpdated.Equal(newObject.Status.LastUpdated)
+			},
+		}).
 		Complete(r)
 }
