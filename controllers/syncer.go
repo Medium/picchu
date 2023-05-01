@@ -328,10 +328,27 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 				return err
 			}
 
+			if err := r.applyPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+				Name: r.picchuConfig.ServiceLevelsNamespace,
+			}); err != nil {
+				return err
+			}
+
 			labels := r.defaultLabels()
 			labels[picchuv1alpha1.LabelTarget] = r.instance.Spec.Target
 
 			if err := r.applyDeliveryPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
+				App:                         r.instance.Spec.App,
+				Target:                      r.instance.Spec.Target,
+				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
+				Labels:                      labels,
+				ServiceLevelObjectiveLabels: sloLabels,
+				ServiceLevelObjectives:      slos,
+			}); err != nil {
+				return err
+			}
+
+			if err := r.applyPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
 				App:                         r.instance.Spec.App,
 				Target:                      r.instance.Spec.Target,
 				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
