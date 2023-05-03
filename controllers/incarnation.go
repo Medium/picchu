@@ -447,7 +447,7 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 				ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
 				ServiceLevelObjectives:      i.target().SlothServiceLevelObjectives,
 			})
-		} else if i.picchuConfig.ServiceLevelsFleet == "production" {
+		} else {
 			err := i.controller.applyPlan(
 				ctx,
 				"Ensure Service Levels Namespace",
@@ -483,7 +483,7 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 				Namespace: i.picchuConfig.ServiceLevelsNamespace,
 				Tag:       i.tag,
 			})
-		} else if i.picchuConfig.ServiceLevelsFleet == "production" {
+		} else {
 			return i.controller.applyPlan(
 				ctx,
 				"Delete Tagged Service Levels",

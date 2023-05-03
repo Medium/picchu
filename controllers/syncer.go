@@ -355,7 +355,7 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 			} else {
 				return r.delServiceLevels(ctx)
 			}
-		} else if r.picchuConfig.ServiceLevelsFleet == "production" {
+		} else {
 			if len(slos) > 0 {
 				if err := r.applyPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
 					Name: r.picchuConfig.ServiceLevelsNamespace,
