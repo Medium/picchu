@@ -317,7 +317,7 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 			Target:    r.instance.Spec.Target,
 			Namespace: r.picchuConfig.ServiceLevelsNamespace,
 		})
-	} else if r.picchuConfig.ServiceLevelsFleet == "production" {
+	} else {
 		return r.applyPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 			App:       r.instance.Spec.App,
 			Target:    r.instance.Spec.Target,
@@ -491,7 +491,7 @@ func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {
 		incarnation.updateCurrentPercent(0)
 	}
 
-	// The idea here is we will work through releases from newest to oldest,
+	// The idea here is we will work through releases from newest to oldest
 	// incrementing their weight if enough time has passed since their last
 	// update, and stopping when we reach 100%. This will cause newer releases
 	// to take from oldest fnord release.
