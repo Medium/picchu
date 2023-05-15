@@ -303,7 +303,7 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if err := utils.UpdateStatus(ctx, r.Client, srm); err != nil {
 			return r.requeue(rmLog, err)
 		}
-		return r.requeue(rmLog, nil)
+		return ctrl.Result{}, nil
 	} else if !rm.IsFinalized() {
 		rmLog.Info("Deleting ServiceLevels")
 		if err := syncer.delServiceLevels(ctx); err != nil {
