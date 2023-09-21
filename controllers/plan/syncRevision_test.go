@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,6 +19,7 @@ import (
 )
 
 var (
+	maxUnavailable      = intstr.FromString("25%")
 	defaultRevisionPlan = &SyncRevision{
 		App:       "testapp",
 		Tag:       "testtag",
@@ -107,6 +109,18 @@ var (
 			{
 				Name:      "shm",
 				MountPath: "/dev/shm",
+			},
+		},
+		PodDisruptionBudget: &policyv1.PodDisruptionBudget{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testapp",
+				Namespace: "testnamespace",
+				Labels: map[string]string{
+					"test": "label",
+				},
+			},
+			Spec: policyv1.PodDisruptionBudgetSpec{
+				MaxUnavailable: &maxUnavailable,
 			},
 		},
 	}

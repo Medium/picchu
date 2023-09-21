@@ -69,6 +69,8 @@ const (
 
 	AutoscalerTypeHPA = "hpa"
 	AutoscalerTypeWPA = "wpa"
+
+	MaxUnavailable = "25%"
 )
 
 type PortInfo struct {

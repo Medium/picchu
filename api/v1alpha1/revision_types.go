@@ -23,6 +23,7 @@ import (
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -92,7 +93,8 @@ type RevisionTarget struct {
 	Ports               []PortInfo        `json:"ports,omitempty"`
 	Env                 []corev1.EnvVar   `json:"env,omitempty"`
 
-	Istio *Istio `json:"istio,omitempty"`
+	Istio               *Istio                        `json:"istio,omitempty"`
+	PodDisruptionBudget *policyv1.PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
 }
 
 type ExternalTest struct {
