@@ -14,6 +14,7 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -59,30 +60,31 @@ func init() {
 }
 
 type SyncRevision struct {
-	App                string
-	Tag                string
-	Namespace          string
-	Labels             map[string]string // Labels applied to all resources
-	Configs            []runtime.Object  // Secret and ConfigMap objects supported and mapped to environment
-	Ports              []picchuv1alpha1.PortInfo
-	Replicas           int32
-	Image              string
-	Resources          corev1.ResourceRequirements
-	IAMRole            string            // AWS iam role
-	PodAnnotations     map[string]string // metadata.annotations in the Pod template
-	ServiceAccountName string            // k8s ServiceAccount
-	LivenessProbe      *corev1.Probe
-	ReadinessProbe     *corev1.Probe
-	MinReadySeconds    int32
-	Worker             *picchuv1alpha1.WorkerScaleInfo
-	Lifecycle          *corev1.Lifecycle
-	PriorityClassName  string
-	Affinity           *corev1.Affinity
-	Tolerations        []corev1.Toleration
-	EnvVars            []corev1.EnvVar
-	Sidecars           []corev1.Container // Additional sidecar containers.
-	VolumeMounts       []corev1.VolumeMount
-	Volumes            []corev1.Volume
+	App                 string
+	Tag                 string
+	Namespace           string
+	Labels              map[string]string // Labels applied to all resources
+	Configs             []runtime.Object  // Secret and ConfigMap objects supported and mapped to environment
+	Ports               []picchuv1alpha1.PortInfo
+	Replicas            int32
+	Image               string
+	Resources           corev1.ResourceRequirements
+	IAMRole             string            // AWS iam role
+	PodAnnotations      map[string]string // metadata.annotations in the Pod template
+	ServiceAccountName  string            // k8s ServiceAccount
+	LivenessProbe       *corev1.Probe
+	ReadinessProbe      *corev1.Probe
+	MinReadySeconds     int32
+	Worker              *picchuv1alpha1.WorkerScaleInfo
+	Lifecycle           *corev1.Lifecycle
+	PriorityClassName   string
+	Affinity            *corev1.Affinity
+	Tolerations         []corev1.Toleration
+	EnvVars             []corev1.EnvVar
+	Sidecars            []corev1.Container // Additional sidecar containers.
+	VolumeMounts        []corev1.VolumeMount
+	Volumes             []corev1.Volume
+	PodDisruptionBudget *policyv1.PodDisruptionBudget
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -165,6 +167,23 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 			log.Error(e, "Unsupported config", "Config", config)
 			return e
 		}
+	}
+
+	if p.PodDisruptionBudget == nil {
+		maxUnavailable := intstr.FromString(picchuv1alpha1.MaxUnavailable)
+		p.PodDisruptionBudget = &policyv1.PodDisruptionBudget{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      p.App,
+				Namespace: p.Namespace,
+				Labels:    p.Labels,
+			},
+			Spec: policyv1.PodDisruptionBudgetSpec{
+				MaxUnavailable: &maxUnavailable,
+			},
+		}
+	}
+	if err := p.syncPodDisruptionBudget(ctx, cli, log); err != nil {
+		return err
 	}
 
 	for i := range configs {
@@ -345,6 +364,14 @@ func (p *SyncRevision) syncReplicaSet(
 	return plan.CreateOrUpdate(ctx, log, cli, replicaSet)
 }
 
+func (p *SyncRevision) syncPodDisruptionBudget(ctx context.Context, cli client.Client, log logr.Logger) error {
+	p.PodDisruptionBudget.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			picchuv1alpha1.LabelApp: p.App,
+		},
+	}
+	return plan.CreateOrUpdate(ctx, log, cli, p.PodDisruptionBudget)
+}
 func DefaultDNSConfig() *corev1.PodDNSConfig {
 	oneStr := "1"
 	return &corev1.PodDNSConfig{

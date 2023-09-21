@@ -16,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -406,6 +407,29 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, wpa)
+		if err != nil {
+			return err
+		}
+	case *policyv1.PodDisruptionBudget:
+		typed := orig.DeepCopy()
+		pdb := &policyv1.PodDisruptionBudget{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, pdb, func() error {
+			if isIgnored(pdb.ObjectMeta) {
+				kind := utils.MustGetKind(pdb).Kind
+				log.Info("Resource is ignored", "name", pdb.Name, "kind", kind)
+				return nil
+			}
+			pdb.Labels = CopyStringMap(typed.Labels)
+			pdb.Annotations = CopyStringMap(typed.Annotations)
+			pdb.Spec = typed.Spec
+			return nil
+		})
+		LogSync(log, op, err, pdb)
 		if err != nil {
 			return err
 		}

@@ -24,6 +24,7 @@ package v1alpha1
 import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -1441,6 +1442,11 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 	if in.Istio != nil {
 		in, out := &in.Istio, &out.Istio
 		*out = new(Istio)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.PodDisruptionBudget != nil {
+		in, out := &in.PodDisruptionBudget, &out.PodDisruptionBudget
+		*out = new(policyv1.PodDisruptionBudget)
 		(*in).DeepCopyInto(*out)
 	}
 }
