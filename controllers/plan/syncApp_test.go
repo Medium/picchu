@@ -43,11 +43,9 @@ var (
 				Weight:           100,
 				TagRoutingHeader: "TEST-TAG",
 				TrafficPolicy: &istio.TrafficPolicy{
-					PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
-						{
-							ConnectionPool: &istio.ConnectionPoolSettings{
-								Tcp: &istio.ConnectionPoolSettings_TCPSettings{MaxConnections: 100},
-							},
+					ConnectionPool: &istio.ConnectionPoolSettings{
+						Tcp: &istio.ConnectionPoolSettings_TCPSettings{
+							MaxConnections: 100,
 						},
 					},
 				},
@@ -314,11 +312,9 @@ var (
 					Name:   "testtag",
 					Labels: map[string]string{"tag.picchu.medium.engineering": "testtag"},
 					TrafficPolicy: &istio.TrafficPolicy{
-						PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
-							{
-								ConnectionPool: &istio.ConnectionPoolSettings{
-									Tcp: &istio.ConnectionPoolSettings_TCPSettings{MaxConnections: 100},
-								},
+						ConnectionPool: &istio.ConnectionPoolSettings{
+							Tcp: &istio.ConnectionPoolSettings_TCPSettings{
+								MaxConnections: 100,
 							},
 						},
 					},
