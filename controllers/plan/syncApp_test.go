@@ -312,9 +312,11 @@ var (
 					Name:   "testtag",
 					Labels: map[string]string{"tag.picchu.medium.engineering": "testtag"},
 					TrafficPolicy: &istio.TrafficPolicy{
-						ConnectionPool: &istio.ConnectionPoolSettings{
-							Tcp: &istio.ConnectionPoolSettings_TCPSettings{
-								MaxConnections: 100,
+						PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
+							{
+							ConnectionPool: &istio.ConnectionPoolSettings{
+								Tcp: &istio.ConnectionPoolSettings_TCPSettings{MaxConnections: 100},
+								},
 							},
 						},
 					},

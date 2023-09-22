@@ -517,7 +517,7 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 		// if it's non-empty. Else, do not include it. The subset can be created without it, and we are
 		// seeing a breakage.  In kbfd, the TrafficPolicy is only updated with PortLevelSettings
 		// Ref the go pkg here: https://pkg.go.dev/istio.io/api@v1.19.0/networking/v1alpha3#TrafficPolicy
-		if (&istio.TrafficPolicy{}) != revision.TrafficPolicy {
+		if len(revision.TrafficPolicy.PortLevelSettings) > 0 {
 			newSubset = &istio.Subset{
 				Name:          revision.Tag,
 				Labels:        map[string]string{labelTag: revision.Tag},
