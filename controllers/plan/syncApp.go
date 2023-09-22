@@ -511,27 +511,12 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 	labelTag := "tag.picchu.medium.engineering"
 	var subsets []*istio.Subset
 	for _, revision := range p.DeployedRevisions {
-		newSubset := &istio.Subset{}
-
-		// Check for an empty istio trafficPolicy object, and ONLY add it to the istio subset object
-		// if it's non-empty. Else, do not include it. The subset can be created without it, and we are
-		// seeing a breakage.  In kbfd, the TrafficPolicy is only updated with PortLevelSettings
-		// Ref the go pkg here: https://pkg.go.dev/istio.io/api@v1.19.0/networking/v1alpha3#TrafficPolicy
-		if len(revision.TrafficPolicy.PortLevelSettings) > 0 {
-			newSubset = &istio.Subset{
-				Name:          revision.Tag,
-				Labels:        map[string]string{labelTag: revision.Tag},
-				TrafficPolicy: revision.TrafficPolicy,
-			}
-		} else {
-			newSubset = &istio.Subset{
-				Name:   revision.Tag,
-				Labels: map[string]string{labelTag: revision.Tag},
-			}
-		}
-		subsets = append(subsets, newSubset)
+		subsets = append(subsets, &istio.Subset{
+			Name:          revision.Tag,
+			Labels:        map[string]string{labelTag: revision.Tag},
+			TrafficPolicy: revision.TrafficPolicy,
+		})
 	}
-
 	return &istioclient.DestinationRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.App,
