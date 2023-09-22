@@ -43,9 +43,11 @@ var (
 				Weight:           100,
 				TagRoutingHeader: "TEST-TAG",
 				TrafficPolicy: &istio.TrafficPolicy{
-					ConnectionPool: &istio.ConnectionPoolSettings{
-						Tcp: &istio.ConnectionPoolSettings_TCPSettings{
-							MaxConnections: 100,
+					PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
+						{
+							ConnectionPool: &istio.ConnectionPoolSettings{
+								Tcp: &istio.ConnectionPoolSettings_TCPSettings{MaxConnections: 100},
+							},
 						},
 					},
 				},
@@ -314,8 +316,8 @@ var (
 					TrafficPolicy: &istio.TrafficPolicy{
 						PortLevelSettings: []*istio.TrafficPolicy_PortTrafficPolicy{
 							{
-							ConnectionPool: &istio.ConnectionPoolSettings{
-								Tcp: &istio.ConnectionPoolSettings_TCPSettings{MaxConnections: 100},
+								ConnectionPool: &istio.ConnectionPoolSettings{
+									Tcp: &istio.ConnectionPoolSettings_TCPSettings{MaxConnections: 100},
 								},
 							},
 						},
