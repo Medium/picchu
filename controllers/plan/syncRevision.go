@@ -85,6 +85,7 @@ type SyncRevision struct {
 	VolumeMounts        []corev1.VolumeMount
 	Volumes             []corev1.Volume
 	PodDisruptionBudget *policyv1.PodDisruptionBudget
+	DoNotEvict          bool
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -199,6 +200,10 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 	}
 	for k, v := range p.Labels {
 		labels[k] = v
+	}
+
+	if p.DoNotEvict {
+		labels["karpenter.sh/do-not-evict"] = "true"
 	}
 
 	var scalingFactor *float64
