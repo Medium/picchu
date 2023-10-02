@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	maxUnavailable      = intstr.FromString("25%")
+	maxUnavailable      = intstr.FromString("5%")
 	defaultRevisionPlan = &SyncRevision{
 		App:       "testapp",
 		Tag:       "testtag",
