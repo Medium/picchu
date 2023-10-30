@@ -311,7 +311,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
-	return r.applyPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
+	return r.applyDeliveryPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 		App:       r.instance.Spec.App,
 		Target:    r.instance.Spec.Target,
 		Namespace: r.picchuConfig.ServiceLevelsNamespace,
@@ -321,10 +321,8 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 	if r.picchuConfig.ServiceLevelsFleet != "" && r.picchuConfig.ServiceLevelsNamespace != "" {
 		slos, sloLabels := r.prepareServiceLevelObjectives()
-		// Make a decision on where to apply the serviceLevels based on the Fleets.
-		// Necessary after the kubernetes migration to v1.24.
 		if len(slos) > 0 {
-			if err := r.applyPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+			if err := r.applyDeliveryPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
 				Name: r.picchuConfig.ServiceLevelsNamespace,
 			}); err != nil {
 				return err
@@ -333,7 +331,7 @@ func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 			labels := r.defaultLabels()
 			labels[picchuv1alpha1.LabelTarget] = r.instance.Spec.Target
 
-			if err := r.applyPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
+			if err := r.applyDeliveryPlan(ctx, "Sync App ServiceLevels", &rmplan.SyncServiceLevels{
 				App:                         r.instance.Spec.App,
 				Target:                      r.instance.Spec.Target,
 				Namespace:                   r.picchuConfig.ServiceLevelsNamespace,
