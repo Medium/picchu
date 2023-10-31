@@ -319,16 +319,16 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
-			return r.delServiceLevels(ctx)
-		}
+	return r.delServiceLevels(ctx)
+}
 
 func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
-		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
-			App:       r.instance.Spec.App,
-			Namespace: r.instance.TargetNamespace(),
-		}); err != nil {
-			return err
-		}
+	if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
+		App:       r.instance.Spec.App,
+		Namespace: r.instance.TargetNamespace(),
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }

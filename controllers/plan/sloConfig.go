@@ -77,28 +77,12 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 	return slo
 }
 
-func (s *SLOConfig) sliSource() *slov1alpha1.SLIEvents {
-	source := &slov1alpha1.SLIEvents{
-		ErrorQuery: s.serviceLevelErrorQuery(),
-		TotalQuery: s.serviceLevelTotalQuery(),
-	}
-	return source
-}
-
 func (s *SLOConfig) taggedSLISource() *slov1alpha1.SLIEvents {
 	source := &slov1alpha1.SLIEvents{
 		ErrorQuery: s.serviceLevelTaggedErrorQuery(),
 		TotalQuery: s.serviceLevelTaggedTotalQuery(),
 	}
 	return source
-}
-
-func (s *SLOConfig) serviceLevelTotalQuery() string {
-	return fmt.Sprintf("sum(rate(%s[{{.window}}]))", s.totalQuery())
-}
-
-func (s *SLOConfig) serviceLevelErrorQuery() string {
-	return fmt.Sprintf("sum(rate(%s[{{.window}}]))", s.errorQuery())
 }
 
 func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
