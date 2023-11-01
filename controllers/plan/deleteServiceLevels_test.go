@@ -31,6 +31,7 @@ func TestDeleteServiceLevels(t *testing.T) {
 			Labels: map[string]string{
 				picchu.LabelApp:    deleteServiceLevels.App,
 				picchu.LabelTarget: deleteServiceLevels.Target,
+				picchu.LabelTag:    "",
 			},
 		},
 	}
