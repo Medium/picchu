@@ -26,6 +26,7 @@ func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, clus
 		LabelSelector: labels.SelectorFromSet(map[string]string{
 			picchuv1alpha1.LabelApp:    p.App,
 			picchuv1alpha1.LabelTarget: p.Target,
+			picchuv1alpha1.LabelTag: "",
 		}),
 	}
 
