@@ -79,22 +79,6 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.P
 	return sll, nil
 }
 
-func (s *SLOConfig) taggedSLISource() *slov1alpha1.SLIEvents {
-	source := &slov1alpha1.SLIEvents{
-		ErrorQuery: s.serviceLevelTaggedErrorQuery(),
-		TotalQuery: s.serviceLevelTaggedTotalQuery(),
-	}
-	return source
-}
-
 func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
 	return fmt.Sprintf("%s-%s-%s-servicelevels", p.App, p.Target, p.Tag)
-}
-
-func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
-}
-
-func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
