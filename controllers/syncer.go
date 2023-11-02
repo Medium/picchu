@@ -311,7 +311,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
-	return r.applyDeliveryPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
+	return r.applyPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 		App:       r.instance.Spec.App,
 		Target:    r.instance.Spec.Target,
 		Namespace: r.picchuConfig.ServiceLevelsNamespace,
