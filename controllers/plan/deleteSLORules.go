@@ -24,7 +24,6 @@ func (p *DeleteSLORules) Apply(ctx context.Context, cli client.Client, cluster *
 		Namespace: p.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
 			picchuv1alpha1.LabelApp:      p.App,
-			picchuv1alpha1.LabelRuleType: RuleTypeSLO,
 		}),
 	}
 
