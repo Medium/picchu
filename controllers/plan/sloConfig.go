@@ -86,9 +86,9 @@ func (s *SLOConfig) taggedSLISource() *slov1alpha1.SLIEvents {
 }
 
 func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.SLO.ServiceLevelIndicator.TotalQuery, s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
 
 func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.SLO.ServiceLevelIndicator.ErrorQuery, s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
