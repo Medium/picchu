@@ -100,6 +100,7 @@ func init() {
 		date(2023, time.December, 31),
 
 		date(2024, time.January, 1),
+		date(2024, time.January, 2),
 	}
 }
 
