@@ -66,27 +66,8 @@ func init() {
 		date(2021, time.December, 26), // Sun, Holiday break
 		date(2021, time.December, 31), // Holiday break
 
-		date(2022, time.December, 15), // Code freeze
-		date(2022, time.December, 16),
-		date(2022, time.December, 17),
-		date(2022, time.December, 18),
-		date(2022, time.December, 19), // Holiday break
-		date(2022, time.December, 20),
-		date(2022, time.December, 21),
-		date(2022, time.December, 22),
-		date(2022, time.December, 23),
-		date(2022, time.December, 24),
-		date(2022, time.December, 25),
-		date(2022, time.December, 26),
-		date(2022, time.December, 27),
-		date(2022, time.December, 28),
-		date(2022, time.December, 29),
-		date(2022, time.December, 30),
-		date(2022, time.December, 31),
-
 		date(2023, time.January, 1),
-		date(2023, time.December, 19), // 2023 Holiday break "code freeze"
-		date(2023, time.December, 20),
+		date(2023, time.December, 20),  // 2023 Holiday break "code freeze"
 		date(2023, time.December, 21),
 		date(2023, time.December, 22),
 		date(2023, time.December, 23),
