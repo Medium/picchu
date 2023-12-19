@@ -33,6 +33,6 @@ spec:
           limits:
             memory: 6Gi
           requests:
-            cpu: "1"
-            memory: 6Gi
+            cpu: "3"
+            memory: 4Gi
       terminationGracePeriodSeconds: 10
