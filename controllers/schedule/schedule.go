@@ -91,6 +91,6 @@ func PermitsRelease(t time.Time, schedule string) bool {
 	case "inhumane", "Inhumane":
 		return inhumanePermitsRelease(t)
 	default:
-		return alwaysPermitsRelease(t)
+		return humanePermitsRelease(t)
 	}
 }
