@@ -67,7 +67,7 @@ func init() {
 		date(2021, time.December, 31), // Holiday break
 
 		date(2023, time.January, 1),
-		date(2023, time.December, 20),  // 2023 Holiday break "code freeze"
+		date(2023, time.December, 20), // 2023 Holiday break "code freeze"
 		date(2023, time.December, 21),
 		date(2023, time.December, 22),
 		date(2023, time.December, 23),
