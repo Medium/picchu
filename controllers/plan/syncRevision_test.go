@@ -124,6 +124,111 @@ var (
 			},
 		},
 	}
+	defaultRevisionPlanNoEviction = &SyncRevision{
+		App:       "testapp",
+		Tag:       "testtag",
+		Namespace: "testnamespace",
+		Labels: map[string]string{
+			"test": "label",
+		},
+		Configs: []runtime.Object{},
+		Ports: []picchuv1alpha1.PortInfo{{
+			Name:          "status",
+			Protocol:      "TCP",
+			ContainerPort: 4242,
+		}, {
+			Name:          "http",
+			Protocol:      "TCP",
+			ContainerPort: 8080,
+		}},
+		Replicas: 2,
+		Image:    "docker.medium.sh/test:testtag",
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    mustParseQuantity("4"),
+				"memory": mustParseQuantity("4352Mi"),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    mustParseQuantity("2"),
+				"memory": mustParseQuantity("4352Mi"),
+			},
+		},
+		Affinity: &corev1.Affinity{
+			NodeAffinity: &corev1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+					NodeSelectorTerms: []corev1.NodeSelectorTerm{
+						{
+							MatchFields: []corev1.NodeSelectorRequirement{
+								{Key: "node-role.kubernetes.io/infrastructure", Operator: corev1.NodeSelectorOpExists},
+							},
+						},
+					},
+				},
+			},
+		},
+		PriorityClassName: "default",
+		Tolerations: []corev1.Toleration{
+			{
+				Key:    "infrastructure",
+				Effect: corev1.TaintEffectNoExecute,
+			},
+		},
+		IAMRole: "testrole",
+		PodAnnotations: map[string]string{
+			"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
+		},
+		ServiceAccountName: "testaccount",
+		EnvVars: []corev1.EnvVar{{
+			Name: "NODE_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		}},
+		Lifecycle: &corev1.Lifecycle{
+			PreStop: &corev1.LifecycleHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "-c", "sleep 20"},
+				},
+			},
+		},
+		Sidecars: []corev1.Container{
+			{
+				Name:  "test-1",
+				Image: "test-1:latest",
+			},
+		},
+		Volumes: []corev1.Volume{
+			{
+				Name: "shm",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{
+						Medium: corev1.StorageMediumMemory,
+					},
+				},
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      "shm",
+				MountPath: "/dev/shm",
+			},
+		},
+		PodDisruptionBudget: &policyv1.PodDisruptionBudget{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testapp",
+				Namespace: "testnamespace",
+				Labels: map[string]string{
+					"test": "label",
+				},
+			},
+			Spec: policyv1.PodDisruptionBudgetSpec{
+				MaxUnavailable: &maxUnavailable,
+			},
+		},
+		DoNotEvict: true,
+	}
 	retiredRevisionPlan = &SyncRevision{
 		App:       "testapp",
 		Tag:       "testtag",
@@ -328,6 +433,176 @@ var (
 			},
 		},
 	}
+	defaultExpectedReplicaSetNoEviction = &appsv1.ReplicaSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ReplicaSet",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testtag",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				"test": "label",
+			},
+			Annotations: map[string]string{
+				"picchu.medium.engineering/autoscaler": "hpa",
+			},
+			ResourceVersion: "1",
+		},
+		Spec: appsv1.ReplicaSetSpec{
+			Replicas: &one,
+			Selector: metav1.SetAsLabelSelector(map[string]string{
+				"test":                          "label",
+				"tag.picchu.medium.engineering": "testtag",
+			}),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testtag",
+					Namespace: "testnamespace",
+					Annotations: map[string]string{
+						"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
+						picchuv1alpha1.AnnotationIAMRole:          "testrole",
+						annotationDatadogTolerateUnready:          "true",
+						annotationKarpenterDoNotEvict:             "true",
+					},
+					Labels: map[string]string{
+						"test":                          "label",
+						"tag.picchu.medium.engineering": "testtag",
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "testaccount",
+					Containers: []corev1.Container{{
+						Env: []corev1.EnvVar{{
+							Name: "NODE_IP",
+							ValueFrom: &corev1.EnvVarSource{
+								FieldRef: &corev1.ObjectFieldSelector{
+									FieldPath: "status.hostIP",
+								},
+							},
+						}},
+						EnvFrom: []corev1.EnvFromSource{},
+						Image:   "docker.medium.sh/test:testtag",
+						Name:    "testapp",
+						Ports: []corev1.ContainerPort{{
+							Name:          "status",
+							Protocol:      "TCP",
+							ContainerPort: 4242,
+						}, {
+							Name:          "http",
+							Protocol:      "TCP",
+							ContainerPort: 8080,
+						}},
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								"cpu":    mustParseQuantity("4"),
+								"memory": mustParseQuantity("4352Mi"),
+							},
+							Requests: corev1.ResourceList{
+								"cpu":    mustParseQuantity("2"),
+								"memory": mustParseQuantity("4352Mi"),
+							},
+						},
+						LivenessProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/running",
+									Port: intstr.FromString("status"),
+								},
+							},
+							InitialDelaySeconds: 10,
+							PeriodSeconds:       10,
+							TimeoutSeconds:      1,
+							SuccessThreshold:    1,
+							FailureThreshold:    7,
+						},
+						ReadinessProbe: &corev1.Probe{
+							ProbeHandler: corev1.ProbeHandler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/running",
+									Port: intstr.FromString("status"),
+								},
+							},
+							InitialDelaySeconds: 10,
+							PeriodSeconds:       10,
+							TimeoutSeconds:      1,
+							SuccessThreshold:    1,
+							FailureThreshold:    3,
+						},
+						Lifecycle: &corev1.Lifecycle{
+							PreStop: &corev1.LifecycleHandler{
+								Exec: &corev1.ExecAction{
+									Command: []string{"/bin/sh", "-c", "sleep 20"},
+								},
+							},
+						},
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "shm",
+								MountPath: "/dev/shm",
+							},
+						},
+					},
+						{
+							Image: "test-1:latest",
+							Name:  "test-1",
+							Env: []corev1.EnvVar{{
+								Name: "NODE_IP",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "status.hostIP",
+									},
+								},
+							}},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "shm",
+									MountPath: "/dev/shm",
+								},
+							},
+						},
+					},
+					DNSConfig: &corev1.PodDNSConfig{
+						Options: []corev1.PodDNSConfigOption{{
+							Name:  "ndots",
+							Value: &oneStr,
+						}},
+					},
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchFields: []corev1.NodeSelectorRequirement{
+											{Key: "node-role.kubernetes.io/infrastructure", Operator: corev1.NodeSelectorOpExists},
+										},
+									},
+								},
+							},
+						},
+					},
+					PriorityClassName: "default",
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "infrastructure",
+							Effect: corev1.TaintEffectNoExecute,
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "shm",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									Medium: corev1.StorageMediumMemory,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	retiredExpectedReplicaSet = &appsv1.ReplicaSet{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ReplicaSet",
@@ -436,6 +711,18 @@ func TestSyncRevisionNoChange(t *testing.T) {
 	assert.NoError(t, cli.List(ctx, rsl))
 	assert.Equal(t, 1, len(rsl.Items))
 	common.ResourcesEqual(t, defaultExpectedReplicaSet, &rsl.Items[0])
+}
+
+func TestSyncRevisionNoEviction(t *testing.T) {
+	ctx := context.TODO()
+	log := test.MustNewLogger()
+	cli := fakeClient(defaultExpectedReplicaSetNoEviction)
+
+	rsl := &appsv1.ReplicaSetList{}
+	assert.NoError(t, defaultRevisionPlanNoEviction.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, 1, len(rsl.Items))
+	common.ResourcesEqual(t, defaultExpectedReplicaSetNoEviction, &rsl.Items[0])
 }
 
 func TestSyncRevisionWithChange(t *testing.T) {
