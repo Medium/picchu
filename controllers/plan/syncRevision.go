@@ -330,6 +330,10 @@ func (p *SyncRevision) syncReplicaSet(
 
 	template.Annotations[annotationDatadogTolerateUnready] = "true"
 
+	if p.DoNotEvict {
+		template.Annotations[annotationKarpenterDoNotEvict] = "true"
+	}
+
 	scaledReplicas := int32(math.Ceil(float64(p.Replicas) * scalingFactor))
 
 	// Safe to remove once no existing ReplicaSets are missing the new picchuv1alpha1.LabelIstioApp label
