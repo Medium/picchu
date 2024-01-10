@@ -37,6 +37,7 @@ type SyncCanaryRules struct {
 }
 
 func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	log.Info("calling syncCanaryRules Apply")
 	prometheusRules, err := p.prometheusRules(log)
 	if err != nil {
 		return err

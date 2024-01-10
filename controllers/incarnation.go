@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -409,6 +410,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
+	log.Info("syncCanaryRules app and tag", i.appName(), i.tag)
 	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncCanaryRules{
 		App:                         i.appName(),
 		Namespace:                   i.targetNamespace(),
@@ -420,6 +422,7 @@ func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
 }
 
 func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
+	log.Info("deleteCanaryRules app and tag", i.appName(), i.tag)
 	return i.controller.applyPlan(ctx, "Delete Canary Rules", &rmplan.DeleteCanaryRules{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
@@ -428,8 +431,10 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
+	log.Info("syncTaggedServiceLevels", i.appName(), i.tag)
 	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
 		// Account for a fleet other than Delivery (old way of configuring SLOs) and Production (the only other place we ideally want SLOs to go)
+		log.Info("syncTaggedServiceLevels account for fleet other than delivery", i.appName(), i.tag)
 		err := i.controller.applyPlan(
 			ctx,
 			"Ensure Service Levels Namespace",
@@ -450,6 +455,7 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 		})
 	}
 
+	log.Info("skipping syncTaggedServiceLevels", i.appName(), i.tag)
 	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncTaggedServiceLevels")
 	return nil
 }

@@ -24,6 +24,7 @@ type SyncTaggedServiceLevels struct {
 }
 
 func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	log.Info("calling syncTaggedServiceLevels Apply")
 	serviceLevels, err := p.serviceLevels(log)
 	if err != nil {
 		return err

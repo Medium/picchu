@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 	istio "istio.io/api/networking/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -311,6 +312,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
+	log.Info("calling delServiceLevels syncer")
 	return r.applyPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 		App:       r.instance.Spec.App,
 		Target:    r.instance.Spec.Target,
@@ -319,10 +321,12 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
+	log.Info("calling syncServiceLevels syncer")
 	return r.delServiceLevels(ctx)
 }
 
 func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
+	log.Info("calling syncSLORules syncer")
 	slos, labels := r.prepareServiceLevelObjectives()
 	if len(slos) > 0 {
 		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
