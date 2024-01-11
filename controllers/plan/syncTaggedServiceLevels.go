@@ -58,7 +58,7 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.P
 			serviceLevelObjective := config.serviceLevelObjective(log)
 			serviceLevelObjective.SLI.Events = config.taggedSLISource()
 
-			log.Info("print created service level for app:", p.App, serviceLevelObjective)
+			log.Info("print created service level for app and labels:", "app", p.App, "slo", serviceLevelObjective.Labels)
 
 			slos = append(slos, *serviceLevelObjective)
 		}

@@ -75,7 +75,7 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 			canaryRules := config.canaryRules(log)
 
 			for _, rg := range canaryRules {
-				log.Info("print created canaryRules for app:", p.App, rg)
+				log.Info("print created canaryRules for app:", "appName", p.App, "ruleGroup", rg)
 				rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 			}
 		}

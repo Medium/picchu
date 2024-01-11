@@ -117,10 +117,10 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 	var template template.Template
 	if canariesOnly {
 		template = *CanaryFiringTemplate
-		log.Info("calling TaggedAlerts PROM API - PRINT CANARY FIRING TEMPLATE!", template)
+		log.Info("calling TaggedAlerts PROM API - PRINT CANARY FIRING TEMPLATE!", "canarytemplate", template)
 	} else {
 		template = *SLOFiringTemplate
-		log.Info("calling TaggedAlerts PROM API - PRINT SLO FIRING TEMPLATE!", template)
+		log.Info("calling TaggedAlerts PROM API - PRINT SLO FIRING TEMPLATE!", "slotemplate", template)
 	}
 	if err := template.Execute(q, query); err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 	if err != nil {
 		return nil, err
 	}
-	log.Info("calling TaggedAlerts PROM API - value of query", val)
+	log.Info("calling TaggedAlerts PROM API - value of query", "value", val)
 
 	tagset := map[string][]string{}
 	switch v := val.(type) {
@@ -162,7 +162,7 @@ func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesO
 	}
 
 	if alerts, ok := tags[tag]; ok && len(alerts) > 0 {
-		log.Info("IsRevisionTriggered there are triggered alerts:", alerts)
+		log.Info("IsRevisionTriggered there are triggered alerts:", "alerts", alerts)
 		return true, alerts, nil
 	}
 
