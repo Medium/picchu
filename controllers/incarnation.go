@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -268,6 +269,7 @@ func (i *Incarnation) isCanaryPending() bool {
 	if target == nil {
 		return false
 	}
+	log.Info("is canary pending incarnation -> calls revision types - checks if canary ttl is after the current time")
 	return target.IsCanaryPending(i.status.CanaryStartTimestamp)
 }
 
@@ -409,6 +411,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
+	log.Info("syncCanaryRules app and tag  and slos incarnation", i.appName(), i.tag, i.target().SlothServiceLevelObjectives)
 	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncCanaryRules{
 		App:                         i.appName(),
 		Namespace:                   i.targetNamespace(),
@@ -420,6 +423,7 @@ func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
 }
 
 func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
+	log.Info("deleteCanaryRules app and tag incarnation", i.appName(), i.tag)
 	return i.controller.applyPlan(ctx, "Delete Canary Rules", &rmplan.DeleteCanaryRules{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
@@ -428,8 +432,10 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
+	log.Info("calling syncTaggedServiceLevels incarnation", i.appName(), i.tag)
 	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
 		// Account for a fleet other than Delivery (old way of configuring SLOs) and Production (the only other place we ideally want SLOs to go)
+		log.Info("syncTaggedServiceLevels account for fleet other than delivery", i.appName(), i.tag)
 		err := i.controller.applyPlan(
 			ctx,
 			"Ensure Service Levels Namespace",
@@ -439,6 +445,7 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 			return err
 		}
 
+		log.Info("syncTaggedServiceLevls incarnation applyPlan secttion slos incarnation", i.target().SlothServiceLevelObjectives)
 		return i.controller.applyPlan(ctx, "Sync Tagged Service Levels", &rmplan.SyncTaggedServiceLevels{
 			App:                         i.appName(),
 			Target:                      i.targetName(),
@@ -450,11 +457,13 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 		})
 	}
 
+	log.Info("skipping syncTaggedServiceLevels incarnation", i.appName(), i.tag)
 	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncTaggedServiceLevels")
 	return nil
 }
 
 func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
+	log.Info("deleteTaggedServiceLevels incarnation", i.appName(), i.tag)
 	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
 		return i.controller.applyPlan(
 			ctx,

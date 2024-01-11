@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/log"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
 	prometheus "go.medium.engineering/picchu/prometheus"
@@ -23,6 +24,7 @@ type SyncServiceMonitors struct {
 }
 
 func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	log.Info("calling syncServiceMonitors Apply")
 	serviceMonitors, err := p.serviceMonitors()
 	if err != nil {
 		return err
@@ -39,7 +41,7 @@ func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, clus
 }
 
 func (p *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorList, error) {
-
+	log.Info("calling syncServiceMonitors serviceMonitors")
 	names, err := p.parseMetricNames()
 	if err != nil {
 		return nil, err

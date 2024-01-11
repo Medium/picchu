@@ -24,6 +24,7 @@ type SyncTaggedServiceLevels struct {
 }
 
 func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	log.Info("calling syncTaggedServiceLevels Apply")
 	serviceLevels, err := p.serviceLevels(log)
 	if err != nil {
 		return err
@@ -40,6 +41,7 @@ func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, 
 }
 
 func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.PrometheusServiceLevelList, error) {
+	log.Info("calling syncTaggedServiceLevels serviceLevels")
 	sll := &slov1alpha1.PrometheusServiceLevelList{}
 	var sl []slov1alpha1.PrometheusServiceLevel
 	var slos []slov1alpha1.SLO
@@ -55,6 +57,8 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.P
 			}
 			serviceLevelObjective := config.serviceLevelObjective(log)
 			serviceLevelObjective.SLI.Events = config.taggedSLISource()
+
+			log.Info("print created service level for app:", p.App, serviceLevelObjective)
 
 			slos = append(slos, *serviceLevelObjective)
 		}
