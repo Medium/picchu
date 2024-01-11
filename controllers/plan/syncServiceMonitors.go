@@ -30,7 +30,7 @@ func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, clus
 		return err
 	}
 	if len(serviceMonitors.Items) > 0 {
-		log.Info("syncServiceMonitors print servicemonitor objs", serviceMonitors.Items)
+		log.Info("syncServiceMonitors print servicemonitor objs", serviceMonitors)
 		for i := range serviceMonitors.Items {
 			if err := plan.CreateOrUpdate(ctx, log, cli, serviceMonitors.Items[i]); err != nil {
 				return err
