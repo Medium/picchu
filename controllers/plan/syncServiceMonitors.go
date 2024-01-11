@@ -24,7 +24,9 @@ type SyncServiceMonitors struct {
 }
 
 func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	log.Info("calling syncServiceMonitors Apply")
+	if p.App == "slotest" {
+		log.Info("calling syncServiceMonitors Apply")
+	}
 	serviceMonitors, err := p.serviceMonitors()
 	if err != nil {
 		return err
@@ -41,7 +43,9 @@ func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, clus
 }
 
 func (p *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorList, error) {
-	log.Info("calling syncServiceMonitors serviceMonitors")
+	if p.App == "slotest" {
+		log.Info("calling syncServiceMonitors serviceMonitors")
+	}
 	names, err := p.parseMetricNames()
 	if err != nil {
 		return nil, err
