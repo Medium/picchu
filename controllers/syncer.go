@@ -286,6 +286,7 @@ func (r *ResourceSyncer) defaultLabels() map[string]string {
 }
 
 func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
+	log.Info("calling syncServiceMonitors syncer app name:", r.instance.Spec.App)
 	serviceMonitors := r.prepareServiceMonitors()
 	slos, _ := r.prepareServiceLevelObjectives()
 
@@ -312,7 +313,7 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
-	log.Info("calling delServiceLevels syncer")
+	log.Info("calling delServiceLevels syncer app name:", r.instance.Spec.App)
 	return r.applyPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 		App:       r.instance.Spec.App,
 		Target:    r.instance.Spec.Target,
@@ -321,14 +322,15 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
-	log.Info("calling syncServiceLevels syncer")
+	log.Info("calling syncServiceLevels syncer -> deleting serice levels app name:", r.instance.Spec.App)
 	return r.delServiceLevels(ctx)
 }
 
 func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
-	log.Info("calling syncSLORules syncer")
+	log.Info("calling syncSLORules syncer app name:", r.instance.Spec.App)
 	slos, labels := r.prepareServiceLevelObjectives()
 	if len(slos) > 0 {
+		log.Info("syncSLORules applPlan slos", slos)
 		if err := r.applyPlan(ctx, "Sync App SLO Rules", &rmplan.SyncSLORules{
 			App:                         r.instance.Spec.App,
 			Namespace:                   r.instance.TargetNamespace(),
@@ -339,6 +341,7 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 			return err
 		}
 	} else {
+		log.Info("syncSLORules Delete App SLO Rules syncer app name:", r.instance.Spec.App)
 		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
 			App:       r.instance.Spec.App,
 			Namespace: r.instance.TargetNamespace(),

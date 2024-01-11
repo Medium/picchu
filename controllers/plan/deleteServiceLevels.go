@@ -19,7 +19,7 @@ type DeleteServiceLevels struct {
 }
 
 func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	log.Info("calling deleteServiceLevels Apply")
+	log.Info("calling deleteServiceLevels Apply app and target", p.App, p.Target)
 	sllist := &slov1.PrometheusServiceLevelList{}
 
 	opts := &client.ListOptions{

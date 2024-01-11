@@ -112,20 +112,25 @@ func (a API) queryWithCache(ctx context.Context, query string, t time.Time) (mod
 
 // TaggedAlerts returns a set of tags that are firing SLO alerts for an app at a given time.
 func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, canariesOnly bool) (map[string][]string, error) {
+	log.Info("calling TaggedAlerts PROM API - return app tags that are firing slo alerts")
 	q := bytes.NewBufferString("")
 	var template template.Template
 	if canariesOnly {
 		template = *CanaryFiringTemplate
+		log.Info("calling TaggedAlerts PROM API - PRINT CANARY FIRING TEMPLATE!", template)
 	} else {
 		template = *SLOFiringTemplate
+		log.Info("calling TaggedAlerts PROM API - PRINT SLO FIRING TEMPLATE!", template)
 	}
 	if err := template.Execute(q, query); err != nil {
 		return nil, err
 	}
+	log.Info("calling TaggedAlerts PROM API - query with cache")
 	val, err := a.queryWithCache(ctx, q.String(), t)
 	if err != nil {
 		return nil, err
 	}
+	log.Info("calling TaggedAlerts PROM API - value of query", val)
 
 	tagset := map[string][]string{}
 	switch v := val.(type) {
@@ -148,6 +153,7 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
 func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesOnly bool) (bool, []string, error) {
+	log.Info("calling IsRevisionTriggered PROM API - returns bool, alerts and if error")
 	q := NewAlertQuery(app, tag)
 
 	tags, err := a.TaggedAlerts(ctx, q, time.Now(), canariesOnly)
@@ -156,6 +162,7 @@ func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesO
 	}
 
 	if alerts, ok := tags[tag]; ok && len(alerts) > 0 {
+		log.Info("IsRevisionTriggered there are triggered alerts:", alerts)
 		return true, alerts, nil
 	}
 

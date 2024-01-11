@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/log"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 )
 
@@ -417,9 +418,11 @@ func Failing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 		return deploying, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		log.Info("deleteCanaryRulls from state")
 		return failing, err
 	}
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
+		log.Info("deleteCanaryRulls from state")
 		return failing, err
 	}
 	if deployment.currentPercent() <= 0 {
@@ -439,6 +442,7 @@ func Failed(ctx context.Context, deployment Deployment, lastUpdated *time.Time) 
 }
 
 func Canarying(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
+	log.Info("canarying state controller")
 	if !deployment.hasRevision() {
 		return deleting, nil
 	}
