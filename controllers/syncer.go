@@ -286,7 +286,9 @@ func (r *ResourceSyncer) defaultLabels() map[string]string {
 }
 
 func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
-	log.Info("calling syncServiceMonitors syncer app name:", "appName", r.instance.Spec.App)
+	if r.instance.Spec.App == "slotest" {
+		log.Info("calling syncServiceMonitors syncer app name: ", "appName ", r.instance.Spec.App)
+	}
 	serviceMonitors := r.prepareServiceMonitors()
 	slos, _ := r.prepareServiceLevelObjectives()
 
@@ -313,7 +315,9 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
-	log.Info("calling delServiceLevels syncer app name:", r.instance.Spec.App)
+	if r.instance.Spec.App == "slotest" {
+		log.Info("calling delServiceLevels syncer app name: ", r.instance.Spec.App)
+	}
 	return r.applyPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
 		App:       r.instance.Spec.App,
 		Target:    r.instance.Spec.Target,
@@ -322,12 +326,16 @@ func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
 }
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
-	log.Info("calling syncServiceLevels syncer -> deleting serice levels app name:", "appName", r.instance.Spec.App)
+	if r.instance.Spec.App == "slotest" {
+		log.Info("calling syncServiceLevels syncer -> deleting serice levels app name: ", " appName ", r.instance.Spec.App)
+	}
 	return r.delServiceLevels(ctx)
 }
 
 func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
-	log.Info("calling syncSLORules syncer app name:", "appName", r.instance.Spec.App)
+	if r.instance.Spec.App == "slotest" {
+		log.Info("calling syncSLORules syncer app name: ", " appName ", r.instance.Spec.App)
+	}
 	slos, labels := r.prepareServiceLevelObjectives()
 	if len(slos) > 0 {
 		log.Info("syncSLORules applPlan slos", "slos", slos)
@@ -341,7 +349,9 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 			return err
 		}
 	} else {
-		log.Info("syncSLORules Delete App SLO Rules syncer app name:", "appName", r.instance.Spec.App)
+		if r.instance.Spec.App == "slotest" {
+			log.Info("syncSLORules Delete App SLO Rules syncer app name: ", " appName ", r.instance.Spec.App)
+		}
 		if err := r.applyPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteSLORules{
 			App:       r.instance.Spec.App,
 			Namespace: r.instance.TargetNamespace(),

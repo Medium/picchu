@@ -162,6 +162,7 @@ func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesO
 	}
 
 	if alerts, ok := tags[tag]; ok && len(alerts) > 0 {
+
 		log.Info("IsRevisionTriggered there are triggered alerts:", "alerts", alerts)
 		return true, alerts, nil
 	}

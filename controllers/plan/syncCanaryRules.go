@@ -38,7 +38,9 @@ type SyncCanaryRules struct {
 }
 
 func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	log.Info("calling syncCanaryRules Apply")
+	if p.App == "slotest" {
+		log.Info("calling syncCanaryRules Apply")
+	}
 	prometheusRules, err := p.prometheusRules(log)
 	if err != nil {
 		return err
@@ -56,7 +58,9 @@ func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster 
 }
 
 func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.PrometheusRuleList, error) {
-	log.Info("calling syncCanaryRules prometheusRules")
+	if p.App == "slotest" {
+		log.Info("calling syncCanaryRules prometheusRules")
+	}
 	prl := &monitoringv1.PrometheusRuleList{}
 	prs := []*monitoringv1.PrometheusRule{}
 
@@ -64,7 +68,9 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 
 	for i := range p.ServiceLevelObjectives {
 		if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
-			log.Info("calling prometheusRules syncCanaryRules - canary is enabled set the canary rules")
+			if p.App == "slotest" {
+				log.Info("calling prometheusRules syncCanaryRules - canary is enabled set the canary rules")
+			}
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
@@ -75,7 +81,9 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 			canaryRules := config.canaryRules(log)
 
 			for _, rg := range canaryRules {
-				log.Info("print created canaryRules for app:", "appName", p.App, "ruleGroup", rg)
+				if p.App == "slotest" {
+					log.Info("print created canaryRules for app:", "appName", p.App, "ruleGroup", rg)
+				}
 				rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 			}
 		}
@@ -136,7 +144,9 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 }
 
 func (s *SLOConfig) canaryRuleLabels() map[string]string {
-	log.Info("calling canaryRuleLabels syncCanaryRules - set the CANARY and SLO label in the canary rule to true")
+	if s.App == "slotest" {
+		log.Info("calling canaryRuleLabels syncCanaryRules - set the CANARY and SLO label in the canary rule to true")
+	}
 	return map[string]string{
 		CanaryAppLabel: s.App,
 		CanaryTagLabel: s.Tag,
