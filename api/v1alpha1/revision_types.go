@@ -22,7 +22,6 @@ import (
 	istio "istio.io/api/networking/v1alpha3"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -294,16 +293,12 @@ func (r *RevisionTarget) IsExternalTestSuccessful() bool {
 }
 
 func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
-	log.Info("is canary pending revision types")
 	if r.Canary.Percent == 0 || r.Canary.TTL == 0 {
-		log.Info("canary is NOT pending")
 		return false
 	}
 	if startTime == nil {
-		log.Info("canary IS pending")
 		return true
 	}
-	log.Info("else return if the canary ttl seconds is after the current time")
 	return startTime.Time.Add(time.Duration(r.Canary.TTL) * time.Second).After(time.Now())
 }
 
