@@ -37,7 +37,7 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		labels[k] = v
 	}
 
-	if s.Tag != "" {
+	if s.Tag == "" {
 		labels[prometheus.TagLabel] = s.Tag
 	}
 
