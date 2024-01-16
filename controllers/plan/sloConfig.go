@@ -7,7 +7,6 @@ import (
 	"github.com/go-logr/logr"
 	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
-	prometheus "go.medium.engineering/picchu/prometheus"
 )
 
 // Receiver pointer functions for SLOConfig can be found next to relevant syncer
@@ -35,10 +34,6 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 
 	for k, v := range s.SLO.ServiceLevelObjectiveLabels.ServiceLevelLabels {
 		labels[k] = v
-	}
-
-	if s.Tag == "" {
-		labels[prometheus.TagLabel] = s.Tag
 	}
 
 	var objectivePercent float64
