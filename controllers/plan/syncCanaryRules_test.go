@@ -81,7 +81,7 @@ var (
 							{
 								Alert: "test_app_availability_canary",
 								Expr: intstr.FromString("test_app:test_app_availability:errors{destination_workload=\"tag\"} / test_app:test_app_availability:total{destination_workload=\"tag\"} - 0.01 " +
-									"> sum(test_app:test_app_availability:errors) / ignoring(destination_workload) sum(test_app:test_app_availability:total)"),
+									"> ignoring(destination_workload) sum(test_app:test_app_availability:errors) / sum(test_app:test_app_availability:total)"),
 								For: "1m",
 								Annotations: map[string]string{
 									CanaryMessageAnnotation: "Test description",
