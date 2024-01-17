@@ -155,7 +155,7 @@ func (s *SLOConfig) canaryAlertName() string {
 }
 
 func (s *SLOConfig) canaryQuery(log logr.Logger) string {
-	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > sum(%s) / ignoring(%s) sum(%s)",
+	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > ignoring(%s) sum(%s) / sum(%s)",
 		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.formatAllowancePercent(log), s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.totalQuery(),
