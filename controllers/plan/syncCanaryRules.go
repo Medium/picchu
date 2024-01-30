@@ -26,18 +26,6 @@ const (
 
 	// RuleTypeCanary is the value of the LabelRuleType label for canary rules.
 	RuleTypeCanary = "canary"
-
-	CrashLoopAppLabel     = "app"
-	CrashLoopTagLabel     = "tag"
-	CrashLoopSLOLabel     = "slo"
-	CrashLoopLabel        = "crashloopbackoff"
-	CrashLoopChannelLabel = "channel"
-
-	CrashLoopSummaryAnnotation = "summary"
-	CrashLoopMessageAnnotation = "message"
-
-	// RuleTypeCanary is the value of the LabelRuleType label for crash loop rules.
-	RuleTypeCrashLoop = "crashloopbackoff"
 )
 
 type SyncCanaryRules struct {
@@ -141,7 +129,7 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 
 	ruleGroups = append(ruleGroups, canaryRuleGroup)
 
-	crashLoopLabels := s.crashLoopRuleLabels()
+	crashLoopLabels := s.canaryRuleLabels()
 	for k, v := range s.Labels.AlertLabels {
 		crashLoopLabels[k] = v
 	}
@@ -164,6 +152,29 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 
 	ruleGroups = append(ruleGroups, crashLoopRuleGroup)
 
+	imagePullBackOffLabels := s.canaryRuleLabels()
+	for k, v := range s.Labels.AlertLabels {
+		imagePullBackOffLabels[k] = v
+	}
+	for k, v := range s.SLO.ServiceLevelObjectiveLabels.AlertLabels {
+		imagePullBackOffLabels[k] = v
+	}
+
+	imagePullBackOffRuleGroup := &monitoringv1.RuleGroup{
+		Name: s.imagePullBackOffAlertName(),
+		Rules: []monitoringv1.Rule{
+			{
+				Alert:       s.imagePullBackOffAlertName(),
+				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
+				Expr:        intstr.FromString(s.imagePullBackOffQuery(log)),
+				Labels:      imagePullBackOffLabels,
+				Annotations: s.imagePullBackOffAnnotations(log),
+			},
+		},
+	}
+
+	ruleGroups = append(ruleGroups, imagePullBackOffRuleGroup)
+
 	return ruleGroups
 }
 
@@ -177,16 +188,6 @@ func (s *SLOConfig) canaryRuleLabels() map[string]string {
 	}
 }
 
-func (s *SLOConfig) crashLoopRuleLabels() map[string]string {
-	return map[string]string{
-		CrashLoopAppLabel:     s.App,
-		CrashLoopTagLabel:     s.Tag,
-		CrashLoopLabel:        "true",
-		CrashLoopSLOLabel:     "true",
-		CrashLoopChannelLabel: "#eng-releases",
-	}
-}
-
 func (s *SLOConfig) canaryRuleAnnotations(log logr.Logger) map[string]string {
 	return map[string]string{
 		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing SLO", s.App),
@@ -196,8 +197,15 @@ func (s *SLOConfig) canaryRuleAnnotations(log logr.Logger) map[string]string {
 
 func (s *SLOConfig) crashLoopRuleAnnotations(log logr.Logger) map[string]string {
 	return map[string]string{
-		CrashLoopSummaryAnnotation: fmt.Sprintf("%s - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`", s.App),
-		CrashLoopMessageAnnotation: s.serviceLevelObjective(log).Description,
+		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`", s.App),
+		CanaryMessageAnnotation: s.serviceLevelObjective(log).Description,
+	}
+}
+
+func (s *SLOConfig) imagePullBackOffAnnotations(log logr.Logger) map[string]string {
+	return map[string]string{
+		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing ImagePullBackOff SLO - there is at least one pod in state `ImagePullBackOff`", s.App),
+		CanaryMessageAnnotation: s.serviceLevelObjective(log).Description,
 	}
 }
 
@@ -213,6 +221,10 @@ func (s *SLOConfig) crashLoopAlertName() string {
 	return fmt.Sprintf("%s_crashloop", s.Name)
 }
 
+func (s *SLOConfig) imagePullBackOffAlertName() string {
+	return fmt.Sprintf("%s_imagepullbackoff", s.Name)
+}
+
 func (s *SLOConfig) canaryQuery(log logr.Logger) string {
 	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > ignoring(%s) sum(%s) / sum(%s)",
 		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
@@ -223,6 +235,12 @@ func (s *SLOConfig) canaryQuery(log logr.Logger) string {
 
 func (s *SLOConfig) crashLoopQuery(log logr.Logger) string {
 	return fmt.Sprintf("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\", container=\"%s\"}) > 0",
+		s.App,
+	)
+}
+
+func (s *SLOConfig) imagePullBackOffQuery(log logr.Logger) string {
+	return fmt.Sprintf("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"ImagePullBackOff\", container=\"%s\"}) > 0",
 		s.App,
 	)
 }
