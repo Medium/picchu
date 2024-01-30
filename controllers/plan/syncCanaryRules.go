@@ -15,16 +15,29 @@ import (
 )
 
 const (
-	CanaryAppLabel = "app"
-	CanaryTagLabel = "tag"
-	CanarySLOLabel = "slo"
-	CanaryLabel    = "canary"
+	CanaryAppLabel     = "app"
+	CanaryTagLabel     = "tag"
+	CanarySLOLabel     = "slo"
+	CanaryLabel        = "canary"
+	CanaryChannelLabel = "channel"
 
 	CanarySummaryAnnotation = "summary"
 	CanaryMessageAnnotation = "message"
 
 	// RuleTypeCanary is the value of the LabelRuleType label for canary rules.
 	RuleTypeCanary = "canary"
+
+	CrashLoopAppLabel     = "app"
+	CrashLoopTagLabel     = "tag"
+	CrashLoopSLOLabel     = "slo"
+	CrashLoopLabel        = "crashloopbackoff"
+	CrashLoopChannelLabel = "channel"
+
+	CrashLoopSummaryAnnotation = "summary"
+	CrashLoopMessageAnnotation = "message"
+
+	// RuleTypeCanary is the value of the LabelRuleType label for crash loop rules.
+	RuleTypeCrashLoop = "crashloopbackoff"
 )
 
 type SyncCanaryRules struct {
@@ -105,44 +118,86 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 	ruleGroups := []*monitoringv1.RuleGroup{}
 
-	labels := s.canaryRuleLabels()
+	canaryLabels := s.canaryRuleLabels()
 	for k, v := range s.Labels.AlertLabels {
-		labels[k] = v
+		canaryLabels[k] = v
 	}
 	for k, v := range s.SLO.ServiceLevelObjectiveLabels.AlertLabels {
-		labels[k] = v
+		canaryLabels[k] = v
 	}
 
-	ruleGroup := &monitoringv1.RuleGroup{
+	canaryRuleGroup := &monitoringv1.RuleGroup{
 		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       s.canaryAlertName(),
 				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
 				Expr:        intstr.FromString(s.canaryQuery(log)),
-				Labels:      labels,
+				Labels:      canaryLabels,
 				Annotations: s.canaryRuleAnnotations(log),
 			},
 		},
 	}
-	ruleGroups = append(ruleGroups, ruleGroup)
+
+	ruleGroups = append(ruleGroups, canaryRuleGroup)
+
+	crashLoopLabels := s.crashLoopRuleLabels()
+	for k, v := range s.Labels.AlertLabels {
+		crashLoopLabels[k] = v
+	}
+	for k, v := range s.SLO.ServiceLevelObjectiveLabels.AlertLabels {
+		crashLoopLabels[k] = v
+	}
+
+	crashLoopRuleGroup := &monitoringv1.RuleGroup{
+		Name: s.crashLoopAlertName(),
+		Rules: []monitoringv1.Rule{
+			{
+				Alert:       s.crashLoopAlertName(),
+				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
+				Expr:        intstr.FromString(s.crashLoopQuery(log)),
+				Labels:      crashLoopLabels,
+				Annotations: s.crashLoopRuleAnnotations(log),
+			},
+		},
+	}
+
+	ruleGroups = append(ruleGroups, crashLoopRuleGroup)
 
 	return ruleGroups
 }
 
 func (s *SLOConfig) canaryRuleLabels() map[string]string {
 	return map[string]string{
-		CanaryAppLabel: s.App,
-		CanaryTagLabel: s.Tag,
-		CanaryLabel:    "true",
-		CanarySLOLabel: "true",
+		CanaryAppLabel:     s.App,
+		CanaryTagLabel:     s.Tag,
+		CanaryLabel:        "true",
+		CanarySLOLabel:     "true",
+		CanaryChannelLabel: "#eng-releases",
+	}
+}
+
+func (s *SLOConfig) crashLoopRuleLabels() map[string]string {
+	return map[string]string{
+		CrashLoopAppLabel:     s.App,
+		CrashLoopTagLabel:     s.Tag,
+		CrashLoopLabel:        "true",
+		CrashLoopSLOLabel:     "true",
+		CrashLoopChannelLabel: "#eng-releases",
 	}
 }
 
 func (s *SLOConfig) canaryRuleAnnotations(log logr.Logger) map[string]string {
 	return map[string]string{
-		CanarySummaryAnnotation: "Canary is failing SLO",
+		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing SLO", s.App),
 		CanaryMessageAnnotation: s.serviceLevelObjective(log).Description,
+	}
+}
+
+func (s *SLOConfig) crashLoopRuleAnnotations(log logr.Logger) map[string]string {
+	return map[string]string{
+		CrashLoopSummaryAnnotation: fmt.Sprintf("%s - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`", s.App),
+		CrashLoopMessageAnnotation: s.serviceLevelObjective(log).Description,
 	}
 }
 
@@ -154,11 +209,21 @@ func (s *SLOConfig) canaryAlertName() string {
 	return fmt.Sprintf("%s_canary", s.Name)
 }
 
+func (s *SLOConfig) crashLoopAlertName() string {
+	return fmt.Sprintf("%s_crashloop", s.Name)
+}
+
 func (s *SLOConfig) canaryQuery(log logr.Logger) string {
 	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > ignoring(%s) sum(%s) / sum(%s)",
 		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.formatAllowancePercent(log), s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery(),
+	)
+}
+
+func (s *SLOConfig) crashLoopQuery(log logr.Logger) string {
+	return fmt.Sprintf("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\", container=\"%s\"}) > 0",
+		s.App,
 	)
 }
 
