@@ -410,7 +410,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncCanaryRules(ctx context.Context) error {
-	log.Info("syncCanaryRules Labels!: ", i.target().ServiceLevelObjectiveLabels)
+	log.Info("syncCanaryRules Labels!: ", "labels", i.target().ServiceLevelObjectiveLabels)
 	return i.controller.applyPlan(ctx, "Sync Canary Rules", &rmplan.SyncCanaryRules{
 		App:                         i.appName(),
 		Namespace:                   i.targetNamespace(),

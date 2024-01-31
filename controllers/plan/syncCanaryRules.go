@@ -63,7 +63,7 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 
 	for i := range p.ServiceLevelObjectives {
 		if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
-			log.Info("prometheusRules Labels!: ", p.ServiceLevelObjectiveLabels)
+			log.Info("prometheusRules Labels!: ", "labels", p.ServiceLevelObjectiveLabels)
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
@@ -96,7 +96,7 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 
 	labels[picchuv1alpha1.LabelRuleType] = RuleTypeCanary
 
-	log.Info("prometheusRule Labels!: ", labels)
+	log.Info("prometheusRule Labels!: ", "labels", labels)
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.canaryRuleName(),
@@ -117,7 +117,7 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 		canaryLabels[k] = v
 	}
 
-	log.Info("canaryRules Labels!: ", canaryLabels)
+	log.Info("canaryRules Labels!: ", "labels", canaryLabels)
 	canaryRuleGroup := &monitoringv1.RuleGroup{
 		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
