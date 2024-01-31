@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/log"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,6 +63,7 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 
 	for i := range p.ServiceLevelObjectives {
 		if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
+			log.Info("prometheusRules Labels!: ", p.ServiceLevelObjectiveLabels)
 			config := SLOConfig{
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
@@ -94,6 +96,7 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 
 	labels[picchuv1alpha1.LabelRuleType] = RuleTypeCanary
 
+	log.Info("prometheusRule Labels!: ", labels)
 	return &monitoringv1.PrometheusRule{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.canaryRuleName(),
@@ -114,6 +117,7 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 		canaryLabels[k] = v
 	}
 
+	log.Info("canaryRules Labels!: ", canaryLabels)
 	canaryRuleGroup := &monitoringv1.RuleGroup{
 		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
