@@ -85,7 +85,7 @@ var (
 								For: "1m",
 								Annotations: map[string]string{
 									CanaryMessageAnnotation: "Test description",
-									CanarySummaryAnnotation: "test-app - Canary is failing SLO",
+									CanarySummaryAnnotation: "Canary is failing SLO",
 								},
 								Labels: map[string]string{
 									CanaryAppLabel: "test-app",
@@ -94,53 +94,6 @@ var (
 									CanarySLOLabel: "true",
 									"severity":     "test",
 									"team":         "test",
-									"channel":      "#eng-releases",
-								},
-							},
-						},
-					},
-					{
-						Name: "test_app_availability_crashloop",
-						Rules: []monitoringv1.Rule{
-							{
-								Alert: "test_app_availability_crashloop",
-								Expr:  intstr.FromString("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\", container=\"test-app\"}) > 0"),
-								For:   "1m",
-								Annotations: map[string]string{
-									CanaryMessageAnnotation: "Test description",
-									CanarySummaryAnnotation: "test-app - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`",
-								},
-								Labels: map[string]string{
-									CanaryAppLabel: "test-app",
-									CanaryTagLabel: "tag",
-									CanaryLabel:    "true",
-									CanarySLOLabel: "true",
-									"severity":     "test",
-									"team":         "test",
-									"channel":      "#eng-releases",
-								},
-							},
-						},
-					},
-					{
-						Name: "test_app_availability_imagepullbackoff",
-						Rules: []monitoringv1.Rule{
-							{
-								Alert: "test_app_availability_imagepullbackoff",
-								Expr:  intstr.FromString("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"ImagePullBackOff\", container=\"test-app\"}) > 0"),
-								For:   "1m",
-								Annotations: map[string]string{
-									CanaryMessageAnnotation: "Test description",
-									CanarySummaryAnnotation: "test-app - Canary is failing ImagePullBackOff SLO - there is at least one pod in state `ImagePullBackOff`",
-								},
-								Labels: map[string]string{
-									CanaryAppLabel: "test-app",
-									CanaryTagLabel: "tag",
-									CanaryLabel:    "true",
-									CanarySLOLabel: "true",
-									"severity":     "test",
-									"team":         "test",
-									"channel":      "#eng-releases",
 								},
 							},
 						},
