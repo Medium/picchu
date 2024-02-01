@@ -80,7 +80,6 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 
 	config := SLOConfig{
 		App:    p.App,
-		Name:   sanitizeName(p.ServiceLevelObjectives[0].Name),
 		Tag:    p.Tag,
 		Labels: p.ServiceLevelObjectiveLabels,
 	}
@@ -123,18 +122,13 @@ func (s *SLOConfig) helperRules(log logr.Logger) []*monitoringv1.RuleGroup {
 	for k, v := range s.Labels.AlertLabels {
 		crashLoopLabels[k] = v
 	}
-	for k, v := range s.SLO.ServiceLevelObjectiveLabels.AlertLabels {
-		crashLoopLabels[k] = v
-	}
-
-	crashLoopLabels["channel"] = "#eng-releases"
 
 	crashLoopRuleGroup := &monitoringv1.RuleGroup{
 		Name: s.crashLoopAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       s.crashLoopAlertName(),
-				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
+				For:         monitoringv1.Duration("1m"),
 				Expr:        intstr.FromString(s.crashLoopQuery(log)),
 				Labels:      crashLoopLabels,
 				Annotations: s.crashLoopRuleAnnotations(log),
@@ -148,18 +142,13 @@ func (s *SLOConfig) helperRules(log logr.Logger) []*monitoringv1.RuleGroup {
 	for k, v := range s.Labels.AlertLabels {
 		imagePullBackOffLabels[k] = v
 	}
-	for k, v := range s.SLO.ServiceLevelObjectiveLabels.AlertLabels {
-		imagePullBackOffLabels[k] = v
-	}
-
-	imagePullBackOffLabels["channel"] = "#eng-releases"
 
 	imagePullBackOffRuleGroup := &monitoringv1.RuleGroup{
 		Name: s.imagePullBackOffAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       s.imagePullBackOffAlertName(),
-				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
+				For:         monitoringv1.Duration("1m"),
 				Expr:        intstr.FromString(s.imagePullBackOffQuery(log)),
 				Labels:      imagePullBackOffLabels,
 				Annotations: s.imagePullBackOffAnnotations(log),
@@ -205,10 +194,11 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 
 func (s *SLOConfig) canaryRuleLabels() map[string]string {
 	return map[string]string{
-		CanaryAppLabel: s.App,
-		CanaryTagLabel: s.Tag,
-		CanaryLabel:    "true",
-		CanarySLOLabel: "true",
+		CanaryAppLabel:     s.App,
+		CanaryTagLabel:     s.Tag,
+		CanaryLabel:        "true",
+		CanarySLOLabel:     "true",
+		CanaryChannelLabel: "#eng-releases",
 	}
 }
 
@@ -222,14 +212,14 @@ func (s *SLOConfig) canaryRuleAnnotations(log logr.Logger) map[string]string {
 func (s *SLOConfig) crashLoopRuleAnnotations(log logr.Logger) map[string]string {
 	return map[string]string{
 		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`", s.App),
-		CanaryMessageAnnotation: s.serviceLevelObjective(log).Description,
+		CanaryMessageAnnotation: "There is at least one pod in state `CrashLoopBackOff`",
 	}
 }
 
 func (s *SLOConfig) imagePullBackOffAnnotations(log logr.Logger) map[string]string {
 	return map[string]string{
 		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing ImagePullBackOff SLO - there is at least one pod in state `ImagePullBackOff`", s.App),
-		CanaryMessageAnnotation: s.serviceLevelObjective(log).Description,
+		CanaryMessageAnnotation: "There is at least one pod in state `ImagePullBackOff`",
 	}
 }
 

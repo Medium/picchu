@@ -155,7 +155,7 @@ var (
 								Expr:  intstr.FromString("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\", container=\"test-app\", pod=~\"tag-.*\"}) > 0"),
 								For:   "1m",
 								Annotations: map[string]string{
-									CanaryMessageAnnotation: "Test description",
+									CanaryMessageAnnotation: "There is at least one pod in state `CrashLoopBackOff`",
 									CanarySummaryAnnotation: "test-app - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`",
 								},
 								Labels: map[string]string{
@@ -164,7 +164,6 @@ var (
 									CanaryLabel:    "true",
 									CanarySLOLabel: "true",
 									"severity":     "test",
-									"team":         "test",
 									"channel":      "#eng-releases",
 								},
 							},
@@ -178,7 +177,7 @@ var (
 								Expr:  intstr.FromString("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"ImagePullBackOff\", container=\"test-app\", pod=~\"tag-.*\"}) > 0"),
 								For:   "1m",
 								Annotations: map[string]string{
-									CanaryMessageAnnotation: "Test description",
+									CanaryMessageAnnotation: "There is at least one pod in state `ImagePullBackOff`",
 									CanarySummaryAnnotation: "test-app - Canary is failing ImagePullBackOff SLO - there is at least one pod in state `ImagePullBackOff`",
 								},
 								Labels: map[string]string{
@@ -187,7 +186,6 @@ var (
 									CanaryLabel:    "true",
 									CanarySLOLabel: "true",
 									"severity":     "test",
-									"team":         "test",
 									"channel":      "#eng-releases",
 								},
 							},
