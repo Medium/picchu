@@ -36,28 +36,52 @@ var (
 				"severity": "test",
 			},
 		},
-		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
-			Enabled:     true,
-			Name:        "test-app-availability",
-			Objective:   "99.999",
-			Description: "Test description",
-			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
-				Canary: picchuv1alpha1.SLICanaryConfig{
-					Enabled:          true,
-					AllowancePercent: 1,
-					FailAfter:        "1m",
+		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{
+			{
+				Enabled:     true,
+				Name:        "test-app-availability",
+				Objective:   "99.999",
+				Description: "Test description",
+				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+					Canary: picchuv1alpha1.SLICanaryConfig{
+						Enabled:          true,
+						AllowancePercent: 1,
+						FailAfter:        "1m",
+					},
+					TagKey:     "destination_workload",
+					AlertAfter: "1m",
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
 				},
-				TagKey:     "destination_workload",
-				AlertAfter: "1m",
-				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
-				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
-			},
-			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
-				AlertLabels: map[string]string{
-					"team": "test",
+				ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+					AlertLabels: map[string]string{
+						"team": "test",
+					},
 				},
 			},
-		}},
+			{
+				Enabled:     true,
+				Name:        "test-app-availability-two",
+				Objective:   "99.999",
+				Description: "Test description",
+				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+					Canary: picchuv1alpha1.SLICanaryConfig{
+						Enabled:          true,
+						AllowancePercent: 1,
+						FailAfter:        "1m",
+					},
+					TagKey:     "destination_workload",
+					AlertAfter: "1m",
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				},
+				ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+					AlertLabels: map[string]string{
+						"team": "test",
+					},
+				},
+			},
+		},
 	}
 
 	crexpected = monitoringv1.PrometheusRuleList{
@@ -85,7 +109,7 @@ var (
 								For: "1m",
 								Annotations: map[string]string{
 									CanaryMessageAnnotation: "Test description",
-									CanarySummaryAnnotation: "Canary is failing SLO",
+									CanarySummaryAnnotation: "test-app - Canary is failing SLO",
 								},
 								Labels: map[string]string{
 									CanaryAppLabel: "test-app",
@@ -94,6 +118,77 @@ var (
 									CanarySLOLabel: "true",
 									"severity":     "test",
 									"team":         "test",
+									"channel":      "#eng-releases",
+								},
+							},
+						},
+					},
+					{
+						Name: "test_app_availability_two_canary",
+						Rules: []monitoringv1.Rule{
+							{
+								Alert: "test_app_availability_two_canary",
+								Expr: intstr.FromString("test_app:test_app_availability_two:errors{destination_workload=\"tag\"} / test_app:test_app_availability_two:total{destination_workload=\"tag\"} - 0.01 " +
+									"> ignoring(destination_workload) sum(test_app:test_app_availability_two:errors) / sum(test_app:test_app_availability_two:total)"),
+								For: "1m",
+								Annotations: map[string]string{
+									CanaryMessageAnnotation: "Test description",
+									CanarySummaryAnnotation: "test-app - Canary is failing SLO",
+								},
+								Labels: map[string]string{
+									CanaryAppLabel: "test-app",
+									CanaryTagLabel: "tag",
+									CanaryLabel:    "true",
+									CanarySLOLabel: "true",
+									"severity":     "test",
+									"team":         "test",
+									"channel":      "#eng-releases",
+								},
+							},
+						},
+					},
+					{
+						Name: "test_app_canary_crashloop",
+						Rules: []monitoringv1.Rule{
+							{
+								Alert: "test_app_canary_crashloop",
+								Expr:  intstr.FromString("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\", container=\"test-app\", pod=~\"tag-.*\"}) > 0"),
+								For:   "1m",
+								Annotations: map[string]string{
+									CanaryMessageAnnotation: "Test description",
+									CanarySummaryAnnotation: "test-app - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`",
+								},
+								Labels: map[string]string{
+									CanaryAppLabel: "test-app",
+									CanaryTagLabel: "tag",
+									CanaryLabel:    "true",
+									CanarySLOLabel: "true",
+									"severity":     "test",
+									"team":         "test",
+									"channel":      "#eng-releases",
+								},
+							},
+						},
+					},
+					{
+						Name: "test_app_canary_imagepullbackoff",
+						Rules: []monitoringv1.Rule{
+							{
+								Alert: "test_app_canary_imagepullbackoff",
+								Expr:  intstr.FromString("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"ImagePullBackOff\", container=\"test-app\", pod=~\"tag-.*\"}) > 0"),
+								For:   "1m",
+								Annotations: map[string]string{
+									CanaryMessageAnnotation: "Test description",
+									CanarySummaryAnnotation: "test-app - Canary is failing ImagePullBackOff SLO - there is at least one pod in state `ImagePullBackOff`",
+								},
+								Labels: map[string]string{
+									CanaryAppLabel: "test-app",
+									CanaryTagLabel: "tag",
+									CanaryLabel:    "true",
+									CanarySLOLabel: "true",
+									"severity":     "test",
+									"team":         "test",
+									"channel":      "#eng-releases",
 								},
 							},
 						},
