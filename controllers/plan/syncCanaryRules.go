@@ -78,19 +78,15 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 		}
 	}
 
-	if len(p.ServiceLevelObjectives) > 0 {
-		// take the first slo in the list - dont need errorQuery or totalQuery per SLO
-		config := SLOConfig{
-			SLO:    p.ServiceLevelObjectives[0],
-			App:    p.App,
-			Name:   sanitizeName(p.ServiceLevelObjectives[0].Name),
-			Tag:    p.Tag,
-			Labels: p.ServiceLevelObjectiveLabels,
-		}
-		helperRules := config.helperRules(log)
-		for _, rg := range helperRules {
-			rule.Spec.Groups = append(rule.Spec.Groups, *rg)
-		}
+	config := SLOConfig{
+		App:    p.App,
+		Name:   sanitizeName(p.ServiceLevelObjectives[0].Name),
+		Tag:    p.Tag,
+		Labels: p.ServiceLevelObjectiveLabels,
+	}
+	helperRules := config.helperRules(log)
+	for _, rg := range helperRules {
+		rule.Spec.Groups = append(rule.Spec.Groups, *rg)
 	}
 
 	prs = append(prs, rule)
