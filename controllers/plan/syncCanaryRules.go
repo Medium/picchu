@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -15,10 +16,11 @@ import (
 )
 
 const (
-	CanaryAppLabel = "app"
-	CanaryTagLabel = "tag"
-	CanarySLOLabel = "slo"
-	CanaryLabel    = "canary"
+	CanaryAppLabel     = "app"
+	CanaryTagLabel     = "tag"
+	CanarySLOLabel     = "slo"
+	CanaryLabel        = "canary"
+	CanaryChannelLabel = "channel"
 
 	CanarySummaryAnnotation = "summary"
 	CanaryMessageAnnotation = "message"
@@ -76,6 +78,16 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 		}
 	}
 
+	config := SLOConfig{
+		App:    p.App,
+		Tag:    p.Tag,
+		Labels: p.ServiceLevelObjectiveLabels,
+	}
+	helperRules := config.helperRules(log)
+	for _, rg := range helperRules {
+		rule.Spec.Groups = append(rule.Spec.Groups, *rg)
+	}
+
 	prs = append(prs, rule)
 	prl.Items = prs
 	return prl, nil
@@ -102,47 +114,112 @@ func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 	}
 }
 
+// create CrashLoopBackOff and ImagePullBackOff for new deployment pods
+func (s *SLOConfig) helperRules(log logr.Logger) []*monitoringv1.RuleGroup {
+	ruleGroups := []*monitoringv1.RuleGroup{}
+
+	crashLoopLabels := s.canaryRuleLabels()
+	for k, v := range s.Labels.AlertLabels {
+		crashLoopLabels[k] = v
+	}
+
+	crashLoopRuleGroup := &monitoringv1.RuleGroup{
+		Name: s.crashLoopAlertName(),
+		Rules: []monitoringv1.Rule{
+			{
+				Alert:       s.crashLoopAlertName(),
+				For:         monitoringv1.Duration("1m"),
+				Expr:        intstr.FromString(s.crashLoopQuery(log)),
+				Labels:      crashLoopLabels,
+				Annotations: s.crashLoopRuleAnnotations(log),
+			},
+		},
+	}
+
+	ruleGroups = append(ruleGroups, crashLoopRuleGroup)
+
+	imagePullBackOffLabels := s.canaryRuleLabels()
+	for k, v := range s.Labels.AlertLabels {
+		imagePullBackOffLabels[k] = v
+	}
+
+	imagePullBackOffRuleGroup := &monitoringv1.RuleGroup{
+		Name: s.imagePullBackOffAlertName(),
+		Rules: []monitoringv1.Rule{
+			{
+				Alert:       s.imagePullBackOffAlertName(),
+				For:         monitoringv1.Duration("1m"),
+				Expr:        intstr.FromString(s.imagePullBackOffQuery(log)),
+				Labels:      imagePullBackOffLabels,
+				Annotations: s.imagePullBackOffAnnotations(log),
+			},
+		},
+	}
+
+	ruleGroups = append(ruleGroups, imagePullBackOffRuleGroup)
+
+	return ruleGroups
+}
+
 func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 	ruleGroups := []*monitoringv1.RuleGroup{}
 
-	labels := s.canaryRuleLabels()
+	canaryLabels := s.canaryRuleLabels()
 	for k, v := range s.Labels.AlertLabels {
-		labels[k] = v
+		canaryLabels[k] = v
 	}
 	for k, v := range s.SLO.ServiceLevelObjectiveLabels.AlertLabels {
-		labels[k] = v
+		canaryLabels[k] = v
 	}
 
-	ruleGroup := &monitoringv1.RuleGroup{
+	canaryLabels["channel"] = "#eng-releases"
+
+	canaryRuleGroup := &monitoringv1.RuleGroup{
 		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       s.canaryAlertName(),
 				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
 				Expr:        intstr.FromString(s.canaryQuery(log)),
-				Labels:      labels,
+				Labels:      canaryLabels,
 				Annotations: s.canaryRuleAnnotations(log),
 			},
 		},
 	}
-	ruleGroups = append(ruleGroups, ruleGroup)
+
+	ruleGroups = append(ruleGroups, canaryRuleGroup)
 
 	return ruleGroups
 }
 
 func (s *SLOConfig) canaryRuleLabels() map[string]string {
 	return map[string]string{
-		CanaryAppLabel: s.App,
-		CanaryTagLabel: s.Tag,
-		CanaryLabel:    "true",
-		CanarySLOLabel: "true",
+		CanaryAppLabel:     s.App,
+		CanaryTagLabel:     s.Tag,
+		CanaryLabel:        "true",
+		CanarySLOLabel:     "true",
+		CanaryChannelLabel: "#eng-releases",
 	}
 }
 
 func (s *SLOConfig) canaryRuleAnnotations(log logr.Logger) map[string]string {
 	return map[string]string{
-		CanarySummaryAnnotation: "Canary is failing SLO",
+		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing SLO", s.App),
 		CanaryMessageAnnotation: s.serviceLevelObjective(log).Description,
+	}
+}
+
+func (s *SLOConfig) crashLoopRuleAnnotations(log logr.Logger) map[string]string {
+	return map[string]string{
+		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing CrashLoopBackOff SLO - there is at least one pod in state `CrashLoopBackOff`", s.App),
+		CanaryMessageAnnotation: "There is at least one pod in state `CrashLoopBackOff`",
+	}
+}
+
+func (s *SLOConfig) imagePullBackOffAnnotations(log logr.Logger) map[string]string {
+	return map[string]string{
+		CanarySummaryAnnotation: fmt.Sprintf("%s - Canary is failing ImagePullBackOff SLO - there is at least one pod in state `ImagePullBackOff`", s.App),
+		CanaryMessageAnnotation: "There is at least one pod in state `ImagePullBackOff`",
 	}
 }
 
@@ -154,11 +231,35 @@ func (s *SLOConfig) canaryAlertName() string {
 	return fmt.Sprintf("%s_canary", s.Name)
 }
 
+func (s *SLOConfig) crashLoopAlertName() string {
+	// per app not soo
+	name := strings.Replace(s.App, "-", "_", -1)
+	return fmt.Sprintf("%s_canary_crashloop", name)
+}
+
+func (s *SLOConfig) imagePullBackOffAlertName() string {
+	name := strings.Replace(s.App, "-", "_", -1)
+	return fmt.Sprintf("%s_canary_imagepullbackoff", name)
+}
+
 func (s *SLOConfig) canaryQuery(log logr.Logger) string {
 	return fmt.Sprintf("%s{%s=\"%s\"} / %s{%s=\"%s\"} - %v > ignoring(%s) sum(%s) / sum(%s)",
 		s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag,
 		s.formatAllowancePercent(log), s.SLO.ServiceLevelIndicator.TagKey, s.errorQuery(), s.totalQuery(),
+	)
+}
+
+func (s *SLOConfig) crashLoopQuery(log logr.Logger) string {
+	// pod=~"main-20240109-181554-cba9e8cbbf-.*"
+	return fmt.Sprintf("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\", container=\"%s\", pod=~\"%s-.*\"}) > 0",
+		s.App, s.Tag,
+	)
+}
+
+func (s *SLOConfig) imagePullBackOffQuery(log logr.Logger) string {
+	return fmt.Sprintf("sum by (reason) (kube_pod_container_status_waiting_reason{reason=\"ImagePullBackOff\", container=\"%s\", pod=~\"%s-.*\"}) > 0",
+		s.App, s.Tag,
 	)
 }
 
