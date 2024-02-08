@@ -30,16 +30,15 @@ type Incarnations interface {
 }
 
 type ResourceSyncer struct {
-	deliveryClient  client.Client
-	deliveryApplier plan.Applier
-	planApplier     plan.Applier
-	observer        observe.Observer
-	instance        *picchuv1alpha1.ReleaseManager
-	incarnations    Incarnations
-	reconciler      *ReleaseManagerReconciler
-	log             logr.Logger
-	picchuConfig    utils.Config
-	faults          []picchuv1alpha1.HTTPPortFault
+	deliveryClient client.Client
+	planApplier    plan.Applier
+	observer       observe.Observer
+	instance       *picchuv1alpha1.ReleaseManager
+	incarnations   Incarnations
+	reconciler     *ReleaseManagerReconciler
+	log            logr.Logger
+	picchuConfig   utils.Config
+	faults         []picchuv1alpha1.HTTPPortFault
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {

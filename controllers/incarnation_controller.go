@@ -50,12 +50,11 @@ func (c *ClusterInfoList) ExpectedReplicaCount(liveness bool, count int) int {
 }
 
 type IncarnationController struct {
-	deliveryClient  client.Client
-	deliveryApplier plan.Applier
-	planApplier     plan.Applier
-	log             logr.Logger
-	releaseManager  *picchuv1alpha1.ReleaseManager
-	clusterInfo     ClusterInfoList
+	deliveryClient client.Client
+	planApplier    plan.Applier
+	log            logr.Logger
+	releaseManager *picchuv1alpha1.ReleaseManager
+	clusterInfo    ClusterInfoList
 }
 
 func (i *IncarnationController) getLog() logr.Logger {
