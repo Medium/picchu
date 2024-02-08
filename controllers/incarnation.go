@@ -28,7 +28,6 @@ import (
 type Controller interface {
 	expectedTotalReplicas(count int32, percent int32) int32
 	applyPlan(context.Context, string, plan.Plan) error
-	applyDeliveryPlan(context.Context, string, plan.Plan) error
 	divideReplicas(count int32, percent int32) int32
 	getReleaseManager() *picchuv1alpha1.ReleaseManager
 	getLog() logr.Logger

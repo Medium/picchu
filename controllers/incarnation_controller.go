@@ -111,11 +111,6 @@ func (i *IncarnationController) applyPlan(ctx context.Context, name string, p pl
 	return i.planApplier.Apply(ctx, p)
 }
 
-// applies only to delivery
-func (i *IncarnationController) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
-	return i.deliveryApplier.Apply(ctx, p)
-}
-
 func (i *IncarnationController) divideReplicas(count int32, percent int32) int32 {
 	denominator := utils.Max(int32(i.clusterInfo.ClusterCount(true)), 1)
 	factor := float64(utils.Min(100, percent)) / float64(100)

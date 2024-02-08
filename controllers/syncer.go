@@ -117,11 +117,6 @@ func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan
 	return r.planApplier.Apply(ctx, p)
 }
 
-// applies only to delivery
-func (r *ResourceSyncer) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
-	return r.deliveryApplier.Apply(ctx, p)
-}
-
 func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 	return r.applyPlan(ctx, "Ensure Namespace", &rmplan.EnsureNamespace{
 		Name:      r.instance.TargetNamespace(),
