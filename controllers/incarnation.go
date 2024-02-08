@@ -428,7 +428,7 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
-	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
+	if i.picchuConfig.ServiceLevelsNamespace != "" {
 		// Account for a fleet other than Delivery (old way of configuring SLOs) and Production (the only other place we ideally want SLOs to go)
 		err := i.controller.applyPlan(
 			ctx,
@@ -453,7 +453,7 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 }
 
 func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
-	if i.picchuConfig.ServiceLevelsFleet != "" && i.picchuConfig.ServiceLevelsNamespace != "" {
+	if i.picchuConfig.ServiceLevelsNamespace != "" {
 		return i.controller.applyPlan(
 			ctx,
 			"Delete Tagged Service Levels",

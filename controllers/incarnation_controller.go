@@ -111,6 +111,7 @@ func (i *IncarnationController) applyPlan(ctx context.Context, name string, p pl
 	return i.planApplier.Apply(ctx, p)
 }
 
+// applies only to delivery
 func (i *IncarnationController) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
 	return i.deliveryApplier.Apply(ctx, p)
 }
