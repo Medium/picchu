@@ -1229,7 +1229,7 @@ spec:
                                 http:
                                   description: HTTP connection pool settings.
                                   properties:
-                                    h2UpgradePolicy:
+                                    h2_upgrade_policy:
                                       description: Specify if http1.1 connection should
                                         be upgraded to http2 for the associated destination.
                                       format: int32
@@ -1786,7 +1786,7 @@ spec:
                                       http:
                                         description: HTTP connection pool settings.
                                         properties:
-                                          h2UpgradePolicy:
+                                          h2_upgrade_policy:
                                             description: Specify if http1.1 connection
                                               should be upgraded to http2 for the
                                               associated destination.
