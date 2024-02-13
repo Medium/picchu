@@ -248,6 +248,10 @@ func PendingTest(ctx context.Context, deployment Deployment, lastUpdated *time.T
 	if err := deployment.sync(ctx); err != nil {
 		return pendingtest, err
 	}
+	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "pending test")
+		return timingout, nil
+	}
 	return pendingtest, nil
 }
 
@@ -275,6 +279,10 @@ func Testing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 	if err := deployment.sync(ctx); err != nil {
 		return testing, err
 	}
+	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "testing")
+		return timingout, nil
+	}
 	return testing, nil
 }
 
@@ -298,6 +306,10 @@ func Tested(ctx context.Context, deployment Deployment, lastUpdated *time.Time) 
 		}
 		return pendingrelease, nil
 	}
+	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "tested")
+		return timingout, nil
+	}
 	return tested, nil
 }
 
@@ -316,6 +328,10 @@ func PendingRelease(ctx context.Context, deployment Deployment, lastUpdated *tim
 	}
 	if err := deployment.sync(ctx); err != nil {
 		return pendingrelease, err
+	}
+	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "pending release")
+		return timingout, nil
 	}
 	return pendingrelease, nil
 }
@@ -338,6 +354,10 @@ func Releasing(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	}
 	if deployment.peakPercent() >= 100 {
 		return released, nil
+	}
+	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "releasing")
+		return timingout, nil
 	}
 	return releasing, nil
 }
@@ -400,7 +420,10 @@ func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 	if deployment.currentPercent() <= 0 {
 		return deleted, deployment.del(ctx)
 	}
-
+	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "deleting")
+		return timingout, nil
+	}
 	return deleting, nil
 }
 
