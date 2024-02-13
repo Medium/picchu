@@ -52,6 +52,7 @@ const (
 	timingout      State = "timingout"
 
 	DeployingTimeout = time.Duration(2) * time.Hour
+	CreatedTimeout   = time.Duration(2) * time.Hour
 )
 
 var AllStates []string
@@ -166,6 +167,10 @@ func (s *DeploymentStateManager) tick(ctx context.Context) error {
 func Created(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
+	}
+	if lastUpdated != nil && lastUpdated.Add(CreatedTimeout).Before(time.Now()) {
+		deployment.getLog().Error(nil, "State timed out", "state", "created")
+		return timingout, nil
 	}
 	return deploying, nil
 }
