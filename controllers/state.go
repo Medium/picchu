@@ -329,10 +329,6 @@ func PendingRelease(ctx context.Context, deployment Deployment, lastUpdated *tim
 	if err := deployment.sync(ctx); err != nil {
 		return pendingrelease, err
 	}
-	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "pending release")
-		return timingout, nil
-	}
 	return pendingrelease, nil
 }
 
@@ -354,10 +350,6 @@ func Releasing(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	}
 	if deployment.peakPercent() >= 100 {
 		return released, nil
-	}
-	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "releasing")
-		return timingout, nil
 	}
 	return releasing, nil
 }
