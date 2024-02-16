@@ -71,7 +71,9 @@ type Deployment interface {
 	retire(context.Context) error
 	del(context.Context) error
 	syncCanaryRules(context.Context) error
+	syncDeploymentRules(context.Context) error
 	deleteCanaryRules(context.Context) error
+	deleteDeploymentRules(context.Context) error
 	syncTaggedServiceLevels(context.Context) error
 	deleteTaggedServiceLevels(context.Context) error
 	hasRevision() bool
@@ -181,6 +183,9 @@ func Deploying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	}
 	if HasFailed(deployment) {
 		return failing, nil
+	}
+	if err := deployment.syncDeploymentRules(ctx); err != nil {
+		return deploying, err
 	}
 	if err := deployment.sync(ctx); err != nil {
 		return deploying, err
@@ -488,6 +493,9 @@ func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return failing, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return canaried, err
+	}
+	if err := deployment.deleteDeploymentRules(ctx); err != nil {
 		return canaried, err
 	}
 	if err := deployment.sync(ctx); err != nil {
