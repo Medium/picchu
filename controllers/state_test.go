@@ -453,12 +453,10 @@ func TestCanaried(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	// combine??
-	testcase(canaried, expectSync(expectDeleteCanaryRules(m(true, false, false))))
-	testcase(canaried, expectSync(expectDeleteDeploymentRules(m(true, false, false))))
-	// combine?
-	testcase(pendingrelease, expectSync(expectDeleteCanaryRules(m(true, false, true))))
-	testcase(pendingrelease, expectSync(expectDeleteDeploymentRules(m(true, false, false))))
+	// has revision not failed not release eligible
+	testcase(canaried, expectSync(expectDeleteDeploymentRules(expectDeleteCanaryRules(m(true, false, false)))))
+	// has revision not failed release eligible
+	testcase(pendingrelease, expectSync(expectDeleteDeploymentRules(expectDeleteCanaryRules(m(true, false, true)))))
 
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))

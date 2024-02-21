@@ -354,17 +354,3 @@ func (mr *MockDeploymentMockRecorder) syncTaggedServiceLevels(arg0 interface{}) 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncTaggedServiceLevels", reflect.TypeOf((*MockDeployment)(nil).syncTaggedServiceLevels), arg0)
 }
-
-// syncDeploymentyRules mocks base method
-func (m *MockDeployment) syncDeploymentyRules(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "syncDeploymentyRules", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// syncDeploymentyRules indicates an expected call of syncDeploymentyRules
-func (mr *MockDeploymentMockRecorder) syncDeploymentyRules(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncDeploymentyRules", reflect.TypeOf((*MockDeployment)(nil).syncDeploymentyRules), arg0)
-}
