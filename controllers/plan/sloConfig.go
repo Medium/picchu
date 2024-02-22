@@ -92,3 +92,19 @@ func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
 func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
 	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
+
+func (s *SLOConfig) taggedSLISourceGRPC() *slov1alpha1.SLIEvents {
+	source := &slov1alpha1.SLIEvents{
+		ErrorQuery: s.serviceLevelTaggedErrorQueryGRPC(),
+		TotalQuery: s.serviceLevelTaggedTotalQueryGRPC(),
+	}
+	return source
+}
+
+func (s *SLOConfig) serviceLevelTaggedTotalQueryGRPC() string {
+	return fmt.Sprintf("sum by (grpc_method) (rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+}
+
+func (s *SLOConfig) serviceLevelTaggedErrorQueryGRPC() string {
+	return fmt.Sprintf("sum by (grpc_method) (rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
+}

@@ -54,7 +54,14 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.P
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective(log)
-			serviceLevelObjective.SLI.Events = config.taggedSLISource()
+
+			// if a grpc slo
+			if _, ok := p.ServiceLevelObjectives[i].ServiceLevelObjectiveLabels.ServiceLevelLabels["grpc_method"]; ok {
+				fmt.Printf("HERE")
+				serviceLevelObjective.SLI.Events = config.taggedSLISourceGRPC()
+			} else {
+				serviceLevelObjective.SLI.Events = config.taggedSLISource()
+			}
 
 			slos = append(slos, *serviceLevelObjective)
 		}
