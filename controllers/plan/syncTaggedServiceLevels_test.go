@@ -35,28 +35,54 @@ var (
 				"severity": "test",
 			},
 		},
-		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
-			Enabled:     true,
-			Name:        "test-app-availability",
-			Description: "test desc",
-			Objective:   "99.999",
-			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
-				Canary: picchuv1alpha1.SLICanaryConfig{
-					Enabled:          true,
-					AllowancePercent: 1,
-					FailAfter:        "1m",
+		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{
+			{
+				Enabled:     true,
+				Name:        "test-app-availability",
+				Description: "test desc",
+				Objective:   "99.999",
+				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+					Canary: picchuv1alpha1.SLICanaryConfig{
+						Enabled:          true,
+						AllowancePercent: 1,
+						FailAfter:        "1m",
+					},
+					TagKey:     "destination_workload",
+					AlertAfter: "1m",
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
 				},
-				TagKey:     "destination_workload",
-				AlertAfter: "1m",
-				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
-				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
-			},
-			ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
-				ServiceLevelLabels: map[string]string{
-					"team": "test",
+				ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+					ServiceLevelLabels: map[string]string{
+						"team": "test",
+					},
 				},
 			},
-		}},
+			{
+				Enabled:     true,
+				Name:        "test-app-availability-GRPC",
+				Description: "test desc",
+				Objective:   "99.999",
+				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+					Canary: picchuv1alpha1.SLICanaryConfig{
+						Enabled:          true,
+						AllowancePercent: 1,
+						FailAfter:        "1m",
+					},
+					TagKey:     "destination_workload",
+					AlertAfter: "1m",
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				},
+				ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+					ServiceLevelLabels: map[string]string{
+						"team": "test",
+						// new label
+						"grpc_method": "true",
+					},
+				},
+			},
+		},
 	}
 
 	sltaggedexpected = &slov1alpha1.PrometheusServiceLevelList{
@@ -88,6 +114,23 @@ var (
 								Events: &slov1alpha1.SLIEvents{
 									ErrorQuery: "sum(rate(test_app:test_app_availability:errors{destination_workload=\"v1\"}[{{.window}}]))",
 									TotalQuery: "sum(rate(test_app:test_app_availability:total{destination_workload=\"v1\"}[{{.window}}]))",
+								},
+							},
+						},
+						{
+							Name:        "test_app_availability_grpc",
+							Objective:   99.999,
+							Description: "test desc",
+							Labels: map[string]string{
+								"severity":    "test",
+								"team":        "test",
+								"tag":         "v1",
+								"grpc_method": "true",
+							},
+							SLI: slov1alpha1.SLI{
+								Events: &slov1alpha1.SLIEvents{
+									ErrorQuery: "sum by (grpc_method) (rate(test_app:test_app_availability_grpc:errors{destination_workload=\"v1\"}[{{.window}}]))",
+									TotalQuery: "sum by (grpc_method) (rate(test_app:test_app_availability_grpc:total{destination_workload=\"v1\"}[{{.window}}]))",
 								},
 							},
 						},
