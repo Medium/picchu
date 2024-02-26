@@ -51,8 +51,8 @@ const (
 	canaried       State = "canaried"
 	timingout      State = "timingout"
 
-	DeployingTimeout = time.Duration(2) * time.Hour
-	CreatedTimeout   = time.Duration(2) * time.Hour
+	DeployingTimeout = time.Hour
+	CreatedTimeout   = time.Hour
 )
 
 var AllStates []string
