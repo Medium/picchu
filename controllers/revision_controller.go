@@ -83,11 +83,16 @@ func (r *RevisionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 type PromAPI interface {
 	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error)
+	IsDeploymentTriggered(ctx context.Context, name, tag string) (bool, []string, error)
 }
 
 type NoopPromAPI struct{}
 
 func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error) {
+	return false, nil, nil
+}
+
+func (n *NoopPromAPI) IsDeploymentTriggered(ctx context.Context, name, tag string) (bool, []string, error) {
 	return false, nil, nil
 }
 
@@ -200,6 +205,16 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 	}
 
+	// need to check if triggered for deploying before canary state?
+
+	deploymentTriggered, alarms, err := r.PromAPI.IsDeploymentTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+	if err != nil {
+		return r.Requeue(log, err)
+	}
+
+	// do stuff
+
+	// is triggered for canary or slos
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
 		return r.Requeue(log, err)
