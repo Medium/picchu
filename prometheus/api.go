@@ -153,7 +153,7 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 }
 
 // TaggedAlerts returns a set of tags that are firing SLO alerts for an app at a given time.
-func (a API) TaggedDeploymentQueries(ctx context.Context, query AlertQuery, t time.Time, canariesOnly bool) (map[string][]string, error) {
+func (a API) TaggedDeploymentQueries(ctx context.Context, query AlertQuery, t time.Time) (map[string][]string, error) {
 	q := bytes.NewBufferString("")
 
 	// check for deployment query
