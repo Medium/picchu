@@ -66,11 +66,6 @@ func TestDeploying(t *tt.T) {
 	testcase(failing, m(true, true, false), nil)
 	testcase(failing, m(true, true, true), nil)
 
-	// not failing not deployed
-	testcase(deploying, expectSync(expectSyncDeploymentRules(m(true, false, false))), nil)
-	// not failing deployed
-	testcase(canarying, expectSync(expectSyncDeploymentRules(m(true, false, true))), nil)
-
 	testcase(deploying, expectSync(m(true, false, false)), nil)
 	testcase(timingout, expectSync(m(true, false, false)), &old)
 
@@ -424,9 +419,7 @@ func TestCanarying(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	// not failing not pending canary
 	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, false)))))
-	// not failing pending canary
 	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, true)))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
@@ -453,11 +446,8 @@ func TestCanaried(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	// has revision not failed not release eligible
-	testcase(canaried, expectSync(expectDeleteDeploymentRules(expectDeleteCanaryRules(m(true, false, false)))))
-	// has revision not failed release eligible
-	testcase(pendingrelease, expectSync(expectDeleteDeploymentRules(expectDeleteCanaryRules(m(true, false, true)))))
-
+	testcase(canaried, expectSync(expectDeleteCanaryRules(m(true, false, false))))
+	testcase(pendingrelease, expectSync(expectDeleteCanaryRules(m(true, false, true))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -802,8 +792,6 @@ type responses struct {
 	peakPercent               uint32
 	syncCanaryRules           error
 	deleteCanaryRules         error
-	syncDeploymentRules       error
-	deleteDeploymentRules     error
 	syncTaggedServiceLevels   error
 	deleteTaggedServiceLevels error
 	isTimingOut               bool
@@ -917,24 +905,6 @@ func expectDeleteCanaryRules(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
 		deleteCanaryRules(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectSyncDeploymentRules(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		syncDeploymentRules(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectDeleteDeploymentRules(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		deleteDeploymentRules(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock

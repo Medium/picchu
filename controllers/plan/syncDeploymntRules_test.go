@@ -146,7 +146,7 @@ func TestSyncDeploymentRules(t *testing.T) {
 
 	for i := range dpexpected.Items {
 		for _, obj := range []runtime.Object{
-			crexpected.Items[i],
+			dpexpected.Items[i],
 		} {
 			m.
 				EXPECT().

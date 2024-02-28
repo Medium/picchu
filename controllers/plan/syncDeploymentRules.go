@@ -17,8 +17,8 @@ import (
 const (
 	DeploymentAppLabel = "app"
 	DeploymentTagLabel = "tag"
-	// should be labeled as an slo - not canary
-	DeploymentSLOLabel = "slo"
+	// should be labeled as an deployment slo - not canary
+	DeploymentSLOLabel = "deployment"
 	// CanaryLabel            = "canary"
 	DeploymentChannelLabel = "channel"
 
