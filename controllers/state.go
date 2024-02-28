@@ -410,6 +410,10 @@ func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return deleting, err
 	}
 
+	if err := deployment.deleteDeploymentRules(ctx); err != nil {
+		return deleting, err
+	}
+
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return deleting, err
 	}
@@ -442,6 +446,9 @@ func Failing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 		return deploying, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return failing, err
+	}
+	if err := deployment.deleteDeploymentRules(ctx); err != nil {
 		return failing, err
 	}
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
