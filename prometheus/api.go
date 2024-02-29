@@ -26,7 +26,7 @@ var (
 	// this will be an alert - and we can include the deploying tag
 	DeploymentFiringTemplate = template.Must(template.
 					New("deploymentFiringAlerts").
-					Parse(`sum by({{.TagLabel}},app,alertname)(ALERTS{deploymentslo="true",alertstate="{{.AlertState}}"})`))
+					Parse(`sum by({{.TagLabel}},app,alertname)(ALERTS{deployment="true",alertstate="{{.AlertState}}"})`))
 	log = logf.Log.WithName("prometheus_alerts")
 )
 
