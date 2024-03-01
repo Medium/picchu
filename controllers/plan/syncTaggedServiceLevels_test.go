@@ -78,7 +78,7 @@ var (
 					ServiceLevelLabels: map[string]string{
 						"team": "test",
 						// new label
-						"grpc_method": "true",
+						"is_grpc": "true",
 					},
 				},
 			},
@@ -122,10 +122,10 @@ var (
 							Objective:   99.999,
 							Description: "test desc",
 							Labels: map[string]string{
-								"severity":    "test",
-								"team":        "test",
-								"tag":         "v1",
-								"grpc_method": "true",
+								"severity": "test",
+								"team":     "test",
+								"tag":      "v1",
+								"is_grpc":  "true",
 							},
 							SLI: slov1alpha1.SLI{
 								Events: &slov1alpha1.SLIEvents{
