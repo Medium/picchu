@@ -426,6 +426,25 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
+func (i *Incarnation) syncDeploymentRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync Deployment Rules", &rmplan.SyncDeploymentRules{
+		App:                         i.appName(),
+		Namespace:                   i.targetNamespace(),
+		Tag:                         i.tag,
+		Labels:                      i.defaultLabels(),
+		ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
+		ServiceLevelObjectives:      i.target().SlothServiceLevelObjectives,
+	})
+}
+
+func (i *Incarnation) deleteDeploymentRules(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Deployment Rules", &rmplan.DeleteDeploymentRules{
+		App:       i.appName(),
+		Namespace: i.targetNamespace(),
+		Tag:       i.tag,
+	})
+}
+
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 	if i.picchuConfig.ServiceLevelsNamespace != "" {
 		// Account for a fleet other than Delivery (old way of configuring SLOs) and Production (the only other place we ideally want SLOs to go)

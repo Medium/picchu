@@ -77,6 +77,20 @@ func (mr *MockDeploymentMockRecorder) deleteCanaryRules(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteCanaryRules", reflect.TypeOf((*MockDeployment)(nil).deleteCanaryRules), arg0)
 }
 
+// deleteDeploymentRules mocks base method
+func (m *MockDeployment) deleteDeploymentRules(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deleteDeploymentRules", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// deleteDeploymentRules indicates an expected call of deleteDeploymentRules
+func (mr *MockDeploymentMockRecorder) deleteDeploymentRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteDeploymentRules", reflect.TypeOf((*MockDeployment)(nil).deleteDeploymentRules), arg0)
+}
+
 // deleteTaggedServiceLevels mocks base method
 func (m *MockDeployment) deleteTaggedServiceLevels(arg0 context.Context) error {
 	m.ctrl.T.Helper()
@@ -311,6 +325,20 @@ func (m *MockDeployment) syncCanaryRules(arg0 context.Context) error {
 func (mr *MockDeploymentMockRecorder) syncCanaryRules(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncCanaryRules", reflect.TypeOf((*MockDeployment)(nil).syncCanaryRules), arg0)
+}
+
+// syncDeploymentRules mocks base method
+func (m *MockDeployment) syncDeploymentRules(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "syncDeploymentRules", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// syncDeploymentRules indicates an expected call of syncDeploymentRules
+func (mr *MockDeploymentMockRecorder) syncDeploymentRules(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncDeploymentRules", reflect.TypeOf((*MockDeployment)(nil).syncDeploymentRules), arg0)
 }
 
 // syncTaggedServiceLevels mocks base method
