@@ -95,6 +95,7 @@ type RevisionTarget struct {
 
 	Istio               *Istio                        `json:"istio,omitempty"`
 	PodDisruptionBudget *policyv1.PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
+	DoNotEvict          bool                          `json:"doNotEvict,omitempty"`
 }
 
 type ExternalTest struct {
