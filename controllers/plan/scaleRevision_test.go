@@ -9,6 +9,7 @@ import (
 	"go.medium.engineering/picchu/test"
 
 	"github.com/golang/mock/gomock"
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
 	autoscaling "k8s.io/api/autoscaling/v2"
@@ -205,6 +206,55 @@ func TestScaleRevisionWithWPA(t *testing.T) {
 	m.
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateWPASpec(wpa)).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Update(ctx, expected).
+		Return(nil).
+		Times(1)
+
+	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
+}
+
+func TestScaleRevisionWithKEDA(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	plan := &ScaleRevision{
+		Tag:        "testtag",
+		Namespace:  "testnamespace",
+		Min:        4,
+		Max:        10,
+		KedaWorker: &picchuv1alpha1.KedaScaleInfo{},
+		Labels:     map[string]string{},
+	}
+	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	var kedaMaxReplicas int32 = 0
+	keda := &kedav1.ScaledObject{
+		Spec: kedav1.ScaledObjectSpec{
+			MaxReplicaCount: &kedaMaxReplicas,
+		},
+	}
+
+	expected := mocks.Callback(func(x interface{}) bool {
+		switch o := x.(type) {
+		case *kedav1.ScaledObject:
+			return *o.Spec.MaxReplicaCount == 5 &&
+				o.Spec.ScaleTargetRef.Name == "testtag"
+		default:
+			return false
+		}
+	}, "match Spec.MaxReplicaCount == 5 and Spec.ScaleTargetRef.Name == testtag")
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateKEDASpec(keda)).
 		Return(nil).
 		Times(1)
 

@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,8 +68,9 @@ const (
 	AnnotationCanaryStartedTimestamp = "picchu.medium.engineering/canaryStartedTimestamp"
 	AnnotationAutoscaler             = "picchu.medium.engineering/autoscaler"
 
-	AutoscalerTypeHPA = "hpa"
-	AutoscalerTypeWPA = "wpa"
+	AutoscalerTypeHPA  = "hpa"
+	AutoscalerTypeWPA  = "wpa"
+	AutoscalerTypeKEDA = "keda"
 
 	MaxUnavailable = "1%"
 )
@@ -116,6 +118,22 @@ type WorkerScaleInfo struct {
 	MaxDisruption                *string `json:"maxDisruption"`                          // optional
 }
 
+type KedaScaleInfo struct {
+	CooldownPeriod *int32 `json:"cooldownPeriod,omitempty"`
+	// +optional
+	IdleReplicaCount *int32 `json:"idleReplicaCount,omitempty"`
+	// +optional
+	MinReplicaCount *int32 `json:"minReplicaCount,omitempty"`
+	// +optional
+	MaxReplicaCount *int32 `json:"maxReplicaCount,omitempty"`
+	// +optional
+	Advanced *kedav1.AdvancedConfig `json:"advanced,omitempty"`
+
+	Triggers []kedav1.ScaleTriggers `json:"triggers"`
+	// +optional
+	Fallback *kedav1.Fallback `json:"fallback,omitempty"`
+}
+
 type ScaleInfo struct {
 	Min             *int32 `json:"min,omitempty"`
 	Default         int32  `json:"default,omitempty"`
@@ -135,6 +153,9 @@ type ScaleInfo struct {
 
 	// Worker specifies parameters for Worker Pod Autoscaler. See https://github.com/practo/k8s-worker-pod-autoscaler
 	Worker *WorkerScaleInfo `json:"worker,omitempty"`
+
+	// KedaWorker specifies parameters for KEDA. See https://github.com/kedacore/keda
+	KedaWorker *KedaScaleInfo `json:"kedaWorker,omitempty"`
 }
 
 func (s *ScaleInfo) TargetRequestsRateQuantity() (*resource.Quantity, error) {

@@ -3,6 +3,7 @@ package plan
 import (
 	"time"
 
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
@@ -69,6 +70,9 @@ func init() {
 			panic(err)
 		}
 		if err := wpav1.AddToScheme(s); err != nil {
+			panic(err)
+		}
+		if err := kedav1.AddToScheme(s); err != nil {
 			panic(err)
 		}
 		if err := policyv1.AddToScheme(s); err != nil {

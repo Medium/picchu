@@ -9,6 +9,7 @@ import (
 	"go.medium.engineering/picchu/controllers/utils"
 
 	"github.com/go-logr/logr"
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
@@ -407,6 +408,29 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, wpa)
+		if err != nil {
+			return err
+		}
+
+	case *kedav1.ScaledObject:
+		typed := orig.DeepCopy()
+		keda := &kedav1.ScaledObject{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+				Labels:    typed.Labels,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, keda, func() error {
+			if isIgnored(keda.ObjectMeta) {
+				kind := utils.MustGetKind(keda).Kind
+				log.Info("Resource is ignored", "namespace", keda.Namespace, "name", keda.Name, "kind", kind)
+				return nil
+			}
+			keda.Spec = typed.Spec
+			return nil
+		})
+		LogSync(log, op, err, keda)
 		if err != nil {
 			return err
 		}

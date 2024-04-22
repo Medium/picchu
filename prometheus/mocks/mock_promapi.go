@@ -6,37 +6,38 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+	time "time"
+
 	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	model "github.com/prometheus/common/model"
-	reflect "reflect"
-	time "time"
 )
 
-// MockPromAPI is a mock of PromAPI interface
+// MockPromAPI is a mock of PromAPI interface.
 type MockPromAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockPromAPIMockRecorder
 }
 
-// MockPromAPIMockRecorder is the mock recorder for MockPromAPI
+// MockPromAPIMockRecorder is the mock recorder for MockPromAPI.
 type MockPromAPIMockRecorder struct {
 	mock *MockPromAPI
 }
 
-// NewMockPromAPI creates a new mock instance
+// NewMockPromAPI creates a new mock instance.
 func NewMockPromAPI(ctrl *gomock.Controller) *MockPromAPI {
 	mock := &MockPromAPI{ctrl: ctrl}
 	mock.recorder = &MockPromAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockPromAPI) EXPECT() *MockPromAPIMockRecorder {
 	return m.recorder
 }
 
-// Query mocks base method
+// Query mocks base method.
 func (m *MockPromAPI) Query(arg0 context.Context, arg1 string, arg2 time.Time) (model.Value, v1.Warnings, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1, arg2)
@@ -46,7 +47,7 @@ func (m *MockPromAPI) Query(arg0 context.Context, arg1 string, arg2 time.Time) (
 	return ret0, ret1, ret2
 }
 
-// Query indicates an expected call of Query
+// Query indicates an expected call of Query.
 func (mr *MockPromAPIMockRecorder) Query(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockPromAPI)(nil).Query), arg0, arg1, arg2)

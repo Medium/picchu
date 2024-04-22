@@ -21,9 +21,9 @@ import (
 	"os"
 	"time"
 
-	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
+	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	slo "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	picchumediumengineeringv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
@@ -122,6 +122,7 @@ func main() {
 		istio.AddToScheme,
 		monitoring.AddToScheme,
 		slo.AddToScheme,
+		kedav1.AddToScheme,
 		wpav1.AddToScheme,
 		apis.AddToScheme,
 		policyv1.AddToScheme,
