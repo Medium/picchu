@@ -80,6 +80,19 @@ func InjectKedaPodAutoscalers(kedas []kedav1.ScaledObject) gomock.Matcher {
 	return Callback(fn, "injects kedapodautoscalers")
 }
 
+func InjectKedaAuths(kedas []kedav1.TriggerAuthentication) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *kedav1.TriggerAuthenticationList:
+			o.Items = append(o.Items, kedas...)
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "injects kedaauths")
+}
+
 // InjectHorizontalPodAutoscalers puts hpas into a *HorizontalPodAutoscalerList
 func InjectWorkerPodAutoscalers(wpas []wpav1.WorkerPodAutoScaler) gomock.Matcher {
 	fn := func(x interface{}) bool {
@@ -190,11 +203,26 @@ func UpdateKEDASpec(keda *kedav1.ScaledObject) gomock.Matcher {
 		case *kedav1.ScaledObject:
 			o.Spec = keda.Spec
 			return true
+		case *kedav1.TriggerAuthentication:
+			return true
 		default:
 			return false
 		}
 	}
 	return Callback(fn, "update keda spec")
+}
+
+func UpdateKEDATriggerAuthSpec(keda *kedav1.TriggerAuthentication) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *kedav1.TriggerAuthentication:
+			o.Spec = keda.Spec
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "update keda trigger auth spec")
 }
 
 // UpdateHPASpec sets the spec on a *HorizontalPodAutoscaler
@@ -211,7 +239,7 @@ func UpdateWPASpec(wpa *wpav1.WorkerPodAutoScaler) gomock.Matcher {
 	return Callback(fn, "update wpa spec")
 }
 
-// UpdateKEDAObjectMeta sets the ObjectMeta on a *HorizontalPodAutoscaler
+// UpdateKEDAObjectMeta sets the ObjectMeta on a *Keda Scaled Object
 func UpdateKEDAObjectMeta(keda *kedav1.ScaledObject) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {
@@ -225,7 +253,20 @@ func UpdateKEDAObjectMeta(keda *kedav1.ScaledObject) gomock.Matcher {
 	return Callback(fn, "update keda object meta")
 }
 
-// UpdateWPAObjectMeta sets the ObjectMeta on a *HorizontalPodAutoscaler
+func UpdateKEDATriggerAuthObjectMeta(keda *kedav1.TriggerAuthentication) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *kedav1.TriggerAuthentication:
+			o.ObjectMeta = keda.ObjectMeta
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "update keda trigger auth object meta")
+}
+
+// UpdateWPAObjectMeta sets the ObjectMeta on a *WorkerPodAutoscaler
 func UpdateWPAObjectMeta(wpa *wpav1.WorkerPodAutoScaler) gomock.Matcher {
 	fn := func(x interface{}) bool {
 		switch o := x.(type) {

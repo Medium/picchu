@@ -92,6 +92,15 @@ func TestDeleteRevision(t *testing.T) {
 		},
 	}
 
+	kedaAuths := []kedav1.TriggerAuthentication{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testkedatriggerauth",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
 	m.
 		EXPECT().
 		List(ctx, mocks.InjectSecrets(secrets), mocks.ListOptions(opts)).
@@ -124,6 +133,11 @@ func TestDeleteRevision(t *testing.T) {
 		Times(1)
 	m.
 		EXPECT().
+		List(ctx, mocks.InjectKedaAuths(kedaAuths), mocks.ListOptions(opts)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testsecret")).
 		Return(nil).
 		Times(1)
@@ -150,6 +164,11 @@ func TestDeleteRevision(t *testing.T) {
 	m.
 		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testwpa")).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.NamespacedName("testnamespace", "testkedatriggerauth")).
 		Return(nil).
 		Times(1)
 

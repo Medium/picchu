@@ -37,6 +37,13 @@ func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *
 		)
 		return err
 	}
+	if err := deleteAuthKEDA(ctx, cli, p.Namespace, p.Tag); err != nil {
+		log.Error(err, "Failed to delete KEDA Trigger Authentication while retiring revision",
+			"tag", p.Tag,
+			"name", p.Namespace,
+		)
+		return err
+	}
 
 	namespacedName := types.NamespacedName{Namespace: p.Namespace, Name: p.Tag}
 	rs := &appsv1.ReplicaSet{}
@@ -96,6 +103,26 @@ func deleteWPA(ctx context.Context, cli client.Client, namespace, name string) e
 // Delete any KEDA Scaled Object for the deployed revision
 func deleteKEDA(ctx context.Context, cli client.Client, namespace, name string) error {
 	keda := &kedav1.ScaledObject{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	if err := cli.Delete(ctx, keda); err != nil {
+		switch err.(type) {
+		case *meta.NoKindMatchError:
+			break
+		default:
+			if !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func deleteAuthKEDA(ctx context.Context, cli client.Client, namespace, name string) error {
+	keda := &kedav1.TriggerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,

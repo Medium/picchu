@@ -434,6 +434,28 @@ func CreateOrUpdate(
 		if err != nil {
 			return err
 		}
+	case *kedav1.TriggerAuthentication:
+		typed := orig.DeepCopy()
+		keda := &kedav1.TriggerAuthentication{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+				Labels:    typed.Labels,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, keda, func() error {
+			if isIgnored(keda.ObjectMeta) {
+				kind := utils.MustGetKind(keda).Kind
+				log.Info("Resource is ignored", "namespace", keda.Namespace, "name", keda.Name, "kind", kind)
+				return nil
+			}
+			keda.Spec = typed.Spec
+			return nil
+		})
+		LogSync(log, op, err, keda)
+		if err != nil {
+			return err
+		}
 	case *policyv1.PodDisruptionBudget:
 		typed := orig.DeepCopy()
 		pdb := &policyv1.PodDisruptionBudget{

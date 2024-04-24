@@ -62,7 +62,10 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 	}
 
 	if p.KedaWorker != nil {
-		return p.applyKEDA(ctx, cli, log, scaledMin, scaledMax)
+		if err := p.applyKedaTriggerAuth(ctx, cli, log); err != nil {
+			return err
+		}
+		return p.applyKeda(ctx, cli, log, scaledMin, scaledMax)
 	}
 
 	return p.applyHPA(ctx, cli, log, scaledMin, scaledMax)
@@ -180,8 +183,10 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 	return plan.CreateOrUpdate(ctx, log, cli, wpa)
 }
 
-func (p *ScaleRevision) applyKEDA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
-	// Need to provide authentication
+func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+	if err := p.applyKedaTriggerAuth(ctx, cli, log); err != nil {
+		return err
+	}
 	keda := &kedav1.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.Tag,
@@ -204,4 +209,20 @@ func (p *ScaleRevision) applyKEDA(ctx context.Context, cli client.Client, log lo
 		},
 	}
 	return plan.CreateOrUpdate(ctx, log, cli, keda)
+}
+
+func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Client, log logr.Logger) error {
+	triggerAuth := &kedav1.TriggerAuthentication{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.Tag,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: kedav1.TriggerAuthenticationSpec{
+			PodIdentity: &kedav1.AuthPodIdentity{
+				Provider: kedav1.PodIdentityProviderAwsKiam,
+			},
+		},
+	}
+	return plan.CreateOrUpdate(ctx, log, cli, triggerAuth)
 }

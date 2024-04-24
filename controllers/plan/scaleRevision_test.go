@@ -247,6 +247,8 @@ func TestScaleRevisionWithKEDA(t *testing.T) {
 		case *kedav1.ScaledObject:
 			return *o.Spec.MaxReplicaCount == 5 &&
 				o.Spec.ScaleTargetRef.Name == "testtag"
+		case *kedav1.TriggerAuthentication:
+			return true
 		default:
 			return false
 		}
@@ -256,13 +258,13 @@ func TestScaleRevisionWithKEDA(t *testing.T) {
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateKEDASpec(keda)).
 		Return(nil).
-		Times(1)
+		Times(3)
 
 	m.
 		EXPECT().
 		Update(ctx, expected).
 		Return(nil).
-		Times(1)
+		Times(3)
 
 	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
 }

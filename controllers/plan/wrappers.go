@@ -38,6 +38,10 @@ type KedaPodAutoscalerList struct {
 	Item *kedav1.ScaledObjectList
 }
 
+type KedaAuthList struct {
+	Item *kedav1.TriggerAuthenticationList
+}
+
 func NewSecretList() *SecretList {
 	return &SecretList{&corev1.SecretList{}}
 }
@@ -60,6 +64,10 @@ func NewWorkerPodAutoscalerList() *WorkerPodAutoscalerList {
 
 func NewKedaPodAutoscalerList() *KedaPodAutoscalerList {
 	return &KedaPodAutoscalerList{&kedav1.ScaledObjectList{}}
+}
+
+func NewKedaAuthList() *KedaAuthList {
+	return &KedaAuthList{&kedav1.TriggerAuthenticationList{}}
 }
 
 func (s *SecretList) GetItems() (r []client.Object) {
@@ -104,6 +112,13 @@ func (s *KedaPodAutoscalerList) GetItems() (r []client.Object) {
 	return
 }
 
+func (s *KedaAuthList) GetItems() (r []client.Object) {
+	for _, i := range s.Item.Items {
+		r = append(r, &i)
+	}
+	return
+}
+
 func (s *SecretList) GetList() (r client.ObjectList) {
 	return s.Item
 }
@@ -125,5 +140,9 @@ func (s *WorkerPodAutoscalerList) GetList() (r client.ObjectList) {
 }
 
 func (s *KedaPodAutoscalerList) GetList() (r client.ObjectList) {
+	return s.Item
+}
+
+func (s *KedaAuthList) GetList() (r client.ObjectList) {
 	return s.Item
 }
