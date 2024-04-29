@@ -184,6 +184,15 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 }
 
 func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+	//If a trigger doesn't have an auth defined, fall back to the identity of the pod.
+	for index, trigger := range p.KedaWorker.Triggers {
+		if trigger.AuthenticationRef == nil {
+			p.KedaWorker.Triggers[index].AuthenticationRef = &kedav1.ScaledObjectAuthRef{
+				Name: p.Tag,
+			}
+			p.KedaWorker.Triggers[index].Metadata["identityOwner"] = "pod"
+		}
+	}
 	keda := &kedav1.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.Tag,
