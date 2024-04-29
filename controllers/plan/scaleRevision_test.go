@@ -258,13 +258,13 @@ func TestScaleRevisionWithKEDA(t *testing.T) {
 		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateKEDASpec(keda)).
 		Return(nil).
-		Times(3)
+		Times(2)
 
 	m.
 		EXPECT().
 		Update(ctx, expected).
 		Return(nil).
-		Times(3)
+		Times(2)
 
 	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
 }

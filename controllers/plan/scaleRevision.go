@@ -184,9 +184,6 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 }
 
 func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
-	if err := p.applyKedaTriggerAuth(ctx, cli, log); err != nil {
-		return err
-	}
 	keda := &kedav1.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.Tag,
