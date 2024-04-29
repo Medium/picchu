@@ -25,6 +25,8 @@ func (p *DeleteRevision) Apply(ctx context.Context, cli client.Client, cluster *
 		NewReplicaSetList(),
 		NewHorizontalPodAutoscalerList(),
 		NewWorkerPodAutoscalerList(),
+		NewKedaPodAutoscalerList(),
+		NewKedaAuthList(),
 	}
 
 	opts := &client.ListOptions{

@@ -76,6 +76,7 @@ type SyncRevision struct {
 	ReadinessProbe      *corev1.Probe
 	MinReadySeconds     int32
 	Worker              *picchuv1alpha1.WorkerScaleInfo
+	KedaWorker          *picchuv1alpha1.KedaScaleInfo
 	Lifecycle           *corev1.Lifecycle
 	PriorityClassName   string
 	Affinity            *corev1.Affinity
@@ -341,7 +342,10 @@ func (p *SyncRevision) syncReplicaSet(
 	autoScaler := picchuv1alpha1.AutoscalerTypeHPA
 	if p.Worker != nil {
 		autoScaler = picchuv1alpha1.AutoscalerTypeWPA
+	} else if p.KedaWorker != nil {
+		autoScaler = picchuv1alpha1.AutoscalerTypeKEDA
 	}
+
 	rsAnnotations := map[string]string{
 		picchuv1alpha1.AnnotationAutoscaler: autoScaler,
 	}

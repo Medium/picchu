@@ -6,6 +6,7 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 
 	"github.com/go-logr/logr"
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -23,6 +24,21 @@ type RetireRevision struct {
 func (p *RetireRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	if err := deleteWPA(ctx, cli, p.Namespace, p.Tag); err != nil {
 		log.Error(err, "Failed to delete WPA while retiring revision",
+			"tag", p.Tag,
+			"name", p.Namespace,
+		)
+		return err
+	}
+
+	if err := deleteKEDA(ctx, cli, p.Namespace, p.Tag); err != nil {
+		log.Error(err, "Failed to delete KEDA while retiring revision",
+			"tag", p.Tag,
+			"name", p.Namespace,
+		)
+		return err
+	}
+	if err := deleteAuthKEDA(ctx, cli, p.Namespace, p.Tag); err != nil {
+		log.Error(err, "Failed to delete KEDA Trigger Authentication while retiring revision",
 			"tag", p.Tag,
 			"name", p.Namespace,
 		)
@@ -72,6 +88,47 @@ func deleteWPA(ctx context.Context, cli client.Client, namespace, name string) e
 		},
 	}
 	if err := cli.Delete(ctx, wpa); err != nil {
+		switch err.(type) {
+		case *meta.NoKindMatchError:
+			break
+		default:
+			if !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Delete any KEDA Scaled Object for the deployed revision
+func deleteKEDA(ctx context.Context, cli client.Client, namespace, name string) error {
+	keda := &kedav1.ScaledObject{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	if err := cli.Delete(ctx, keda); err != nil {
+		switch err.(type) {
+		case *meta.NoKindMatchError:
+			break
+		default:
+			if !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func deleteAuthKEDA(ctx context.Context, cli client.Client, namespace, name string) error {
+	keda := &kedav1.TriggerAuthentication{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	if err := cli.Delete(ctx, keda); err != nil {
 		switch err.(type) {
 		case *meta.NoKindMatchError:
 			break

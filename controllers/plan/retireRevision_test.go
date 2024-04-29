@@ -11,6 +11,7 @@ import (
 	"go.medium.engineering/picchu/test"
 
 	"github.com/golang/mock/gomock"
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,10 +37,33 @@ func TestRetireMissingRevision(t *testing.T) {
 			Namespace: rr.Namespace,
 		},
 	}
+	keda := &kedav1.ScaledObject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rr.Tag,
+			Namespace: rr.Namespace,
+		},
+	}
+	kedaTriggerAuth := &kedav1.TriggerAuthentication{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rr.Tag,
+			Namespace: rr.Namespace,
+		},
+	}
 
 	m.
 		EXPECT().
 		Delete(ctx, mocks.UpdateWPAObjectMeta(wpa)).
+		Return(common.NotFoundError).
+		Times(1)
+
+	m.
+		EXPECT().
+		Delete(ctx, mocks.UpdateKEDAObjectMeta(keda)).
+		Return(common.NotFoundError).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.UpdateKEDATriggerAuthObjectMeta(kedaTriggerAuth)).
 		Return(common.NotFoundError).
 		Times(1)
 
@@ -72,6 +96,19 @@ func TestRetireExistingRevision(t *testing.T) {
 			MaxReplicas: &one,
 		},
 	}
+	keda := &kedav1.ScaledObject{
+		Spec: kedav1.ScaledObjectSpec{
+			MinReplicaCount: &one,
+			MaxReplicaCount: &one,
+		},
+	}
+	kedaTriggerAuth := &kedav1.TriggerAuthentication{
+		Spec: kedav1.TriggerAuthenticationSpec{
+			PodIdentity: &kedav1.AuthPodIdentity{
+				Provider: kedav1.PodIdentityProviderAwsKiam,
+			},
+		},
+	}
 	rs := &appsv1.ReplicaSet{
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas: &one,
@@ -89,6 +126,16 @@ func TestRetireExistingRevision(t *testing.T) {
 	m.
 		EXPECT().
 		Delete(ctx, mocks.UpdateWPASpec(wpa)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.UpdateKEDASpec(keda)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.UpdateKEDATriggerAuthSpec(kedaTriggerAuth)).
 		Return(nil).
 		Times(1)
 	m.

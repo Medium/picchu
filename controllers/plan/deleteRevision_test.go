@@ -8,6 +8,7 @@ import (
 	"go.medium.engineering/picchu/test"
 
 	"github.com/golang/mock/gomock"
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -82,6 +83,24 @@ func TestDeleteRevision(t *testing.T) {
 		},
 	}
 
+	kedas := []kedav1.ScaledObject{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testkeda",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
+	kedaAuths := []kedav1.TriggerAuthentication{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testkedatriggerauth",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
 	m.
 		EXPECT().
 		List(ctx, mocks.InjectSecrets(secrets), mocks.ListOptions(opts)).
@@ -109,6 +128,16 @@ func TestDeleteRevision(t *testing.T) {
 		Times(1)
 	m.
 		EXPECT().
+		List(ctx, mocks.InjectKedaPodAutoscalers(kedas), mocks.ListOptions(opts)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		List(ctx, mocks.InjectKedaAuths(kedaAuths), mocks.ListOptions(opts)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testsecret")).
 		Return(nil).
 		Times(1)
@@ -129,7 +158,17 @@ func TestDeleteRevision(t *testing.T) {
 		Times(1)
 	m.
 		EXPECT().
+		Delete(ctx, mocks.NamespacedName("testnamespace", "testkeda")).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testwpa")).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.NamespacedName("testnamespace", "testkedatriggerauth")).
 		Return(nil).
 		Times(1)
 

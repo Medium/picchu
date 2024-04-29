@@ -154,9 +154,9 @@ mocks: go.sum
 	go get github.com/golang/mock/mockgen
 	mockgen --build_flags=--mod=mod -destination=mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
 	mockgen --build_flags=--mod=mod -destination=prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
-	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/mock_deployment.go -package=releasemanager $(PACKAGE)/controllers/releasemanager Deployment
-	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/mock_incarnations.go -package=releasemanager $(PACKAGE)/controllers/releasemanager Incarnations
-	mockgen --build_flags=--mod=mod -destination=controller/releasemanager/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/releasemanager/scaling ScalableTarget
+	mockgen --build_flags=--mod=mod -destination=controllers/mock_deployment.go -package=controllers $(PACKAGE)/controllers Deployment
+	mockgen --build_flags=--mod=mod -destination=controllers/mock_incarnations.go -package=controllers $(PACKAGE)/controllers Incarnations
+	mockgen --build_flags=--mod=mod -destination=controllers/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/scaling ScalableTarget
 	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
 
 deps: controller-gen kustomize

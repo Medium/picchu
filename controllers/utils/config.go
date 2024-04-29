@@ -14,4 +14,5 @@ type Config struct {
 	ConcurrentReleaseManagers int
 	DevRoutesServiceHost      string
 	DevRoutesServicePort      int
+	useKedaClusterAuth        bool
 }

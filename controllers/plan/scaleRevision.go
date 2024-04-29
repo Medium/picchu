@@ -12,6 +12,7 @@ import (
 	"go.medium.engineering/picchu/plan"
 
 	"github.com/go-logr/logr"
+	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	autoscaling "k8s.io/api/autoscaling/v2"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -30,6 +31,7 @@ type ScaleRevision struct {
 	RequestsRateMetric string
 	RequestsRateTarget *resource.Quantity
 	Worker             *picchuv1alpha1.WorkerScaleInfo
+	KedaWorker         *picchuv1alpha1.KedaScaleInfo
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -57,6 +59,13 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 
 	if p.Worker != nil {
 		return p.applyWPA(ctx, cli, log, scaledMin, scaledMax)
+	}
+
+	if p.KedaWorker != nil {
+		if err := p.applyKedaTriggerAuth(ctx, cli, log); err != nil {
+			return err
+		}
+		return p.applyKeda(ctx, cli, log, scaledMin, scaledMax)
 	}
 
 	return p.applyHPA(ctx, cli, log, scaledMin, scaledMax)
@@ -172,4 +181,54 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 	}
 
 	return plan.CreateOrUpdate(ctx, log, cli, wpa)
+}
+
+func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+	//If a trigger doesn't have an auth defined, fall back to the identity of the pod.
+	for index, trigger := range p.KedaWorker.Triggers {
+		if trigger.AuthenticationRef == nil {
+			p.KedaWorker.Triggers[index].AuthenticationRef = &kedav1.ScaledObjectAuthRef{
+				Name: p.Tag,
+			}
+			p.KedaWorker.Triggers[index].Metadata["identityOwner"] = "pod"
+		}
+	}
+	keda := &kedav1.ScaledObject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.Tag,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: kedav1.ScaledObjectSpec{
+			ScaleTargetRef: &kedav1.ScaleTarget{
+				Name:       p.Tag,
+				Kind:       "ReplicaSet",
+				APIVersion: "apps/v1",
+			},
+			CooldownPeriod:   p.KedaWorker.CooldownPeriod,
+			IdleReplicaCount: p.KedaWorker.IdleReplicaCount,
+			MinReplicaCount:  &scaledMin,
+			MaxReplicaCount:  &scaledMax,
+			Advanced:         p.KedaWorker.Advanced,
+			Triggers:         p.KedaWorker.Triggers,
+			Fallback:         p.KedaWorker.Fallback,
+		},
+	}
+	return plan.CreateOrUpdate(ctx, log, cli, keda)
+}
+
+func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Client, log logr.Logger) error {
+	triggerAuth := &kedav1.TriggerAuthentication{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.Tag,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: kedav1.TriggerAuthenticationSpec{
+			PodIdentity: &kedav1.AuthPodIdentity{
+				Provider: kedav1.PodIdentityProviderAwsKiam,
+			},
+		},
+	}
+	return plan.CreateOrUpdate(ctx, log, cli, triggerAuth)
 }
