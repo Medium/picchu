@@ -391,6 +391,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		LivenessProbe:      i.target().LivenessProbe,
 		MinReadySeconds:    i.target().Scale.MinReadySeconds,
 		Worker:             i.target().Scale.Worker,
+		KedaWorker:         i.target().Scale.KedaWorker,
 		Lifecycle:          i.target().Lifecycle,
 		Affinity:           i.target().Affinity,
 		PriorityClassName:  i.target().PriorityClassName,
@@ -489,12 +490,12 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 
 	min := i.divideReplicas(*i.target().Scale.Min)
 	max := i.divideReplicas(i.target().Scale.Max)
-	if i.target().Scale.Worker != nil && !i.isRoutable() {
+	if (i.target().Scale.Worker != nil || i.target().Scale.KedaWorker != nil) && !i.isRoutable() {
 		min = 0
 		max = 0
 	} else if i.status.CurrentPercent == 0 {
 		min = max
-	} else if i.target().Scale.Worker != nil && *i.target().Scale.Min == 0 {
+	} else if (i.target().Scale.Worker != nil || i.target().Scale.KedaWorker != nil) && *i.target().Scale.Min == 0 {
 		min = 0
 	}
 
@@ -509,6 +510,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		RequestsRateMetric: i.target().Scale.RequestsRateMetric,
 		RequestsRateTarget: requestsRateTarget,
 		Worker:             i.target().Scale.Worker,
+		KedaWorker:         i.target().Scale.KedaWorker,
 	}
 }
 
