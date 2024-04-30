@@ -322,8 +322,21 @@ func (p *SyncRevision) syncReplicaSet(
 	for ann, value := range p.PodAnnotations {
 		template.Annotations[ann] = value
 	}
+
+	autoScaler := picchuv1alpha1.AutoscalerTypeHPA
+	if p.Worker != nil {
+		autoScaler = picchuv1alpha1.AutoscalerTypeWPA
+	} else if p.KedaWorker != nil {
+		autoScaler = picchuv1alpha1.AutoscalerTypeKEDA
+	}
+
+	rsAnnotations := map[string]string{
+		picchuv1alpha1.AnnotationAutoscaler: autoScaler,
+	}
+
 	if p.IAMRole != "" {
 		template.Annotations[picchuv1alpha1.AnnotationIAMRole] = p.IAMRole
+		rsAnnotations[picchuv1alpha1.AnnotationIAMRole] = p.IAMRole
 	}
 
 	template.Annotations[annotationDatadogTolerateUnready] = "true"
@@ -338,17 +351,6 @@ func (p *SyncRevision) syncReplicaSet(
 		}
 	}
 	// End badness
-
-	autoScaler := picchuv1alpha1.AutoscalerTypeHPA
-	if p.Worker != nil {
-		autoScaler = picchuv1alpha1.AutoscalerTypeWPA
-	} else if p.KedaWorker != nil {
-		autoScaler = picchuv1alpha1.AutoscalerTypeKEDA
-	}
-
-	rsAnnotations := map[string]string{
-		picchuv1alpha1.AnnotationAutoscaler: autoScaler,
-	}
 
 	replicaSet := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
