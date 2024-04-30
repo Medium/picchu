@@ -173,6 +173,7 @@ var (
 			},
 			Annotations: map[string]string{
 				"picchu.medium.engineering/autoscaler": "hpa",
+				picchuv1alpha1.AnnotationIAMRole:       "testrole",
 			},
 			ResourceVersion: "1",
 		},
@@ -341,6 +342,7 @@ var (
 			},
 			Annotations: map[string]string{
 				"picchu.medium.engineering/autoscaler": "hpa",
+				picchuv1alpha1.AnnotationIAMRole:       "testrole",
 			},
 		},
 		Spec: appsv1.ReplicaSetSpec{
