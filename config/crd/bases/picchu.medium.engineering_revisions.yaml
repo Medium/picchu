@@ -1069,6 +1069,8 @@ spec:
                       additionalProperties:
                         type: string
                       type: object
+                    doNotEvict:
+                      type: boolean
                     env:
                       items:
                         description: EnvVar represents an environment variable present
