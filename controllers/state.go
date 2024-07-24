@@ -51,7 +51,7 @@ const (
 	canaried       State = "canaried"
 	timingout      State = "timingout"
 
-	DeployingTimeout = time.Hour
+	DeployingTimeout = (time.Minute * 15)
 	CreatedTimeout   = time.Hour
 )
 
