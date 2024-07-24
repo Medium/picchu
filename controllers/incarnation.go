@@ -399,6 +399,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		EnvVars:            i.target().Env,
 		Volumes:            i.target().Volumes,
 		VolumeMounts:       i.target().VolumeMounts,
+		DoNotEvict:         i.target().DoNotEvict,
 	}
 
 	if !i.isRoutable() {
