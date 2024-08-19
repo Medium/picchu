@@ -55,6 +55,9 @@ func TestCanaryTestPending(t *testing.T) {
 	assert.False(t, target.IsCanaryPending(&dt))
 
 	target.Canary.TTL = 1
+	assert.False(t, target.IsCanaryPending(&dt))
+
+	target.SlothServiceLevelObjectives = append(target.SlothServiceLevelObjectives, &SlothServiceLevelObjective{})
 	now := metav1.Now()
 	assert.True(t, target.IsCanaryPending(&now))
 

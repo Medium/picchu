@@ -293,7 +293,8 @@ func (r *RevisionTarget) IsExternalTestSuccessful() bool {
 }
 
 func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
-	if r.Canary.Percent == 0 || r.Canary.TTL == 0 {
+	// if canary values aren't set or no SLOs set up for service
+	if r.Canary.Percent == 0 || r.Canary.TTL == 0 || len(r.SlothServiceLevelObjectives) == 0 {
 		return false
 	}
 	if startTime == nil {
