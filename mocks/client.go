@@ -11,6 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -158,6 +159,23 @@ func (m *MockClient) RESTMapper() meta.RESTMapper {
 	ret := m.ctrl.Call(m, "RESTMapper")
 	ret0, _ := ret[0].(meta.RESTMapper)
 	return ret0
+}
+
+// GroupVersionKindFor mocks base method.
+func (m *MockClient) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GroupVersionKindFor", obj)
+	ret0, _ := ret[0].(schema.GroupVersionKind)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (m *MockClient) IsObjectNamespaced(obj runtime.Object) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsObjectNamespaced", obj)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // RESTMapper indicates an expected call of RESTMapper.

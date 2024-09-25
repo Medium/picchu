@@ -38,7 +38,7 @@ func (m *MockPromAPI) EXPECT() *MockPromAPIMockRecorder {
 }
 
 // Query mocks base method.
-func (m *MockPromAPI) Query(arg0 context.Context, arg1 string, arg2 time.Time) (model.Value, v1.Warnings, error) {
+func (m *MockPromAPI) Query(arg0 context.Context, arg1 string, arg2 time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Query", arg0, arg1, arg2)
 	ret0, _ := ret[0].(model.Value)

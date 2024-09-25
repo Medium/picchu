@@ -84,6 +84,6 @@ func init() {
 	istioAsserts.RegisterAsserts(comparator)
 }
 
-func fakeClient(objs ...runtime.Object) client.Client {
-	return fake.NewFakeClientWithScheme(scheme, objs...)
+func fakeClient(objs ...client.Object) client.WithWatch {
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
 }

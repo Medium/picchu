@@ -12,7 +12,7 @@ import (
 	"go.medium.engineering/picchu/test"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -32,9 +32,9 @@ func TestIgnore(t *testing.T) {
 
 	for _, test := range []struct {
 		Name     string
-		Existing runtime.Object
-		Updated  runtime.Object
-		Expected runtime.Object
+		Existing client.Object
+		Updated  client.Object
+		Expected client.Object
 	}{
 		{
 			Name: "Update",
@@ -161,7 +161,7 @@ func TestIgnore(t *testing.T) {
 		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
-			cli := fake.NewFakeClientWithScheme(picchuScheme.Scheme, test.Existing)
+			cli := fake.NewClientBuilder().WithScheme(picchuScheme.Scheme).WithObjects(test.Existing).Build()
 			CreateOrUpdate(ctx, log, cli, test.Updated)
 			comparator.AssertMatch(ctx, t, cli, test.Expected)
 		})
