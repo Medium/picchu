@@ -1,5 +1,9 @@
 language: go
 
+env:
+  global:
+    - TRAVIS_GO_VERSION=1.22.x
+
 go:
 - 1.22.x
 
