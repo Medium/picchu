@@ -2,10 +2,10 @@ language: go
 
 env:
   global:
-    - TRAVIS_GO_VERSION=1.22.x
+    - TRAVIS_GO_VERSION=1.22.0
 
 go:
-- 1.22.x
+- 1.22.0
 
 sudo: required
 
