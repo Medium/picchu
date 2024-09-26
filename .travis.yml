@@ -3,7 +3,7 @@ language: go
 dist: jammy
 
 go:
-- 1.22.x
+- 1.22.0
 
 sudo: required
 
