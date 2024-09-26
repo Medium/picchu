@@ -120,7 +120,6 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
-	echo "install $(CONTROLLER_GEN)"
 
 kustomize:
 ifeq (, $(shell which kustomize))
