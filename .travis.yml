@@ -1,7 +1,9 @@
 language: go
 
+dist: jammy
+
 go:
-- 1.19.x
+- 1.22.x
 
 sudo: required
 
