@@ -3,10 +3,6 @@
   value: atomic
 
 - op: add
-  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/targets/items/properties/volumes/items/properties/ephemeral/properties/volumeClaimTemplate/properties/spec/properties/datasource/x-kubernetes-map-type
-  value: atomic
-
-- op: add
   path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/targets/items/properties/resources/properties/claims/items/x-kubernetes-map-type
   value: atomic
 
