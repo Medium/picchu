@@ -5,7 +5,7 @@ env:
     - TRAVIS_GO_VERSION=1.22.0
 
 go:
-- 1.22.0
+- "1.22.0"
 
 sudo: required
 
