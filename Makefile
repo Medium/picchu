@@ -159,11 +159,14 @@ mocks: go.sum
 	mockgen --build_flags=--mod=mod -destination=controllers/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/scaling ScalableTarget
 	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
 
-deps: controller-gen kustomize
+deps: gimme controller-gen kustomize
 		go version
 		go mod tidy
 		go mod vendor
 		hack/fix.sh
+
+gimme:
+	eval "$(gimme 1.22.0)"
 
 generators/operator-sdk:
 	@mkdir -p generators
