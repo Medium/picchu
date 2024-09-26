@@ -106,6 +106,7 @@ docker-push:
 # find or download controller-gen
 # download controller-gen if necessary
 controller-gen:
+	shell which controller-gen
 ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e ;\
