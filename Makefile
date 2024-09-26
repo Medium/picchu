@@ -106,20 +106,21 @@ docker-push:
 # find or download controller-gen
 # download controller-gen if necessary
 controller-gen:
-	controller-gen --version
 ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e ;\
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.5.0 ;\
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.10.0 ;\
 	which controller-gen;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
+echo "install $(CONTROLLER_GEN)"
 else
 CONTROLLER_GEN=$(shell which controller-gen)
+echo "not install $(CONTROLLER_GEN)"
 endif
 
 kustomize:
