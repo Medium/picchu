@@ -117,11 +117,10 @@ ifeq (, $(shell which controller-gen))
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
-echo "install $(CONTROLLER_GEN)"
 else
 CONTROLLER_GEN=$(shell which controller-gen)
-echo "not install $(CONTROLLER_GEN)"
 endif
+	echo "install $(CONTROLLER_GEN)"
 
 kustomize:
 ifeq (, $(shell which kustomize))
