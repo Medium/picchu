@@ -160,6 +160,7 @@ mocks: go.sum
 	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
 
 deps: controller-gen kustomize
+		controller-gen --version
 		go version
 		go mod tidy
 		go mod vendor
