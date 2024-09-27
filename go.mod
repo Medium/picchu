@@ -1,6 +1,6 @@
 module go.medium.engineering/picchu
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/kedacore/keda/v2 v2.13.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.31.0
+	github.com/onsi/gomega v1.32.0
 	github.com/practo/k8s-worker-pod-autoscaler v1.6.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.62.0
 	github.com/prometheus/client_golang v1.18.0
@@ -24,9 +24,9 @@ require (
 	golang.org/x/sync v0.6.0
 	istio.io/api v0.0.0-20220322234440-289bfe748e00
 	istio.io/client-go v1.13.2
-	k8s.io/api v0.29.6
-	k8s.io/apimachinery v0.29.6
-	k8s.io/client-go v0.29.6
+	k8s.io/api v0.30.0
+	k8s.io/apimachinery v0.30.0
+	k8s.io/client-go v0.30.0
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/controller-runtime v0.16.3
 )
@@ -40,7 +40,7 @@ require (
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.2 // indirect
 	github.com/evanphx/json-patch v5.8.1+incompatible // indirect
-	github.com/evanphx/json-patch/v5 v5.8.1 // indirect
+	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/expr-lang/expr v1.15.8 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
@@ -89,10 +89,9 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	istio.io/gogo-genproto v0.0.0-20211208193508-5ab4acc9eb1e // indirect
-	k8s.io/apiextensions-apiserver v0.29.0 // indirect
-	k8s.io/component-base v0.29.0 // indirect
-	k8s.io/klog/v2 v2.110.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20240103051144-eec4567ac022 // indirect
+	k8s.io/apiextensions-apiserver v0.30.0 // indirect
+	k8s.io/klog/v2 v2.120.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	knative.dev/pkg v0.0.0-20240116073220-b488e7be5902 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
@@ -103,14 +102,14 @@ replace github.com/prometheus/common => github.com/prometheus/common v0.26.0
 
 replace github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.14.0
 
-replace k8s.io/api => k8s.io/api v0.29.6
+// replace k8s.io/api => k8s.io/api v0.29.6
 
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.29.6
+// replace k8s.io/apimachinery => k8s.io/apimachinery v0.29.6
 
-replace k8s.io/client-go => k8s.io/client-go v0.29.6
+// replace k8s.io/client-go => k8s.io/client-go v0.29.6
 
 // replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.29.6
 
 // replace k8s.io/component-base => k8s.io/component-base v0.26.0
 
-replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.17.0
+replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.18.0
