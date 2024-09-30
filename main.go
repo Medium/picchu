@@ -146,11 +146,8 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: clientgoscheme.Scheme,
 		Metrics: metricsserver.Options{
-			BindAddress: "9443",
+			BindAddress: metricsAddr,
 		},
-		// Port + MetricsBindAddress is removed - will this cause a problem?
-		// MetricsBindAddress: metricsAddr,
-		// Port:             9443,
 		LeaderElection:   enableLeaderElection,
 		LeaderElectionID: "de705aec.picchu.medium.engineering",
 	})
