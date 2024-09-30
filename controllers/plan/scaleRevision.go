@@ -187,7 +187,7 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log lo
 	//If a trigger doesn't have an auth defined, fall back to the identity of the pod.
 	for index, trigger := range p.KedaWorker.Triggers {
 		if trigger.AuthenticationRef == nil {
-			p.KedaWorker.Triggers[index].AuthenticationRef = &kedav1.ScaledObjectAuthRef{
+			p.KedaWorker.Triggers[index].AuthenticationRef = &kedav1.AuthenticationRef{
 				Name: p.Tag,
 			}
 			p.KedaWorker.Triggers[index].Metadata["identityOwner"] = "pod"

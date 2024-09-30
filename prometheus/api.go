@@ -29,8 +29,14 @@ const (
 	TagLabel = "tag"
 )
 
+type apiOptions struct {
+	timeout time.Duration
+}
+
+type Option func(c *apiOptions)
+
 type PromAPI interface {
-	Query(ctx context.Context, query string, ts time.Time) (model.Value, api.Warnings, error)
+	Query(ctx context.Context, query string, ts time.Time, opts ...api.Option) (model.Value, api.Warnings, error)
 }
 
 type AlertQuery struct {
@@ -63,7 +69,7 @@ type API struct {
 
 type noopAPI struct{}
 
-func (a *noopAPI) Query(_ context.Context, _ string, _ time.Time) (model.Value, api.Warnings, error) {
+func (a *noopAPI) Query(_ context.Context, _ string, _ time.Time, _ ...api.Option) (model.Value, api.Warnings, error) {
 	return model.Vector{}, nil, nil
 }
 
