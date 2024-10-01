@@ -1,13 +1,7 @@
 language: go
 
-dist: jammy
-
-env:
-  global:
-    - TRAVIS_GO_VERSION=1.22.0
-
 go:
-- 1.22.0
+- 1.19.x
 
 sudo: required
 

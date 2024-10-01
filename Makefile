@@ -112,7 +112,7 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 ;\
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.5.0 ;\
 	which controller-gen;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
@@ -160,8 +160,6 @@ mocks: go.sum
 	mockgen --build_flags=--mod=mod -destination=plan/mocks/plan_mock.go -package=mocks $(PACKAGE)/plan Plan
 
 deps: controller-gen kustomize
-		controller-gen --version
-		go version
 		go mod tidy
 		go mod vendor
 		hack/fix.sh

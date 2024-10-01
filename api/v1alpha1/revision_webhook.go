@@ -26,7 +26,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -131,25 +130,27 @@ func (r *Revision) getIngressDefaultPortPatches() error {
 var _ webhook.Validator = &Revision{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Revision) ValidateCreate() (admission.Warnings, error) {
+func (r *Revision) ValidateCreate() error {
 	revisionlog.Info("validate create", "name", r.Name)
+
 	// TODO(user): fill in your validation logic upon object creation.
-	return nil, r.validate()
+	return r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Revision) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *Revision) ValidateUpdate(old runtime.Object) error {
 	revisionlog.Info("validate update", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
-	return nil, r.validate()
+	return r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Revision) ValidateDelete() (admission.Warnings, error) {
+func (r *Revision) ValidateDelete() error {
 	revisionlog.Info("validate delete", "name", r.Name)
+
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil, nil
+	return nil
 }
 
 func (r *Revision) validate() error {
