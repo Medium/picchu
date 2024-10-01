@@ -2,8 +2,12 @@ language: go
 
 dist: bionic
 
+env:
+  global:
+    - TRAVIS_GO_VERSION=1.22.0
+
 go:
-- 1.19.13
+- 1.22.0
 
 sudo: required
 
