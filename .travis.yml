@@ -3,7 +3,7 @@ language: go
 dist: bionic
 
 go:
-- 1.19
+- 1.19.13
 
 sudo: required
 
