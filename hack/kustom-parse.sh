@@ -2,7 +2,7 @@
 
 mkdir -p resources
 
-which yq || python3 -m pip install yq
+which yq || pip install yq
 
 pushd resources
 kustomize build ../config/crd | csplit - '/^---$/' {4} 
