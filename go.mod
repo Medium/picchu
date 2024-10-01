@@ -2,8 +2,6 @@ module go.medium.engineering/picchu
 
 go 1.22.0
 
-toolchain go1.22.5
-
 require (
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/go-logr/logr v1.4.1
