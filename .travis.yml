@@ -1,7 +1,7 @@
 language: go
 
 go:
-- 1.19.x
+- 1.19.0
 
 sudo: required
 
