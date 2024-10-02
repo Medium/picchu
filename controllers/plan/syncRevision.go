@@ -23,6 +23,8 @@ import (
 
 const annotationDatadogTolerateUnready = "ad.datadoghq.com/tolerate-unready"
 
+const annotationKarpenterDoNotEvict = "karpenter.sh/do-not-evict"
+
 var (
 	defaultLivenessProbe  *corev1.Probe
 	defaultReadinessProbe *corev1.Probe
@@ -86,6 +88,7 @@ type SyncRevision struct {
 	VolumeMounts        []corev1.VolumeMount
 	Volumes             []corev1.Volume
 	PodDisruptionBudget *policyv1.PodDisruptionBudget
+	DoNotEvict          bool
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -340,6 +343,10 @@ func (p *SyncRevision) syncReplicaSet(
 	}
 
 	template.Annotations[annotationDatadogTolerateUnready] = "true"
+
+	if p.DoNotEvict {
+		template.Annotations[annotationKarpenterDoNotEvict] = "true"
+	}
 
 	scaledReplicas := int32(math.Ceil(float64(p.Replicas) * scalingFactor))
 
