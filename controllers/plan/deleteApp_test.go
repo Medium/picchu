@@ -8,8 +8,8 @@ import (
 	common "go.medium.engineering/picchu/plan/test"
 	"go.medium.engineering/picchu/test"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestDeleteApp(t *testing.T) {

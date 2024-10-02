@@ -10,10 +10,10 @@ import (
 	common "go.medium.engineering/picchu/plan/test"
 	"go.medium.engineering/picchu/test"
 
-	"github.com/golang/mock/gomock"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

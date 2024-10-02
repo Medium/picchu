@@ -86,6 +86,7 @@ func TestDivideReplicasWithScaling(t *T.T) {
 func TestGetFaults(t *T.T) {
 	assert := testify.New(t)
 	log := test.MustNewLogger()
+
 	fixture := &picchuv1alpha1.FaultInjector{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-fault",
@@ -115,7 +116,7 @@ func TestGetFaults(t *T.T) {
 	defer cancel()
 	scheme := runtime.NewScheme()
 	picchuv1alpha1.AddToScheme(scheme)
-	cli := fake.NewFakeClientWithScheme(scheme, fixture)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(fixture).Build()
 	controller := ReleaseManagerReconciler{
 		Client: cli,
 		Scheme: scheme,

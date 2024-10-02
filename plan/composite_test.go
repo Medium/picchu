@@ -11,8 +11,8 @@ import (
 	planmocks "go.medium.engineering/picchu/plan/mocks"
 	"go.medium.engineering/picchu/test"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 var (

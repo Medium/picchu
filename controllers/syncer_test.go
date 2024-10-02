@@ -7,11 +7,11 @@ import (
 
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	rmplan "go.medium.engineering/picchu/controllers/plan"
 	"go.medium.engineering/picchu/test"
+	"go.uber.org/mock/gomock"
 )
 
 const (

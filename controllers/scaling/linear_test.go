@@ -9,8 +9,8 @@ import (
 	"go.medium.engineering/picchu/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/golang/mock/gomock"
 	"go.medium.engineering/picchu/controllers/scaling/mocks"
+	"go.uber.org/mock/gomock"
 )
 
 func TestLinearScaling(t *testing.T) {

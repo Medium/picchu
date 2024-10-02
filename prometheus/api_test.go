@@ -7,10 +7,10 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"go.medium.engineering/picchu/prometheus/mocks"
+	"go.uber.org/mock/gomock"
 )
 
 func TestPrometheusCache(t *testing.T) {
