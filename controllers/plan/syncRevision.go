@@ -11,6 +11,7 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
 
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -86,6 +87,7 @@ type SyncRevision struct {
 	VolumeMounts        []corev1.VolumeMount
 	Volumes             []corev1.Volume
 	PodDisruptionBudget *policyv1.PodDisruptionBudget
+	ExternalSecret      *es.ExternalSecret
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -190,6 +192,26 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 	for i := range configs {
 		config := configs[i]
 		if err := plan.CreateOrUpdate(ctx, log, cli, config); err != nil {
+			return err
+		}
+	}
+
+	if p.ExternalSecret != nil {
+		copy := p.ExternalSecret.DeepCopyObject()
+		resource := copy.(*es.ExternalSecret)
+		resource.ObjectMeta = metav1.ObjectMeta{
+			Name:      resource.Name,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		}
+		envs = append(envs, corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				// reference target secret that the ExternalSecret will generate
+				LocalObjectReference: corev1.LocalObjectReference{Name: resource.Spec.Target.Name},
+			},
+		})
+
+		if err := plan.CreateOrUpdate(ctx, log, cli, copy); err != nil {
 			return err
 		}
 	}
