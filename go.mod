@@ -20,7 +20,7 @@ require (
 	github.com/prometheus/prometheus v0.41.0
 	github.com/slok/sloth v0.11.0
 	github.com/stretchr/testify v1.8.4
-	go.medium.engineering/kubernetes v0.1.7-0.20241107211625-3929f7b93f75
+	go.medium.engineering/kubernetes v0.1.7
 	go.uber.org/mock v0.4.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/sync v0.6.0
