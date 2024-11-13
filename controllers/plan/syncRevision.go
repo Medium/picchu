@@ -87,7 +87,7 @@ type SyncRevision struct {
 	VolumeMounts        []corev1.VolumeMount
 	Volumes             []corev1.Volume
 	PodDisruptionBudget *policyv1.PodDisruptionBudget
-	ExternalSecret      *es.ExternalSecret
+	ExternalSecrets     []es.ExternalSecret
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -196,23 +196,30 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		}
 	}
 
-	if p.ExternalSecret != nil {
-		copy := p.ExternalSecret.DeepCopyObject()
-		resource := copy.(*es.ExternalSecret)
-		resource.ObjectMeta = metav1.ObjectMeta{
-			Name:      resource.Name,
-			Namespace: p.Namespace,
-			Labels:    p.Labels,
+	if p.ExternalSecrets != nil {
+		var externalSecrets []runtime.Object
+		for i := range p.ExternalSecrets {
+			externalSecrets = append(externalSecrets, p.ExternalSecrets[i].DeepCopyObject())
 		}
-		envs = append(envs, corev1.EnvFromSource{
-			SecretRef: &corev1.SecretEnvSource{
-				// reference target secret that the ExternalSecret will generate
-				LocalObjectReference: corev1.LocalObjectReference{Name: resource.Spec.Target.Name},
-			},
-		})
 
-		if err := plan.CreateOrUpdate(ctx, log, cli, copy); err != nil {
-			return err
+		for i := range externalSecrets {
+			externalSecret := externalSecrets[i]
+			resource := externalSecret.(*es.ExternalSecret)
+			resource.ObjectMeta = metav1.ObjectMeta{
+				Name:      resource.Name,
+				Namespace: p.Namespace,
+				Labels:    p.Labels,
+			}
+			envs = append(envs, corev1.EnvFromSource{
+				SecretRef: &corev1.SecretEnvSource{
+					// reference target secret that the ExternalSecret will generate
+					LocalObjectReference: corev1.LocalObjectReference{Name: resource.Spec.Target.Name},
+				},
+			})
+
+			if err := plan.CreateOrUpdate(ctx, log, cli, externalSecret); err != nil {
+				return err
+			}
 		}
 	}
 

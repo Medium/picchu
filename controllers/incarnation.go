@@ -15,6 +15,7 @@ import (
 	"go.medium.engineering/picchu/controllers/utils"
 	"go.medium.engineering/picchu/plan"
 
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
@@ -33,6 +34,7 @@ type Controller interface {
 	getLog() logr.Logger
 	getConfigMaps(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
+	getExternalSecrets(context.Context, *client.ListOptions) ([]es.ExternalSecret, error)
 	liveCount() int
 }
 
@@ -361,6 +363,10 @@ func (i *Incarnation) sync(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	externalSecrets, err := i.controller.getExternalSecrets(ctx, configOpts)
+	if err != nil {
+		return err
+	}
 	configMaps, err := i.controller.getConfigMaps(ctx, configOpts)
 	if err != nil {
 		return err
@@ -399,6 +405,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		EnvVars:            i.target().Env,
 		Volumes:            i.target().Volumes,
 		VolumeMounts:       i.target().VolumeMounts,
+		ExternalSecrets:    append([]es.ExternalSecret{}, externalSecrets...),
 	}
 
 	if !i.isRoutable() {
