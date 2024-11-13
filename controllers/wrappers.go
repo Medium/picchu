@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +15,10 @@ type List interface {
 
 type SecretList struct {
 	Item *corev1.SecretList
+}
+
+type ExternalSecretList struct {
+	Item *es.ExternalSecretList
 }
 
 type ConfigMapList struct {
@@ -32,6 +37,10 @@ func NewSecretList() *SecretList {
 	return &SecretList{&corev1.SecretList{}}
 }
 
+func NewExternalSecretList() *ExternalSecretList {
+	return &ExternalSecretList{&es.ExternalSecretList{}}
+}
+
 func NewConfigMapList() *ConfigMapList {
 	return &ConfigMapList{&corev1.ConfigMapList{}}
 }
@@ -45,6 +54,13 @@ func NewHorizontalPodAutoscalerList() *HorizontalPodAutoscalerList {
 }
 
 func (s *SecretList) GetItems() (r []runtime.Object) {
+	for _, i := range s.Item.Items {
+		r = append(r, &i)
+	}
+	return
+}
+
+func (s *ExternalSecretList) GetItems() (r []runtime.Object) {
 	for _, i := range s.Item.Items {
 		r = append(r, &i)
 	}
@@ -73,6 +89,10 @@ func (s *HorizontalPodAutoscalerList) GetItems() (r []runtime.Object) {
 }
 
 func (s *SecretList) GetList() (r runtime.Object) {
+	return s.Item
+}
+
+func (s *ExternalSecretList) GetList() (r runtime.Object) {
 	return s.Item
 }
 
