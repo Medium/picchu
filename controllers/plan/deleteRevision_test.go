@@ -48,15 +48,6 @@ func TestDeleteRevision(t *testing.T) {
 		},
 	}
 
-	externalSecrets := []es.ExternalSecret{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testsecret",
-				Namespace: "testnamespace",
-			},
-		},
-	}
-
 	configMaps := []corev1.ConfigMap{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -111,14 +102,18 @@ func TestDeleteRevision(t *testing.T) {
 		},
 	}
 
+	externalSecrets := []es.ExternalSecret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testexternalsecret",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
 	m.
 		EXPECT().
 		List(ctx, mocks.InjectSecrets(secrets), mocks.ListOptions(opts)).
-		Return(nil).
-		Times(1)
-	m.
-		EXPECT().
-		List(ctx, mocks.InjectExternalSecrets(externalSecrets), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
@@ -149,6 +144,11 @@ func TestDeleteRevision(t *testing.T) {
 	m.
 		EXPECT().
 		List(ctx, mocks.InjectKedaAuths(kedaAuths), mocks.ListOptions(opts)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		List(ctx, mocks.InjectExternalSecrets(externalSecrets), mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
@@ -184,6 +184,11 @@ func TestDeleteRevision(t *testing.T) {
 	m.
 		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testkedatriggerauth")).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.NamespacedName("testnamespace", "testexternalsecret")).
 		Return(nil).
 		Times(1)
 
