@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	test2 "go.medium.engineering/kubernetes/pkg/test"
 	coreAsserts "go.medium.engineering/kubernetes/pkg/test/core/v1"
+	externalSecretAsserts "go.medium.engineering/kubernetes/pkg/test/external-secrets/externalsecrets/v1beta1"
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	picchuScheme "go.medium.engineering/picchu/client/scheme"
 	"go.medium.engineering/picchu/test"
@@ -22,7 +24,9 @@ var (
 
 func init() {
 	core.AddToScheme(picchuScheme.Scheme)
+	es.AddToScheme(picchuScheme.Scheme)
 	coreAsserts.RegisterAsserts(comparator)
+	externalSecretAsserts.RegisterAsserts(comparator)
 }
 
 func TestIgnore(t *testing.T) {
@@ -106,6 +110,138 @@ func TestIgnore(t *testing.T) {
 					"name": []byte("robert"),
 				},
 				Type: "Opaque",
+			},
+		},
+		{
+			Name: "UpdateExternalSecret",
+			Existing: &es.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: es.ExternalSecretSpec{
+					SecretStoreRef: es.SecretStoreRef{
+						Name: "app-cluster-secretstore",
+						Kind: "ClusterSecretStore",
+					},
+					Target: es.ExternalSecretTarget{
+						Name: "test",
+					},
+					DataFrom: []es.ExternalSecretDataFromRemoteRef{
+						{
+							Extract: &es.ExternalSecretDataRemoteRef{Key: "test-single-secret"},
+						},
+					},
+				},
+			},
+			Updated: &es.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: es.ExternalSecretSpec{
+					SecretStoreRef: es.SecretStoreRef{
+						Name: "app-cluster-secretstore",
+						Kind: "ClusterSecretStore",
+					},
+					Target: es.ExternalSecretTarget{
+						Name: "test",
+					},
+					DataFrom: []es.ExternalSecretDataFromRemoteRef{
+						{
+							Extract: &es.ExternalSecretDataRemoteRef{Key: "test-multiple-secrets"},
+						},
+					},
+				},
+			},
+			Expected: &es.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: es.ExternalSecretSpec{
+					SecretStoreRef: es.SecretStoreRef{
+						Name: "app-cluster-secretstore",
+						Kind: "ClusterSecretStore",
+					},
+					Target: es.ExternalSecretTarget{
+						Name: "test",
+					},
+					DataFrom: []es.ExternalSecretDataFromRemoteRef{
+						{
+							Extract: &es.ExternalSecretDataRemoteRef{Key: "test-multiple-secrets"},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "IgnoreExternalSecret",
+			Existing: &es.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+					Labels: map[string]string{
+						picchu.LabelIgnore: "",
+					},
+				},
+				Spec: es.ExternalSecretSpec{
+					SecretStoreRef: es.SecretStoreRef{
+						Name: "app-cluster-secretstore",
+						Kind: "ClusterSecretStore",
+					},
+					Target: es.ExternalSecretTarget{
+						Name: "test",
+					},
+					DataFrom: []es.ExternalSecretDataFromRemoteRef{
+						{
+							Extract: &es.ExternalSecretDataRemoteRef{Key: "test-single-secret"},
+						},
+					},
+				},
+			},
+			Updated: &es.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: es.ExternalSecretSpec{
+					SecretStoreRef: es.SecretStoreRef{
+						Name: "app-cluster-secretstore",
+						Kind: "ClusterSecretStore",
+					},
+					Target: es.ExternalSecretTarget{
+						Name: "test",
+					},
+					DataFrom: []es.ExternalSecretDataFromRemoteRef{
+						{
+							Extract: &es.ExternalSecretDataRemoteRef{Key: "test-multiple-secrets"},
+						},
+					},
+				},
+			},
+			Expected: &es.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+					Labels: map[string]string{
+						picchu.LabelIgnore: "",
+					},
+				},
+				Spec: es.ExternalSecretSpec{
+					SecretStoreRef: es.SecretStoreRef{
+						Name: "app-cluster-secretstore",
+						Kind: "ClusterSecretStore",
+					},
+					Target: es.ExternalSecretTarget{
+						Name: "test",
+					},
+					DataFrom: []es.ExternalSecretDataFromRemoteRef{
+						{
+							Extract: &es.ExternalSecretDataRemoteRef{Key: "test-single-secret"},
+						},
+					},
+				},
 			},
 		},
 		{

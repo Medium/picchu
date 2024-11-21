@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -469,6 +470,16 @@ func (r *RevisionReconciler) mirrorRevision(
 			log.Error(err, "Failed to sync target secrets")
 			return err
 		}
+		externalSecretList := &es.ExternalSecretList{}
+		log.Info("Listing ExternalSecrets")
+		if err := r.Client.List(ctx, externalSecretList, opts); err != nil {
+			log.Error(err, "Failed to list target ExternalSecrets")
+			return err
+		}
+		if err := r.copyExternalSecretList(ctx, log, remoteClient, externalSecretList); err != nil {
+			log.Error(err, "Failed to sync target ExternalSecrets")
+			return err
+		}
 	}
 
 	log.Info("Copying additional configs", "Count", len(mirror.Spec.AdditionalConfigSelectors))
@@ -590,6 +601,35 @@ func (r *RevisionReconciler) copySecretList(
 		}
 		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, secret, func() error {
 			secret.Data = orig.Data
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *RevisionReconciler) copyExternalSecretList(
+	ctx context.Context,
+	log logr.Logger,
+	remoteClient client.Client,
+	externalSecretList *es.ExternalSecretList,
+) error {
+	log.Info("Syncing ExternalSecrets", "ExternalSecrets", externalSecretList.Items)
+	for i := range externalSecretList.Items {
+		orig := externalSecretList.Items[i]
+		externalSecret := &es.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: orig.Annotations,
+				Name:        orig.Name,
+				Namespace:   orig.Namespace,
+				Labels:      orig.Labels,
+			},
+			Spec: orig.Spec,
+		}
+		_, err := controllerutil.CreateOrUpdate(ctx, remoteClient, externalSecret, func() error {
+			externalSecret.Spec = orig.Spec
 			return nil
 		})
 		if err != nil {

@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/golang/mock/gomock"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
@@ -23,6 +24,20 @@ func InjectSecrets(secrets []corev1.Secret) gomock.Matcher {
 		}
 	}
 	return Callback(fn, "injects secrets")
+}
+
+// InjectExternalSecrets puts ExternalSecrets into an *ExternalSecretList
+func InjectExternalSecrets(externalSecrets []es.ExternalSecret) gomock.Matcher {
+	fn := func(x interface{}) bool {
+		switch o := x.(type) {
+		case *es.ExternalSecretList:
+			o.Items = append(o.Items, externalSecrets...)
+			return true
+		default:
+			return false
+		}
+	}
+	return Callback(fn, "injects ExternalSecrets")
 }
 
 // InjectConfigMaps puts configmaps into a *ConfigMapList

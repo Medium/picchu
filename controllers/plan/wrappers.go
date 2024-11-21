@@ -1,6 +1,7 @@
 package plan
 
 import (
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,6 +17,10 @@ type List interface {
 
 type SecretList struct {
 	Item *corev1.SecretList
+}
+
+type ExternalSecretList struct {
+	Item *es.ExternalSecretList
 }
 
 type ConfigMapList struct {
@@ -46,6 +51,10 @@ func NewSecretList() *SecretList {
 	return &SecretList{&corev1.SecretList{}}
 }
 
+func NewExternalSecretList() *ExternalSecretList {
+	return &ExternalSecretList{&es.ExternalSecretList{}}
+}
+
 func NewConfigMapList() *ConfigMapList {
 	return &ConfigMapList{&corev1.ConfigMapList{}}
 }
@@ -71,6 +80,13 @@ func NewKedaAuthList() *KedaAuthList {
 }
 
 func (s *SecretList) GetItems() (r []client.Object) {
+	for _, i := range s.Item.Items {
+		r = append(r, &i)
+	}
+	return
+}
+
+func (s *ExternalSecretList) GetItems() (r []client.Object) {
 	for _, i := range s.Item.Items {
 		r = append(r, &i)
 	}
@@ -120,6 +136,10 @@ func (s *KedaAuthList) GetItems() (r []client.Object) {
 }
 
 func (s *SecretList) GetList() (r client.ObjectList) {
+	return s.Item
+}
+
+func (s *ExternalSecretList) GetList() (r client.ObjectList) {
 	return s.Item
 }
 

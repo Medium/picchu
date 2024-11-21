@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 	"go.medium.engineering/picchu/plan"
@@ -81,6 +82,27 @@ func (i *IncarnationController) getSecrets(ctx context.Context, opts *client.Lis
 			},
 			Type: item.Type,
 			Data: item.Data,
+		})
+	}
+	return list, err
+}
+
+func (i *IncarnationController) getExternalSecrets(ctx context.Context, opts *client.ListOptions) ([]es.ExternalSecret, error) {
+	externalSecretList := &es.ExternalSecretList{}
+	err := i.deliveryClient.List(ctx, externalSecretList, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	list := []es.ExternalSecret{}
+	for i := range externalSecretList.Items {
+		item := externalSecretList.Items[i]
+		list = append(list, es.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: item.Labels,
+				Name:   item.Name,
+			},
+			Spec: item.Spec,
 		})
 	}
 	return list, err

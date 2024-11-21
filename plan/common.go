@@ -8,6 +8,7 @@ import (
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
@@ -300,6 +301,29 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, secret)
+		if err != nil {
+			return err
+		}
+		//add case for ExternalSecret
+	case *es.ExternalSecret:
+		typed := orig.DeepCopy()
+		externalSecret := &es.ExternalSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, externalSecret, func() error {
+			if isIgnored(externalSecret.ObjectMeta) {
+				kind := utils.MustGetKind(externalSecret).Kind
+				log.Info("Resource is ignored", "namespace", externalSecret.Namespace, "name", externalSecret.Name, "kind", kind)
+				return nil
+			}
+			externalSecret.Spec = typed.Spec
+			externalSecret.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, externalSecret)
 		if err != nil {
 			return err
 		}

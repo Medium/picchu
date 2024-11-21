@@ -7,6 +7,7 @@ import (
 	"go.medium.engineering/picchu/mocks"
 	"go.medium.engineering/picchu/test"
 
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
@@ -101,6 +102,15 @@ func TestDeleteRevision(t *testing.T) {
 		},
 	}
 
+	externalSecrets := []es.ExternalSecret{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testexternalsecret",
+				Namespace: "testnamespace",
+			},
+		},
+	}
+
 	m.
 		EXPECT().
 		List(ctx, mocks.InjectSecrets(secrets), mocks.ListOptions(opts)).
@@ -138,6 +148,11 @@ func TestDeleteRevision(t *testing.T) {
 		Times(1)
 	m.
 		EXPECT().
+		List(ctx, mocks.InjectExternalSecrets(externalSecrets), mocks.ListOptions(opts)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testsecret")).
 		Return(nil).
 		Times(1)
@@ -169,6 +184,11 @@ func TestDeleteRevision(t *testing.T) {
 	m.
 		EXPECT().
 		Delete(ctx, mocks.NamespacedName("testnamespace", "testkedatriggerauth")).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		Delete(ctx, mocks.NamespacedName("testnamespace", "testexternalsecret")).
 		Return(nil).
 		Times(1)
 

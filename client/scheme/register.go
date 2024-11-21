@@ -6,6 +6,7 @@
 package scheme
 
 import (
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -39,6 +40,7 @@ var AddToScheme = localSchemeBuilder.AddToScheme
 
 func init() {
 	v1.AddToGroupVersion(Scheme, schema.GroupVersion{Version: "v1"})
+	es.AddToScheme(Scheme)
 	utilruntime.Must(AddToScheme(Scheme))
 
 }
