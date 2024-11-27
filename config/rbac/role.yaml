@@ -91,3 +91,17 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - "external-secrets.io"
+  resources:
+  - "clustersecretstores"
+  - "externalsecrets"
+  - "externalsecrets/status"
+  - "externalsecrets/finalizers"
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
