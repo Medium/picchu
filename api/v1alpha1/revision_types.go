@@ -142,6 +142,24 @@ type SLICanaryConfig struct {
 	FailAfter              string  `json:"failAfter,omitempty"`
 }
 
+// ddog specific slos
+type DDogServiceLevelObjective struct {
+	Name            string              `json:"name,omitempty"`
+	Description     string              `json:"description,omitempty"`
+	Tags            []string            `json:"tags,omitempty"`
+	TargetThreshold string              `json:"targetThreshold,omitempty"`
+	Timeframe       string              `json:"timeframe,omitempty"`
+	Type            string              `json:"type,omitempty"`
+	Canary          DDogSLICanaryConfig `json:"canary,omitempty"`
+}
+
+type DDogSLICanaryConfig struct {
+	Enabled                bool    `json:"enabled"`
+	AllowancePercentString string  `json:"allowancePercentString,omitempty"`
+	AllowancePercent       float64 `json:"allowancePercent,omitempty"`
+	FailAfter              string  `json:"failAfter,omitempty"`
+}
+
 type ServiceMonitor struct {
 	Name string `json:"name"`
 	// if true, and the Spec.Endpoints.MetricRelabelConfigs does not specify a regex, will replace the regex with a list of SLO metric names
