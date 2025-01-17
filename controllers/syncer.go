@@ -30,15 +30,16 @@ type Incarnations interface {
 }
 
 type ResourceSyncer struct {
-	deliveryClient client.Client
-	planApplier    plan.Applier
-	observer       observe.Observer
-	instance       *picchuv1alpha1.ReleaseManager
-	incarnations   Incarnations
-	reconciler     *ReleaseManagerReconciler
-	log            logr.Logger
-	picchuConfig   utils.Config
-	faults         []picchuv1alpha1.HTTPPortFault
+	deliveryClient  client.Client
+	deliveryApplier plan.Applier
+	planApplier     plan.Applier
+	observer        observe.Observer
+	instance        *picchuv1alpha1.ReleaseManager
+	incarnations    Incarnations
+	reconciler      *ReleaseManagerReconciler
+	log             logr.Logger
+	picchuConfig    utils.Config
+	faults          []picchuv1alpha1.HTTPPortFault
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {
@@ -65,6 +66,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 		return
 	}
 	if err = r.syncServiceMonitors(ctx); err != nil {
+		return
+	}
+	if err = r.syncServiceLevels(ctx); err != nil {
 		return
 	}
 	if err = r.syncSLORules(ctx); err != nil {
@@ -110,6 +114,10 @@ func (r *ResourceSyncer) del(ctx context.Context) error {
 	return r.applyPlan(ctx, "Delete App", &rmplan.DeleteApp{
 		Namespace: r.instance.TargetNamespace(),
 	})
+}
+
+func (r *ResourceSyncer) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
+	return r.deliveryApplier.Apply(ctx, p)
 }
 
 func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan) error {
@@ -300,6 +308,18 @@ func (r *ResourceSyncer) syncServiceMonitors(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (r *ResourceSyncer) delServiceLevels(ctx context.Context) error {
+	return r.applyPlan(ctx, "Delete App ServiceLevels", &rmplan.DeleteServiceLevels{
+		App:       r.instance.Spec.App,
+		Target:    r.instance.Spec.Target,
+		Namespace: r.picchuConfig.ServiceLevelsNamespace,
+	})
+}
+
+func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
+	return r.delServiceLevels(ctx)
 }
 
 func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {

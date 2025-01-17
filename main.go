@@ -75,6 +75,8 @@ func main() {
 	prometheusEnabled := flag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
 	serviceLevelsNamespace := flag.String("service-levels-namespace", "service-level-objectives", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
 	serviceLevelsFleet := flag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
+	datadogSLONamespace := flag.String("datadog-slo-namespace", "datadog", "The namespace to use when creating DatadogSLO resources in the delivery cluster")
+	datadogSLOsFleet := flag.String("datadog-slo-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 	concurrentRevisions := flag.Int("concurrent-revisions", 20, "How many concurrent revisions to reconcile")
 	concurrentReleaseManagers := flag.Int("concurrent-release-managers", 50, "How many concurrent release managers to reconcile")
 	devRoutesServiceHost := flag.String("dev-routes-service-host", "", "Configures the dev routes service host, if cluster dev routes are enabled")
@@ -97,6 +99,8 @@ func main() {
 		PrometheusQueryTTL:        *prometheusQueryTTL,
 		ServiceLevelsNamespace:    *serviceLevelsNamespace,
 		ServiceLevelsFleet:        *serviceLevelsFleet,
+		DatadogSLONamespace:       *datadogSLONamespace,
+		DatadogSLOsFleet:          *datadogSLOsFleet,
 		ConcurrentRevisions:       *concurrentRevisions,
 		ConcurrentReleaseManagers: *concurrentReleaseManagers,
 		DevRoutesServiceHost:      *devRoutesServiceHost,

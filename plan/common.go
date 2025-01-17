@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 
@@ -500,6 +501,29 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, pdb)
+		if err != nil {
+			return err
+		}
+	case *ddog.DatadogSLO:
+		typed := orig.DeepCopy()
+		ddogslo := &ddog.DatadogSLO{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, ddogslo, func() error {
+			if isIgnored(ddogslo.ObjectMeta) {
+				kind := utils.MustGetKind(ddogslo).Kind
+				log.Info("Resource is ignored", "namespace", ddogslo.Namespace, "name", ddogslo.Name, "kind", kind)
+				return nil
+			}
+			ddogslo.Spec = typed.Spec
+			// idk about labels
+			ddogslo.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, ddogslo)
 		if err != nil {
 			return err
 		}

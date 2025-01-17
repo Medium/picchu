@@ -793,7 +793,9 @@ type responses struct {
 	syncCanaryRules           error
 	deleteCanaryRules         error
 	syncTaggedServiceLevels   error
+	syncDatadogSLOs           error
 	deleteTaggedServiceLevels error
+	deleteDatadogSLOs         error
 	isTimingOut               bool
 	isExpired                 bool
 }
