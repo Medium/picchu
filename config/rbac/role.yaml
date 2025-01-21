@@ -2,7 +2,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: picchu-manager-role
 rules:
 - apiGroups:
@@ -11,6 +10,50 @@ rules:
   - leases
   verbs:
   - '*'
+- apiGroups:
+  - external-secrets.io
+  resources:
+  - clustersecretstores
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - external-secrets.io
+  resources:
+  - externalsecrets
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - external-secrets.io
+  resources:
+  - externalsecrets/finalizers
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - external-secrets.io
+  resources:
+  - externalsecrets/status
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - picchu.medium.engineering
   resources:
@@ -91,17 +134,3 @@ rules:
   - get
   - patch
   - update
-- apiGroups:
-  - "external-secrets.io"
-  resources:
-  - "clustersecretstores"
-  - "externalsecrets"
-  - "externalsecrets/status"
-  - "externalsecrets/finalizers"
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch

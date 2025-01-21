@@ -143,43 +143,6 @@ type SLICanaryConfig struct {
 	FailAfter              string  `json:"failAfter,omitempty"`
 }
 
-// apiVersion: datadoghq.com/v1alpha1
-// kind: DatadogSLO
-// metadata:
-//   name: example-slo
-//   namespace: system
-// spec:
-//   name: example-slo
-//   description: "This is an example metric SLO from datadog-operator"
-//   query:
-//     denominator: "sum:requests.total{service:example,env:prod}.as_count()"
-//     numerator: "sum:requests.success{service:example,env:prod}.as_count()"
-//   tags:
-//     - "service:example"
-//     - "env:prod"
-//   targetThreshold: "99.9"
-//   timeframe: "7d"
-//   type: "metric"
-
-// in echo?
-// ddogslo:
-// enabled: true
-// objectives:
-//   - name: example-slo-monitor3
-// 	description: "This is an example monitor SLO from datadog-operator"
-//   query:
-//     denominator: "sum:requests.total{service:example,env:prod}.as_count()"
-//     numerator: "sum:requests.success{service:example,env:prod}.as_count()"
-// 	tags:
-// 	  - "service:example"
-// 	  - "env:prod"
-// 	targetThreshold: "99.9"
-// 	timeframe: "7d"
-// 	type: "monitor"
-// 	canary:
-// 	  enabled: true
-// 	  allowancePercent: 1
-
 // ddog specific slos
 type DatadogSLO struct {
 	Name            string                 `json:"name,omitempty"`

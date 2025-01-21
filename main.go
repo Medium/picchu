@@ -21,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -127,6 +128,7 @@ func main() {
 		istio.AddToScheme,
 		monitoring.AddToScheme,
 		slo.AddToScheme,
+		ddogv1alpha1.AddToScheme,
 		kedav1.AddToScheme,
 		wpav1.AddToScheme,
 		apis.AddToScheme,

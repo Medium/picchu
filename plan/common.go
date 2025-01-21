@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 
@@ -504,9 +504,9 @@ func CreateOrUpdate(
 		if err != nil {
 			return err
 		}
-	case *ddog.DatadogSLO:
+	case *ddogv1alpha1.DatadogSLO:
 		typed := orig.DeepCopy()
-		ddogslo := &ddog.DatadogSLO{
+		ddogslo := &ddogv1alpha1.DatadogSLO{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      typed.Name,
 				Namespace: typed.Namespace,
@@ -528,7 +528,7 @@ func CreateOrUpdate(
 			return err
 		}
 	default:
-		return fmt.Errorf("Unsupported type")
+		return fmt.Errorf("unsupported type")
 	}
 	return nil
 }
