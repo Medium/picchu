@@ -473,7 +473,7 @@ func (i *Incarnation) deleteDatadogSLOs(ctx context.Context) error {
 			},
 		)
 	}
-	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping DeleteTaggedServiceLevels")
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteTaggedServiceLevels")
 	return nil
 }
 

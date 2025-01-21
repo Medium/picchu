@@ -68,27 +68,14 @@ func (p *SyncDatadogSLOs) datadogSLOs() (ddog.DatadogSLOList, error) {
 
 // returns individual ddog slo object
 func (p *SyncDatadogSLOs) ddogSLO(ddogSLO *picchuv1alpha1.DatadogSLO) *ddog.DatadogSLO {
-	// labels := make(map[string]string)
-
-	// for k, v := range sm.Labels {
-	// 	labels[k] = v
-	// }
-
-	// annotations := make(map[string]string)
-
-	// for k, v := range sm.Annotations {
-	// 	annotations[k] = v
-	// }
-
 	newDdogSLO := &ddog.DatadogSLO{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.taggedDatadogSLOName(ddogSLO.Name),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
-			// Annotations: annotations,
 		},
 		Spec: ddog.DatadogSLOSpec{
-			Name:        p.taggedDatadogSLOName(ddogSLO.Name),
+			Name:        ddogSLO.Name,
 			Description: &ddogSLO.Description,
 			Query: &ddog.DatadogSLOQuery{
 				Numerator:   ddogSLO.Query.Numerator,
@@ -99,33 +86,9 @@ func (p *SyncDatadogSLOs) ddogSLO(ddogSLO *picchuv1alpha1.DatadogSLO) *ddog.Data
 			TargetThreshold: resource.MustParse("99.9"),
 		},
 	}
-
-	// newDdogSLO.Spec.Description = &ddogSLO.Description
-	// // whats the timeframe
-	// newDdogSLO.Spec.Timeframe = ddog.DatadogSLOTimeFrame7d
-
-	// // hard set metric for now
-	// newDdogSLO.Spec.Type = ddog.DatadogSLOTypeMetric
-	// // idk
-	// newDdogSLO.Spec.TargetThreshold = resource.MustParse("99.9")
-
-	// // denominator: "sum:requests.total{service:example,env:prod}.as_count()"
-	// // numerator: "sum:requests.success{service:example,env:prod}.as_count()"
-
-	// // EXAMPLE: per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local, reporter:destination} by {destination_version}.as_rate())
-	// // should we infer the destination_service from the target?? no itll be in the query duh
-	// // its all going to delivery
-	// // destination_version is the tag - we dont need to know this
-	// log.Info("ddogSLO.Query", "ddogSLO.Query", ddogSLO.Query)
-	// log.Info("ddogSLO.Query.Denom", "ddogSLO.Query.Denom", ddogSLO.Query.Denominator)
-	// newDdogSLO.Spec.Query.Denominator = ddogSLO.Query.Denominator
-	// log.Info("newDdogSLO.Spec.Query.Denominator ", "newDdogSLO.Spec.Query.Denominator ", newDdogSLO.Spec.Query.Denominator)
-	// newDdogSLO.Spec.Query.Numerator = ddogSLO.Query.Numerator
-
-	// ignore canary for now
-
 	newDdogSLO.Spec.Tags = append(newDdogSLO.Spec.Tags, ddogSLO.Tags...)
 
+	// ignore canary for now
 	return newDdogSLO
 }
 

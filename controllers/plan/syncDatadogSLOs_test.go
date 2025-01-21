@@ -25,12 +25,12 @@ var (
 		Target:    "prod",
 		Namespace: "datadog",
 		Tag:       "main-123",
-		// Labels: map[string]string{
-		// 	picchuv1alpha1.LabelApp:        "test-app",
-		// 	picchuv1alpha1.LabelTag:        "v1",
-		// 	picchuv1alpha1.LabelK8sName:    "test-app",
-		// 	picchuv1alpha1.LabelK8sVersion: "v1",
-		// },
+		Labels: map[string]string{
+			picchuv1alpha1.LabelApp:        "echo",
+			picchuv1alpha1.LabelTag:        "main-123",
+			picchuv1alpha1.LabelK8sName:    "echo",
+			picchuv1alpha1.LabelK8sVersion: "main-123",
+		},
 		DatadogSLOs: []*picchuv1alpha1.DatadogSLO{
 			{
 				Name:        "slo1",
@@ -74,12 +74,15 @@ var (
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
 					Name:      "echo-prod-main-123-slo1-datadogSLO",
 					Namespace: "datadog",
-					// Labels: map[string]string{
-					// 	"test": "test",
-					// },
+					Labels: map[string]string{
+						picchuv1alpha1.LabelApp:        "echo",
+						picchuv1alpha1.LabelTag:        "main-123",
+						picchuv1alpha1.LabelK8sName:    "echo",
+						picchuv1alpha1.LabelK8sVersion: "main-123",
+					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "echo-prod-main-123-slo1-datadogSLO",
+					Name:        "slo1",
 					Description: &descrption_one,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "sum:requests.success{service:example,env:prod}.as_count()",
@@ -99,12 +102,15 @@ var (
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
 					Name:      "echo-prod-main-123-slo2-datadogSLO",
 					Namespace: "datadog",
-					// Labels: map[string]string{
-					// 	"test": "test",
-					// },
+					Labels: map[string]string{
+						picchuv1alpha1.LabelApp:        "echo",
+						picchuv1alpha1.LabelTag:        "main-123",
+						picchuv1alpha1.LabelK8sName:    "echo",
+						picchuv1alpha1.LabelK8sVersion: "main-123",
+					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "echo-prod-main-123-slo2-datadogSLO",
+					Name:        "slo2",
 					Description: &descrption_two,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "sum:requests.success{service:example,env:prod}.as_count()",
