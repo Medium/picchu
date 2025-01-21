@@ -24,7 +24,7 @@ type SyncDatadogSLOs struct {
 	// do we need the tag? prob
 	Tag string
 	// idk labels
-	// Labels                      map[string]string
+	Labels      map[string]string
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
 }
 
@@ -84,7 +84,7 @@ func (p *SyncDatadogSLOs) ddogSLO(ddogSLO *picchuv1alpha1.DatadogSLO) *ddog.Data
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.taggedDatadogSLOName(ddogSLO.Name),
 			Namespace: p.Namespace,
-			// Labels:      labels,
+			Labels:    p.Labels,
 			// Annotations: annotations,
 		},
 		Spec: ddog.DatadogSLOSpec{

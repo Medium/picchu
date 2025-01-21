@@ -453,7 +453,7 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 			Namespace:   i.picchuConfig.DatadogSLONamespace,
 			Tag:         i.tag,
 			DatadogSLOs: i.target().DatadogSLOs,
-			// Labels:                      i.defaultLabels(),
+			Labels:      i.defaultLabels(),
 		})
 	}
 	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping SyncDatadogSLOs")
