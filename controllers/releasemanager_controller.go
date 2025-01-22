@@ -144,7 +144,6 @@ type ReleaseManagerReconciler struct {
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=releasemanagers/status,verbs=get;update;patch
 
 func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	start := time.Now()
 	traceID := uuid.New().String()
 	_ = context.Background()
@@ -208,9 +207,9 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return r.requeue(rmLog, err)
 	}
 
-	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.Config.ServiceLevelsFleet)
+	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.Config.DatadogSLOsFleet)
 	if err != nil {
-		return r.requeue(rmLog, fmt.Errorf("failed to get delivery clusters for fleet %s: %w", r.Config.ServiceLevelsFleet, err))
+		return r.requeue(rmLog, fmt.Errorf("failed to get delivery clusters for fleet %s: %w", r.Config.DatadogSLOsFleet, err))
 	}
 	deliveryClusterInfo := ClusterInfoList{}
 	for _, cluster := range deliveryClusters {
@@ -305,11 +304,6 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		return r.requeue(rmLog, nil)
 	} else if !rm.IsFinalized() {
-		rmLog.Info("Deleting ServiceLevels")
-		if err := syncer.delServiceLevels(ctx); err != nil {
-			return r.requeue(rmLog, err)
-		}
-
 		rmLog.Info("Deleting releasemanager")
 		if err := syncer.del(ctx); err != nil {
 			return r.requeue(rmLog, err)
