@@ -435,10 +435,9 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
-// aways applied to cluster delivery namespace datadog
 func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
-		// ALWAYS delivery cluster
+		// only applied to the delivery cluster
 		err := i.controller.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
 			Name: i.picchuConfig.ServiceLevelsNamespace,
 		})
@@ -449,7 +448,7 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
 			App:    i.appName(),
 			Target: i.targetName(),
-			// ALWAYS datadog namespace
+			// only applied to the datadog namespace
 			Namespace:   i.picchuConfig.DatadogSLONamespace,
 			Tag:         i.tag,
 			DatadogSLOs: i.target().DatadogSLOs,

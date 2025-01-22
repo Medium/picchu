@@ -13,12 +13,10 @@ import (
 )
 
 type DeleteDatadogSLOs struct {
-	App string
-	// we need the target to know what the query should be?
+	App       string
 	Target    string
 	Namespace string
-	// do we need the tag??
-	Tag string
+	Tag       string
 }
 
 func (p *DeleteDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {

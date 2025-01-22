@@ -14,16 +14,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// we need to apply each individual datadogSLO object
 type SyncDatadogSLOs struct {
-	App string
-	// we need the target to know what the query should be?
+	App    string
 	Target string
 	// the namesapce is ALWAYS datadog
-	Namespace string
-	// do we need the tag? prob
-	Tag string
-	// idk labels
+	Namespace   string
+	Tag         string
 	Labels      map[string]string
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
 }
@@ -45,15 +41,8 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 	return nil
 }
 
-// returns list of ddog slos
 func (p *SyncDatadogSLOs) datadogSLOs() (ddog.DatadogSLOList, error) {
-	// names, err := p.parseMetricNames()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// metricNamesRegex := strings.Join(names, "|")
-
-	// idk whats up with the pointers bro fix this
+	// create a new list of datadog slos
 	ddogSLOList := ddog.DatadogSLOList{}
 	var ddogSlOs []ddog.DatadogSLO
 
@@ -92,7 +81,7 @@ func (p *SyncDatadogSLOs) ddogSLO(ddogSLO *picchuv1alpha1.DatadogSLO) *ddog.Data
 	return newDdogSLO
 }
 
-// YO this needs to be the name of the slo not the app
 func (p *SyncDatadogSLOs) taggedDatadogSLOName(sloName string) string {
+	// example: echo-production-main-123-example-slo-monitor3-datadogslo
 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
 }
