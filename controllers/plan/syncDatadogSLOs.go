@@ -26,7 +26,6 @@ type SyncDatadogSLOs struct {
 
 func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	datadogSLOs, err := p.datadogSLOs()
-	log.Info("datadogSLOs", "datadogSLOs", datadogSLOs)
 	if err != nil {
 		return err
 	}
