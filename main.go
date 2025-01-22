@@ -21,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -75,6 +76,8 @@ func main() {
 	prometheusEnabled := flag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
 	serviceLevelsNamespace := flag.String("service-levels-namespace", "service-level-objectives", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
 	serviceLevelsFleet := flag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
+	datadogSLONamespace := flag.String("datadog-slo-namespace", "datadog", "The namespace to use when creating DatadogSLO resources in the delivery cluster")
+	datadogSLOsFleet := flag.String("datadog-slo-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 	concurrentRevisions := flag.Int("concurrent-revisions", 20, "How many concurrent revisions to reconcile")
 	concurrentReleaseManagers := flag.Int("concurrent-release-managers", 50, "How many concurrent release managers to reconcile")
 	devRoutesServiceHost := flag.String("dev-routes-service-host", "", "Configures the dev routes service host, if cluster dev routes are enabled")
@@ -97,6 +100,8 @@ func main() {
 		PrometheusQueryTTL:        *prometheusQueryTTL,
 		ServiceLevelsNamespace:    *serviceLevelsNamespace,
 		ServiceLevelsFleet:        *serviceLevelsFleet,
+		DatadogSLONamespace:       *datadogSLONamespace,
+		DatadogSLOsFleet:          *datadogSLOsFleet,
 		ConcurrentRevisions:       *concurrentRevisions,
 		ConcurrentReleaseManagers: *concurrentReleaseManagers,
 		DevRoutesServiceHost:      *devRoutesServiceHost,
@@ -123,6 +128,7 @@ func main() {
 		istio.AddToScheme,
 		monitoring.AddToScheme,
 		slo.AddToScheme,
+		ddogv1alpha1.AddToScheme,
 		kedav1.AddToScheme,
 		wpav1.AddToScheme,
 		apis.AddToScheme,

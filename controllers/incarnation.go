@@ -29,6 +29,7 @@ import (
 type Controller interface {
 	expectedTotalReplicas(count int32, percent int32) int32
 	applyPlan(context.Context, string, plan.Plan) error
+	applyDeliveryPlan(context.Context, string, plan.Plan) error
 	divideReplicas(count int32, percent int32) int32
 	getReleaseManager() *picchuv1alpha1.ReleaseManager
 	getLog() logr.Logger
@@ -432,6 +433,47 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
 	})
+}
+
+func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
+	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
+		// only applied to the delivery cluster
+		err := i.controller.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
+			Name: i.picchuConfig.ServiceLevelsNamespace,
+		})
+
+		if err != nil {
+			return err
+		}
+		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
+			App:    i.appName(),
+			Target: i.targetName(),
+			// only applied to the datadog namespace
+			Namespace:   i.picchuConfig.DatadogSLONamespace,
+			Tag:         i.tag,
+			DatadogSLOs: i.target().DatadogSLOs,
+			Labels:      i.defaultLabels(),
+		})
+	}
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping SyncDatadogSLOs")
+	return nil
+}
+
+func (i *Incarnation) deleteDatadogSLOs(ctx context.Context) error {
+	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
+		return i.controller.applyDeliveryPlan(
+			ctx,
+			"Delete Datadog SLOs",
+			&rmplan.DeleteDatadogSLOs{
+				App:       i.appName(),
+				Target:    i.targetName(),
+				Namespace: i.picchuConfig.DatadogSLONamespace,
+				Tag:       i.tag,
+			},
+		)
+	}
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteTaggedServiceLevels")
+	return nil
 }
 
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {

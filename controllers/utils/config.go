@@ -10,6 +10,8 @@ type Config struct {
 	PrometheusQueryTTL        time.Duration
 	ServiceLevelsNamespace    string
 	ServiceLevelsFleet        string
+	DatadogSLONamespace       string
+	DatadogSLOsFleet          string
 	ConcurrentRevisions       int
 	ConcurrentReleaseManagers int
 	DevRoutesServiceHost      string

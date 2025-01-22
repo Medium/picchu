@@ -66,6 +66,7 @@ type RevisionTarget struct {
 	Release                     ReleaseInfo                   `json:"release,omitempty"`
 	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
 	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
+	DatadogSLOs                 []*DatadogSLO                 `json:"ddogServiceLevelObjectives,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
 	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
 	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`
@@ -143,17 +144,23 @@ type SLICanaryConfig struct {
 }
 
 // ddog specific slos
-type DDogServiceLevelObjective struct {
-	Name            string              `json:"name,omitempty"`
-	Description     string              `json:"description,omitempty"`
-	Tags            []string            `json:"tags,omitempty"`
-	TargetThreshold string              `json:"targetThreshold,omitempty"`
-	Timeframe       string              `json:"timeframe,omitempty"`
-	Type            string              `json:"type,omitempty"`
-	Canary          DDogSLICanaryConfig `json:"canary,omitempty"`
+type DatadogSLO struct {
+	Name            string                 `json:"name,omitempty"`
+	Description     string                 `json:"description,omitempty"`
+	Query           DatadogSLOQuery        `json:"query,omitempty"`
+	Tags            []string               `json:"tags,omitempty"`
+	TargetThreshold string                 `json:"targetThreshold,omitempty"`
+	Timeframe       string                 `json:"timeframe,omitempty"`
+	Type            string                 `json:"type,omitempty"`
+	Canary          DatadogSLOCanaryConfig `json:"canary,omitempty"`
 }
 
-type DDogSLICanaryConfig struct {
+type DatadogSLOQuery struct {
+	Numerator   string `json:"numerator"`
+	Denominator string `json:"denominator"`
+}
+
+type DatadogSLOCanaryConfig struct {
 	Enabled                bool    `json:"enabled"`
 	AllowancePercentString string  `json:"allowancePercentString,omitempty"`
 	AllowancePercent       float64 `json:"allowancePercent,omitempty"`
