@@ -25,12 +25,15 @@ type SyncDatadogSLOs struct {
 }
 
 func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	datadogSLOs, err := p.datadogSLOs()
+	if p.App == "echo" {
+		log.Info("syncDatadogSLOs check before datadogSLOs() for echo ", "ddogSLOs ", p.DatadogSLOs)
+	}
+	datadogSLOs, err := p.datadogSLOs(log)
 	if err != nil {
 		return err
 	}
 	if p.App == "echo" {
-		log.Info("syncDatadogSLOs datadogSLOs List for echo ", "ddogSLOs ", datadogSLOs)
+		log.Info("syncDatadogSLOs datadogSLOs() List for echo ", "ddogSLOs ", datadogSLOs)
 	}
 	if len(datadogSLOs.Items) > 0 {
 		for i := range datadogSLOs.Items {
@@ -43,44 +46,41 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 	return nil
 }
 
-func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
+func (p *SyncDatadogSLOs) datadogSLOs(log logr.Logger) (*ddog.DatadogSLOList, error) {
 	// create a new list of datadog slos
 	ddogSLOList := &ddog.DatadogSLOList{}
 	var ddogSlOs []ddog.DatadogSLO
 
 	for i := range p.DatadogSLOs {
-		ddogslo := p.ddogSLO(p.DatadogSLOs[i])
+		ddogslo := &ddog.DatadogSLO{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      p.taggedDatadogSLOName(p.DatadogSLOs[i].Name),
+				Namespace: p.Namespace,
+				Labels:    p.Labels,
+			},
+			Spec: ddog.DatadogSLOSpec{
+				Name:        p.DatadogSLOs[i].Name,
+				Description: &p.DatadogSLOs[i].Description,
+				Query: &ddog.DatadogSLOQuery{
+					Numerator:   p.DatadogSLOs[i].Query.Numerator,
+					Denominator: p.DatadogSLOs[i].Query.Denominator,
+				},
+				Type:            ddog.DatadogSLOTypeMetric,
+				Timeframe:       ddog.DatadogSLOTimeFrame7d,
+				TargetThreshold: resource.MustParse("99.9"),
+			},
+		}
+		ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, p.DatadogSLOs[i].Tags...)
+
+		if p.App == "echo" {
+			log.Info("datadogSLOs() for echo ", "ddogSLO ", ddogslo)
+		}
+
 		ddogSlOs = append(ddogSlOs, *ddogslo)
 	}
 	ddogSLOList.Items = ddogSlOs
 
 	return ddogSLOList, nil
-}
-
-// returns individual ddog slo object
-func (p *SyncDatadogSLOs) ddogSLO(ddogSLO *picchuv1alpha1.DatadogSLO) *ddog.DatadogSLO {
-	newDdogSLO := &ddog.DatadogSLO{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.taggedDatadogSLOName(ddogSLO.Name),
-			Namespace: p.Namespace,
-			Labels:    p.Labels,
-		},
-		Spec: ddog.DatadogSLOSpec{
-			Name:        ddogSLO.Name,
-			Description: &ddogSLO.Description,
-			Query: &ddog.DatadogSLOQuery{
-				Numerator:   ddogSLO.Query.Numerator,
-				Denominator: ddogSLO.Query.Denominator,
-			},
-			Type:            ddog.DatadogSLOTypeMetric,
-			Timeframe:       ddog.DatadogSLOTimeFrame7d,
-			TargetThreshold: resource.MustParse("99.9"),
-		},
-	}
-	newDdogSLO.Spec.Tags = append(newDdogSLO.Spec.Tags, ddogSLO.Tags...)
-
-	// ignore canary for now
-	return newDdogSLO
 }
 
 func (p *SyncDatadogSLOs) taggedDatadogSLOName(sloName string) string {
