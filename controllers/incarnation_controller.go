@@ -5,7 +5,6 @@ import (
 	"math"
 
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/prometheus/common/log"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 	"go.medium.engineering/picchu/plan"
@@ -135,7 +134,6 @@ func (i *IncarnationController) applyPlan(ctx context.Context, name string, p pl
 }
 
 func (i *IncarnationController) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
-	log.Info("applyDeliveryPlan for incarnation", "name", name)
 	return i.deliveryApplier.Apply(ctx, p)
 }
 

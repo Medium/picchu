@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 )
 
@@ -352,7 +351,6 @@ func Releasing(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 		return releasing, err
 	}
 	if err := deployment.syncDatadogSLOs(ctx); err != nil {
-		log.Info("releasing syncDatadogSLOs for incarnation", "deployment", deployment)
 		return releasing, err
 	}
 	if deployment.peakPercent() >= 100 {
