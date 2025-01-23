@@ -439,7 +439,7 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
 		// only applied to the delivery cluster
 		err := i.controller.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
-			Name: i.picchuConfig.ServiceLevelsNamespace,
+			Name: i.picchuConfig.DatadogSLONamespace,
 		})
 
 		if err != nil {
