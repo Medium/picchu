@@ -40,9 +40,9 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 	return nil
 }
 
-func (p *SyncDatadogSLOs) datadogSLOs() (ddog.DatadogSLOList, error) {
+func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	// create a new list of datadog slos
-	ddogSLOList := ddog.DatadogSLOList{}
+	ddogSLOList := &ddog.DatadogSLOList{}
 	var ddogSlOs []ddog.DatadogSLO
 
 	for i := range p.DatadogSLOs {
