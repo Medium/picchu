@@ -29,6 +29,9 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 	if err != nil {
 		return err
 	}
+	if p.App == "echo" {
+		log.Info("syncDatadogSLOs datadogSLOs List for echo ", "ddogSLOs ", datadogSLOs)
+	}
 	if len(datadogSLOs.Items) > 0 {
 		for i := range datadogSLOs.Items {
 			if err := plan.CreateOrUpdate(ctx, log, cli, &datadogSLOs.Items[i]); err != nil {
