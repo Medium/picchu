@@ -18,6 +18,7 @@ import (
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -436,14 +437,24 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 }
 
 func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
+	if i.appName() == "echo" {
+		log.Info("syncDatadogSLOs for incarnation", "incarnation", i.tag)
+	}
+
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
 		// only applied to the delivery cluster
+		if i.appName() == "echo" {
+			log.Info("syncDatadogSLOs fleet and namespace exist", "incarnation", i.tag)
+		}
 		err := i.controller.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
 			Name: i.picchuConfig.DatadogSLONamespace,
 		})
 
 		if err != nil {
 			return err
+		}
+		if i.appName() == "echo" {
+			log.Info("syncDatadogSLOs apply delivery plan", "incarnation", i.tag)
 		}
 		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
 			App:    i.appName(),

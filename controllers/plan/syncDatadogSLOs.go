@@ -25,9 +25,15 @@ type SyncDatadogSLOs struct {
 }
 
 func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	if p.App == "echo" {
+		log.Info("syncDatadogSLOs Apply for echo")
+	}
 	datadogSLOs, err := p.datadogSLOs()
 	if err != nil {
 		return err
+	}
+	if p.App == "echo" {
+		log.Info("syncDatadogSLOs datadogSLOs List for echo", "ddogSLOs", datadogSLOs)
 	}
 	if len(datadogSLOs.Items) > 0 {
 		for i := range datadogSLOs.Items {
