@@ -84,6 +84,10 @@ func (p *SyncDatadogSLOs) datadogSLOs(log logr.Logger) (*ddog.DatadogSLOList, er
 }
 
 func (p *SyncDatadogSLOs) taggedDatadogSLOName(sloName string) string {
-	// example: echo-production-main-123-example-slo-monitor3-datadogslo
-	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
+	// example: echo-production-example-slo-monitor3-datadogslo
+	// EXCLUDE TAG FOR NOW
+	// lowercase
+	// at most 63 characters
+	// start and end with alphanumeric
+	return fmt.Sprintf("%s-%s-%s-datadogslo", p.App, p.Target, sloName)
 }
