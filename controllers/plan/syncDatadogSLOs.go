@@ -28,7 +28,7 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 	if p.App == "echo" {
 		log.Info("syncDatadogSLOs check before datadogSLOs() for echo ", "ddogSLOs ", p.DatadogSLOs)
 	}
-	datadogSLOs, err := p.datadogSLOs(log)
+	datadogSLOs, err := p.datadogSLOs()
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 	return nil
 }
 
-func (p *SyncDatadogSLOs) datadogSLOs(log logr.Logger) (*ddog.DatadogSLOList, error) {
+func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	// create a new list of datadog slos
 	ddogSLOList := &ddog.DatadogSLOList{}
 	var ddogSlOs []ddog.DatadogSLO
@@ -71,10 +71,6 @@ func (p *SyncDatadogSLOs) datadogSLOs(log logr.Logger) (*ddog.DatadogSLOList, er
 			},
 		}
 		ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, p.DatadogSLOs[i].Tags...)
-
-		if p.App == "echo" {
-			log.Info("datadogSLOs() for echo ", "ddogSLO ", ddogslo)
-		}
 
 		ddogSlOs = append(ddogSlOs, *ddogslo)
 	}

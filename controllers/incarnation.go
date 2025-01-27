@@ -18,7 +18,6 @@ import (
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -446,7 +445,6 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Info("Check DatadogSLOs", "datadogSLOs", i.target().DatadogSLOs)
 		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
 			App:    i.appName(),
 			Target: i.targetName(),
