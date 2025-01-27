@@ -72,7 +72,7 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "echo-prod-main-123-slo1-datadogSLO",
+					Name:      "echo-prod-slo1-datadogslo",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "echo",
@@ -100,7 +100,7 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "echo-prod-main-123-slo2-datadogSLO",
+					Name:      "echo-prod-slo2-datadogslo",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "echo",
@@ -137,8 +137,8 @@ func TestDatadogSLOs(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		{Name: "echo-prod-main-123-slo1-datadogSLO", Namespace: "datadog"},
-		{Name: "echo-prod-main-123-slo2-datadogSLO", Namespace: "datadog"},
+		{Name: "echo-prod-slo1-datadogslo", Namespace: "datadog"},
+		{Name: "echo-prod-slo2-datadogslo", Namespace: "datadog"},
 	}
 	ctx := context.TODO()
 
