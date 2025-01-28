@@ -46,14 +46,16 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	var ddogSlOs []ddog.DatadogSLO
 
 	for i := range p.DatadogSLOs {
+		// update the DatadogSLO name so that it is the <service-name>-<slo-name>
+		ddogslo_name := p.App + "-" + p.DatadogSLOs[i].Name
 		ddogslo := &ddog.DatadogSLO{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      p.taggedDatadogSLOName(p.DatadogSLOs[i].Name),
+				Name:      p.datadogSLOName(p.DatadogSLOs[i].Name),
 				Namespace: p.Namespace,
 				Labels:    p.Labels,
 			},
 			Spec: ddog.DatadogSLOSpec{
-				Name:        p.DatadogSLOs[i].Name,
+				Name:        ddogslo_name,
 				Description: &p.DatadogSLOs[i].Description,
 				Query: &ddog.DatadogSLOQuery{
 					Numerator:   p.DatadogSLOs[i].Query.Numerator,
@@ -73,7 +75,7 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	return ddogSLOList, nil
 }
 
-func (p *SyncDatadogSLOs) taggedDatadogSLOName(sloName string) string {
+func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
 	// example: echo-production-example-slo-monitor3-datadogslo
 	// EXCLUDE TAG FOR NOW
 	// lowercase
