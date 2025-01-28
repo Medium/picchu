@@ -82,7 +82,7 @@ var (
 					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "slo1",
+					Name:        "echo-slo1",
 					Description: &descrption_one,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "sum:requests.success{service:example,env:prod}.as_count()",
@@ -110,7 +110,7 @@ var (
 					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "slo2",
+					Name:        "echo-slo2",
 					Description: &descrption_two,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "sum:requests.success{service:example,env:prod}.as_count()",
