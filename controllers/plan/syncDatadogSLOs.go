@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"os"
 
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
@@ -26,6 +27,10 @@ type SyncDatadogSLOs struct {
 
 func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	datadogSLOs, err := p.datadogSLOs()
+	if p.App == "echo" {
+		hello := os.Getenv("hello")
+		log.Info("TEST ENV VAR ", "TEST ENV VAR  ", hello)
+	}
 	if err != nil {
 		return err
 	}
