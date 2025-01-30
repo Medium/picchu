@@ -31,11 +31,11 @@ type SyncDatadogSLOs struct {
 func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	datadogSLOs, err := p.datadogSLOs()
 	if p.App == "echo" {
-		// DD_API_KEY := os.Getenv("DD_API_KEY")
-		// log.Info("TEST ENV VAR ", "TEST ENV VAR  ", DD_API_KEY)
+		_, b1 := os.LookupEnv("DD_API_KEY")
+		log.Info("TEST ENV VAR ", "DD_API_KEY exists? ", b1)
 
-		// DD_APPLICATION_KEY := os.Getenv("DD_API_KEY")
-		// log.Info("TEST ENV VAR ", "TEST ENV VAR  ", DD_APPLICATION_KEY)
+		_, b2 := os.LookupEnv("DD-APPLICATION-KEY")
+		log.Info("TEST ENV VAR ", "DD-APPLICATION-KEY exists? ", b2)
 
 		// ctx := datadog.NewDefaultContext(context.Background())
 		configuration := datadog.NewConfiguration()
