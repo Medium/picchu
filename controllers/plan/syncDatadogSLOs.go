@@ -37,7 +37,7 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 		_, b2 := os.LookupEnv("DD-APPLICATION-KEY")
 		log.Info("TEST ENV VAR ", "DD-APPLICATION-KEY exists? ", b2)
 
-		// ctx := datadog.NewDefaultContext(context.Background())
+		ctx := datadog.NewDefaultContext(context.Background())
 		configuration := datadog.NewConfiguration()
 		apiClient := datadog.NewAPIClient(configuration)
 		api := datadogV1.NewServiceLevelObjectivesApi(apiClient)
