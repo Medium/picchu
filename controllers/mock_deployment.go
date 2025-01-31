@@ -97,6 +97,20 @@ func (mr *MockDeploymentMockRecorder) deleteDatadogSLOs(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteDatadogSLOs", reflect.TypeOf((*MockDeployment)(nil).deleteDatadogSLOs), arg0)
 }
 
+// deleteDatadogMonitors mocks base method.
+func (m *MockDeployment) deleteDatadogMonitors(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deleteDatadogMonitors", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// deleteDatadogMonitors indicates an expected call of deleteDatadogMonitors.
+func (mr *MockDeploymentMockRecorder) deleteDatadogMonitors(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteDatadogMonitors", reflect.TypeOf((*MockDeployment)(nil).deleteDatadogMonitors), arg0)
+}
+
 // deleteTaggedServiceLevels mocks base method.
 func (m *MockDeployment) deleteTaggedServiceLevels(arg0 context.Context) error {
 	m.ctrl.T.Helper()
@@ -325,6 +339,20 @@ func (m *MockDeployment) syncCanaryRules(arg0 context.Context) error {
 	ret := m.ctrl.Call(m, "syncCanaryRules", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
+}
+
+// syncDatadogMonitors mocks base method.
+func (m *MockDeployment) syncDatadogMonitors(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "syncDatadogMonitors", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// syncDatadogMonitors indicates an expected call of syncDatadogMonitors.
+func (mr *MockDeploymentMockRecorder) syncDatadogMonitors(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncDatadogMonitors", reflect.TypeOf((*MockDeployment)(nil).syncDatadogMonitors), arg0)
 }
 
 // syncCanaryRules indicates an expected call of syncCanaryRules.

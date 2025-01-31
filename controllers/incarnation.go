@@ -472,7 +472,48 @@ func (i *Incarnation) deleteDatadogSLOs(ctx context.Context) error {
 			},
 		)
 	}
-	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteTaggedServiceLevels")
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteDatadogSLOs")
+	return nil
+}
+
+func (i *Incarnation) syncDatadogMonitors(ctx context.Context) error {
+	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
+		// only applied to the delivery cluster
+		err := i.controller.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
+			Name: i.picchuConfig.DatadogSLONamespace,
+		})
+
+		if err != nil {
+			return err
+		}
+		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog Monitors", &rmplan.SyncDatadogMonitors{
+			App:    i.appName(),
+			Target: i.targetName(),
+			// only applied to the datadog namespace
+			Namespace:       i.picchuConfig.DatadogSLONamespace,
+			Tag:             i.tag,
+			DatadogMonitors: i.target().DatadogMonitors,
+			Labels:          i.defaultLabels(),
+		})
+	}
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping SyncDatadogMonitors")
+	return nil
+}
+
+func (i *Incarnation) deleteDatadogMonitors(ctx context.Context) error {
+	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
+		return i.controller.applyDeliveryPlan(
+			ctx,
+			"Delete Datadog SLOs",
+			&rmplan.DeleteDatadogMonitors{
+				App:       i.appName(),
+				Target:    i.targetName(),
+				Namespace: i.picchuConfig.DatadogSLONamespace,
+				Tag:       i.tag,
+			},
+		)
+	}
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteDatadogMonitors")
 	return nil
 }
 
