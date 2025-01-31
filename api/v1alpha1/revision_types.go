@@ -69,7 +69,7 @@ type RevisionTarget struct {
 	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
 	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
 	DatadogSLOs                 []*DatadogSLO                 `json:"ddogServiceLevelObjectives,omitempty"`
-	DatadogMonitors             []*DatadogMonitor             `json:"ddogServiceLevelObjectives,omitempty"`
+	DatadogMonitors             []*DatadogMonitor             `json:"datadogMonitors,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
 	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
 	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`

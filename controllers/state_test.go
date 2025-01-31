@@ -796,6 +796,7 @@ type responses struct {
 	syncTaggedServiceLevels   error
 	syncDatadogSLOs           error
 	syncDatadogMonitors       error
+	deleteDatadogMonitors     error
 	deleteTaggedServiceLevels error
 	deleteDatadogSLOs         error
 	isTimingOut               bool

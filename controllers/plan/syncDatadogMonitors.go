@@ -26,6 +26,7 @@ type SyncDatadogMonitors struct {
 // only issue - we need the SLO hash from the cluster
 // idk if i can get that from the ddog api?YES
 // "https://api.datadoghq.com/api/v1/slo" can list and pull the id?
+// how do i ensure that the SLO is created before the monitor?
 
 func (p *SyncDatadogMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	datadogMonitors, err := p.datadogMonitors()
