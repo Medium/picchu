@@ -1118,6 +1118,187 @@ spec:
                           type: object
                       type: object
                       x-kubernetes-map-type: atomic
+                    datadogMonitors:
+                      items:
+                        properties:
+                          controllerOptions:
+                            description: DatadogMonitorControllerOptions defines options
+                              in the DatadogMonitor controller
+                            properties:
+                              disableRequiredTags:
+                                description: DisableRequiredTags disables the automatic
+                                  addition of required tags to monitors.
+                                type: boolean
+                            type: object
+                          message:
+                            type: string
+                          name:
+                            type: string
+                          options:
+                            description: DatadogMonitorOptions define the optional
+                              parameters of a monitor
+                            properties:
+                              enableLogsSample:
+                                description: A Boolean indicating whether to send
+                                  a log sample when the log monitor triggers.
+                                type: boolean
+                              escalationMessage:
+                                description: A message to include with a re-notification.
+                                type: string
+                              evaluationDelay:
+                                description: |-
+                                  Time (in seconds) to delay evaluation, as a non-negative integer. For example, if the value is set to 300 (5min),
+                                  the timeframe is set to last_5m and the time is 7:00, the monitor evaluates data from 6:50 to 6:55.
+                                  This is useful for AWS CloudWatch and other backfilled metrics to ensure the monitor always has data during evaluation.
+                                format: int64
+                                type: integer
+                              groupbySimpleMonitor:
+                                description: A Boolean indicating whether the log
+                                  alert monitor triggers a single alert or multiple
+                                  alerts when any group breaches a threshold.
+                                type: boolean
+                              includeTags:
+                                description: A Boolean indicating whether notifications
+                                  from this monitor automatically inserts its triggering
+                                  tags into the title.
+                                type: boolean
+                              locked:
+                                description: 'DEPRECATED: Whether or not the monitor
+                                  is locked (only editable by creator and admins).
+                                  Use `restricted_roles` instead.'
+                                type: boolean
+                              newGroupDelay:
+                                description: |-
+                                  Time (in seconds) to allow a host to boot and applications to fully start before starting the evaluation of
+                                  monitor results. Should be a non negative integer.
+                                format: int64
+                                type: integer
+                              noDataTimeframe:
+                                description: |-
+                                  The number of minutes before a monitor notifies after data stops reporting. Datadog recommends at least 2x the
+                                  monitor timeframe for metric alerts or 2 minutes for service checks. If omitted, 2x the evaluation timeframe
+                                  is used for metric alerts, and 24 hours is used for service checks.
+                                format: int64
+                                type: integer
+                              notificationPresetName:
+                                description: An enum that toggles the display of additional
+                                  content sent in the monitor notification.
+                                type: string
+                              notifyAudit:
+                                description: A Boolean indicating whether tagged users
+                                  are notified on changes to this monitor.
+                                type: boolean
+                              notifyBy:
+                                description: |-
+                                  A string indicating the granularity a monitor alerts on. Only available for monitors with groupings.
+                                  For instance, a monitor grouped by cluster, namespace, and pod can be configured to only notify on each new
+                                  cluster violating the alert conditions by setting notify_by to ["cluster"]. Tags mentioned in notify_by must
+                                  be a subset of the grouping tags in the query. For example, a query grouped by cluster and namespace cannot
+                                  notify on region. Setting notify_by to [*] configures the monitor to notify as a simple-alert.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: set
+                              notifyNoData:
+                                description: A Boolean indicating whether this monitor
+                                  notifies when data stops reporting.
+                                type: boolean
+                              onMissingData:
+                                description: |-
+                                  An enum that controls how groups or monitors are treated if an evaluation does not return data points.
+                                  The default option results in different behavior depending on the monitor query type.
+                                  For monitors using Count queries, an empty monitor evaluation is treated as 0 and is compared to the threshold conditions.
+                                  For monitors using any query type other than Count, for example Gauge, Measure, or Rate, the monitor shows the last known status.
+                                  This option is only available for APM Trace Analytics, Audit Trail, CI, Error Tracking, Event, Logs, and RUM monitors
+                                type: string
+                              renotifyInterval:
+                                description: |-
+                                  The number of minutes after the last notification before a monitor re-notifies on the current status.
+                                  It only re-notifies if it’s not resolved.
+                                format: int64
+                                type: integer
+                              renotifyOccurrences:
+                                description: The number of times re-notification messages
+                                  should be sent on the current status at the provided
+                                  re-notification interval.
+                                format: int64
+                                type: integer
+                              renotifyStatuses:
+                                description: The types of statuses for which re-notification
+                                  messages should be sent. Valid values are alert,
+                                  warn, no data.
+                                items:
+                                  description: MonitorRenotifyStatusType The different
+                                    statuses for which renotification is supported.
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: set
+                              requireFullWindow:
+                                description: |-
+                                  A Boolean indicating whether this monitor needs a full window of data before it’s evaluated. We highly
+                                  recommend you set this to false for sparse metrics, otherwise some evaluations are skipped. Default is false.
+                                type: boolean
+                              thresholdWindows:
+                                description: A struct of the alerting time window
+                                  options.
+                                properties:
+                                  recoveryWindow:
+                                    description: Describes how long an anomalous metric
+                                      must be normal before the alert recovers.
+                                    type: string
+                                  triggerWindow:
+                                    description: Describes how long a metric must
+                                      be anomalous before an alert triggers.
+                                    type: string
+                                type: object
+                              thresholds:
+                                description: A struct of the different monitor threshold
+                                  values.
+                                properties:
+                                  critical:
+                                    description: The monitor CRITICAL threshold.
+                                    type: string
+                                  criticalRecovery:
+                                    description: The monitor CRITICAL recovery threshold.
+                                    type: string
+                                  ok:
+                                    description: The monitor OK threshold.
+                                    type: string
+                                  unknown:
+                                    description: The monitor UNKNOWN threshold.
+                                    type: string
+                                  warning:
+                                    description: The monitor WARNING threshold.
+                                    type: string
+                                  warningRecovery:
+                                    description: The monitor WARNING recovery threshold.
+                                    type: string
+                                type: object
+                              timeoutH:
+                                description: The number of hours of the monitor not
+                                  reporting data before it automatically resolves
+                                  from a triggered state.
+                                format: int64
+                                type: integer
+                            type: object
+                          priority:
+                            format: int64
+                            type: integer
+                          query:
+                            type: string
+                          restrictedRoles:
+                            items:
+                              type: string
+                            type: array
+                          tags:
+                            items:
+                              type: string
+                            type: array
+                          type:
+                            description: DatadogMonitorType defines the type of monitor
+                            type: string
+                        type: object
+                      type: array
                     ddogServiceLevelObjectives:
                       items:
                         description: ddog specific slos
