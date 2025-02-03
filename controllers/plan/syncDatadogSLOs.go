@@ -26,7 +26,6 @@ type SyncDatadogSLOs struct {
 
 func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	datadogSLOs, err := p.datadogSLOs()
-
 	if err != nil {
 		return err
 	}
@@ -34,9 +33,6 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 		for i := range datadogSLOs.Items {
 			if err := plan.CreateOrUpdate(ctx, log, cli, &datadogSLOs.Items[i]); err != nil {
 				return err
-			}
-			if p.App == "echo" {
-				// find the id?
 			}
 		}
 	}

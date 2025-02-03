@@ -419,8 +419,8 @@ func TestCanarying(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncDatadogMonitors(expectSyncCanaryRules(m(true, false, false)))))))
-	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncDatadogMonitors(expectSyncCanaryRules(m(true, false, true)))))))
+	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncCanaryRules(m(true, false, false))))))
+	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncCanaryRules(m(true, false, true))))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -795,8 +795,6 @@ type responses struct {
 	deleteCanaryRules         error
 	syncTaggedServiceLevels   error
 	syncDatadogSLOs           error
-	syncDatadogMonitors       error
-	deleteDatadogMonitors     error
 	deleteTaggedServiceLevels error
 	deleteDatadogSLOs         error
 	isTimingOut               bool
@@ -946,24 +944,6 @@ func expectDeleteDatadogSLOs(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
 		deleteDatadogSLOs(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectSyncDatadogMonitors(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		syncDatadogMonitors(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectDeleteDatadogMonitors(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		deleteDatadogMonitors(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock

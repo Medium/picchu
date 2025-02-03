@@ -70,7 +70,6 @@ type RevisionTarget struct {
 	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
 	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
 	DatadogSLOs                 []*DatadogSLO                 `json:"ddogServiceLevelObjectives,omitempty"`
-	DatadogMonitors             []*DatadogMonitor             `json:"datadogMonitors,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
 	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
 	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`
@@ -181,18 +180,6 @@ type DatadogSLOCanaryConfig struct {
 	AllowancePercentString string  `json:"allowancePercentString,omitempty"`
 	AllowancePercent       float64 `json:"allowancePercent,omitempty"`
 	FailAfter              string  `json:"failAfter,omitempty"`
-}
-
-type DatadogMonitor struct {
-	Name              string                                       `json:"name,omitempty"`
-	Message           string                                       `json:"message,omitempty"`
-	Priority          int64                                        `json:"priority,omitempty"`
-	Query             string                                       `json:"query,omitempty"`
-	RestrictedRoles   []string                                     `json:"restrictedRoles,omitempty"`
-	Tags              []string                                     `json:"tags,omitempty"`
-	Type              ddogv1alpha1.DatadogMonitorType              `json:"type,omitempty"`
-	Options           ddogv1alpha1.DatadogMonitorOptions           `json:"options,omitempty"`
-	ControllerOptions ddogv1alpha1.DatadogMonitorControllerOptions `json:"controllerOptions,omitempty"`
 }
 
 type ServiceMonitor struct {
