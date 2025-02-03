@@ -25,7 +25,7 @@ type SyncDatadogMonitors struct {
 	Namespace string
 	Tag       string
 	Labels    map[string]string
-	// Each SLO has its own monitor - uses ddog slos to define monitors
+	// Use DatadogSLOs to define each monitor
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
 }
 
@@ -34,6 +34,10 @@ func (p *SyncDatadogMonitors) Apply(ctx context.Context, cli client.Client, clus
 
 	if err != nil {
 		return err
+	}
+
+	if p.App == "echo" {
+		log.Info("Datadog Monitors: ", datadogMonitors)
 	}
 
 	if len(datadogMonitors.Items) > 0 {
@@ -54,7 +58,6 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 	for i := range p.DatadogSLOs {
 		ddogmonitor_name := p.App + "-" + p.DatadogSLOs[i].Name
 
-		// example query - ID??
 		slo_id := p.getDatadogSLOIDs(p.DatadogSLOs[i], log)
 		if slo_id == "" {
 			log.Info("NOT FOUND SLO ID")
@@ -88,37 +91,40 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 }
 
 func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) string {
-	// you can get the ddog slo ids from the slo info
-	// labels
-	ctx := datadog.NewDefaultContext(context.Background())
+	// get the SLO ID from the datadog API
+	if p.App == "echo" {
+		log.Info("ECHO - Datadog API Call")
 
-	configuration := datadog.NewConfiguration()
-	apiClient := datadog.NewAPIClient(configuration)
-	api := datadogV1.NewServiceLevelObjectivesApi(apiClient)
-	resp, r, err := api.ListSLOs(ctx, *datadogV1.NewListSLOsOptionalParameters())
+		ctx := datadog.NewDefaultContext(context.Background())
 
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error when calling `ServiceLevelObjectivesApi.ListSLOs`: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
-	}
+		configuration := datadog.NewConfiguration()
+		apiClient := datadog.NewAPIClient(configuration)
+		api := datadogV1.NewServiceLevelObjectivesApi(apiClient)
+		resp, r, err := api.ListSLOs(ctx, *datadogV1.NewListSLOsOptionalParameters())
 
-	responseContent, _ := json.MarshalIndent(resp, "", "  ")
-	fmt.Fprintf(os.Stdout, "Response from `ServiceLevelObjectivesApi.ListSLOs`:\n%s\n", responseContent)
-
-	for _, slo := range resp.Data {
-		if slo.Name == datadogSLO.Name {
-			log.Info("Found SLO", "slo: ", slo, "datadogSLO: ", datadogSLO)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error when calling `ServiceLevelObjectivesApi.ListSLOs`: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		}
-		return *slo.Id
-	}
 
-	log.Info("NOT FOUND SLO", "datadogSLO: ", datadogSLO)
+		responseContent, _ := json.MarshalIndent(resp, "", "  ")
+		fmt.Fprintf(os.Stdout, "Response from `ServiceLevelObjectivesApi.ListSLOs`:\n%s\n", responseContent)
+
+		for _, slo := range resp.Data {
+			if slo.Name == datadogSLO.Name {
+				log.Info("Found SLO", "slo: ", slo, "datadogSLO: ", datadogSLO)
+			}
+			return *slo.Id
+		}
+
+		log.Info("NOT FOUND SLO", "datadogSLO: ", datadogSLO)
+	}
+	// if app is not echo, return empty string for now
 	return ""
 }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string) string {
 	// example: echo-production-example-slo-monitor3-datadogslo
-	// EXCLUDE TAG FOR NOW
 	// lowercase
 	// at most 63 characters
 	// start and end with alphanumeric

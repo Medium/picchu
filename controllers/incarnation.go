@@ -461,10 +461,7 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 			return err_ddog
 		}
 
-		// apply monitors - think we go all in and try this out
-		// separate objects, both use the createorupdate
-		// one is dependent on the other
-		// might be bad to return the delivert plan for the monitors
+		// Apply datadogMonitors after datadogSLOs are applied
 		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog Monitors", &rmplan.SyncDatadogMonitors{
 			App:    i.appName(),
 			Target: i.targetName(),
@@ -475,13 +472,12 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 			Labels:      shared_labels,
 		})
 	}
-	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping SyncDatadogSLOs")
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping SyncDatadogSLOs and SyncDatadogMonitors")
 	return nil
 }
 
 func (i *Incarnation) deleteDatadogSLOs(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
-		// we would also delete the ddogmonitors
 		err_ddog := i.controller.applyDeliveryPlan(
 			ctx,
 			"Delete Datadog SLOs",
@@ -508,7 +504,7 @@ func (i *Incarnation) deleteDatadogSLOs(ctx context.Context) error {
 			},
 		)
 	}
-	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteDatadogSLOs")
+	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteDatadogSLOs and DeleteDatadogMonitors")
 	return nil
 }
 
