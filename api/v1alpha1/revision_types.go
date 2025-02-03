@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	"time"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
+
 	istio "istio.io/api/networking/v1alpha3"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -141,6 +143,18 @@ type SLICanaryConfig struct {
 	AllowancePercentString string  `json:"allowancePercentString,omitempty"`
 	AllowancePercent       float64 `json:"allowancePercent,omitempty"`
 	FailAfter              string  `json:"failAfter,omitempty"`
+}
+
+type DatadogMonitor struct {
+	Name              string                                       `json:"name,omitempty"`
+	Message           string                                       `json:"message,omitempty"`
+	Priority          int64                                        `json:"priority,omitempty"`
+	Query             string                                       `json:"query,omitempty"`
+	RestrictedRoles   []string                                     `json:"restrictedRoles,omitempty"`
+	Tags              []string                                     `json:"tags,omitempty"`
+	Type              ddogv1alpha1.DatadogMonitorType              `json:"type,omitempty"`
+	Options           ddogv1alpha1.DatadogMonitorOptions           `json:"options,omitempty"`
+	ControllerOptions ddogv1alpha1.DatadogMonitorControllerOptions `json:"controllerOptions,omitempty"`
 }
 
 // ddog specific slos
