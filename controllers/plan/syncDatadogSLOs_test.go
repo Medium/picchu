@@ -212,9 +212,9 @@ func TestDatadogSLOs(t *testing.T) {
 		{Name: "echo-prod-slo2-datadogslo", Namespace: "datadog"},
 	}
 
-	tests_monitor := []client.ObjectKey{
-		{Name: "example-prod-example-slo-datadogmonitor", Namespace: "datadog"},
-	}
+	// tests_monitor := []client.ObjectKey{
+	// 	{Name: "example-prod-example-slo-datadogmonitor", Namespace: "datadog"},
+	// }
 
 	ctx := context.TODO()
 
@@ -226,13 +226,13 @@ func TestDatadogSLOs(t *testing.T) {
 			Times(1)
 	}
 
-	for i := range tests_monitor {
-		m.
-			EXPECT().
-			Get(ctx, mocks.ObjectKey(tests_monitor[i]), gomock.Any()).
-			Return(common.NotFoundError).
-			Times(1)
-	}
+	// for i := range tests_monitor {
+	// 	m.
+	// 		EXPECT().
+	// 		Get(ctx, mocks.ObjectKey(tests_monitor[i]), gomock.Any()).
+	// 		Return(common.NotFoundError).
+	// 		Times(1)
+	// }
 
 	for i := range ddogsloexpected.Items {
 		for _, obj := range []runtime.Object{

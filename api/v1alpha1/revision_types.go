@@ -23,7 +23,6 @@ import (
 
 	istio "istio.io/api/networking/v1alpha3"
 
-	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
