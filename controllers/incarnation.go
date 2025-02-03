@@ -442,17 +442,37 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 			Name: i.picchuConfig.DatadogSLONamespace,
 		})
 
+		shared_labels := i.defaultLabels()
+
 		if err != nil {
 			return err
 		}
-		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
+		err_ddog := i.controller.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
 			App:    i.appName(),
 			Target: i.targetName(),
 			// only applied to the datadog namespace
 			Namespace:   i.picchuConfig.DatadogSLONamespace,
 			Tag:         i.tag,
 			DatadogSLOs: i.target().DatadogSLOs,
-			Labels:      i.defaultLabels(),
+			Labels:      shared_labels,
+		})
+
+		if err_ddog != nil {
+			return err_ddog
+		}
+
+		// apply monitors - think we go all in and try this out
+		// separate objects, both use the createorupdate
+		// one is dependent on the other
+		// might be bad to return the delivert plan for the monitors
+		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog Monitors", &rmplan.SyncDatadogMonitors{
+			App:    i.appName(),
+			Target: i.targetName(),
+			// only applied to the datadog namespace
+			Namespace:   i.picchuConfig.DatadogSLONamespace,
+			Tag:         i.tag,
+			DatadogSLOs: i.target().DatadogSLOs,
+			Labels:      shared_labels,
 		})
 	}
 	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping SyncDatadogSLOs")
@@ -461,10 +481,26 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 
 func (i *Incarnation) deleteDatadogSLOs(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
-		return i.controller.applyDeliveryPlan(
+		// we would also delete the ddogmonitors
+		err_ddog := i.controller.applyDeliveryPlan(
 			ctx,
 			"Delete Datadog SLOs",
 			&rmplan.DeleteDatadogSLOs{
+				App:       i.appName(),
+				Target:    i.targetName(),
+				Namespace: i.picchuConfig.DatadogSLONamespace,
+				Tag:       i.tag,
+			},
+		)
+
+		if err_ddog != nil {
+			return err_ddog
+		}
+
+		return i.controller.applyDeliveryPlan(
+			ctx,
+			"Delete Datadog Monitors",
+			&rmplan.DeleteDatadogMonitors{
 				App:       i.appName(),
 				Target:    i.targetName(),
 				Namespace: i.picchuConfig.DatadogSLONamespace,
