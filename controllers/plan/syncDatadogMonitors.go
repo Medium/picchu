@@ -59,8 +59,6 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		}
 
 		query := "error_budget(\"" + slo_id + "\").over(\"7d\") > 10"
-		log.Info("FINAL QUERY", "query: ", query)
-
 		// for right now, if no id, create the monitor anyway
 		ddogmonitor := &ddog.DatadogMonitor{
 			ObjectMeta: metav1.ObjectMeta{
@@ -102,18 +100,13 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 		}
 
 		for _, slo := range resp.Data {
-			log.Info("Current DDOG CREATED SLO Name", "slo: ", slo.Name)
-
 			ddogslo_name := p.App + "-" + datadogSLO.Name
-			log.Info("Current DDOG MONITOR SLO Name", "slo: ", ddogslo_name)
-			if slo.Name == datadogSLO.Name {
+			if slo.Name == ddogslo_name {
 				log.Info("Found SLO", "slo: ", slo)
 				log.Info("Found SLO", "datadogSLO: ", datadogSLO)
 				return *slo.Id
 			}
 		}
-
-		log.Info("NOT FOUND SLO", "datadogSLO: ", datadogSLO)
 	}
 	// if app is not echo, return empty string for now
 	return ""
