@@ -59,6 +59,13 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		query := "error_budget(\"" + slo_id + "\").over(\"7d\") > 10"
 		message := ddogmonitor_name + " SLO is firing"
 		// for right now, if no id, create the monitor anyway
+
+		warning := "10"
+		delay := int64(300)
+		nodata := int64(30)
+		renotif := int64(1440)
+		options_true := true
+		options_false := true
 		ddogmonitor := &ddog.DatadogMonitor{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      p.datadogMonitorName(p.DatadogSLOs[i].Name),
@@ -73,7 +80,18 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 				Query:    query,
 				Type:     ddog.DatadogMonitorTypeSLO,
 				// RestrictedRoles
-				// Options
+				Options: ddog.DatadogMonitorOptions{
+					EvaluationDelay:        &delay,
+					IncludeTags:            &options_true,
+					Locked:                 &options_false,
+					NewGroupDelay:          &delay,
+					NotificationPresetName: "NotificationPresetName example",
+					NoDataTimeframe:        &nodata,
+					RenotifyInterval:       &renotif,
+					Thresholds: &ddog.DatadogMonitorOptionsThresholds{
+						Warning: &warning,
+					},
+				},
 				// ControllerOptions
 			},
 		}
