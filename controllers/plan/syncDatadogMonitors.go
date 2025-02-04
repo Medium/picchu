@@ -104,7 +104,7 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 
 		for _, slo := range resp.Data {
 			log.Info("Current DDOG CREATED SLO Name", "slo: ", slo.Name)
-			log.Info("Current DDOG MONITOR SLO Name", "slo: ", slo.Name)
+			log.Info("Current DDOG MONITOR SLO Name", "slo: ", datadogSLO.Name)
 			if slo.Name == datadogSLO.Name {
 				log.Info("Found SLO", "slo: ", slo)
 				log.Info("Found SLO", "datadogSLO: ", datadogSLO)
