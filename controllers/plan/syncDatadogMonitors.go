@@ -57,7 +57,8 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		// error if slo not found
 
 		query := "error_budget(\"" + slo_id + "\").over(\"7d\") > 10"
-		message := ddogmonitor_name + " SLO is firing"
+		// send to testing?
+		message := "@slack-eng-watch-alerts-testing"
 		// for right now, if no id, create the monitor anyway
 
 		warning := "10"
@@ -85,7 +86,7 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 					IncludeTags:            &options_true,
 					Locked:                 &options_false,
 					NewGroupDelay:          &delay,
-					NotificationPresetName: "NotificationPresetName example",
+					NotificationPresetName: "show_all",
 					NoDataTimeframe:        &nodata,
 					RenotifyInterval:       &renotif,
 					Thresholds: &ddog.DatadogMonitorOptionsThresholds{
