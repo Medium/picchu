@@ -57,6 +57,7 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		if slo_id == "" {
 			log.Info("NOT FOUND SLO ID", "datadogSLO: ", p.DatadogSLOs[i])
 		}
+
 		query := "error_budget(\"" + slo_id + "\").over(\"7d\") > 10"
 		log.Info("FINAL QUERY", "query: ", query)
 
@@ -88,8 +89,6 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) string {
 	// get the SLO ID from the datadog API
 	if p.App == "echo" {
-		log.Info("ECHO - Datadog API Call", "app: ", p.App)
-
 		ctx := datadog.NewDefaultContext(context.Background())
 
 		configuration := datadog.NewConfiguration()
@@ -104,12 +103,14 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 
 		for _, slo := range resp.Data {
 			log.Info("Current DDOG CREATED SLO Name", "slo: ", slo.Name)
-			log.Info("Current DDOG MONITOR SLO Name", "slo: ", datadogSLO.Name)
+
+			ddogslo_name := p.App + "-" + datadogSLO.Name
+			log.Info("Current DDOG MONITOR SLO Name", "slo: ", ddogslo_name)
 			if slo.Name == datadogSLO.Name {
 				log.Info("Found SLO", "slo: ", slo)
 				log.Info("Found SLO", "datadogSLO: ", datadogSLO)
+				return *slo.Id
 			}
-			return *slo.Id
 		}
 
 		log.Info("NOT FOUND SLO", "datadogSLO: ", datadogSLO)
