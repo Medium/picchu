@@ -61,7 +61,7 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		message := "@slack-eng-watch-alerts-testing"
 		// for right now, if no id, create the monitor anyway
 
-		warning := "10"
+		warning := "5"
 		crit := "10"
 		delay := int64(300)
 		nodata := int64(30)
