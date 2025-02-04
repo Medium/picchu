@@ -54,11 +54,10 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		ddogmonitor_name := p.App + "-" + p.DatadogSLOs[i].Name
 
 		slo_id := p.getDatadogSLOIDs(p.DatadogSLOs[i], log)
-		if slo_id == "" {
-			log.Info("NOT FOUND SLO ID", "datadogSLO: ", p.DatadogSLOs[i])
-		}
+		// error if slo not found
 
 		query := "error_budget(\"" + slo_id + "\").over(\"7d\") > 10"
+		message := ddogmonitor_name + " SLO is firing"
 		// for right now, if no id, create the monitor anyway
 		ddogmonitor := &ddog.DatadogMonitor{
 			ObjectMeta: metav1.ObjectMeta{
@@ -67,9 +66,12 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 				Labels:    p.Labels,
 			},
 			Spec: ddog.DatadogMonitorSpec{
-				Name:  ddogmonitor_name,
-				Query: query,
-				Type:  ddog.DatadogMonitorTypeSLO,
+				Name:    ddogmonitor_name,
+				Message: message,
+				// lowest priority for now
+				Priority: 5,
+				Query:    query,
+				Type:     ddog.DatadogMonitorTypeSLO,
 				// RestrictedRoles
 				// Options
 				// ControllerOptions
@@ -102,8 +104,6 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 		for _, slo := range resp.Data {
 			ddogslo_name := p.App + "-" + datadogSLO.Name
 			if slo.Name == ddogslo_name {
-				log.Info("Found SLO", "slo: ", slo)
-				log.Info("Found SLO", "datadogSLO: ", datadogSLO)
 				return *slo.Id
 			}
 		}
