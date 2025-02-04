@@ -67,7 +67,6 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		nodata := int64(30)
 		renotif := int64(1440)
 		options_true := true
-		options_false := true
 		ddogmonitor := &ddog.DatadogMonitor{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      p.datadogMonitorName(p.DatadogSLOs[i].Name),
@@ -85,8 +84,6 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 				Options: ddog.DatadogMonitorOptions{
 					EvaluationDelay:        &delay,
 					IncludeTags:            &options_true,
-					Locked:                 &options_false,
-					NewGroupDelay:          &delay,
 					NotificationPresetName: "show_all",
 					NoDataTimeframe:        &nodata,
 					RenotifyInterval:       &renotif,
