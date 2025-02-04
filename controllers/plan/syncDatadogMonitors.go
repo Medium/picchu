@@ -62,6 +62,7 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 		// for right now, if no id, create the monitor anyway
 
 		warning := "10"
+		crit := "10"
 		delay := int64(300)
 		nodata := int64(30)
 		renotif := int64(1440)
@@ -90,7 +91,8 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 					NoDataTimeframe:        &nodata,
 					RenotifyInterval:       &renotif,
 					Thresholds: &ddog.DatadogMonitorOptionsThresholds{
-						Warning: &warning,
+						Warning:  &warning,
+						Critical: &crit,
 					},
 				},
 				// ControllerOptions
