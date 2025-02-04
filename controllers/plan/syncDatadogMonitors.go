@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -36,10 +35,6 @@ func (p *SyncDatadogMonitors) Apply(ctx context.Context, cli client.Client, clus
 		return err
 	}
 
-	if p.App == "echo" {
-		log.Info("Datadog Monitors ", "Datadog Monitors: ", datadogMonitors)
-	}
-
 	if len(datadogMonitors.Items) > 0 {
 		for i := range datadogMonitors.Items {
 			if err := plan.CreateOrUpdate(ctx, log, cli, &datadogMonitors.Items[i]); err != nil {
@@ -63,7 +58,7 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 			log.Info("NOT FOUND SLO ID", "datadogSLO: ", p.DatadogSLOs[i])
 		}
 		query := "error_budget(\"" + slo_id + "\").over(\"7d\") > 10"
-		log.Info("QUERY", "query: ", query)
+		log.Info("FINAL QUERY", "query: ", query)
 
 		// for right now, if no id, create the monitor anyway
 		ddogmonitor := &ddog.DatadogMonitor{
@@ -107,10 +102,9 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		}
 
-		responseContent, _ := json.MarshalIndent(resp, "", "  ")
-		fmt.Fprintf(os.Stdout, "Response from `ServiceLevelObjectivesApi.ListSLOs`:\n%s\n", responseContent)
-
 		for _, slo := range resp.Data {
+			log.Info("Current DDOG CREATED SLO Name", "slo: ", slo.Name)
+			log.Info("Current DDOG MONITOR SLO Name", "slo: ", slo.Name)
 			if slo.Name == datadogSLO.Name {
 				log.Info("Found SLO", "slo: ", slo)
 				log.Info("Found SLO", "datadogSLO: ", datadogSLO)
