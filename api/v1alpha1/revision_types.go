@@ -146,15 +146,105 @@ type SLICanaryConfig struct {
 }
 
 type DatadogMonitor struct {
-	Name              string                                       `json:"name,omitempty"`
-	Message           string                                       `json:"message,omitempty"`
-	Priority          int64                                        `json:"priority,omitempty"`
-	Query             string                                       `json:"query,omitempty"`
-	RestrictedRoles   []string                                     `json:"restrictedRoles,omitempty"`
-	Tags              []string                                     `json:"tags,omitempty"`
-	Type              ddogv1alpha1.DatadogMonitorType              `json:"type,omitempty"`
-	Options           ddogv1alpha1.DatadogMonitorOptions           `json:"options,omitempty"`
-	ControllerOptions ddogv1alpha1.DatadogMonitorControllerOptions `json:"controllerOptions,omitempty"`
+	// defaulted - <app>-<slo name>-<target>-datadogmonitor
+	Name string `json:"name,omitempty"`
+	// defaulted
+	Message string `json:"message,omitempty"`
+	// defaulted?
+	Priority int64 `json:"priority,omitempty"`
+	// dev
+	Query string `json:"query,omitempty"`
+	// both dev and defaulted - target name
+	Tags []string `json:"tags,omitempty"`
+	// defaulted "slo alert"
+	Type    ddogv1alpha1.DatadogMonitorType `json:"type,omitempty"`
+	Options DatadogMonitorOptions           `json:"options,omitempty"`
+}
+
+type DatadogMonitorOptions struct {
+	// A Boolean indicating whether to send a log sample when the log monitor triggers.
+	// defaulted - true
+	EnableLogsSample *bool `json:"enableLogsSample,omitempty"`
+
+	// A message to include with a re-notification.
+	// defaulted - "renotifying for <slo>" or something similar
+	EscalationMessage *string `json:"escalationMessage,omitempty"`
+
+	// Time (in seconds) to delay evaluation, as a non-negative integer. For example, if the value is set to 300 (5min),
+	// the timeframe is set to last_5m and the time is 7:00, the monitor evaluates data from 6:50 to 6:55.
+	// This is useful for AWS CloudWatch and other backfilled metrics to ensure the monitor always has data during evaluation.
+	// idk if this is an issue?
+	EvaluationDelay *int64 `json:"evaluationDelay,omitempty"`
+
+	// The number of minutes before a monitor notifies after data stops reporting. Datadog recommends at least 2x the
+	// monitor timeframe for metric alerts or 2 minutes for service checks. If omitted, 2x the evaluation timeframe
+	// is used for metric alerts, and 24 hours is used for service checks.
+	// im not sure
+	NoDataTimeframe *int64 `json:"noDataTimeframe,omitempty"`
+
+	// A Boolean indicating whether notifications from this monitor automatically inserts its triggering tags into the title.
+	// default - true
+	IncludeTags *bool `json:"includeTags,omitempty"`
+
+	// An enum that toggles the display of additional content sent in the monitor notification.
+	// defaulted - `show_all`
+	NotificationPresetName string `json:"notificationPresetName,omitempty"`
+
+	// A Boolean indicating whether this monitor notifies when data stops reporting.
+	//  defaulted - true
+	NotifyNoData *bool `json:"notifyNoData,omitempty"`
+
+	// The types of statuses for which re-notification messages should be sent. Valid values are alert, warn, no data.
+	// +listType=set
+	// defaulted warn, alert, no data?
+	RenotifyStatuses []string `json:"renotifyStatuses,omitempty"`
+
+	// The number of minutes after the last notification before a monitor re-notifies on the current status.
+	// It only re-notifies if it’s not resolved.
+	//  defaulted - 5min
+	RenotifyInterval *int64 `json:"renotifyInterval,omitempty"`
+
+	// A Boolean indicating whether this monitor needs a full window of data before it’s evaluated. We highly
+	// recommend you set this to false for sparse metrics, otherwise some evaluations are skipped. Default is false.
+	// defaulted - false
+	RequireFullWindow *bool `json:"requireFullWindow,omitempty"`
+
+	// A struct of the different monitor threshold values.
+	// dev i think? is this not consitent accross slos?
+	// this is numeric value to trigger an alert...
+	Thresholds *DatadogMonitorOptionsThresholds `json:"thresholds,omitempty"`
+
+	// A struct of the alerting time window options.
+	// defaulted - below
+	ThresholdWindows *DatadogMonitorOptionsThresholdWindows `json:"thresholdWindows,omitempty"`
+}
+
+// i think this will be related to the query
+// error_budget(\"slo-hash-id\").over(\"7d\") > 10
+// critical value is 10
+type DatadogMonitorOptionsThresholds struct {
+	// The monitor CRITICAL threshold.
+	Critical *string `json:"critical,omitempty"`
+	// The monitor CRITICAL recovery threshold.
+	CriticalRecovery *string `json:"criticalRecovery,omitempty"`
+	// The monitor OK threshold.
+	OK *string `json:"ok,omitempty"`
+	// The monitor UNKNOWN threshold.
+	Unknown *string `json:"unknown,omitempty"`
+	// The monitor WARNING threshold.
+	Warning *string `json:"warning,omitempty"`
+	// The monitor WARNING recovery threshold.
+	WarningRecovery *string `json:"warningRecovery,omitempty"`
+}
+
+// these should be defauled
+// trigger window 2m
+// recovery window 2m
+type DatadogMonitorOptionsThresholdWindows struct {
+	// Describes how long an anomalous metric must be normal before the alert recovers.
+	RecoveryWindow *string `json:"recoveryWindow,omitempty"`
+	// Describes how long a metric must be anomalous before an alert triggers.
+	TriggerWindow *string `json:"triggerWindow,omitempty"`
 }
 
 // ddog specific slos
@@ -167,6 +257,8 @@ type DatadogSLO struct {
 	Timeframe       string                 `json:"timeframe,omitempty"`
 	Type            string                 `json:"type,omitempty"`
 	Canary          DatadogSLOCanaryConfig `json:"canary,omitempty"`
+	// defined in app.yml or omitted
+	DatadogMonitor DatadogMonitor `json:"datadogMonitor,omitempty"`
 }
 
 type DatadogSLOQuery struct {
