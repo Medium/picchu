@@ -55,18 +55,25 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 				Labels:    p.Labels,
 			},
 			Spec: ddog.DatadogSLOSpec{
+				// defaulted
 				Name:        ddogslo_name,
 				Description: &p.DatadogSLOs[i].Description,
 				Query: &ddog.DatadogSLOQuery{
 					Numerator:   p.DatadogSLOs[i].Query.Numerator,
 					Denominator: p.DatadogSLOs[i].Query.Denominator,
 				},
-				Type:            ddog.DatadogSLOTypeMetric,
-				Timeframe:       ddog.DatadogSLOTimeFrame7d,
-				TargetThreshold: resource.MustParse("99.9"),
+				// defaulted
+				Type: ddog.DatadogSLOTypeMetric,
+				// defaulted 30d for now
+				Timeframe:       ddog.DatadogSLOTimeFrame30d,
+				TargetThreshold: resource.MustParse(p.DatadogSLOs[i].TargetThreshold),
 			},
 		}
+
+		target := "target: " + p.Target
 		ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, p.DatadogSLOs[i].Tags...)
+		// add target tag
+		ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, target)
 
 		ddogSlOs = append(ddogSlOs, *ddogslo)
 	}
@@ -77,9 +84,6 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 
 func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
 	// example: echo-production-example-slo-monitor3-datadogslo
-	// EXCLUDE TAG FOR NOW
-	// lowercase
-	// at most 63 characters
-	// start and end with alphanumeric
+	// lowercase - at most 63 characters - start and end with alphanumeric
 	return fmt.Sprintf("%s-%s-%s-datadogslo", p.App, p.Target, sloName)
 }

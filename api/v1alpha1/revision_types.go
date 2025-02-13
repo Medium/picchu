@@ -146,21 +146,22 @@ type SLICanaryConfig struct {
 }
 
 type DatadogMonitor struct {
+	// if enabled, use these values
+	Enabled bool `json:"enabled,omitempty"`
 	// defaulted - <app>-<slo name>-<target>-datadogmonitor
 	Name string `json:"name,omitempty"`
 	// defaulted
 	Message string `json:"message,omitempty"`
-	// defaulted?
-	Priority int64 `json:"priority,omitempty"`
-	// dev
+	// defaulted
 	Query string `json:"query,omitempty"`
 	// both dev and defaulted - target name
 	Tags []string `json:"tags,omitempty"`
-	// defaulted "slo alert"
+	// defaulted - "slo alert"
 	Type    ddogv1alpha1.DatadogMonitorType `json:"type,omitempty"`
 	Options DatadogMonitorOptions           `json:"options,omitempty"`
 }
 
+// double check this matches the one in kbfd
 type DatadogMonitorOptions struct {
 	// A Boolean indicating whether to send a log sample when the log monitor triggers.
 	// defaulted - true
@@ -173,55 +174,54 @@ type DatadogMonitorOptions struct {
 	// Time (in seconds) to delay evaluation, as a non-negative integer. For example, if the value is set to 300 (5min),
 	// the timeframe is set to last_5m and the time is 7:00, the monitor evaluates data from 6:50 to 6:55.
 	// This is useful for AWS CloudWatch and other backfilled metrics to ensure the monitor always has data during evaluation.
-	// idk if this is an issue?
+	// defaulted - 5m for now
 	EvaluationDelay *int64 `json:"evaluationDelay,omitempty"`
-
-	// The number of minutes before a monitor notifies after data stops reporting. Datadog recommends at least 2x the
-	// monitor timeframe for metric alerts or 2 minutes for service checks. If omitted, 2x the evaluation timeframe
-	// is used for metric alerts, and 24 hours is used for service checks.
-	// im not sure
-	NoDataTimeframe *int64 `json:"noDataTimeframe,omitempty"`
 
 	// A Boolean indicating whether notifications from this monitor automatically inserts its triggering tags into the title.
 	// default - true
 	IncludeTags *bool `json:"includeTags,omitempty"`
+
+	// The number of minutes before a monitor notifies after data stops reporting. Datadog recommends at least 2x the
+	// monitor timeframe for metric alerts or 2 minutes for service checks. If omitted, 2x the evaluation timeframe
+	// is used for metric alerts, and 24 hours is used for service checks.
+	// default - 3m for now
+	NoDataTimeframe *int64 `json:"noDataTimeframe,omitempty"`
 
 	// An enum that toggles the display of additional content sent in the monitor notification.
 	// defaulted - `show_all`
 	NotificationPresetName string `json:"notificationPresetName,omitempty"`
 
 	// A Boolean indicating whether this monitor notifies when data stops reporting.
-	//  defaulted - true
+	// defaulted - true
 	NotifyNoData *bool `json:"notifyNoData,omitempty"`
 
 	// The types of statuses for which re-notification messages should be sent. Valid values are alert, warn, no data.
 	// +listType=set
-	// defaulted warn, alert, no data?
+	// defaulted - "alert" and "no data"
 	RenotifyStatuses []string `json:"renotifyStatuses,omitempty"`
 
 	// The number of minutes after the last notification before a monitor re-notifies on the current status.
 	// It only re-notifies if it’s not resolved.
-	//  defaulted - 5min
+	// defaulted - 5min
 	RenotifyInterval *int64 `json:"renotifyInterval,omitempty"`
+
+	// The number of times re-notification messages should be sent on the current status at the provided re-notification interval.
+	// defaulted - 2 times
+	RenotifyOccurrences *int64 `json:"renotifyOccurrences,omitempty"`
 
 	// A Boolean indicating whether this monitor needs a full window of data before it’s evaluated. We highly
 	// recommend you set this to false for sparse metrics, otherwise some evaluations are skipped. Default is false.
-	// defaulted - false
+	// defaulted - true for now
 	RequireFullWindow *bool `json:"requireFullWindow,omitempty"`
 
 	// A struct of the different monitor threshold values.
-	// dev i think? is this not consitent accross slos?
-	// this is numeric value to trigger an alert...
 	Thresholds *DatadogMonitorOptionsThresholds `json:"thresholds,omitempty"`
 
 	// A struct of the alerting time window options.
-	// defaulted - below
 	ThresholdWindows *DatadogMonitorOptionsThresholdWindows `json:"thresholdWindows,omitempty"`
 }
 
-// i think this will be related to the query
-// error_budget(\"slo-hash-id\").over(\"7d\") > 10
-// critical value is 10
+// Values read from the monitor query
 type DatadogMonitorOptionsThresholds struct {
 	// The monitor CRITICAL threshold.
 	Critical *string `json:"critical,omitempty"`
@@ -231,15 +231,9 @@ type DatadogMonitorOptionsThresholds struct {
 	OK *string `json:"ok,omitempty"`
 	// The monitor UNKNOWN threshold.
 	Unknown *string `json:"unknown,omitempty"`
-	// The monitor WARNING threshold.
-	Warning *string `json:"warning,omitempty"`
-	// The monitor WARNING recovery threshold.
-	WarningRecovery *string `json:"warningRecovery,omitempty"`
 }
 
-// these should be defauled
-// trigger window 2m
-// recovery window 2m
+// defaulted - 5m
 type DatadogMonitorOptionsThresholdWindows struct {
 	// Describes how long an anomalous metric must be normal before the alert recovers.
 	RecoveryWindow *string `json:"recoveryWindow,omitempty"`
@@ -249,16 +243,18 @@ type DatadogMonitorOptionsThresholdWindows struct {
 
 // ddog specific slos
 type DatadogSLO struct {
-	Name            string                 `json:"name,omitempty"`
-	Description     string                 `json:"description,omitempty"`
-	Query           DatadogSLOQuery        `json:"query,omitempty"`
-	Tags            []string               `json:"tags,omitempty"`
-	TargetThreshold string                 `json:"targetThreshold,omitempty"`
-	Timeframe       string                 `json:"timeframe,omitempty"`
-	Type            string                 `json:"type,omitempty"`
-	Canary          DatadogSLOCanaryConfig `json:"canary,omitempty"`
-	// defined in app.yml or omitted
-	DatadogMonitor DatadogMonitor `json:"datadogMonitor,omitempty"`
+	// defaulted
+	Name            string          `json:"name,omitempty"`
+	Description     string          `json:"description,omitempty"`
+	Query           DatadogSLOQuery `json:"query,omitempty"`
+	Tags            []string        `json:"tags,omitempty"`
+	TargetThreshold string          `json:"targetThreshold,omitempty"`
+	Timeframe       string          `json:"timeframe,omitempty"`
+	// defaulted - metric
+	Type string `json:"type,omitempty"`
+	// not implemented yet
+	Canary         DatadogSLOCanaryConfig `json:"canary,omitempty"`
+	DatadogMonitor DatadogMonitor         `json:"datadogMonitor,omitempty"`
 }
 
 type DatadogSLOQuery struct {
