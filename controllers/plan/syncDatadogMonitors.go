@@ -72,7 +72,7 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	slo_id := p.getDatadogSLOIDs(datadogslo, log)
 	// error if slo not found
 
-	query := "error_budget(\"" + slo_id + "\").over(\"" + datadogslo.Timeframe + "\") >" + datadogslo.TargetThreshold
+	query := "error_budget(\"" + slo_id + "\").over(\"" + datadogslo.Timeframe + "\") > " + datadogslo.TargetThreshold
 	message := "The " + datadogslo.Name + " error budget is over expected @slack-eng-watch-alerts-testing"
 	escalation_message := "ESCALATED: The " + datadogslo.Name + " error budget is over expected @slack-eng-watch-alerts-testing"
 	renotify := []datadogV1.MonitorRenotifyStatusType{datadogV1.MONITORRENOTIFYSTATUSTYPE_ALERT, datadogV1.MONITORRENOTIFYSTATUSTYPE_NO_DATA}
@@ -83,7 +83,7 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.datadogMonitorName(datadogslo.Name),
+			Name:      p.datadogMonitorName(datadogslo.Name, "error-budget"),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
@@ -155,7 +155,7 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.datadogMonitorName(datadogslo.Name),
+			Name:      p.datadogMonitorName(datadogslo.Name, "burn-rate"),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
@@ -231,10 +231,10 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 	return ""
 }
 
-func (p *SyncDatadogMonitors) datadogMonitorName(sloName string) string {
+func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
 	// example: echo-production-example-slo-monitor3-datadogslo
 	// lowercase
 	// at most 63 characters
 	// start and end with alphanumeric
-	return fmt.Sprintf("%s-%s-%s-datadogmonitor", p.App, p.Target, sloName)
+	return fmt.Sprintf("%s-%s-%s-%s-datadogmonitor", p.App, monitor_type, p.Target, sloName)
 }
