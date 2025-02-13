@@ -70,7 +70,7 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 			},
 		}
 
-		target := "target: " + p.Target
+		target := "target:" + p.Target
 		ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, p.DatadogSLOs[i].Tags...)
 		// add target tag
 		ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, target)
