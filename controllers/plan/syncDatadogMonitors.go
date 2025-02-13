@@ -150,7 +150,7 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 	renotify := []datadogV1.MonitorRenotifyStatusType{datadogV1.MONITORRENOTIFYSTATUSTYPE_ALERT, datadogV1.MONITORRENOTIFYSTATUSTYPE_NO_DATA}
 
 	five_min := int64(5)
-	five_min_sting := "5"
+	critical_threshold := "14.4"
 	options_true := true
 
 	ddogmonitor := ddog.DatadogMonitor{
@@ -182,23 +182,22 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 				NoDataTimeframe:   &five_min,
 
 				Thresholds: &ddog.DatadogMonitorOptionsThresholds{
-					Warning:  &five_min_sting,
-					Critical: &five_min_sting,
+					Critical: &critical_threshold,
 				},
 			},
 		},
 	}
 
-	// if the ddog monitor is enabled in app.yml, use the threshold ddog monitor values
-	if datadogslo.DatadogMonitor.Enabled {
-		// use the set ddog monitor values
-		ddogmonitor.Spec.Options.Thresholds.Critical = datadogslo.DatadogMonitor.Options.Thresholds.Critical
-		ddogmonitor.Spec.Options.Thresholds.CriticalRecovery = datadogslo.DatadogMonitor.Options.Thresholds.CriticalRecovery
-		// ddogmonitor.Spec.Options.Thresholds.OK = datadogslo.DatadogMonitor.Options.Thresholds.OK
-		// ddogmonitor.Spec.Options.Thresholds.Unknown = datadogslo.DatadogMonitor.Options.Thresholds.Unknown
-	} else {
-		ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
-	}
+	// // if the ddog monitor is enabled in app.yml, use the threshold ddog monitor values
+	// if datadogslo.DatadogMonitor.Enabled {
+	// 	// use the set ddog monitor values
+	// 	ddogmonitor.Spec.Options.Thresholds.Critical = datadogslo.DatadogMonitor.Options.Thresholds.Critical
+	// 	ddogmonitor.Spec.Options.Thresholds.CriticalRecovery = datadogslo.DatadogMonitor.Options.Thresholds.CriticalRecovery
+	// 	// ddogmonitor.Spec.Options.Thresholds.OK = datadogslo.DatadogMonitor.Options.Thresholds.OK
+	// 	// ddogmonitor.Spec.Options.Thresholds.Unknown = datadogslo.DatadogMonitor.Options.Thresholds.Unknown
+	// } else {
+	// 	ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
+	// }
 
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)
 
