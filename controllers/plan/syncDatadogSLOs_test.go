@@ -91,9 +91,10 @@ var (
 					Tags: []string{
 						"service:example",
 						"env:prod",
+						"target:prod",
 					},
 					TargetThreshold: resource.MustParse("99.9"),
-					Timeframe:       "7d",
+					Timeframe:       "30d",
 					Type:            "metric",
 				},
 			},
@@ -119,9 +120,10 @@ var (
 					Tags: []string{
 						"service:example",
 						"env:prod",
+						"target:prod",
 					},
 					TargetThreshold: resource.MustParse("99.9"),
-					Timeframe:       "7d",
+					Timeframe:       "30d",
 					Type:            "metric",
 				},
 			},

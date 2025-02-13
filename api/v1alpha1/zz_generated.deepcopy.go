@@ -472,14 +472,14 @@ func (in *DatadogMonitorOptions) DeepCopyInto(out *DatadogMonitorOptions) {
 		*out = new(int64)
 		**out = **in
 	}
-	if in.NoDataTimeframe != nil {
-		in, out := &in.NoDataTimeframe, &out.NoDataTimeframe
-		*out = new(int64)
-		**out = **in
-	}
 	if in.IncludeTags != nil {
 		in, out := &in.IncludeTags, &out.IncludeTags
 		*out = new(bool)
+		**out = **in
+	}
+	if in.NoDataTimeframe != nil {
+		in, out := &in.NoDataTimeframe, &out.NoDataTimeframe
+		*out = new(int64)
 		**out = **in
 	}
 	if in.NotifyNoData != nil {
@@ -494,6 +494,11 @@ func (in *DatadogMonitorOptions) DeepCopyInto(out *DatadogMonitorOptions) {
 	}
 	if in.RenotifyInterval != nil {
 		in, out := &in.RenotifyInterval, &out.RenotifyInterval
+		*out = new(int64)
+		**out = **in
+	}
+	if in.RenotifyOccurrences != nil {
+		in, out := &in.RenotifyOccurrences, &out.RenotifyOccurrences
 		*out = new(int64)
 		**out = **in
 	}
@@ -569,16 +574,6 @@ func (in *DatadogMonitorOptionsThresholds) DeepCopyInto(out *DatadogMonitorOptio
 	}
 	if in.Unknown != nil {
 		in, out := &in.Unknown, &out.Unknown
-		*out = new(string)
-		**out = **in
-	}
-	if in.Warning != nil {
-		in, out := &in.Warning, &out.Warning
-		*out = new(string)
-		**out = **in
-	}
-	if in.WarningRecovery != nil {
-		in, out := &in.WarningRecovery, &out.WarningRecovery
 		*out = new(string)
 		**out = **in
 	}
