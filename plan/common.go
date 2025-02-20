@@ -35,22 +35,22 @@ func LogSync(log logr.Logger, op controllerutil.OperationResult, err error, reso
 	switch obj := resource.(type) {
 	case *autoscaling.HorizontalPodAutoscaler:
 		if err != nil {
-			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
+			log.Error(err, "Sync resource HorizontalPodAutoscaler", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 			return
 		}
 	case *corev1.Service:
 		if err != nil {
-			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
+			log.Error(err, "Sync resource Service", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 			return
 		}
 	case *appsv1.ReplicaSet:
 		if err != nil {
-			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
+			log.Error(err, "Sync resource ReplicaSet", "Result", "failure", "Kind", kind, "Audit", true, "Resource", obj.Spec, "Op", op)
 			return
 		}
 	default:
 		if err != nil {
-			log.Error(err, "Sync resource", "Result", "failure", "Kind", kind, "Audit", true, "Resource", resource, "Op", op)
+			log.Error(err, "Sync resource Default", "Result", "failure", "Kind", kind, "Audit", true, "Resource", resource, "Op", op)
 			return
 		}
 	}
