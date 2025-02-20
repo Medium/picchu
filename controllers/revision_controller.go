@@ -59,8 +59,7 @@ const (
 )
 
 var (
-	clog              = logf.Log.WithName("controller_revision")
-	AcceptanceTargets = map[string]bool{"production": true}
+	clog = logf.Log.WithName("controller_revision")
 
 	revisionFailedGauge = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "picchu_revision_failed",
@@ -223,7 +222,8 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 
 		for _, revisionTarget := range instance.Spec.Targets {
-			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
+			// if production target continue with SLO Violation
+			if revisionTarget.AcceptanceTarget || strings.Contains(revisionTarget.Name, "production") {
 				targetStatus := targetStatusMap[revisionTarget.Name]
 				if targetStatus == nil {
 					continue
