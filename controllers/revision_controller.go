@@ -216,19 +216,22 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	if !revisionFailing && triggered && !instance.Spec.IgnoreSLOs {
-		log.Info("Revision triggered", "alarms", alarms)
+		log.Info("Revision triggered", "alarms", alarms, "name", instance.Spec.App.Name, "tag", instance.Spec.App.Tag)
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
 		for i := range status.Targets {
 			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
 		}
+		log.Info("targetStatusMap", "targetStatusMap", targetStatusMap)
 
 		for _, revisionTarget := range instance.Spec.Targets {
 			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
 				targetStatus := targetStatusMap[revisionTarget.Name]
 				if targetStatus == nil {
+					log.Info("Target Status is nil", "target", revisionTarget.Name)
 					continue
 				}
 				if targetStatus.Release.PeakPercent < AcceptancePercentage {
+					log.Info("Target set to failing SLO violation", "target", targetStatus.Name)
 					revisionFailing = true
 					revisionFailingReason = "SLO violation"
 
@@ -237,19 +240,26 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
 						break
 					}
+					log.Info("release manager SLO violation", "release manager", rm)
 					if rm == nil {
 						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
 						break
 					}
 					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
+					log.Info("get or create revisionStatus SLO violation", "revisionStatus", revisionStatus)
 					revisionStatus.TriggeredAlarms = alarms
 					rm.UpdateRevisionStatus(revisionStatus)
+					log.Info("UpdateRevisionStatus SLO violation", "revisionStatus", revisionStatus)
 					if err := utils.UpdateStatus(ctx, r.Client, rm); err != nil {
 						log.Error(err, "Could not save alarms to RevisionStatus", "alarms", alarms)
 					}
+					log.Info("UpdateStatus SLO violation", "revisionStatus", revisionStatus)
 				}
+				log.Info("Target status was neither nil or peak percent < acceptancepercent", "targetstatus", targetStatus, "revisionTarget NAME", revisionTarget.Name)
 				break
 			}
+			log.Info("Target not production", "revisionTarget.AcceptanceTarget", revisionTarget.AcceptanceTarget, "revisionTarget NAME", revisionTarget.Name)
+
 		}
 	}
 
