@@ -17,6 +17,7 @@ import (
 	"github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
 )
 
+// maybe add canary toggle to label correctly
 type SyncDatadogMonitors struct {
 	App    string
 	Target string
@@ -24,6 +25,7 @@ type SyncDatadogMonitors struct {
 	Namespace string
 	Tag       string
 	Labels    map[string]string
+	Canary    bool
 	// Use DatadogSLOs to define each monitor
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
 }
@@ -80,10 +82,16 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	five_min := int64(5)
 	five_min_sting := "5"
 	options_true := true
+	name := ""
+	if p.Canary {
+		name = p.datadogCanaryMonitorName(datadogslo.Name, "error-budget")
+	} else {
+		name = p.datadogMonitorName(datadogslo.Name, "error-budget")
+	}
 
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.datadogMonitorName(datadogslo.Name, "error-budget"),
+			Name:      name,
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
@@ -130,6 +138,10 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 
 	// taken from datadogslo
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)
+	// add caanry tag
+	if p.Canary {
+		ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, "canary:true")
+	}
 
 	return ddogmonitor
 }
@@ -153,9 +165,16 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 	critical_threshold := "14.4"
 	options_true := true
 
+	name := ""
+	if p.Canary {
+		name = p.datadogCanaryMonitorName(datadogslo.Name, "burn-rate")
+	} else {
+		name = p.datadogMonitorName(datadogslo.Name, "burn-rate")
+	}
+
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.datadogMonitorName(datadogslo.Name, "burn-rate"),
+			Name:      name,
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
@@ -200,6 +219,10 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 	// }
 
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)
+	// add caanry tag
+	if p.Canary {
+		ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, "canary:true")
+	}
 
 	return ddogmonitor
 }
@@ -231,9 +254,17 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
-	// example: echo-production-example-slo-monitor3-datadogslo
+	// example: echo-production-example-slo-monitor-datadogslo
 	// lowercase
 	// at most 63 characters
 	// start and end with alphanumeric
 	return fmt.Sprintf("%s-%s-%s-%s-datadogmonitor", p.App, monitor_type, p.Target, sloName)
+}
+
+func (p *SyncDatadogMonitors) datadogCanaryMonitorName(sloName string, monitor_type string) string {
+	// example: echo-burn-rate-example-slo-monitor-<tag>-canary
+	// lowercase
+	// at most 63 characters
+	// start and end with alphanumeric
+	return fmt.Sprintf("%s-%s-%s-%s-canary", p.App, monitor_type, sloName, p.Tag)
 }

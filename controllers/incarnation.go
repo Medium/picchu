@@ -470,6 +470,7 @@ func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 			Tag:         i.tag,
 			DatadogSLOs: i.target().DatadogSLOs,
 			Labels:      shared_labels,
+			Canary:      false,
 		})
 	}
 	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping SyncDatadogSLOs and SyncDatadogMonitors")
@@ -758,6 +759,7 @@ func (i *Incarnation) defaultLabels() map[string]string {
 }
 
 func (i *Incarnation) setReleaseEligible(flag bool) {
+	// add log here
 	i.status.ReleaseEligible = flag
 }
 
