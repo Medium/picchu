@@ -221,12 +221,9 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		for i := range status.Targets {
 			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
 		}
-		for _, revisionTarget := range instance.Spec.Targets {
-			if revisionTarget.Name == "production-tasks" {
-				log.Info("production-tasks revisionTarget.AcceptanceTarget", "revisionTarget.AcceptanceTarget", revisionTarget.AcceptanceTarget)
-				log.Info("production-tasks AcceptanceTargets[revisionTarget.Name]", "AcceptanceTargets[revisionTarget.Name]", AcceptanceTargets[revisionTarget.Name])
-			}
+		log.Info("targetStatusMap", "targetStatusMap", targetStatusMap)
 
+		for _, revisionTarget := range instance.Spec.Targets {
 			if revisionTarget.AcceptanceTarget || AcceptanceTargets[revisionTarget.Name] {
 				targetStatus := targetStatusMap[revisionTarget.Name]
 				if targetStatus == nil {
@@ -258,12 +255,10 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 					}
 					log.Info("UpdateStatus SLO violation", "revisionStatus", revisionStatus)
 				}
-				log.Info("Target status was neither nil or peak percent < acceptancepercent", "targetstatus", targetStatus)
+				log.Info("Target status was neither nil or peak percent < acceptancepercent", "targetstatus", targetStatus, "revisionTarget NAME", revisionTarget.Name)
 				break
 			}
-			if revisionTarget.Name == "production-tasks" {
-				log.Info("production-tasks target not production", "revisionTarget.AcceptanceTarget", revisionTarget.AcceptanceTarget)
-			}
+			log.Info("Target not production", "revisionTarget.AcceptanceTarget", revisionTarget.AcceptanceTarget, "revisionTarget NAME", revisionTarget.Name)
 
 		}
 	}
