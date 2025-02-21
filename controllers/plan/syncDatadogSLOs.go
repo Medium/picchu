@@ -83,7 +83,8 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 }
 
 func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
-	// example: echo-production-example-slo-monitor3-datadogslo
+	// example: echo-production-example-slo-datadogslo
+	// do we need the target?
 	// lowercase - at most 63 characters - start and end with alphanumeric
 	return fmt.Sprintf("%s-%s-%s-datadogslo", p.App, p.Target, sloName)
 }

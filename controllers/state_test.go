@@ -792,7 +792,9 @@ type responses struct {
 	currentPercent            uint32
 	peakPercent               uint32
 	syncCanaryRules           error
+	syncDatadogCanarySLOs     error
 	deleteCanaryRules         error
+	deleteDatadogCanarySLOs   error
 	syncTaggedServiceLevels   error
 	syncDatadogSLOs           error
 	deleteTaggedServiceLevels error

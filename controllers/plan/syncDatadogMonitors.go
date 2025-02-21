@@ -254,7 +254,8 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
-	// example: echo-production-example-slo-monitor-datadogslo
+	// example: echo-burn-rate-example-slo-monitor-datadogslo
+	// do we need the target?
 	// lowercase
 	// at most 63 characters
 	// start and end with alphanumeric
@@ -263,8 +264,9 @@ func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type st
 
 func (p *SyncDatadogMonitors) datadogCanaryMonitorName(sloName string, monitor_type string) string {
 	// example: echo-burn-rate-example-slo-monitor-<tag>-canary
+	// do we need the target?
 	// lowercase
 	// at most 63 characters
 	// start and end with alphanumeric
-	return fmt.Sprintf("%s-%s-%s-%s-canary", p.App, monitor_type, sloName, p.Tag)
+	return fmt.Sprintf("%s-%s-%s-%s-canary-datadogmonitor", p.App, monitor_type, sloName, p.Tag)
 }
