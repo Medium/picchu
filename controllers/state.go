@@ -74,8 +74,10 @@ type Deployment interface {
 	deleteCanaryRules(context.Context) error
 	syncTaggedServiceLevels(context.Context) error
 	syncDatadogSLOs(context.Context) error
+	syncDatadogCanarySLOs(context.Context) error
 	deleteTaggedServiceLevels(context.Context) error
 	deleteDatadogSLOs(context.Context) error
+	deleteDatadogCanarySLOs(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	markedAsFailed() bool
@@ -413,6 +415,10 @@ func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return deleting, err
 	}
 
+	if err := deployment.deleteDatadogCanarySLOs(ctx); err != nil {
+		return deleting, err
+	}
+
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return deleting, err
 	}
@@ -451,6 +457,9 @@ func Failing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
 		return failing, err
 	}
+	if err := deployment.deleteDatadogCanarySLOs(ctx); err != nil {
+		return failing, err
+	}
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return failing, err
 	}
@@ -483,6 +492,9 @@ func Canarying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	if err := deployment.syncCanaryRules(ctx); err != nil {
 		return canarying, err
 	}
+	if err := deployment.syncDatadogCanarySLOs(ctx); err != nil {
+		return canarying, err
+	}
 	if err := deployment.syncTaggedServiceLevels(ctx); err != nil {
 		return canarying, err
 	}
@@ -506,6 +518,9 @@ func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return failing, nil
 	}
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
+		return canaried, err
+	}
+	if err := deployment.deleteDatadogCanarySLOs(ctx); err != nil {
 		return canaried, err
 	}
 	if err := deployment.sync(ctx); err != nil {

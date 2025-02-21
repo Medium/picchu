@@ -12,14 +12,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type DeleteDatadogSLOs struct {
+type DeleteDatadogCanarySLOs struct {
 	App       string
 	Target    string
 	Namespace string
 	Tag       string
 }
 
-func (p *DeleteDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+func (p *DeleteDatadogCanarySLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	ddogslolist := &ddog.DatadogSLOList{}
 
 	opts := &client.ListOptions{
@@ -32,7 +32,7 @@ func (p *DeleteDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluste
 	}
 
 	if err := cli.List(ctx, ddogslolist, opts); err != nil {
-		log.Error(err, "Failed to delete datadog slo")
+		log.Error(err, "Failed to delete datadog canary slo")
 		return err
 	}
 
