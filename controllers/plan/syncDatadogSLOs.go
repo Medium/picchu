@@ -65,8 +65,8 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 				Name:        ddogslo_name,
 				Description: &p.DatadogSLOs[i].Description,
 				Query: &ddog.DatadogSLOQuery{
-					Numerator:   p.injectTagGood(p.DatadogSLOs[i].Query.GoodEvents),
-					Denominator: p.injectTagTotal(p.DatadogSLOs[i].Query.TotalEvents),
+					Numerator:   p.injectTag(p.DatadogSLOs[i].Query.GoodEvents),
+					Denominator: p.injectTag(p.DatadogSLOs[i].Query.TotalEvents),
 				},
 				// defaulted
 				Type: ddog.DatadogSLOTypeMetric,
@@ -94,15 +94,8 @@ func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
 	return fmt.Sprintf("%s-%s-%s-datadogslo", p.App, p.Target, sloName)
 }
 
-// inject tag into total query, normal syntax
-func (p *SyncDatadogSLOs) injectTagTotal(query string) string {
-	bracket_index := strings.Index(query, "{")
-	tag_string := "destination_version:" + p.Tag + ", "
-	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]
-}
-
 // inject tag into good events query with AND syntax
-func (p *SyncDatadogSLOs) injectTagGood(query string) string {
+func (p *SyncDatadogSLOs) injectTag(query string) string {
 	bracket_index := strings.Index(query, "{")
 	tag_string := "destination_version:" + p.Tag + " AND "
 	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]

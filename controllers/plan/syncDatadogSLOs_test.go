@@ -37,8 +37,8 @@ var (
 				Description: "test create example datadogSLO one",
 				Query: picchuv1alpha1.DatadogSLOQuery{
 					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
-					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local, reporter:destination}.as_count())",
-					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local, reporter:destination, response_code:5*}.as_count())",
+					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
+					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count())",
 				},
 				Tags: []string{
 					"service:example",
@@ -53,8 +53,8 @@ var (
 				Description: "test create example datadogSLO two",
 				Query: picchuv1alpha1.DatadogSLOQuery{
 					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
-					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local, reporter:destination}.as_count())",
-					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local, reporter:destination, response_code:5*}.as_count())",
+					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count())",
 				},
 				Tags: []string{
 					"service:example",
@@ -88,7 +88,7 @@ var (
 					Description: &descrption_one,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
-						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123, destination_service:tutu.tutu-production.svc.cluster.local, reporter:destination}.as_count())",
+						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
 					},
 					Tags: []string{
 						"service:example",
@@ -117,7 +117,7 @@ var (
 					Description: &descrption_two,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
-						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123, destination_service:echo.echo-production.svc.cluster.local, reporter:destination}.as_count())",
+						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
 					},
 					Tags: []string{
 						"service:example",
