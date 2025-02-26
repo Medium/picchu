@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
@@ -40,6 +41,11 @@ func (p *SyncDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster 
 	return nil
 }
 
+// so we will get this from the app.yml
+// total events: "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local, reporter:destination}.as_count())"
+// good events: "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())"
+// bad events; "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local, reporter:destination, response_code:5*}.as_count())"
+
 func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	// create a new list of datadog slos
 	ddogSLOList := &ddog.DatadogSLOList{}
@@ -59,8 +65,8 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 				Name:        ddogslo_name,
 				Description: &p.DatadogSLOs[i].Description,
 				Query: &ddog.DatadogSLOQuery{
-					Numerator:   p.DatadogSLOs[i].Query.Numerator,
-					Denominator: p.DatadogSLOs[i].Query.Denominator,
+					Numerator:   p.injectTag(p.DatadogSLOs[i].Query.GoodEvents),
+					Denominator: p.injectTag(p.DatadogSLOs[i].Query.TotalEvents),
 				},
 				// defaulted
 				Type: ddog.DatadogSLOTypeMetric,
@@ -86,4 +92,11 @@ func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
 	// example: echo-production-example-slo-monitor3-datadogslo
 	// lowercase - at most 63 characters - start and end with alphanumeric
 	return fmt.Sprintf("%s-%s-%s-datadogslo", p.App, p.Target, sloName)
+}
+
+// inject tag into good events query with AND syntax
+func (p *SyncDatadogSLOs) injectTag(query string) string {
+	bracket_index := strings.Index(query, "{")
+	tag_string := "destination_version:" + p.Tag + " AND "
+	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]
 }
