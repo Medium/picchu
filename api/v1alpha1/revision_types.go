@@ -258,8 +258,9 @@ type DatadogSLO struct {
 }
 
 type DatadogSLOQuery struct {
-	Numerator   string `json:"numerator"`
-	Denominator string `json:"denominator"`
+	GoodEvents  string `json:"goodevents"`
+	BadEvents   string `json:"badevents"`
+	TotalEvents string `json:"totalevents"`
 }
 
 type DatadogSLOCanaryConfig struct {

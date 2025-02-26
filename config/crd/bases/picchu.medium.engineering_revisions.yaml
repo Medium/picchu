@@ -1118,7 +1118,7 @@ spec:
                           type: object
                       type: object
                       x-kubernetes-map-type: atomic
-                    ddogServiceLevelObjectives:
+                    datadogServiceLevelObjectives:
                       items:
                         description: ddog specific slos
                         properties:
@@ -1270,13 +1270,16 @@ spec:
                             type: string
                           query:
                             properties:
-                              denominator:
+                              badevents:
                                 type: string
-                              numerator:
+                              goodevents:
+                                type: string
+                              totalevents:
                                 type: string
                             required:
-                            - denominator
-                            - numerator
+                            - badevents
+                            - goodevents
+                            - totalevents
                             type: object
                           tags:
                             items:
