@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
@@ -52,8 +51,8 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	var ddogSlOs []ddog.DatadogSLO
 
 	for i := range p.DatadogSLOs {
-		// update the DatadogSLO name so that it is the <service-name>-<slo-name>
-		ddogslo_name := p.App + "-" + p.DatadogSLOs[i].Name
+		// update the DatadogSLO name so that it is the <service-name>-<target>-<tag>-<slo-name>
+		ddogslo_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + p.DatadogSLOs[i].Name
 		ddogslo := &ddog.DatadogSLO{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      p.datadogSLOName(p.DatadogSLOs[i].Name),
@@ -89,9 +88,15 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 }
 
 func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
-	// example: echo-production-example-slo-monitor3-datadogslo
+	// example: <service-name>-<target>-<slo-name>-<commit hash in tag>
 	// lowercase - at most 63 characters - start and end with alphanumeric
-	return fmt.Sprintf("%s-%s-%s-datadogslo", p.App, p.Target, sloName)
+	sloName = strings.ReplaceAll(sloName, "-", "")
+	end_tag := strings.LastIndex(p.Tag, "-")
+	front_tag := p.App + "-" + p.Target + "-" + sloName + "-" + p.Tag[end_tag+1:]
+	if len(front_tag) > 63 {
+		front_tag = front_tag[:63]
+	}
+	return front_tag
 }
 
 // inject tag into good events query with AND syntax

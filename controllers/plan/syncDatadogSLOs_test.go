@@ -24,12 +24,12 @@ var (
 		App:       "echo",
 		Target:    "prod",
 		Namespace: "datadog",
-		Tag:       "main-123",
+		Tag:       "main-123-456",
 		Labels: map[string]string{
 			picchuv1alpha1.LabelApp:        "echo",
-			picchuv1alpha1.LabelTag:        "main-123",
+			picchuv1alpha1.LabelTag:        "main-123-456",
 			picchuv1alpha1.LabelK8sName:    "echo",
-			picchuv1alpha1.LabelK8sVersion: "main-123",
+			picchuv1alpha1.LabelK8sVersion: "main-123-456",
 		},
 		DatadogSLOs: []*picchuv1alpha1.DatadogSLO{
 			{
@@ -74,21 +74,21 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "echo-prod-slo1-datadogslo",
+					Name:      "echo-prod-slo1-456",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "echo",
-						picchuv1alpha1.LabelTag:        "main-123",
+						picchuv1alpha1.LabelTag:        "main-123-456",
 						picchuv1alpha1.LabelK8sName:    "echo",
-						picchuv1alpha1.LabelK8sVersion: "main-123",
+						picchuv1alpha1.LabelK8sVersion: "main-123-456",
 					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "echo-slo1",
+					Name:        "echo-prod-main-123-456-slo1",
 					Description: &descrption_one,
 					Query: &ddog.DatadogSLOQuery{
-						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
-						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
+						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
+						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
 					},
 					Tags: []string{
 						"service:example",
@@ -103,21 +103,21 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "echo-prod-slo2-datadogslo",
+					Name:      "echo-prod-slo2-456",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "echo",
-						picchuv1alpha1.LabelTag:        "main-123",
+						picchuv1alpha1.LabelTag:        "main-123-456",
 						picchuv1alpha1.LabelK8sName:    "echo",
-						picchuv1alpha1.LabelK8sVersion: "main-123",
+						picchuv1alpha1.LabelK8sVersion: "main-123-456",
 					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "echo-slo2",
+					Name:        "echo-prod-main-123-456-slo2",
 					Description: &descrption_two,
 					Query: &ddog.DatadogSLOQuery{
-						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
-						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123 AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
 					},
 					Tags: []string{
 						"service:example",
@@ -136,12 +136,12 @@ var (
 		App:       "example",
 		Target:    "prod",
 		Namespace: "datadog",
-		Tag:       "main-123",
+		Tag:       "main-123-456",
 		Labels: map[string]string{
 			picchuv1alpha1.LabelApp:        "echo",
-			picchuv1alpha1.LabelTag:        "main-123",
+			picchuv1alpha1.LabelTag:        "main-123-456",
 			picchuv1alpha1.LabelK8sName:    "echo",
-			picchuv1alpha1.LabelK8sVersion: "main-123",
+			picchuv1alpha1.LabelK8sVersion: "main-123-456",
 		},
 		DatadogSLOs: []*picchuv1alpha1.DatadogSLO{
 			{
@@ -171,9 +171,9 @@ var (
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "FART",
-						picchuv1alpha1.LabelTag:        "main-123",
+						picchuv1alpha1.LabelTag:        "main-123-456",
 						picchuv1alpha1.LabelK8sName:    "echo",
-						picchuv1alpha1.LabelK8sVersion: "main-123",
+						picchuv1alpha1.LabelK8sVersion: "main-123-456",
 					},
 				},
 				Spec: ddog.DatadogMonitorSpec{
@@ -194,8 +194,8 @@ func TestDatadogSLOs(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		{Name: "echo-prod-slo1-datadogslo", Namespace: "datadog"},
-		{Name: "echo-prod-slo2-datadogslo", Namespace: "datadog"},
+		{Name: "echo-prod-slo1-456", Namespace: "datadog"},
+		{Name: "echo-prod-slo2-456", Namespace: "datadog"},
 	}
 
 	// tests_monitor := []client.ObjectKey{
