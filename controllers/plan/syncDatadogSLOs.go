@@ -114,6 +114,9 @@ func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
 	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag
 	if len(front_tag) > 63 {
 		front_tag = front_tag[:63]
+		if front_tag[len(front_tag)-1:] == "-" {
+			front_tag = front_tag[:len(front_tag)-1]
+		}
 	}
 	return front_tag
 }
