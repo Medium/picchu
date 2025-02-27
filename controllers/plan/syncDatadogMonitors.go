@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
@@ -67,7 +68,8 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 
 // Error Budget Monitor
 func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) ddog.DatadogMonitor {
-	ddogmonitor_name := p.App + "-" + "error-budget-" + datadogslo.Name
+	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-error-budget
+	ddogmonitor_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogslo.Name + "-error-budget"
 
 	slo_id := p.getDatadogSLOIDs(datadogslo, log)
 	// error if slo not found
@@ -135,7 +137,8 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 }
 
 func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) ddog.DatadogMonitor {
-	ddogmonitor_name := p.App + "-" + "burn-rate-" + datadogslo.Name
+	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-burn-rate
+	ddogmonitor_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogslo.Name + "-burn-rate"
 
 	slo_id := p.getDatadogSLOIDs(datadogslo, log)
 	// error if slo not found
@@ -230,10 +233,43 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 	return ""
 }
 
+// func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
+// 	// example: <service-name>-<target>-<slo-name>-<commit hash in tag>
+// 	// lowercase - at most 63 characters - start and end with alphanumeric
+// 	sloName = strings.ReplaceAll(sloName, "-", "")
+// 	end_tag := strings.LastIndex(p.Tag, "-")
+// 	front_tag := p.App + "-" + p.Target + "-" + sloName + "-" + p.Tag[end_tag+1:]
+// 	if len(front_tag) > 61 {
+// 		front_tag = front_tag[:61]
+// 	}
+// 	return front_tag + "-" + monitor_type
+// }
+
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
-	// example: echo-production-example-slo-monitor3-datadogslo
-	// lowercase
-	// at most 63 characters
-	// start and end with alphanumeric
-	return fmt.Sprintf("%s-%s-%s-%s-datadogmonitor", p.App, monitor_type, p.Target, sloName)
+	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-<monitor-type>
+	// lowercase - at most 63 characters - start and end with alphanumeric
+
+	target := ""
+	if strings.Contains(p.Target, "-") {
+		t := strings.LastIndex(p.Target, "-")
+		first_target := p.Target[:4]
+		second_target := p.Target[t+1 : t+5]
+		target = first_target + "-" + second_target
+	} else {
+		target = p.Target[:4]
+	}
+
+	slo_name_end := strings.LastIndex(sloName, "-")
+	new_slo_name := string(sloName[0])
+	for i := range slo_name_end + 1 {
+		if string(sloName[i]) == "-" {
+			new_slo_name = new_slo_name + string(sloName[i+1])
+		}
+	}
+
+	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag + "-" + monitor_type
+	if len(front_tag) > 63 {
+		front_tag = front_tag[:63]
+	}
+	return front_tag
 }
