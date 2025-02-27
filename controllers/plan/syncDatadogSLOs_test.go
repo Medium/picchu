@@ -33,7 +33,7 @@ var (
 		},
 		DatadogSLOs: []*picchuv1alpha1.DatadogSLO{
 			{
-				Name:        "slo1",
+				Name:        "istio-request-success",
 				Description: "test create example datadogSLO one",
 				Query: picchuv1alpha1.DatadogSLOQuery{
 					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
@@ -49,7 +49,7 @@ var (
 				Type:            "metric",
 			},
 			{
-				Name:        "slo2",
+				Name:        "http-availability",
 				Description: "test create example datadogSLO two",
 				Query: picchuv1alpha1.DatadogSLOQuery{
 					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
@@ -74,7 +74,7 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "echo-prod-slo1-456",
+					Name:      "echo-prod-irs-main-123-456",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "echo",
@@ -84,7 +84,7 @@ var (
 					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "echo-prod-main-123-456-slo1",
+					Name:        "echo-prod-main-123-456-istio-request-success",
 					Description: &descrption_one,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
@@ -103,7 +103,7 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "echo-prod-slo2-456",
+					Name:      "echo-prod-ha-main-123-456",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "echo",
@@ -113,7 +113,7 @@ var (
 					},
 				},
 				Spec: ddog.DatadogSLOSpec{
-					Name:        "echo-prod-main-123-456-slo2",
+					Name:        "echo-prod-main-123-456-http-availability",
 					Description: &descrption_two,
 					Query: &ddog.DatadogSLOQuery{
 						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
@@ -167,7 +167,7 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "example-prod-exampleslo-456-eb",
+					Name:      "production-newsletterv3preview-production-newsletterv3previewsqsmessagesprocessedsuccess-456-eb",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:        "echo",
@@ -212,8 +212,8 @@ func TestDatadogSLOs(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		{Name: "echo-prod-slo1-456", Namespace: "datadog"},
-		{Name: "echo-prod-slo2-456", Namespace: "datadog"},
+		{Name: "echo-prod-irs-main-123-456", Namespace: "datadog"},
+		{Name: "echo-prod-ha-main-123-456", Namespace: "datadog"},
 	}
 
 	// tests_monitor := []client.ObjectKey{

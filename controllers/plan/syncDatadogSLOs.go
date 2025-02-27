@@ -87,12 +87,31 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	return ddogSLOList, nil
 }
 
+// jubilee-prod-sched-ssmps-main-20250226-235320-6c2cfd92bc
+
 func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
-	// example: <service-name>-<target>-<slo-name>-<commit hash in tag>
+	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>
 	// lowercase - at most 63 characters - start and end with alphanumeric
-	sloName = strings.ReplaceAll(sloName, "-", "")
-	end_tag := strings.LastIndex(p.Tag, "-")
-	front_tag := p.App + "-" + p.Target + "-" + sloName + "-" + p.Tag[end_tag+1:]
+
+	target := ""
+	if strings.Contains(p.Target, "-") {
+		t := strings.LastIndex(p.Target, "-")
+		first_target := p.Target[:4]
+		second_target := p.Target[t+1 : t+5]
+		target = first_target + "-" + second_target
+	} else {
+		target = p.Target[:4]
+	}
+
+	slo_name_end := strings.LastIndex(sloName, "-")
+	new_slo_name := string(sloName[0])
+	for i := range slo_name_end + 1 {
+		if string(sloName[i]) == "-" {
+			new_slo_name = new_slo_name + string(sloName[i+1])
+		}
+	}
+
+	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag
 	if len(front_tag) > 63 {
 		front_tag = front_tag[:63]
 	}
