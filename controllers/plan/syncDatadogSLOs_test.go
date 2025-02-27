@@ -167,18 +167,36 @@ var (
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "example-prod-example-slo-datadomonitor",
+					Name:      "example-prod-exampleslo-456-eb",
 					Namespace: "datadog",
 					Labels: map[string]string{
-						picchuv1alpha1.LabelApp:        "FART",
+						picchuv1alpha1.LabelApp:        "echo",
 						picchuv1alpha1.LabelTag:        "main-123-456",
 						picchuv1alpha1.LabelK8sName:    "echo",
 						picchuv1alpha1.LabelK8sVersion: "main-123-456",
 					},
 				},
 				Spec: ddog.DatadogMonitorSpec{
-					Name:  "example-slo",
+					Name:  "example-prod-main-123-456-example-slo-error-budget",
 					Query: "error_budget(\"" + "echo-slo1" + "\").over(\"7d\") > 10",
+					Type:  ddog.DatadogMonitorTypeSLO,
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
+					Name:      "example-prod-exampleslo-456-br",
+					Namespace: "datadog",
+					Labels: map[string]string{
+						picchuv1alpha1.LabelApp:        "echo",
+						picchuv1alpha1.LabelTag:        "main-123-456",
+						picchuv1alpha1.LabelK8sName:    "echo",
+						picchuv1alpha1.LabelK8sVersion: "main-123-456",
+					},
+				},
+				Spec: ddog.DatadogMonitorSpec{
+					Name:  "example-prod-main-123-456-example-slo-burn-rate",
+					Query: "burn_rate(\"" + "echo-slo1" + "\").over(\"7d\") > 10",
 					Type:  ddog.DatadogMonitorTypeSLO,
 				},
 			},
@@ -199,7 +217,8 @@ func TestDatadogSLOs(t *testing.T) {
 	}
 
 	// tests_monitor := []client.ObjectKey{
-	// 	{Name: "example-prod-example-slo-datadogmonitor", Namespace: "datadog"},
+	// 	{Name: "example-prod-exampleslo-456-br", Namespace: "datadog"},
+	// 	{Name: "example-prod-exampleslo-456-eb", Namespace: "datadog"},
 	// }
 
 	ctx := context.TODO()
