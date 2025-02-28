@@ -85,9 +85,19 @@ type PromAPI interface {
 	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error)
 }
 
+type DatadogAPI interface {
+	IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error)
+}
+
 type NoopPromAPI struct{}
 
 func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error) {
+	return false, nil, nil
+}
+
+type NoopDatadogAPI struct{}
+
+func (n *NoopDatadogAPI) IsRevisionTriggered(ctx context.Context, name, tag string, withCanary bool) (bool, []string, error) {
 	return false, nil, nil
 }
 
@@ -118,6 +128,7 @@ type RevisionReconciler struct {
 	Scheme       *runtime.Scheme
 	Config       utils.Config
 	PromAPI      PromAPI
+	DatadogAPI   DatadogAPI
 	CustomLogger logr.Logger
 }
 
