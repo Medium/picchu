@@ -215,35 +215,22 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 		configuration := datadog.NewConfiguration()
 		apiClient := datadog.NewAPIClient(configuration)
 		api := datadogV1.NewServiceLevelObjectivesApi(apiClient)
-		resp, r, err := api.ListSLOs(ctx, *datadogV1.NewListSLOsOptionalParameters())
+		// double quotes
+		ddogslo_name := "\"" + p.datadogSLOName(datadogSLO.Name) + "\""
+		resp, r, err := api.SearchSLO(ctx, *datadogV1.NewSearchSLOOptionalParameters().WithQuery(ddogslo_name))
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error when calling `ServiceLevelObjectivesApi.ListSLOs`: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters`: %v\n", err)
 			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		}
 
-		for _, slo := range resp.Data {
-			ddogslo_name := p.App + "-" + datadogSLO.Name
-			if slo.Name == ddogslo_name {
-				return *slo.Id
-			}
-		}
+		log.Info("ECHO SLO FOUND", "NAME", ddogslo_name, "ID", resp.Data.Attributes.Slos[0].Data.Id)
+		return *resp.Data.Attributes.Slos[0].Data.Id
 	}
 	// if app is not echo, return empty string for now
-	return ""
+	str := ""
+	return str
 }
-
-// func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
-// 	// example: <service-name>-<target>-<slo-name>-<commit hash in tag>
-// 	// lowercase - at most 63 characters - start and end with alphanumeric
-// 	sloName = strings.ReplaceAll(sloName, "-", "")
-// 	end_tag := strings.LastIndex(p.Tag, "-")
-// 	front_tag := p.App + "-" + p.Target + "-" + sloName + "-" + p.Tag[end_tag+1:]
-// 	if len(front_tag) > 61 {
-// 		front_tag = front_tag[:61]
-// 	}
-// 	return front_tag + "-" + monitor_type
-// }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
 	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-<monitor-type>
@@ -270,6 +257,38 @@ func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type st
 	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag + "-" + monitor_type
 	if len(front_tag) > 63 {
 		front_tag = front_tag[:63]
+	}
+	return front_tag
+}
+
+func (p *SyncDatadogMonitors) datadogSLOName(sloName string) string {
+	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>
+	// lowercase - at most 63 characters - start and end with alphanumeric
+
+	target := ""
+	if strings.Contains(p.Target, "-") {
+		t := strings.LastIndex(p.Target, "-")
+		first_target := p.Target[:4]
+		second_target := p.Target[t+1 : t+5]
+		target = first_target + "-" + second_target
+	} else {
+		target = p.Target[:4]
+	}
+
+	slo_name_end := strings.LastIndex(sloName, "-")
+	new_slo_name := string(sloName[0])
+	for i := range slo_name_end + 1 {
+		if string(sloName[i]) == "-" {
+			new_slo_name = new_slo_name + string(sloName[i+1])
+		}
+	}
+
+	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag
+	if len(front_tag) > 63 {
+		front_tag = front_tag[:63]
+		if front_tag[len(front_tag)-1:] == "-" {
+			front_tag = front_tag[:len(front_tag)-1]
+		}
 	}
 	return front_tag
 }
