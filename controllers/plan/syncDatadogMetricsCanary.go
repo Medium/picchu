@@ -1,7 +1,13 @@
 package plan
 
 import (
+	"context"
+
+	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
+	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
+	"go.medium.engineering/picchu/plan"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // const (
@@ -26,50 +32,50 @@ type SyncDatadogMetricsCanary struct {
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
 }
 
-// func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-// 	prometheusRules, err := p.prometheusRules(log)
-// 	if err != nil {
-// 		return err
-// 	}
+func (p *SyncDatadogMetricsCanary) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	ddogMetrics, err := p.ddogMetrics()
+	if err != nil {
+		return err
+	}
 
-// 	if len(prometheusRules.Items) > 0 {
-// 		for _, pr := range prometheusRules.Items {
-// 			if err := plan.CreateOrUpdate(ctx, log, cli, pr); err != nil {
-// 				return err
-// 			}
-// 		}
-// 	}
+	if len(ddogMetrics.Items) > 0 {
+		for _, ddogm := range ddogMetrics.Items {
+			if err := plan.CreateOrUpdate(ctx, log, cli, &ddogm); err != nil {
+				return err
+			}
+		}
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
-// func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.PrometheusRuleList, error) {
-// 	prl := &monitoringv1.PrometheusRuleList{}
-// 	prs := []*monitoringv1.PrometheusRule{}
+func (p *SyncDatadogMetricsCanary) ddogMetrics() (*ddog.DatadogMetricList, error) {
+	// prl := &monitoringv1.PrometheusRuleList{}
+	// prs := []*monitoringv1.PrometheusRule{}
 
-// 	rule := p.prometheusRule()
+	// rule := p.prometheusRule()
 
-// 	for i := range p.ServiceLevelObjectives {
-// 		if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
-// 			config := SLOConfig{
-// 				SLO:    p.ServiceLevelObjectives[i],
-// 				App:    p.App,
-// 				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
-// 				Tag:    p.Tag,
-// 				Labels: p.ServiceLevelObjectiveLabels,
-// 			}
-// 			canaryRules := config.canaryRules(log)
+	// for i := range p.ServiceLevelObjectives {
+	// 	if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
+	// 		config := SLOConfig{
+	// 			SLO:    p.ServiceLevelObjectives[i],
+	// 			App:    p.App,
+	// 			Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
+	// 			Tag:    p.Tag,
+	// 			Labels: p.ServiceLevelObjectiveLabels,
+	// 		}
+	// 		canaryRules := config.canaryRules(log)
 
-// 			for _, rg := range canaryRules {
-// 				rule.Spec.Groups = append(rule.Spec.Groups, *rg)
-// 			}
-// 		}
-// 	}
+	// 		for _, rg := range canaryRules {
+	// 			rule.Spec.Groups = append(rule.Spec.Groups, *rg)
+	// 		}
+	// 	}
+	// }
 
-// 	prs = append(prs, rule)
-// 	prl.Items = prs
-// 	return prl, nil
-// }
+	// prs = append(prs, rule)
+	// prl.Items = prs
+	return nil, nil
+}
 
 // func (p *SyncCanaryRules) prometheusRule() *monitoringv1.PrometheusRule {
 // 	labels := make(map[string]string)

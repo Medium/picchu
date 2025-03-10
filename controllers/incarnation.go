@@ -435,6 +435,24 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
+func (i *Incarnation) syncDatadogMetricsCanary(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync Datadog Metrics Canary", &rmplan.SyncDatadogMetricsCanary{
+		App:         i.appName(),
+		Namespace:   i.targetNamespace(),
+		Tag:         i.tag,
+		Labels:      i.defaultLabels(),
+		DatadogSLOs: i.target().DatadogSLOs,
+	})
+}
+
+func (i *Incarnation) deleteDatadogMetricsCanary(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Datadog Metrics Canary", &rmplan.DeleteDatadogMetricsCanary{
+		App:       i.appName(),
+		Namespace: i.targetNamespace(),
+		Tag:       i.tag,
+	})
+}
+
 func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
 		// only applied to the delivery cluster
