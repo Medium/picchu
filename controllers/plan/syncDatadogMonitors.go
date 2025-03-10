@@ -215,35 +215,23 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 		configuration := datadog.NewConfiguration()
 		apiClient := datadog.NewAPIClient(configuration)
 		api := datadogV1.NewServiceLevelObjectivesApi(apiClient)
-		resp, r, err := api.ListSLOs(ctx, *datadogV1.NewListSLOsOptionalParameters())
+		ddogslo_name := "\"" + p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogSLO.Name + "\""
+		resp, r, err := api.SearchSLO(ctx, *datadogV1.NewSearchSLOOptionalParameters().WithQuery(ddogslo_name))
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error when calling `ServiceLevelObjectivesApi.ListSLOs`: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters`: %v\n", err)
 			fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
 		}
 
-		for _, slo := range resp.Data {
-			ddogslo_name := p.App + "-" + datadogSLO.Name
-			if slo.Name == ddogslo_name {
-				return *slo.Id
-			}
+		if len(resp.Data.Attributes.Slos) == 0 || resp.Data.Attributes.Slos == nil {
+			fmt.Fprintf(os.Stderr, "No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service %v\n", p.App)
 		}
+
+		return *resp.Data.Attributes.Slos[0].Data.Id
 	}
 	// if app is not echo, return empty string for now
 	return ""
 }
-
-// func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
-// 	// example: <service-name>-<target>-<slo-name>-<commit hash in tag>
-// 	// lowercase - at most 63 characters - start and end with alphanumeric
-// 	sloName = strings.ReplaceAll(sloName, "-", "")
-// 	end_tag := strings.LastIndex(p.Tag, "-")
-// 	front_tag := p.App + "-" + p.Target + "-" + sloName + "-" + p.Tag[end_tag+1:]
-// 	if len(front_tag) > 61 {
-// 		front_tag = front_tag[:61]
-// 	}
-// 	return front_tag + "-" + monitor_type
-// }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
 	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-<monitor-type>
