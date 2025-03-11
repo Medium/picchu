@@ -146,8 +146,6 @@ type SLICanaryConfig struct {
 }
 
 type DatadogMonitor struct {
-	// if enabled, use these values
-	Enabled bool `json:"enabled,omitempty"`
 	// defaulted - <app>-<slo name>-<target>-datadogmonitor
 	Name string `json:"name,omitempty"`
 	// defaulted

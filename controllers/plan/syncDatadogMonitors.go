@@ -71,8 +71,11 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-error-budget
 	ddogmonitor_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogslo.Name + "-error-budget"
 
-	slo_id := p.getDatadogSLOIDs(datadogslo, log)
-	// error if slo not found
+	slo_id, err := p.getDatadogSLOIDs(datadogslo)
+	if err != nil {
+		log.Error(err, "Error Budget: Error getting Datadog SLO id for "+datadogslo.Name)
+		return ddog.DatadogMonitor{}
+	}
 
 	query := "error_budget(\"" + slo_id + "\").over(\"" + datadogslo.Timeframe + "\") > " + datadogslo.TargetThreshold
 	message := "The " + datadogslo.Name + " error budget is over expected @slack-eng-watch-alerts-testing"
@@ -119,16 +122,7 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 		},
 	}
 
-	// if the ddog monitor is enabled in app.yml, use the threshold ddog monitor values
-	if datadogslo.DatadogMonitor.Enabled {
-		// use the set ddog monitor values
-		ddogmonitor.Spec.Options.Thresholds.Critical = datadogslo.DatadogMonitor.Options.Thresholds.Critical
-		ddogmonitor.Spec.Options.Thresholds.CriticalRecovery = datadogslo.DatadogMonitor.Options.Thresholds.CriticalRecovery
-		// ddogmonitor.Spec.Options.Thresholds.OK = datadogslo.DatadogMonitor.Options.Thresholds.OK
-		// ddogmonitor.Spec.Options.Thresholds.Unknown = datadogslo.DatadogMonitor.Options.Thresholds.Unknown
-	} else {
-		ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
-	}
+	ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
 
 	// taken from datadogslo
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)
@@ -140,8 +134,11 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-burn-rate
 	ddogmonitor_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogslo.Name + "-burn-rate"
 
-	slo_id := p.getDatadogSLOIDs(datadogslo, log)
-	// error if slo not found
+	slo_id, err := p.getDatadogSLOIDs(datadogslo)
+	if err != nil {
+		log.Error(err, "Burn Rate: Error getting Datadog SLO id for "+datadogslo.Name)
+		return ddog.DatadogMonitor{}
+	}
 
 	// how are we defining log and short window
 	// going to default to this slo for now
@@ -191,23 +188,14 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 		},
 	}
 
-	// // if the ddog monitor is enabled in app.yml, use the threshold ddog monitor values
-	// if datadogslo.DatadogMonitor.Enabled {
-	// 	// use the set ddog monitor values
-	// 	ddogmonitor.Spec.Options.Thresholds.Critical = datadogslo.DatadogMonitor.Options.Thresholds.Critical
-	// 	ddogmonitor.Spec.Options.Thresholds.CriticalRecovery = datadogslo.DatadogMonitor.Options.Thresholds.CriticalRecovery
-	// 	// ddogmonitor.Spec.Options.Thresholds.OK = datadogslo.DatadogMonitor.Options.Thresholds.OK
-	// 	// ddogmonitor.Spec.Options.Thresholds.Unknown = datadogslo.DatadogMonitor.Options.Thresholds.Unknown
-	// } else {
-	// 	ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
-	// }
+	ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
 
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)
 
 	return ddogmonitor
 }
 
-func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) string {
+func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.DatadogSLO) (string, error) {
 	// get the SLO ID from the datadog API
 	if p.App == "echo" {
 		ctx := datadog.NewDefaultContext(context.Background())
@@ -227,10 +215,10 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 			fmt.Fprintf(os.Stderr, "No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service %v\n", p.App)
 		}
 
-		return *resp.Data.Attributes.Slos[0].Data.Id
+		return *resp.Data.Attributes.Slos[0].Data.Id, nil
 	}
 	// if app is not echo, return empty string for now
-	return ""
+	return "", nil
 }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
