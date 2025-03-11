@@ -435,8 +435,8 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
-func (i *Incarnation) syncDatadogMetricsCanary(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Sync Datadog Metrics Canary", &rmplan.SyncDatadogMetricsCanary{
+func (i *Incarnation) syncDatadogCanaryMonitors(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Sync Datadog Canary Monitors", &rmplan.SyncDatadogCanaryMonitors{
 		App:         i.appName(),
 		Namespace:   i.targetNamespace(),
 		Tag:         i.tag,
@@ -445,8 +445,8 @@ func (i *Incarnation) syncDatadogMetricsCanary(ctx context.Context) error {
 	})
 }
 
-func (i *Incarnation) deleteDatadogMetricsCanary(ctx context.Context) error {
-	return i.controller.applyPlan(ctx, "Delete Datadog Metrics Canary", &rmplan.DeleteDatadogMetricsCanary{
+func (i *Incarnation) deleteDatadogCanaryMonitors(ctx context.Context) error {
+	return i.controller.applyPlan(ctx, "Delete Datadog Canary Monitors", &rmplan.DeleteDatadogCanaryMonitors{
 		App:       i.appName(),
 		Namespace: i.targetNamespace(),
 		Tag:       i.tag,
