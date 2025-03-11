@@ -47,15 +47,17 @@ func (p *SyncDatadogCanaryMonitors) Apply(ctx context.Context, cli client.Client
 
 func (p *SyncDatadogCanaryMonitors) datadogCanaryMonitors(log logr.Logger) (*ddog.DatadogMonitorList, error) {
 	datadogMonitorList := &ddog.DatadogMonitorList{}
-	var ddogMonitors []ddog.DatadogMonitor
+	var ddogCanaryMonitors []ddog.DatadogMonitor
 
 	// for each ddog slo we generate a datadog canary monitors - type is metric
 	for i := range p.DatadogSLOs {
 		// canary monitor
-		errorbudget_ddogmonitor := p.canaryMonitor(p.DatadogSLOs[i], log)
-		ddogMonitors = append(ddogMonitors, errorbudget_ddogmonitor)
+		if p.DatadogSLOs[i].Canary.Enabled {
+			ddogCanaryMonitor := p.canaryMonitor(p.DatadogSLOs[i], log)
+			ddogCanaryMonitors = append(ddogCanaryMonitors, ddogCanaryMonitor)
+		}
 	}
-	datadogMonitorList.Items = ddogMonitors
+	datadogMonitorList.Items = ddogCanaryMonitors
 
 	return datadogMonitorList, nil
 }
