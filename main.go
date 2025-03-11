@@ -32,7 +32,6 @@ import (
 	clientgoscheme "go.medium.engineering/picchu/client/scheme"
 	"go.medium.engineering/picchu/controllers"
 	"go.medium.engineering/picchu/controllers/utils"
-	datadogapi "go.medium.engineering/picchu/datadog"
 	promapi "go.medium.engineering/picchu/prometheus"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	apps "k8s.io/api/apps/v1"
@@ -112,7 +111,6 @@ func main() {
 	var api controllers.PromAPI
 	var errPromAPI error
 
-	// prometheus api client
 	if cconfig.PrometheusQueryAddress != "" {
 		api, errPromAPI = promapi.NewAPI(cconfig.PrometheusQueryAddress, cconfig.PrometheusQueryTTL)
 	} else {
@@ -120,19 +118,6 @@ func main() {
 	}
 	if errPromAPI != nil {
 		panic(errPromAPI)
-	}
-
-	var ddog_api controllers.DatadogAPI
-	var errorDatadogAPI error
-
-	// ddog api client
-	if cconfig.PrometheusQueryAddress != "" {
-		ddog_api, errorDatadogAPI = datadogapi.NewAPI()
-	} else {
-		ddog_api = &controllers.NoopDatadogAPI{}
-	}
-	if errorDatadogAPI != nil {
-		panic(errorDatadogAPI)
 	}
 
 	schemeBuilders := k8sruntime.SchemeBuilder{
@@ -210,7 +195,6 @@ func main() {
 		Scheme:       mgr.GetScheme(),
 		Config:       cconfig,
 		PromAPI:      api,
-		DatadogAPI:   ddog_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)
