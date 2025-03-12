@@ -57,6 +57,8 @@ spec:
                 - ref
                 - tag
                 type: object
+              canaryWithDatadogSLOs:
+                type: boolean
               canaryWithSLIRules:
                 type: boolean
               disableMirroring:

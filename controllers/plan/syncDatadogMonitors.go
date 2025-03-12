@@ -71,11 +71,11 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 
 	slo_id, err := p.getDatadogSLOIDs(datadogslo, log)
 	if err != nil {
-		log.Error(err, "Error Budget: Error getting Datadog SLO id for "+datadogslo.Name)
+		log.Error(err, "Error Budget: Error getting Datadog SLO id", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
 	}
 	if slo_id == "" {
-		log.Info("Error Budget: No SLOs found for " + datadogslo.Name)
+		log.Info("Error Budget: No SLOs found", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
 	}
 
@@ -138,12 +138,12 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 
 	slo_id, err := p.getDatadogSLOIDs(datadogslo, log)
 	if err != nil {
-		log.Error(err, "Burn Rate: Error getting Datadog SLO id for "+datadogslo.Name)
+		log.Error(err, "Burn Rate: Error getting Datadog SLO id", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
 	}
 
 	if slo_id == "" {
-		log.Info("Error Budget: No SLOs found for " + datadogslo.Name)
+		log.Info("Error Budget: No SLOs found", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
 	}
 
@@ -212,12 +212,12 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 		resp, r, err := api.SearchSLO(ctx, *datadogV1.NewSearchSLOOptionalParameters().WithQuery(ddogslo_name))
 
 		if err != nil {
-			log.Error(err, "Error when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters`: %v\n", r)
+			log.Error(err, "Error when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters`:", "response", r)
 			return "", err
 		}
 
 		if len(resp.Data.Attributes.Slos) == 0 || resp.Data.Attributes.Slos == nil {
-			log.Info("No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service %v\n", p.App)
+			log.Info("No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service", "App", p.App)
 			return "", nil
 		}
 
