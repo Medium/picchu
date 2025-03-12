@@ -74,13 +74,16 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	five_min_sting := "5"
 	options_true := true
 
-	acceptancePercentage, err := strconv.Atoi(datadogslo.TargetThreshold)
+	var targetThreshold float64
+	f, err := strconv.ParseFloat(datadogslo.TargetThreshold, 64)
 	if err != nil {
-		log.Error(err, "Error converting acceptancePercentage to int")
+		log.Error(err, "Could not parse %v to float", "targetThreshold", datadogslo.TargetThreshold)
+	} else {
+		targetThreshold = f
 	}
 
-	acceptancePercentage = (100 - acceptancePercentage) / 100
-	acceptPerc := fmt.Sprintf("%d", acceptancePercentage)
+	acceptancePercentage := (float64(100) - targetThreshold) / float64(100)
+	acceptPerc := fmt.Sprintf("%f", acceptancePercentage)
 	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + acceptPerc + ") - "
 	query_second := "(" + datadogslo.Query.BadEvents + " / " + datadogslo.Query.TotalEvents + ") >= 0"
 	query := "sum(last_2m):" + query_first + query_second
