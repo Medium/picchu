@@ -1138,9 +1138,6 @@ spec:
                             type: object
                           datadogMonitor:
                             properties:
-                              enabled:
-                                description: if enabled, use these values
-                                type: boolean
                               message:
                                 description: defaulted
                                 type: string

@@ -545,8 +545,29 @@ func CreateOrUpdate(
 			ddogmonitor.Labels = CopyStringMap(typed.Labels)
 			return nil
 		})
-		// find the id from the cluster?
 		LogSync(log, op, err, ddogmonitor)
+		if err != nil {
+			return err
+		}
+	case *ddogv1alpha1.DatadogMetric:
+		typed := orig.DeepCopy()
+		ddogMetric := &ddogv1alpha1.DatadogMetric{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, ddogMetric, func() error {
+			if isIgnored(ddogMetric.ObjectMeta) {
+				kind := utils.MustGetKind(ddogMetric).Kind
+				log.Info("Resource is ignored", "namespace", ddogMetric.Namespace, "name", ddogMetric.Name, "kind", kind)
+				return nil
+			}
+			ddogMetric.Spec = typed.Spec
+			ddogMetric.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, ddogMetric)
 		if err != nil {
 			return err
 		}

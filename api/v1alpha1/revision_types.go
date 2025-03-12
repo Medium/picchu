@@ -146,8 +146,6 @@ type SLICanaryConfig struct {
 }
 
 type DatadogMonitor struct {
-	// if enabled, use these values
-	Enabled bool `json:"enabled,omitempty"`
 	// defaulted - <app>-<slo name>-<target>-datadogmonitor
 	Name string `json:"name,omitempty"`
 	// defaulted
@@ -428,6 +426,7 @@ func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 	if startTime == nil {
 		return true
 	}
+	// add 15 min to the canary start time - then verify if the canary start time is after now - if true then its pending
 	return startTime.Time.Add(time.Duration(r.Canary.TTL) * time.Second).After(time.Now())
 }
 

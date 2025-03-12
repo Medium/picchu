@@ -121,7 +121,6 @@ func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
 	return front_tag
 }
 
-// inject tag into good events query with AND syntax
 func (p *SyncDatadogSLOs) injectTag(query string) string {
 	bracket_index := strings.Index(query, "{")
 	tag_string := "destination_version:" + p.Tag + " AND "

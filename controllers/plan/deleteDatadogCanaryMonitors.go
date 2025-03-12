@@ -12,18 +12,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type DeleteDatadogSLOs struct {
+type DeleteDatadogCanaryMonitors struct {
 	App       string
 	Target    string
 	Namespace string
 	Tag       string
 }
 
-func (p *DeleteDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	ddogslolist := &ddog.DatadogSLOList{}
+func (p *DeleteDatadogCanaryMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	ddogMonitorlist := &ddog.DatadogMonitorList{}
 
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,
+		// hm? labels?
 		LabelSelector: labels.SelectorFromSet(map[string]string{
 			picchuv1alpha1.LabelApp:    p.App,
 			picchuv1alpha1.LabelTarget: p.Target,
@@ -31,12 +32,12 @@ func (p *DeleteDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluste
 		}),
 	}
 
-	if err := cli.List(ctx, ddogslolist, opts); err != nil {
+	if err := cli.List(ctx, ddogMonitorlist, opts); err != nil {
 		log.Error(err, "Failed to delete datadog slo")
 		return err
 	}
 
-	for _, sl := range ddogslolist.Items {
+	for _, sl := range ddogMonitorlist.Items {
 		err := cli.Delete(ctx, &sl)
 		if err != nil && !errors.IsNotFound(err) {
 			plan.LogSync(log, "deleted", err, &sl)
