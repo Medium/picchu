@@ -195,7 +195,6 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 		},
 	}
 
-	ddogmonitor.Spec.Options.Thresholds.Critical = &critical_threshold
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)
 
 	return ddogmonitor
