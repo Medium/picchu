@@ -44,14 +44,15 @@ type IstioSidecar struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                RevisionApp      `json:"app"`
-	Targets            []RevisionTarget `json:"targets"`
-	Failed             bool             `json:"failed"`
-	IgnoreSLOs         bool             `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules bool             `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo       `json:"sentry,omitempty"`
-	TagRoutingHeader   string           `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring   bool             `json:"disableMirroring,omitempty"`
+	App                   RevisionApp      `json:"app"`
+	Targets               []RevisionTarget `json:"targets"`
+	Failed                bool             `json:"failed"`
+	IgnoreSLOs            bool             `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules    bool             `json:"canaryWithSLIRules,omitempty"`
+	CanaryWithDatadogSLOs bool             `json:"canaryWithDatadogSLOs,omitempty"`
+	Sentry                SentryInfo       `json:"sentry,omitempty"`
+	TagRoutingHeader      string           `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring      bool             `json:"disableMirroring,omitempty"`
 }
 
 type RevisionApp struct {
@@ -420,12 +421,14 @@ func (r *RevisionTarget) IsExternalTestSuccessful() bool {
 
 func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 	// if canary values aren't set or no SLOs set up for service
-	if r.Canary.Percent == 0 || r.Canary.TTL == 0 || len(r.SlothServiceLevelObjectives) == 0 {
+	if r.Canary.Percent == 0 || r.Canary.TTL == 0 || (len(r.SlothServiceLevelObjectives) == 0 && len(r.DatadogSLOs) == 0) {
 		return false
 	}
+
 	if startTime == nil {
 		return true
 	}
+
 	// add 15 min to the canary start time - then verify if the canary start time is after now - if true then its pending
 	return startTime.Time.Add(time.Duration(r.Canary.TTL) * time.Second).After(time.Now())
 }
