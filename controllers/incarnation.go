@@ -439,6 +439,7 @@ func (i *Incarnation) syncDatadogCanaryMonitors(ctx context.Context) error {
 	return i.controller.applyPlan(ctx, "Sync Datadog Canary Monitors", &rmplan.SyncDatadogCanaryMonitors{
 		App:         i.appName(),
 		Namespace:   i.targetNamespace(),
+		Target:      i.targetName(),
 		Tag:         i.tag,
 		Labels:      i.defaultLabels(),
 		DatadogSLOs: i.target().DatadogSLOs,

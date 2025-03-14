@@ -250,10 +250,8 @@ type DatadogSLO struct {
 	TargetThreshold string          `json:"targetThreshold,omitempty"`
 	Timeframe       string          `json:"timeframe,omitempty"`
 	// defaulted - metric
-	Type string `json:"type,omitempty"`
-	// not implemented yet
-	Canary         DatadogSLOCanaryConfig `json:"canary,omitempty"`
-	DatadogMonitor DatadogMonitor         `json:"datadogMonitor,omitempty"`
+	Type   string                 `json:"type,omitempty"`
+	Canary DatadogSLOCanaryConfig `json:"canary,omitempty"`
 }
 
 type DatadogSLOQuery struct {
