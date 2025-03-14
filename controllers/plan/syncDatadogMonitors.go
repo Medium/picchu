@@ -231,13 +231,13 @@ func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type st
 	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-<monitor-type>
 	// lowercase - at most 63 characters - start and end with alphanumeric
 
-	target := ""
+	target := p.Target
 	if strings.Contains(p.Target, "-") {
 		t := strings.LastIndex(p.Target, "-")
 		first_target := p.Target[:4]
 		second_target := p.Target[t+1 : t+5]
 		target = first_target + "-" + second_target
-	} else {
+	} else if len(p.Target) >= 4 {
 		target = p.Target[:4]
 	}
 

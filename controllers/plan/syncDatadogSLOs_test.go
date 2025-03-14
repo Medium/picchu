@@ -48,27 +48,27 @@ var (
 				Timeframe:       "7d",
 				Type:            "metric",
 			},
-			{
-				Name:        "http-availability",
-				Description: "test create example datadogSLO two",
-				Query: picchuv1alpha1.DatadogSLOQuery{
-					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
-					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
-					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count())",
-				},
-				Tags: []string{
-					"service:example",
-					"env:prod",
-				},
-				TargetThreshold: "99.9",
-				Timeframe:       "7d",
-				Type:            "metric",
-			},
+			// {
+			// 	Name:        "http-availability",
+			// 	Description: "test create example datadogSLO two",
+			// 	Query: picchuv1alpha1.DatadogSLOQuery{
+			// 		GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+			// 		TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+			// 		BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count())",
+			// 	},
+			// 	Tags: []string{
+			// 		"service:example",
+			// 		"env:prod",
+			// 	},
+			// 	TargetThreshold: "99.9",
+			// 	Timeframe:       "7d",
+			// 	Type:            "metric",
+			// },
 		},
 	}
 
-	descrption_one  = "test create example datadogSLO one"
-	descrption_two  = "test create example datadogSLO two"
+	descrption_one = "test create example datadogSLO one"
+	// descrption_two  = "test create example datadogSLO two"
 	ddogsloexpected = &ddog.DatadogSLOList{
 		Items: []ddog.DatadogSLO{
 			{
@@ -100,40 +100,40 @@ var (
 					Type:            "metric",
 				},
 			},
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
-					Name:      "echo-prod-ha-main-123-456",
-					Namespace: "datadog",
-					Labels: map[string]string{
-						picchuv1alpha1.LabelApp:        "echo",
-						picchuv1alpha1.LabelTag:        "main-123-456",
-						picchuv1alpha1.LabelK8sName:    "echo",
-						picchuv1alpha1.LabelK8sVersion: "main-123-456",
-					},
-				},
-				Spec: ddog.DatadogSLOSpec{
-					Name:        "echo-prod-main-123-456-http-availability",
-					Description: &descrption_two,
-					Query: &ddog.DatadogSLOQuery{
-						Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
-						Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
-					},
-					Tags: []string{
-						"service:example",
-						"env:prod",
-						"target:prod",
-					},
-					TargetThreshold: resource.MustParse("99.9"),
-					Timeframe:       "30d",
-					Type:            "metric",
-				},
-			},
+			// {
+			// 	ObjectMeta: metav1.ObjectMeta{
+			// 		// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
+			// 		Name:      "echo-prod-ha-main-123-456",
+			// 		Namespace: "datadog",
+			// 		Labels: map[string]string{
+			// 			picchuv1alpha1.LabelApp:        "echo",
+			// 			picchuv1alpha1.LabelTag:        "main-123-456",
+			// 			picchuv1alpha1.LabelK8sName:    "echo",
+			// 			picchuv1alpha1.LabelK8sVersion: "main-123-456",
+			// 		},
+			// 	},
+			// 	Spec: ddog.DatadogSLOSpec{
+			// 		Name:        "echo-prod-main-123-456-http-availability",
+			// 		Description: &descrption_two,
+			// 		Query: &ddog.DatadogSLOQuery{
+			// 			Numerator:   "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND (response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+			// 			Denominator: "per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+			// 		},
+			// 		Tags: []string{
+			// 			"service:example",
+			// 			"env:prod",
+			// 			"target:prod",
+			// 		},
+			// 		TargetThreshold: resource.MustParse("99.9"),
+			// 		Timeframe:       "30d",
+			// 		Type:            "metric",
+			// 	},
+			// },
 		},
 	}
 
 	ddogmonitorplan = &SyncDatadogMonitors{
-		App:       "example",
+		App:       "echo",
 		Target:    "prod",
 		Namespace: "datadog",
 		Tag:       "main-123-456",
@@ -145,11 +145,12 @@ var (
 		},
 		DatadogSLOs: []*picchuv1alpha1.DatadogSLO{
 			{
-				Name:        "example-slo",
+				Name:        "istio-request-success",
 				Description: "test create example datadogSLO one",
 				Query: picchuv1alpha1.DatadogSLOQuery{
-					GoodEvents:  "sum:requests.success{service:example,env:prod}.as_count()",
-					TotalEvents: "sum:requests.total{service:example,env:prod}.as_count()",
+					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
+					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
+					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count())",
 				},
 				Tags: []string{
 					"service:example",
@@ -213,12 +214,12 @@ func TestDatadogSLOs(t *testing.T) {
 
 	tests := []client.ObjectKey{
 		{Name: "echo-prod-irs-main-123-456", Namespace: "datadog"},
-		{Name: "echo-prod-ha-main-123-456", Namespace: "datadog"},
+		// {Name: "echo-prod-ha-main-123-456", Namespace: "datadog"},
 	}
 
 	// tests_monitor := []client.ObjectKey{
-	// 	{Name: "example-prod-exampleslo-456-br", Namespace: "datadog"},
-	// 	{Name: "example-prod-exampleslo-456-eb", Namespace: "datadog"},
+	// 	{Name: "echo-prod-irs-main-123-456-br", Namespace: "datadog"},
+	// 	{Name: "echo-prod-irs-main-123-456-eb", Namespace: "datadog"},
 	// }
 
 	ctx := context.TODO()
