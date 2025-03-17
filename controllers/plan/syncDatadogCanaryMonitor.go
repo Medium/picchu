@@ -74,8 +74,8 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	five_min_sting := "5"
 	options_true := true
 
-	acceptPerc := p.formatAllowancePercent(datadogslo, log)
-	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + acceptPerc + ") - "
+	allowancePercent := p.formatAllowancePercent(datadogslo, log)
+	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + allowancePercent + ") - "
 	query_second := "(" + datadogslo.Query.BadEvents + " / " + datadogslo.Query.TotalEvents + ") >= 0"
 	query := "sum(last_2m):" + query_first + query_second
 
