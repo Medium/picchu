@@ -73,7 +73,6 @@ var (
 		Items: []ddog.DatadogSLO{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					// 	return fmt.Sprintf("%s-%s-%s-%s-datadogSLO", p.App, p.Target, p.Tag, sloName)
 					Name:      "echo-prod-irs-main-123-456",
 					Namespace: "datadog",
 					Labels: map[string]string{
@@ -133,7 +132,7 @@ var (
 	}
 
 	ddogmonitorplan = &SyncDatadogMonitors{
-		App:       "example",
+		App:       "echo",
 		Target:    "prod",
 		Namespace: "datadog",
 		Tag:       "main-123-456",
@@ -145,11 +144,12 @@ var (
 		},
 		DatadogSLOs: []*picchuv1alpha1.DatadogSLO{
 			{
-				Name:        "example-slo",
+				Name:        "istio-request-success",
 				Description: "test create example datadogSLO one",
 				Query: picchuv1alpha1.DatadogSLOQuery{
-					GoodEvents:  "sum:requests.success{service:example,env:prod}.as_count()",
-					TotalEvents: "sum:requests.total{service:example,env:prod}.as_count()",
+					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
+					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())",
+					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count())",
 				},
 				Tags: []string{
 					"service:example",
@@ -217,8 +217,8 @@ func TestDatadogSLOs(t *testing.T) {
 	}
 
 	// tests_monitor := []client.ObjectKey{
-	// 	{Name: "example-prod-exampleslo-456-br", Namespace: "datadog"},
-	// 	{Name: "example-prod-exampleslo-456-eb", Namespace: "datadog"},
+	// 	{Name: "echo-prod-irs-main-123-456-br", Namespace: "datadog"},
+	// 	{Name: "echo-prod-irs-main-123-456-eb", Namespace: "datadog"},
 	// }
 
 	ctx := context.TODO()

@@ -74,17 +74,8 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	five_min_sting := "5"
 	options_true := true
 
-	var targetThreshold float64
-	f, err := strconv.ParseFloat(datadogslo.TargetThreshold, 64)
-	if err != nil {
-		log.Error(err, "Could not parse %v to float", "targetThreshold", datadogslo.TargetThreshold)
-	} else {
-		targetThreshold = f
-	}
-
-	acceptancePercentage := (float64(100) - targetThreshold) / float64(100)
-	acceptPerc := fmt.Sprintf("%f", acceptancePercentage)
-	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + acceptPerc + ") - "
+	allowancePercent := p.formatAllowancePercent(datadogslo, log)
+	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + allowancePercent + ") - "
 	query_second := "(" + datadogslo.Query.BadEvents + " / " + datadogslo.Query.TotalEvents + ") >= 0"
 	query := "sum(last_2m):" + query_first + query_second
 
@@ -133,16 +124,16 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 }
 
 func (p *SyncDatadogCanaryMonitors) datadogCanaryMonitorName(sloName string) string {
-	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-<monitor-type>
+	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-canary
 	// lowercase - at most 63 characters - start and end with alphanumeric
 
-	target := ""
+	target := p.Target
 	if strings.Contains(p.Target, "-") {
 		t := strings.LastIndex(p.Target, "-")
 		first_target := p.Target[:4]
 		second_target := p.Target[t+1 : t+5]
 		target = first_target + "-" + second_target
-	} else {
+	} else if len(p.Target) >= 4 {
 		target = p.Target[:4]
 	}
 
@@ -165,4 +156,18 @@ func (p *SyncDatadogCanaryMonitors) injectTag(query string) string {
 	bracket_index := strings.Index(query, "{")
 	tag_string := "destination_version:" + p.Tag + " AND "
 	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]
+}
+
+func (p *SyncDatadogCanaryMonitors) formatAllowancePercent(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) string {
+	allowancePercent := datadogslo.Canary.AllowancePercent
+	if datadogslo.Canary.AllowancePercentString != "" {
+		f, err := strconv.ParseFloat(datadogslo.Canary.AllowancePercentString, 64)
+		if err != nil {
+			log.Error(err, "Could not parse %v to float", datadogslo.Canary.AllowancePercentString)
+		} else {
+			allowancePercent = f
+		}
+	}
+	r := allowancePercent / 100
+	return fmt.Sprintf("%.10g", r)
 }
