@@ -437,8 +437,6 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 
 func (i *Incarnation) syncDatadogCanaryMonitors(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
-		shared_labels := i.defaultLabels()
-
 		// only applied to the delivery cluster
 		err := i.controller.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
 			Name: i.picchuConfig.DatadogSLONamespace,
@@ -454,7 +452,7 @@ func (i *Incarnation) syncDatadogCanaryMonitors(ctx context.Context) error {
 			Namespace:   i.picchuConfig.DatadogSLONamespace,
 			Target:      i.targetName(),
 			Tag:         i.tag,
-			Labels:      shared_labels,
+			Labels:      i.defaultLabels(),
 			DatadogSLOs: i.target().DatadogSLOs,
 		})
 	}
