@@ -71,8 +71,8 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	renotify := []datadogV1.MonitorRenotifyStatusType{datadogV1.MONITORRENOTIFYSTATUSTYPE_ALERT, datadogV1.MONITORRENOTIFYSTATUSTYPE_NO_DATA}
 
 	five_min := int64(5)
-	five_min_sting := "5"
 	options_true := true
+	canary_threshold := "0.0"
 
 	allowancePercent := p.formatAllowancePercent(datadogslo, log)
 	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + allowancePercent + ") - "
@@ -108,14 +108,11 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 				NoDataTimeframe:        &five_min,
 
 				Thresholds: &ddog.DatadogMonitorOptionsThresholds{
-					Warning:  &five_min_sting,
-					Critical: &five_min_sting,
+					Critical: &canary_threshold,
 				},
 			},
 		},
 	}
-
-	ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
 
 	// taken from datadogslo
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)

@@ -85,7 +85,6 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	renotify := []datadogV1.MonitorRenotifyStatusType{datadogV1.MONITORRENOTIFYSTATUSTYPE_ALERT, datadogV1.MONITORRENOTIFYSTATUSTYPE_NO_DATA}
 
 	five_min := int64(5)
-	five_min_sting := "5"
 	options_true := true
 
 	ddogmonitor := ddog.DatadogMonitor{
@@ -117,14 +116,11 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 				NoDataTimeframe:   &five_min,
 
 				Thresholds: &ddog.DatadogMonitorOptionsThresholds{
-					Warning:  &five_min_sting,
-					Critical: &five_min_sting,
+					Critical: &datadogslo.TargetThreshold,
 				},
 			},
 		},
 	}
-
-	ddogmonitor.Spec.Options.Thresholds.Critical = &datadogslo.TargetThreshold
 
 	// taken from datadogslo
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)

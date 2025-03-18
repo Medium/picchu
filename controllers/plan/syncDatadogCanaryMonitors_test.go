@@ -28,9 +28,8 @@ var (
 	five     = int64(5)
 	renotify = []datadogV1.MonitorRenotifyStatusType{datadogV1.MONITORRENOTIFYSTATUSTYPE_ALERT, datadogV1.MONITORRENOTIFYSTATUSTYPE_NO_DATA}
 
-	ninenime_str = "99.9"
-	five_str     = "5"
-	dcmplan      = &SyncDatadogCanaryMonitors{
+	canary_thresh = "0.0"
+	dcmplan       = &SyncDatadogCanaryMonitors{
 		App:       "echo",
 		Target:    "production",
 		Namespace: "datadog",
@@ -119,8 +118,7 @@ var (
 						RenotifyStatuses:       renotify,
 						RequireFullWindow:      &true_val,
 						Thresholds: &ddog.DatadogMonitorOptionsThresholds{
-							Critical: &ninenime_str,
-							Warning:  &five_str,
+							Critical: &canary_thresh,
 						},
 					},
 				},
@@ -157,8 +155,7 @@ var (
 						RenotifyStatuses:       renotify,
 						RequireFullWindow:      &true_val,
 						Thresholds: &ddog.DatadogMonitorOptionsThresholds{
-							Critical: &ninenime_str,
-							Warning:  &five_str,
+							Critical: &canary_thresh,
 						},
 					},
 				},
