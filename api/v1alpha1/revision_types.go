@@ -436,7 +436,7 @@ func init() {
 	SchemeBuilder.Register(&Revision{}, &RevisionList{})
 }
 
-func (r *RevisionTarget) CanaryWithDatadogSLOs() bool {
+func (r *RevisionTarget) AreDatadogSLOsEnabled() bool {
 	if len(r.DatadogSLOs) == 0 {
 		return false
 	}
