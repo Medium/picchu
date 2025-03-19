@@ -60,6 +60,11 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 
 	rule := p.prometheusRule()
 
+	if len(p.ServiceLevelObjectives) == 0 {
+		// no proetheus SLOs defined
+		return prl, nil
+	}
+
 	for i := range p.ServiceLevelObjectives {
 		if p.ServiceLevelObjectives[i].ServiceLevelIndicator.Canary.Enabled {
 			config := SLOConfig{
