@@ -70,6 +70,7 @@ type RevisionTarget struct {
 	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
 	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
 	DatadogSLOs                 []*DatadogSLO                 `json:"datadogServiceLevelObjectives,omitempty"`
+	DatadogSLOsEnabled          bool                          `json:"datadogSLOsEnabled,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
 	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
 	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`
@@ -433,4 +434,11 @@ func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 
 func init() {
 	SchemeBuilder.Register(&Revision{}, &RevisionList{})
+}
+
+func (r *RevisionTarget) CanaryWithDatadogSLOs() bool {
+	if len(r.DatadogSLOs) == 0 {
+		return false
+	}
+	return r.DatadogSLOsEnabled
 }
