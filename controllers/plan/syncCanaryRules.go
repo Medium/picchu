@@ -61,7 +61,7 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 	rule := p.prometheusRule()
 
 	if len(p.ServiceLevelObjectives) == 0 {
-		// no proetheus SLOs defined
+		// no prometheus SLOs defined
 		return prl, nil
 	}
 
