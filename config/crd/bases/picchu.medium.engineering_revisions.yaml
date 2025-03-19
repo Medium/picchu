@@ -1120,6 +1120,8 @@ spec:
                           type: object
                       type: object
                       x-kubernetes-map-type: atomic
+                    datadogSLOsEnabled:
+                      type: boolean
                     datadogServiceLevelObjectives:
                       items:
                         description: ddog specific slos

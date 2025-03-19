@@ -701,6 +701,14 @@ func (i *Incarnation) markedAsFailed() bool {
 	return false
 }
 
+func (i *Incarnation) AreDatadogSLOsEnabled() bool {
+	target := i.target()
+	if target == nil {
+		return false
+	}
+	return target.AreDatadogSLOsEnabled()
+}
+
 func (i *Incarnation) setState(state string) {
 	if state == "deploying" {
 		if i.status.DeployingStartTimestamp == nil {
