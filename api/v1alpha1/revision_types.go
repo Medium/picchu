@@ -246,6 +246,7 @@ type DatadogSLO struct {
 	// defaulted
 	Name            string          `json:"name,omitempty"`
 	Description     string          `json:"description,omitempty"`
+	Enabled         bool            `json:"enabled"`
 	Query           DatadogSLOQuery `json:"query,omitempty"`
 	Tags            []string        `json:"tags,omitempty"`
 	TargetThreshold string          `json:"targetThreshold,omitempty"`
