@@ -93,10 +93,11 @@ var (
 					Name:      "echo-prod-irs-main-123-456-canary",
 					Namespace: "datadog",
 					Labels: map[string]string{
-						picchuv1alpha1.LabelApp:        "echo",
-						picchuv1alpha1.LabelTag:        "main-123-456",
-						picchuv1alpha1.LabelK8sName:    "echo",
-						picchuv1alpha1.LabelK8sVersion: "main-123-456",
+						picchuv1alpha1.LabelApp:         "echo",
+						picchuv1alpha1.LabelTag:         "main-123-456",
+						picchuv1alpha1.LabelK8sName:     "echo",
+						picchuv1alpha1.LabelK8sVersion:  "main-123-456",
+						picchuv1alpha1.LabelMonitorType: MonitorTypeCanary,
 					},
 				},
 				Spec: ddog.DatadogMonitorSpec{
@@ -130,10 +131,11 @@ var (
 					Name:      "echo-prod-ha-main-123-456-canary",
 					Namespace: "datadog",
 					Labels: map[string]string{
-						picchuv1alpha1.LabelApp:        "echo",
-						picchuv1alpha1.LabelTag:        "main-123-456",
-						picchuv1alpha1.LabelK8sName:    "echo",
-						picchuv1alpha1.LabelK8sVersion: "main-123-456",
+						picchuv1alpha1.LabelApp:         "echo",
+						picchuv1alpha1.LabelTag:         "main-123-456",
+						picchuv1alpha1.LabelK8sName:     "echo",
+						picchuv1alpha1.LabelK8sVersion:  "main-123-456",
+						picchuv1alpha1.LabelMonitorType: MonitorTypeCanary,
 					},
 				},
 				Spec: ddog.DatadogMonitorSpec{

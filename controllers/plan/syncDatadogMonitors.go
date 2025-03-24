@@ -16,6 +16,10 @@ import (
 	"github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
 )
 
+const (
+	MonitorTypeSLO = "slo"
+)
+
 type SyncDatadogMonitors struct {
 	App    string
 	Target string
@@ -87,6 +91,8 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	five_min := int64(5)
 	options_true := true
 
+	p.Labels[picchuv1alpha1.LabelMonitorType] = MonitorTypeSLO
+
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.datadogMonitorName(datadogslo.Name, "error-budget"),
@@ -155,6 +161,8 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 	five_min := int64(5)
 	critical_threshold := "14.4"
 	options_true := true
+
+	p.Labels[picchuv1alpha1.LabelMonitorType] = MonitorTypeSLO
 
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{

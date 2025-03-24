@@ -16,6 +16,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	MonitorTypeCanary = "canary"
+)
+
 type SyncDatadogCanaryMonitors struct {
 	App    string
 	Target string
@@ -78,6 +82,8 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + allowancePercent + ") - "
 	query_second := "(" + datadogslo.Query.BadEvents + " / " + datadogslo.Query.TotalEvents + ") >= 0"
 	query := "sum(last_2m):" + query_first + query_second
+
+	p.Labels[picchuv1alpha1.LabelMonitorType] = MonitorTypeCanary
 
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
