@@ -30,9 +30,10 @@ func TestDeleteDatadogCanaryMonitors(t *testing.T) {
 			Name:      "slo1",
 			Namespace: "datadog",
 			Labels: map[string]string{
-				picchu.LabelApp:    deleteDatadogCanaryMonitor.App,
-				picchu.LabelTag:    deleteDatadogCanaryMonitor.Tag,
-				picchu.LabelTarget: deleteDatadogCanaryMonitor.Target,
+				picchu.LabelApp:         deleteDatadogCanaryMonitor.App,
+				picchu.LabelTag:         deleteDatadogCanaryMonitor.Tag,
+				picchu.LabelTarget:      deleteDatadogCanaryMonitor.Target,
+				picchu.LabelMonitorType: MonitorTypeCanary,
 			},
 		},
 	}
