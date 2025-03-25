@@ -71,7 +71,7 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 					// defaulted
 					Type: ddog.DatadogSLOTypeMetric,
 					// defaulted 30d for now
-					Timeframe:       ddog.DatadogSLOTimeFrame30d,
+					Timeframe:       ddog.DatadogSLOTimeFrame7d,
 					TargetThreshold: resource.MustParse(p.DatadogSLOs[i].TargetThreshold),
 				},
 			}

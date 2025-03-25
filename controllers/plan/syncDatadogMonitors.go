@@ -118,10 +118,9 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 				NotifyNoData:           &options_true,
 				RenotifyStatuses:       renotify,
 				RenotifyInterval:       &five_min,
-				// maybe false?
-				RequireFullWindow: &options_true,
-				EvaluationDelay:   &five_min,
-				NoDataTimeframe:   &five_min,
+				RequireFullWindow:      &options_true,
+				EvaluationDelay:        &five_min,
+				NoDataTimeframe:        &five_min,
 
 				Thresholds: &ddog.DatadogMonitorOptionsThresholds{
 					Critical: &datadogslo.TargetThreshold,
@@ -189,10 +188,9 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 				NotifyNoData:           &options_true,
 				RenotifyStatuses:       renotify,
 				RenotifyInterval:       &five_min,
-				// maybe false?
-				RequireFullWindow: &options_true,
-				EvaluationDelay:   &five_min,
-				NoDataTimeframe:   &five_min,
+				RequireFullWindow:      &options_true,
+				EvaluationDelay:        &five_min,
+				NoDataTimeframe:        &five_min,
 
 				Thresholds: &ddog.DatadogMonitorOptionsThresholds{
 					Critical: &critical_threshold,
