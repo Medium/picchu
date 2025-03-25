@@ -33,7 +33,7 @@ func (p *DeleteDatadogCanaryMonitors) Apply(ctx context.Context, cli client.Clie
 	}
 
 	if err := cli.List(ctx, ddogMonitorlist, opts); err != nil {
-		log.Error(err, "Failed to delete datadog slo")
+		log.Error(err, "Failed to delete datadog canary monitor")
 		return err
 	}
 

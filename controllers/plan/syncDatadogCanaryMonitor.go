@@ -56,7 +56,7 @@ func (p *SyncDatadogCanaryMonitors) datadogCanaryMonitors(log logr.Logger) (*ddo
 	// for each ddog slo we generate a datadog canary monitors - type is metric
 	for i := range p.DatadogSLOs {
 		// canary monitor
-		if p.DatadogSLOs[i].Canary.Enabled {
+		if p.DatadogSLOs[i].Canary.Enabled && p.DatadogSLOs[i].Enabled {
 			ddogCanaryMonitor := p.canaryMonitor(p.DatadogSLOs[i], log)
 			ddogCanaryMonitors = append(ddogCanaryMonitors, ddogCanaryMonitor)
 		}
