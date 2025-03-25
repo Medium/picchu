@@ -464,7 +464,8 @@ func (i *Incarnation) syncDatadogCanaryMonitors(ctx context.Context) error {
 func (i *Incarnation) deleteDatadogCanaryMonitors(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
 		return i.controller.applyDeliveryPlan(ctx, "Delete Datadog Canary Monitors", &rmplan.DeleteDatadogCanaryMonitors{
-			App: i.appName(),
+			App:    i.appName(),
+			Target: i.targetName(),
 			// only applied to the datadog namespace
 			Namespace: i.picchuConfig.DatadogSLONamespace,
 			Tag:       i.tag,
