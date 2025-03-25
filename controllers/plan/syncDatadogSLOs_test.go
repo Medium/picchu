@@ -66,6 +66,23 @@ var (
 				Timeframe:       "7d",
 				Type:            "metric",
 			},
+			{
+				Name:        "disabled-http-availability",
+				Enabled:     false,
+				Description: "test create example datadogSLO two",
+				Query: picchuv1alpha1.DatadogSLOQuery{
+					GoodEvents:  "per_minute(sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+					TotalEvents: "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())",
+					BadEvents:   "per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count())",
+				},
+				Tags: []string{
+					"service:example",
+					"env:prod",
+				},
+				TargetThreshold: "99.9",
+				Timeframe:       "7d",
+				Type:            "metric",
+			},
 		},
 	}
 
