@@ -128,11 +128,8 @@ func main() {
 	var errorDatadogAPI error
 
 	// ddog api client
-	if cconfig.PrometheusQueryAddress != "" {
-		ddog_api, errorDatadogAPI = datadogapi.NewAPI(cconfig.DatadogQueryTTL)
-	} else {
-		ddog_api = &controllers.NoopDatadogAPI{}
-	}
+	ddog_api, errorDatadogAPI = datadogapi.NewAPI(cconfig.DatadogQueryTTL)
+
 	if errorDatadogAPI != nil {
 		panic(errorDatadogAPI)
 	}
