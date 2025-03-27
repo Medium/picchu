@@ -43,12 +43,12 @@ func InjectAPI(a DatadogAPI, ttl time.Duration) *DDOGAPI {
 
 func (a DDOGAPI) TaggedCanaryMonitors(app string, tag string) (map[string][]string, error) {
 	app = "\"" + app + "\""
-	serach_params := datadogV1.SearchMonitorsOptionalParameters{
+	search_params := datadogV1.SearchMonitorsOptionalParameters{
 		Query: &app,
 	}
 
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
-	resp, r, err := a.api.SearchMonitors(datadog_ctx, *datadogV1.NewSearchMonitorsOptionalParameters().WithQuery(*serach_params.Query))
+	resp, r, err := a.api.SearchMonitors(datadog_ctx, *datadogV1.NewSearchMonitorsOptionalParameters().WithQuery(*search_params.Query))
 
 	if err != nil {
 		log.Error(err, "Error when calling `MonitorsApi.SearchMonitors`\n", "error", err, "response", r)
