@@ -92,9 +92,6 @@ func (a DDOGAPI) IsRevisionTriggered(ctx context.Context, app string, tag string
 		return false, nil, err
 	}
 
-	if len(canary_monitors) == 0 {
-		return false, nil, nil
-	}
 	if monitors, ok := canary_monitors[tag]; ok && len(monitors) > 0 {
 		return true, monitors, nil
 	}
