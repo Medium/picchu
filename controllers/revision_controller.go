@@ -91,6 +91,16 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 	return false, nil, nil
 }
 
+type DatadogAPI interface {
+	IsRevisionTriggered(ctx context.Context, name, tag string) (bool, []string, error)
+}
+
+type NoopDatadogAPI struct{}
+
+func (n *NoopDatadogAPI) IsRevisionTriggered(ctx context.Context, name, tag string) (bool, []string, error) {
+	return false, nil, nil
+}
+
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler, c utils.Config) error {
 	_, err := builder.ControllerManagedBy(mgr).
@@ -118,6 +128,7 @@ type RevisionReconciler struct {
 	Scheme       *runtime.Scheme
 	Config       utils.Config
 	PromAPI      PromAPI
+	DatadogAPI   DatadogAPI
 	CustomLogger logr.Logger
 }
 
@@ -201,8 +212,26 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
+
+	// testing echo canary phase
+	var ddog_triggered bool
+	var ddog_err error
+	var monitors []string
+	if instance.Spec.App.Name == "echo" {
+		log.Info("ECHO Checking if Datadog SLOs are triggered")
+		ddog_triggered, monitors, ddog_err = r.DatadogAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+	}
+
 	if err != nil {
 		return r.Requeue(log, err)
+	}
+
+	if ddog_err != nil {
+		log.Info("ignore datadog IsRevisionTriggered error for now")
+	}
+
+	if ddog_triggered {
+		log.Info("ECHO datadog IsRevisionTriggered returned true", "monitors", monitors)
 	}
 
 	var revisionFailing bool
