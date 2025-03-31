@@ -2,6 +2,10 @@ package datadog
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -10,6 +14,7 @@ import (
 
 	datadog "github.com/DataDog/datadog-api-client-go/v2/api/datadog"
 	datadogV1 "github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
+	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -98,43 +103,134 @@ func (a DDOGAPI) IsRevisionTriggered(ctx context.Context, app string, tag string
 	return false, nil, nil
 }
 
-// func (a DDOGAPI) EvalMetrics(ctx context.Context, app string, tag string, t time.Time, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, error) {
-// 	// iterate through datadog slos - use bad events / total events + inject tag and acceptance percentage to evaluate the
-// 	// canary slo over a 5min period of time?
-// 	// how do we know the time of canary?
-// 	// the target will be production or production similar
+// compare the two series
+// how time
+// how to know in the canary phase
+func (a DDOGAPI) EvalMetrics(app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, error) {
+	// iterate through datadog slos - use bad events / total events + inject tag and acceptance percentage to evaluate the
+	// canary slo over a 5min period of time?
+	// how do we know the time of canary?
+	// the target will be production or production similar
 
-// 	canary_queries := []string{}
-// 	// create the queries to evaluate
-// 	for slo := range datadogSLOs {
-// 		badEvenets := a.injectTag(datadogSLOs[slo].Query.BadEvents, tag)
-// 		totalEvents := a.injectTag(datadogSLOs[slo].Query.TotalEvents, tag)
-// 		allowancePercent := a.formatAllowancePercent(datadogSLOs[slo])
-// 		query_first := "((" + badEvenets + " / " + totalEvents + ") - " + allowancePercent + ") - "
-// 		query_second := "(" + datadogSLOs[slo].Query.BadEvents + " / " + datadogSLOs[slo].Query.TotalEvents + ") >= 0"
-// 		query := "sum(last_2m):" + query_first + query_second
-// 		canary_queries = append(canary_queries, query)
-// 	}
+	canary_queries := []string{}
+	// create the queries to evaluate
+	for slo := range datadogSLOs {
+		badEvenets := a.injectTag(datadogSLOs[slo].Query.BadEvents, tag)
+		totalEvents := a.injectTag(datadogSLOs[slo].Query.TotalEvents, tag)
+		// allowancePercent := "0.01"
+		query_first := "(" + badEvenets + " / " + totalEvents + ") - 0.01"
+		query_second := "(" + datadogSLOs[slo].Query.BadEvents + " / " + datadogSLOs[slo].Query.TotalEvents + ")"
+		canary_queries = append(canary_queries, query_first)
+		canary_queries = append(canary_queries, query_second)
+		// canary_queries = append(canary_queries, datadogSLOs[slo].Query.BadEvents)
+		// canary_queries = append(canary_queries, datadogSLOs[slo].Query.TotalEvents)
+	}
 
-// 	return false, nil
-// }
+	// api
+	ctx := datadog.NewDefaultContext(context.Background())
+	configuration := datadog.NewConfiguration()
+	apiClient := datadog.NewAPIClient(configuration)
+	api := datadogV1.NewMetricsApi(apiClient)
 
-// func (a DDOGAPI) injectTag(query string, tag string) string {
-// 	bracket_index := strings.Index(query, "{")
-// 	tag_string := "destination_version:" + tag + " AND "
-// 	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]
-// }
+	now := time.Now().Unix()
+	fifteenmin_before := time.Now().AddDate(0, 0, 0).Unix() - 300000
 
-// func (a DDOGAPI) formatAllowancePercent(datadogslo *picchuv1alpha1.DatadogSLO) string {
-// 	allowancePercent := datadogslo.Canary.AllowancePercent
-// 	if datadogslo.Canary.AllowancePercentString != "" {
-// 		f, err := strconv.ParseFloat(datadogslo.Canary.AllowancePercentString, 64)
-// 		if err != nil {
-// 			fmt.Errorf("Could not parse to float %v", err)
-// 		} else {
-// 			allowancePercent = f
-// 		}
-// 	}
-// 	r := allowancePercent / 100
-// 	return fmt.Sprintf("%.10g", r)
-// }
+	first, _, _ := api.QueryMetrics(ctx, fifteenmin_before, now, canary_queries[0])
+	second, _, _ := api.QueryMetrics(ctx, fifteenmin_before, now, canary_queries[1])
+
+	responseContent, _ := json.MarshalIndent(first, "", "  ")
+	fmt.Fprintf(os.Stdout, "Response from `MetricsApi.QueryMetrics`:\n%s\n", responseContent)
+
+	responseContent_second, _ := json.MarshalIndent(second, "", "  ")
+	fmt.Fprintf(os.Stdout, "Response from `MetricsApi.QueryMetrics`:\n%s\n", responseContent_second)
+
+	first_points := first.Series[0].Pointlist
+	second_points := second.Series[0].Pointlist
+
+	if len(first_points) > len(second_points) {
+		fmt.Println("first is greater")
+		for i := range second_points {
+			f := first_points[i][1]
+			s := second_points[i][1]
+
+			if f == nil || s == nil {
+				continue
+			}
+			// now what
+			// compare the two series
+
+			if *f > *s {
+				f_str := strconv.FormatFloat(*f, 'f', -1, 64)
+				s_str := strconv.FormatFloat(*s, 'f', -1, 64)
+				str := "canary triggered" + f_str + ">" + s_str
+				fmt.Println(str)
+				fmt.Println("canary triggered")
+			}
+
+		}
+	} else {
+		fmt.Println("second is greater")
+		for i := range first_points {
+			f := first_points[i][1]
+			s := second_points[i][1]
+
+			if f == nil || s == nil {
+				continue
+			}
+			// now what
+			// compare the two series
+
+			fmt.Println(*f)
+			fmt.Println(*s)
+			if *f > *s {
+				f_str := strconv.FormatFloat(*f, 'f', -1, 64)
+				s_str := strconv.FormatFloat(*s, 'f', -1, 64)
+				str := "canary triggered" + f_str + ">" + s_str
+				fmt.Println(str)
+				fmt.Println("canary triggered")
+			}
+
+		}
+	}
+	// for _, c := range canary_queries {
+	// 	fmt.Println(c)
+	// 	resp, r, err := api.QueryMetrics(ctx, fifteenmin_before, now, c)
+
+	// 	if err != nil {
+	// 		fmt.Fprintf(os.Stderr, "Error when calling `MetricsApi.QueryMetrics`: %v\n", err)
+	// 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	// 	}
+	// 	for _, s := range resp.Series {
+	// 		if len(s.Pointlist) > 0 {
+	// 			fmt.Println(c)
+	// 			fmt.Println(len(s.Pointlist))
+	// 		}
+	// 	}
+
+	// 	responseContent, _ := json.MarshalIndent(resp, "", "  ")
+	// 	fmt.Fprintf(os.Stdout, "Response from `MetricsApi.QueryMetrics`:\n%s\n", responseContent)
+	// }
+
+	return false, nil
+}
+
+func (a DDOGAPI) injectTag(query string, tag string) string {
+	bracket_index := strings.Index(query, "{")
+	tag_string := "destination_version:" + tag + " AND "
+	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]
+}
+
+func (a DDOGAPI) formatAllowancePercent(datadogslo *picchuv1alpha1.DatadogSLO) string {
+	allowancePercent := datadogslo.Canary.AllowancePercent
+	if datadogslo.Canary.AllowancePercentString != "" {
+		f, err := strconv.ParseFloat(datadogslo.Canary.AllowancePercentString, 64)
+		if err != nil {
+			// fmt.Errorf("Could not parse to float %v", err)
+			fmt.Println("err")
+		} else {
+			allowancePercent = f
+		}
+	}
+	r := allowancePercent / 100
+	return fmt.Sprintf("%.10g", r)
+}

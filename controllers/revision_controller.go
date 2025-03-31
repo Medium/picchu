@@ -219,6 +219,9 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	var monitors []string
 	if instance.Spec.App.Name == "echo" {
 		log.Info("ECHO Checking if Datadog SLOs are triggered")
+		// if status.Targets[0].State == "canarying" {
+
+		// }
 		ddog_triggered, monitors, ddog_err = r.DatadogAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
 	}
 
