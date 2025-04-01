@@ -124,14 +124,21 @@ func main() {
 		panic(errPromAPI)
 	}
 
-	var ddog_api controllers.DatadogAPI
-	var errorDatadogAPI error
+	var ddog_monitor_api controllers.DatadogMonitorAPI
+	var errorDatadogMonitorAPI error
+	var ddog_metric_api controllers.DatadogMetricAPI
+	var errorDatadogMetricAPI error
 
-	// ddog api client
-	ddog_api, errorDatadogAPI = datadogapi.NewAPI(cconfig.DatadogQueryTTL)
+	// ddog monitor and metric api client
+	ddog_monitor_api, errorDatadogMonitorAPI = datadogapi.NewMonitorAPI(cconfig.DatadogQueryTTL)
 
-	if errorDatadogAPI != nil {
-		panic(errorDatadogAPI)
+	if errorDatadogMonitorAPI != nil {
+		panic(errorDatadogMonitorAPI)
+	}
+	ddog_metric_api, errorDatadogMetricAPI = datadogapi.NewMetricAPI(cconfig.DatadogQueryTTL)
+
+	if errorDatadogMetricAPI != nil {
+		panic(errorDatadogMetricAPI)
 	}
 
 	schemeBuilders := k8sruntime.SchemeBuilder{
@@ -204,12 +211,13 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.RevisionReconciler{
-		Client:       mgr.GetClient(),
-		CustomLogger: ctrl.Log.WithName("controllers").WithName("Revision"),
-		Scheme:       mgr.GetScheme(),
-		Config:       cconfig,
-		PromAPI:      api,
-		DatadogAPI:   ddog_api,
+		Client:            mgr.GetClient(),
+		CustomLogger:      ctrl.Log.WithName("controllers").WithName("Revision"),
+		Scheme:            mgr.GetScheme(),
+		Config:            cconfig,
+		PromAPI:           api,
+		DatadogMonitorAPI: ddog_monitor_api,
+		DatadogMetricAPI:  ddog_metric_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)
