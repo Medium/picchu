@@ -79,7 +79,7 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	canary_threshold := "0.0"
 
 	allowancePercent := p.formatAllowancePercent(datadogslo, log)
-	// we need to inject {destination_version,env}.as_count() into first query
+	// we need to inject {version,env}.as_count() into first query
 	query_first := "((" + p.injectFilters(datadogslo.Query.BadEvents) + " / " + p.injectFilters(datadogslo.Query.TotalEvents) + ") - " + allowancePercent + ") - "
 	query_second := "(" + datadogslo.Query.BadEvents + " / " + datadogslo.Query.TotalEvents + ") >= 0"
 	query := "sum(last_2m):" + query_first + query_second
@@ -148,7 +148,7 @@ func (p *SyncDatadogCanaryMonitors) datadogCanaryMonitorName(sloName string) str
 
 func (p *SyncDatadogCanaryMonitors) injectFilters(query string) string {
 	period_index := strings.Index(query, ".as_count()")
-	tag_string := " by {destination_version,env}"
+	tag_string := " by {version,env}"
 	return query[:period_index] + tag_string + query[period_index:]
 }
 

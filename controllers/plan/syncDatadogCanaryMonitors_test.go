@@ -97,7 +97,7 @@ var (
 				Spec: ddog.DatadogMonitorSpec{
 					Name:    "echo-istio-request-success-canary",
 					Message: "The istio-request-success canary query is firing @slack-eng-watch-alerts-testing",
-					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*} by {destination_version,env}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination} by {destination_version,env}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
+					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*} by {version,env}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination} by {version,env}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
 					Tags: []string{
 						"service:example",
 						"env:prod",
@@ -133,7 +133,7 @@ var (
 				Spec: ddog.DatadogMonitorSpec{
 					Name:    "echo-http-availability-canary",
 					Message: "The http-availability canary query is firing @slack-eng-watch-alerts-testing",
-					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*} by {destination_version,env}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination} by {destination_version,env}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
+					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*} by {version,env}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination} by {version,env}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
 					Tags: []string{
 						"service:example",
 						"env:prod",
