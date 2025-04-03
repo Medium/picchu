@@ -70,11 +70,6 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-error-budget
 	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-canary"
 
-	// sum(last_5m):(per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*} by {destination_version,env}.as_count())
-	// / per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination} by {destination_version,env}.as_count()) - 0.01)
-	// - (per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) /
-	//  per_minute(sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0
-
 	message := "The " + datadogslo.Name + " canary query is firing @slack-eng-watch-alerts-testing"
 	escalation_message := "ESCALATED: The " + datadogslo.Name + " canary query is firing @slack-eng-watch-alerts-testing"
 	renotify := []datadogV1.MonitorRenotifyStatusType{datadogV1.MONITORRENOTIFYSTATUSTYPE_ALERT, datadogV1.MONITORRENOTIFYSTATUSTYPE_NO_DATA}
