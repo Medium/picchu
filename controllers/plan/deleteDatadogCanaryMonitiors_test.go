@@ -21,9 +21,7 @@ func TestDeleteDatadogCanaryMonitors(t *testing.T) {
 	log := test.MustNewLogger()
 	deleteDatadogCanaryMonitor := &DeleteDatadogCanaryMonitors{
 		App:       "echo",
-		Target:    "prod",
 		Namespace: "datadog",
-		Tag:       "main-123",
 	}
 	sl := &ddog.DatadogMonitor{
 		ObjectMeta: meta.ObjectMeta{
@@ -31,8 +29,6 @@ func TestDeleteDatadogCanaryMonitors(t *testing.T) {
 			Namespace: "datadog",
 			Labels: map[string]string{
 				picchu.LabelApp:         deleteDatadogCanaryMonitor.App,
-				picchu.LabelTag:         deleteDatadogCanaryMonitor.Tag,
-				picchu.LabelTarget:      deleteDatadogCanaryMonitor.Target,
 				picchu.LabelMonitorType: MonitorTypeCanary,
 			},
 		},

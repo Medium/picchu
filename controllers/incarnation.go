@@ -435,46 +435,6 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
-func (i *Incarnation) syncDatadogCanaryMonitors(ctx context.Context) error {
-	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
-		// only applied to the delivery cluster
-		err := i.controller.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
-			Name: i.picchuConfig.DatadogSLONamespace,
-		})
-
-		if err != nil {
-			return err
-		}
-
-		return i.controller.applyDeliveryPlan(ctx, "Sync Datadog Canary Monitors", &rmplan.SyncDatadogCanaryMonitors{
-			App: i.appName(),
-			// only applied to the datadog namespace
-			Namespace:   i.picchuConfig.DatadogSLONamespace,
-			Target:      i.targetName(),
-			Tag:         i.tag,
-			Labels:      i.defaultLabels(),
-			DatadogSLOs: i.target().DatadogSLOs,
-		})
-	}
-	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors")
-	return nil
-
-}
-
-func (i *Incarnation) deleteDatadogCanaryMonitors(ctx context.Context) error {
-	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
-		return i.controller.applyDeliveryPlan(ctx, "Delete Datadog Canary Monitors", &rmplan.DeleteDatadogCanaryMonitors{
-			App:    i.appName(),
-			Target: i.targetName(),
-			// only applied to the datadog namespace
-			Namespace: i.picchuConfig.DatadogSLONamespace,
-			Tag:       i.tag,
-		})
-	}
-	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors")
-	return nil
-}
-
 func (i *Incarnation) syncDatadogSLOs(ctx context.Context) error {
 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
 		// only applied to the delivery cluster
@@ -700,14 +660,6 @@ func (i *Incarnation) markedAsFailed() bool {
 		return i.revision.Spec.Failed
 	}
 	return false
-}
-
-func (i *Incarnation) AreDatadogSLOsEnabled() bool {
-	target := i.target()
-	if target == nil {
-		return false
-	}
-	return target.AreDatadogSLOsEnabled()
 }
 
 func (i *Incarnation) setState(state string) {

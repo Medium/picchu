@@ -21,11 +21,9 @@ const (
 )
 
 type SyncDatadogCanaryMonitors struct {
-	App    string
-	Target string
+	App string
 	// the namesapce is ALWAYS datadog
 	Namespace string
-	Tag       string
 	Labels    map[string]string
 	// Use DatadogSLOs to define each monitor
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
@@ -68,7 +66,7 @@ func (p *SyncDatadogCanaryMonitors) datadogCanaryMonitors(log logr.Logger) (*ddo
 
 func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) ddog.DatadogMonitor {
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-error-budget
-	ddogmonitor_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogslo.Name + "-canary"
+	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-canary"
 
 	message := "The " + datadogslo.Name + " canary query is firing @slack-eng-watch-alerts-testing"
 	escalation_message := "ESCALATED: The " + datadogslo.Name + " canary query is firing @slack-eng-watch-alerts-testing"
@@ -79,7 +77,8 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 	canary_threshold := "0.0"
 
 	allowancePercent := p.formatAllowancePercent(datadogslo, log)
-	query_first := "((" + p.injectTag(datadogslo.Query.BadEvents) + " / " + p.injectTag(datadogslo.Query.TotalEvents) + ") - " + allowancePercent + ") - "
+	// we need to inject {version,env}.as_count() into first query
+	query_first := "((" + p.injectFilters(datadogslo.Query.BadEvents) + " / " + p.injectFilters(datadogslo.Query.TotalEvents) + ") - " + allowancePercent + ") - "
 	query_second := "(" + datadogslo.Query.BadEvents + " / " + datadogslo.Query.TotalEvents + ") >= 0"
 	query := "sum(last_2m):" + query_first + query_second
 
@@ -127,38 +126,19 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 }
 
 func (p *SyncDatadogCanaryMonitors) datadogCanaryMonitorName(sloName string) string {
-	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-canary
+	// example: <service-name>-<slo-name>-canary
 	// lowercase - at most 63 characters - start and end with alphanumeric
-
-	target := p.Target
-	if strings.Contains(p.Target, "-") {
-		t := strings.LastIndex(p.Target, "-")
-		first_target := p.Target[:4]
-		second_target := p.Target[t+1 : t+5]
-		target = first_target + "-" + second_target
-	} else if len(p.Target) >= 4 {
-		target = p.Target[:4]
-	}
-
-	slo_name_end := strings.LastIndex(sloName, "-")
-	new_slo_name := string(sloName[0])
-	for i := range slo_name_end + 1 {
-		if string(sloName[i]) == "-" {
-			new_slo_name = new_slo_name + string(sloName[i+1])
-		}
-	}
-
-	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag + "-canary"
+	front_tag := p.App + "-" + sloName + "-canary"
 	if len(front_tag) > 63 {
 		front_tag = front_tag[:63]
 	}
 	return front_tag
 }
 
-func (p *SyncDatadogCanaryMonitors) injectTag(query string) string {
-	bracket_index := strings.Index(query, "{")
-	tag_string := "destination_version:" + p.Tag + " AND "
-	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]
+func (p *SyncDatadogCanaryMonitors) injectFilters(query string) string {
+	period_index := strings.Index(query, ".as_count()")
+	tag_string := " by {version,env}"
+	return query[:period_index] + tag_string + query[period_index:]
 }
 
 func (p *SyncDatadogCanaryMonitors) formatAllowancePercent(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) string {

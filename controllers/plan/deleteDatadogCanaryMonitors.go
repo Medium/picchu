@@ -14,9 +14,7 @@ import (
 
 type DeleteDatadogCanaryMonitors struct {
 	App       string
-	Target    string
 	Namespace string
-	Tag       string
 }
 
 func (p *DeleteDatadogCanaryMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -26,8 +24,6 @@ func (p *DeleteDatadogCanaryMonitors) Apply(ctx context.Context, cli client.Clie
 		Namespace: p.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
 			picchuv1alpha1.LabelApp:         p.App,
-			picchuv1alpha1.LabelTarget:      p.Target,
-			picchuv1alpha1.LabelTag:         p.Tag,
 			picchuv1alpha1.LabelMonitorType: MonitorTypeCanary,
 		}),
 	}
