@@ -71,9 +71,9 @@ type Deployment interface {
 	retire(context.Context) error
 	del(context.Context) error
 	syncCanaryRules(context.Context) error
-	syncDatadogCanaryMonitors(context.Context) error
+	// syncDatadogCanaryMonitors(context.Context) error
 	deleteCanaryRules(context.Context) error
-	deleteDatadogCanaryMonitors(context.Context) error
+	// deleteDatadogCanaryMonitors(context.Context) error
 	syncTaggedServiceLevels(context.Context) error
 	syncDatadogSLOs(context.Context) error
 	deleteTaggedServiceLevels(context.Context) error
@@ -415,9 +415,9 @@ func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return deleting, err
 	}
 
-	if err := deployment.deleteDatadogCanaryMonitors(ctx); err != nil {
-		return deleting, err
-	}
+	// if err := deployment.deleteDatadogCanaryMonitors(ctx); err != nil {
+	// 	return deleting, err
+	// }
 
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return deleting, err
@@ -457,9 +457,9 @@ func Failing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
 		return failing, err
 	}
-	if err := deployment.deleteDatadogCanaryMonitors(ctx); err != nil {
-		return failing, err
-	}
+	// if err := deployment.deleteDatadogCanaryMonitors(ctx); err != nil {
+	// 	return failing, err
+	// }
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return failing, err
 	}
@@ -492,9 +492,9 @@ func Canarying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	if err := deployment.syncCanaryRules(ctx); err != nil {
 		return canarying, err
 	}
-	if err := deployment.syncDatadogCanaryMonitors(ctx); err != nil {
-		return canarying, err
-	}
+	// if err := deployment.syncDatadogCanaryMonitors(ctx); err != nil {
+	// 	return canarying, err
+	// }
 	if err := deployment.syncTaggedServiceLevels(ctx); err != nil {
 		return canarying, err
 	}
@@ -517,9 +517,9 @@ func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 	if deployment.markedAsFailed() {
 		return failing, nil
 	}
-	if err := deployment.deleteDatadogCanaryMonitors(ctx); err != nil {
-		return canaried, err
-	}
+	// if err := deployment.deleteDatadogCanaryMonitors(ctx); err != nil {
+	// 	return canaried, err
+	// }
 	if err := deployment.deleteCanaryRules(ctx); err != nil {
 		return canaried, err
 	}

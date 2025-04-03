@@ -419,8 +419,8 @@ func TestCanarying(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncDatadogCanaryMonitors(expectSyncCanaryRules(m(true, false, false)))))))
-	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncDatadogCanaryMonitors(expectSyncCanaryRules(m(true, false, true)))))))
+	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncCanaryRules(m(true, false, false))))))
+	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncCanaryRules(m(true, false, true))))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -446,8 +446,8 @@ func TestCanaried(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectSync(expectDeleteCanaryRules(expectDeleteDatadogCanaryMonitors(m(true, false, false)))))
-	testcase(pendingrelease, expectSync(expectDeleteCanaryRules(expectDeleteDatadogCanaryMonitors(m(true, false, true)))))
+	testcase(canaried, expectSync(expectDeleteCanaryRules(m(true, false, false))))
+	testcase(pendingrelease, expectSync(expectDeleteCanaryRules(m(true, false, true))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -658,7 +658,7 @@ func TestDeleting(t *tt.T) {
 
 	testcase(deleting, m(false, 100))
 	testcase(deleting, m(false, 1))
-	testcase(deleted, expectDeleteCanaryRules(expectDeleteDatadogCanaryMonitors(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectDelete(m(false, 0)))))))
+	testcase(deleted, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectDelete(m(false, 0))))))
 	testcase(deploying, m(true, 0))
 	testcase(deleting, m(true, 100))
 	testcase(deleting, m(true, 1))
@@ -715,10 +715,10 @@ func TestFailing(t *tt.T) {
 	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
 	testcase(failing, m(true, false, ExternalTestSucceeded, 100))
 
-	testcase(failed, expectDeleteCanaryRules(expectDeleteDatadogCanaryMonitors(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectRetire(m(true, true, ExternalTestDisabled, 0)))))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectRetire(m(true, true, ExternalTestDisabled, 0))))))
 	testcase(failing, m(true, true, ExternalTestDisabled, 1))
 	testcase(failing, m(true, true, ExternalTestDisabled, 100))
-	testcase(failed, expectDeleteCanaryRules(expectDeleteDatadogCanaryMonitors(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectRetire(m(true, false, ExternalTestFailed, 0)))))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectRetire(m(true, false, ExternalTestFailed, 0))))))
 	testcase(failing, m(true, false, ExternalTestFailed, 1))
 	testcase(failing, m(true, false, ExternalTestFailed, 100))
 }
@@ -909,24 +909,6 @@ func expectDeleteCanaryRules(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
 		deleteCanaryRules(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectSyncDatadogCanaryMonitors(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		syncDatadogCanaryMonitors(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectDeleteDatadogCanaryMonitors(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		deleteDatadogCanaryMonitors(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock

@@ -31,14 +31,10 @@ var (
 	canary_thresh = "0.0"
 	dcmplan       = &SyncDatadogCanaryMonitors{
 		App:       "echo",
-		Target:    "production",
 		Namespace: "datadog",
-		Tag:       "main-123-456",
 		Labels: map[string]string{
-			picchuv1alpha1.LabelApp:        "echo",
-			picchuv1alpha1.LabelTag:        "main-123-456",
-			picchuv1alpha1.LabelK8sName:    "echo",
-			picchuv1alpha1.LabelK8sVersion: "main-123-456",
+			picchuv1alpha1.LabelApp:     "echo",
+			picchuv1alpha1.LabelK8sName: "echo",
 		},
 		DatadogSLOs: []*picchuv1alpha1.DatadogSLO{
 			{
@@ -90,20 +86,18 @@ var (
 		Items: []ddog.DatadogMonitor{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "echo-prod-irs-main-123-456-canary",
+					Name:      "echo-irs-canary",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:         "echo",
-						picchuv1alpha1.LabelTag:         "main-123-456",
 						picchuv1alpha1.LabelK8sName:     "echo",
-						picchuv1alpha1.LabelK8sVersion:  "main-123-456",
 						picchuv1alpha1.LabelMonitorType: MonitorTypeCanary,
 					},
 				},
 				Spec: ddog.DatadogMonitorSpec{
-					Name:    "echo-production-main-123-456-istio-request-success-canary",
+					Name:    "echo-istio-request-success-canary",
 					Message: "The istio-request-success canary query is firing @slack-eng-watch-alerts-testing",
-					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
+					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*} by {destination_version,env}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination} by {destination_version,env}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
 					Tags: []string{
 						"service:example",
 						"env:prod",
@@ -128,20 +122,18 @@ var (
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "echo-prod-ha-main-123-456-canary",
+					Name:      "echo-ha-canary",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:         "echo",
-						picchuv1alpha1.LabelTag:         "main-123-456",
 						picchuv1alpha1.LabelK8sName:     "echo",
-						picchuv1alpha1.LabelK8sVersion:  "main-123-456",
 						picchuv1alpha1.LabelMonitorType: MonitorTypeCanary,
 					},
 				},
 				Spec: ddog.DatadogMonitorSpec{
-					Name:    "echo-production-main-123-456-http-availability-canary",
+					Name:    "echo-http-availability-canary",
 					Message: "The http-availability canary query is firing @slack-eng-watch-alerts-testing",
-					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_version:main-123-456 AND destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
+					Query:   "sum(last_2m):((per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*} by {destination_version,env}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination} by {destination_version,env}.as_count())) - 0.01) - (per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()) / per_minute(sum:istio.mesh.request.count.total{destination_service:tutu.tutu-production.svc.cluster.local AND reporter:destination}.as_count())) >= 0",
 					Tags: []string{
 						"service:example",
 						"env:prod",
@@ -175,8 +167,8 @@ func TestSyncDatadogCanaryMonitors(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		{Name: "echo-prod-irs-main-123-456-canary", Namespace: "datadog"},
-		{Name: "echo-prod-ha-main-123-456-canary", Namespace: "datadog"},
+		{Name: "echo-irs-canary", Namespace: "datadog"},
+		{Name: "echo-ha-canary", Namespace: "datadog"},
 	}
 	ctx := context.TODO()
 

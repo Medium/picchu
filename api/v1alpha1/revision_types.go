@@ -436,10 +436,3 @@ func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 func init() {
 	SchemeBuilder.Register(&Revision{}, &RevisionList{})
 }
-
-func (r *RevisionTarget) AreDatadogSLOsEnabled() bool {
-	if len(r.DatadogSLOs) == 0 {
-		return false
-	}
-	return r.DatadogSLOsEnabled
-}
