@@ -86,7 +86,7 @@ var (
 		Items: []ddog.DatadogMonitor{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "echo-irs-canary",
+					Name:      "echo-istio-request-success-canary",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:         "echo",
@@ -122,7 +122,7 @@ var (
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "echo-ha-canary",
+					Name:      "echo-http-availability-canary",
 					Namespace: "datadog",
 					Labels: map[string]string{
 						picchuv1alpha1.LabelApp:         "echo",
@@ -167,8 +167,8 @@ func TestSyncDatadogCanaryMonitors(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []client.ObjectKey{
-		{Name: "echo-irs-canary", Namespace: "datadog"},
-		{Name: "echo-ha-canary", Namespace: "datadog"},
+		{Name: "echo-istio-request-success-canary", Namespace: "datadog"},
+		{Name: "echo-http-availability-canary", Namespace: "datadog"},
 	}
 	ctx := context.TODO()
 

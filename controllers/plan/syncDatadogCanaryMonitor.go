@@ -22,11 +22,9 @@ const (
 
 type SyncDatadogCanaryMonitors struct {
 	App string
-	// Target string
 	// the namesapce is ALWAYS datadog
 	Namespace string
-	// Tag       string
-	Labels map[string]string
+	Labels    map[string]string
 	// Use DatadogSLOs to define each monitor
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
 }
@@ -128,18 +126,9 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 }
 
 func (p *SyncDatadogCanaryMonitors) datadogCanaryMonitorName(sloName string) string {
-	// example: <service-name>-<condensed-slo-name>-canary
+	// example: <service-name>-<slo-name>-canary
 	// lowercase - at most 63 characters - start and end with alphanumeric
-
-	slo_name_end := strings.LastIndex(sloName, "-")
-	new_slo_name := string(sloName[0])
-	for i := range slo_name_end + 1 {
-		if string(sloName[i]) == "-" {
-			new_slo_name = new_slo_name + string(sloName[i+1])
-		}
-	}
-
-	front_tag := p.App + "-" + new_slo_name + "-canary"
+	front_tag := p.App + "-" + sloName + "-canary"
 	if len(front_tag) > 63 {
 		front_tag = front_tag[:63]
 	}
