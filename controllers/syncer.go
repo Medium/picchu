@@ -336,23 +336,38 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 	ddog_slos := r.prepareDatadogSLOs()
 	if len(ddog_slos) > 0 {
-		if err := r.applyDeliveryPlan(ctx, "Sync App SLO Rules", &rmplan.SyncDatadogCanaryMonitors{
-			// only applied to the datadog namespace
-			App:       r.instance.Spec.App,
-			Namespace: r.picchuConfig.DatadogSLONamespace,
-			// Target:      i.targetName(),
-			Labels:      r.defaultLabels(),
-			DatadogSLOs: ddog_slos,
-		}); err != nil {
-			return err
+		if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
+			// only applied to the delivery cluster
+			err := r.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
+				Name: r.picchuConfig.DatadogSLONamespace,
+			})
+
+			if err != nil {
+				return err
+			}
+
+			if err := r.applyDeliveryPlan(ctx, "Sync App SLO Rules", &rmplan.SyncDatadogCanaryMonitors{
+				// only applied to the datadog namespace
+				App:       r.instance.Spec.App,
+				Namespace: r.picchuConfig.DatadogSLONamespace,
+				// Target:      i.targetName(),
+				Labels:      r.defaultLabels(),
+				DatadogSLOs: ddog_slos,
+			}); err != nil {
+				return err
+			}
 		}
+		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors")
 	} else {
-		if err := r.applyDeliveryPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteDatadogCanaryMonitors{
-			App:       r.instance.Spec.App,
-			Namespace: r.picchuConfig.DatadogSLONamespace,
-		}); err != nil {
-			return err
+		if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
+			if err := r.applyDeliveryPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteDatadogCanaryMonitors{
+				App:       r.instance.Spec.App,
+				Namespace: r.picchuConfig.DatadogSLONamespace,
+			}); err != nil {
+				return err
+			}
 		}
+		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors")
 	}
 	return nil
 }

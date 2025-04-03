@@ -781,25 +781,23 @@ func testHandler(ctx context.Context, t *tt.T, handler string, expected State, m
 }
 
 type responses struct {
-	hasRevision                 bool
-	markedAsFailed              bool
-	isReleaseEligible           bool
-	externalTestStatus          ExternalTestStatus
-	isCanaryPending             bool
-	isDeployed                  bool
-	schedulePermitsRelease      bool
-	currentPercent              uint32
-	peakPercent                 uint32
-	syncCanaryRules             error
-	deleteCanaryRules           error
-	syncDatadogCanaryMonitors   error
-	deleteDatadogCanaryMonitors error
-	syncTaggedServiceLevels     error
-	syncDatadogSLOs             error
-	deleteTaggedServiceLevels   error
-	deleteDatadogSLOs           error
-	isTimingOut                 bool
-	isExpired                   bool
+	hasRevision               bool
+	markedAsFailed            bool
+	isReleaseEligible         bool
+	externalTestStatus        ExternalTestStatus
+	isCanaryPending           bool
+	isDeployed                bool
+	schedulePermitsRelease    bool
+	currentPercent            uint32
+	peakPercent               uint32
+	syncCanaryRules           error
+	deleteCanaryRules         error
+	syncTaggedServiceLevels   error
+	syncDatadogSLOs           error
+	deleteTaggedServiceLevels error
+	deleteDatadogSLOs         error
+	isTimingOut               bool
+	isExpired                 bool
 }
 
 func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment {
