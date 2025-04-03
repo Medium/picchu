@@ -27,6 +27,10 @@ type DDOGMETRICAPI struct {
 	lock *sync.RWMutex
 }
 
+func InjectMetricAPI(a DatadogMetricAPI, ttl time.Duration) *DDOGMETRICAPI {
+	return &DDOGMETRICAPI{a, ttl, &sync.RWMutex{}}
+}
+
 func NewMetricAPI(ttl time.Duration) (*DDOGMETRICAPI, error) {
 	log.Info("Creating Datadog Metric API")
 
@@ -37,7 +41,12 @@ func NewMetricAPI(ttl time.Duration) (*DDOGMETRICAPI, error) {
 }
 
 func (a DDOGMETRICAPI) EvalMetrics(app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, error) {
-	// iterate through datadog slos - use bad events / total events + inject tag and acceptance percentage to evaluate the
+
+	// 1. Iterate through datadog slos and creates the canary query with the metric defined in the SLO object
+	// 2. The canary query is ((errors requests canary / total request canary ) - acceptancePercent) > (errors requests production / total request production)
+	// 3. Query timeseries points using both halfs of that query
+	// 4. Compare the two arrays of timeseries points
+
 	// canary slo over a 5min period of time? - how do we know the time of canary?
 	// the target will be production or production similar
 
@@ -58,7 +67,10 @@ func (a DDOGMETRICAPI) EvalMetrics(app string, tag string, datadogSLOs []*picchu
 	fifteenmin_before := time.Now().AddDate(0, 0, 0).Unix() - 300000
 
 	// query datadog api
+	// configuration := datadog.NewConfiguration()
+	// apiClient := datadog.NewAPIClient(configuration)
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
+
 	first, _, _ := a.api.QueryMetrics(datadog_ctx, fifteenmin_before, now, query_first)
 	second, _, _ := a.api.QueryMetrics(datadog_ctx, fifteenmin_before, now, query_second)
 

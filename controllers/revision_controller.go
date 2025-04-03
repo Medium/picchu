@@ -256,6 +256,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 				datadogSLOs = t.DatadogSLOs
 			}
 		}
+
 		// determine if production target is in the canary phase
 		for _, revisionTargetStatus := range status.Targets {
 			if strings.Contains(revisionTargetStatus.Name, "production") {
