@@ -8,7 +8,7 @@ import (
 	datadogV1 "github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
 	"github.com/stretchr/testify/assert"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
-	"go.medium.engineering/picchu/prometheus/mocks"
+	"go.medium.engineering/picchu/datadog/mocks"
 	"go.uber.org/mock/gomock"
 )
 
