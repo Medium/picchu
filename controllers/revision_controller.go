@@ -228,11 +228,14 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 				datadogSLOs = t.DatadogSLOs
 			}
 		}
+		log.Info("len ddog slos", "len", len(datadogSLOs))
 
 		// determine if production target is in the canary phase
 		for _, statusTarget := range status.Targets {
 			if strings.Contains(statusTarget.Name, "production") {
+				log.Info("echo found production target")
 				if statusTarget.State == "canarying" {
+					log.Info("echo found canary state for production target")
 					// testing echo canary phase with datadogMonitor Object
 					var ddog_triggered bool
 					var ddog_err error

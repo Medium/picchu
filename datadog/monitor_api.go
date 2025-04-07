@@ -65,17 +65,6 @@ func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datad
 		return v, nil
 	}
 
-	// search_params := datadogV1.SearchMonitorsOptionalParameters{
-	// 	Query: &query,
-	// }
-
-	// datadog_ctx := datadog.NewDefaultContext(context.Background())
-	// val, r, err := a.api.SearchMonitors(datadog_ctx, *datadogV1.NewSearchMonitorsOptionalParameters().WithQuery(*search_params.Query))
-	// if err != nil {
-	// 	log.Error(err, "Error when calling `MonitorsApi.SearchMonitors`\n", "error", err, "response", r)
-	// 	return datadogV1.MonitorSearchResponse{}, err
-	// }
-
 	search_params := datadogV1.SearchMonitorGroupsOptionalParameters{
 		Query: &query,
 	}
@@ -111,10 +100,6 @@ func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, ta
 
 	canary_monitors := map[string][]string{}
 	for _, m := range monitors {
-		// "group_tags": [
-		// 	"env:production",
-		// 	"version:main-20250401-171805-1e048b5197"
-		//   ],
 		if m.MonitorName == nil {
 			log.Info("Nil name for echo canary monitor", "status", m.Status)
 			continue
@@ -137,13 +122,15 @@ func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, ta
 
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
 func (a DDOGMONITORAPI) IsRevisionTriggered(ctx context.Context, app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error) {
-	// we have a canary monitor set up for each ddog slo - so we need to search for app-sloname-canary
 	canary_monitors, err := a.TaggedCanaryMonitors(ctx, app, tag, datadogSLOs)
+	log.Info("echo found canary_monitors", "canary_monitors", canary_monitors)
 	if err != nil {
+		log.Info("error != nil IsRevisionTriggered")
 		return false, nil, err
 	}
 
 	if monitors, ok := canary_monitors[tag]; ok && len(monitors) > 0 {
+		log.Info("triggered monitors found for echo tag, length greater than 0", "monitors", monitors)
 		return true, monitors, nil
 	}
 	return false, nil, nil
