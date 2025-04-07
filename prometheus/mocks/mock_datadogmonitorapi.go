@@ -62,6 +62,27 @@ func (mr *MockDatadogMonitorAPIMockRecorder) ListMonitors(arg0 any, arg1 ...any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMonitors", reflect.TypeOf((*MockDatadogMonitorAPI)(nil).ListMonitors), varargs...)
 }
 
+// SearchMonitorGroups mocks base method.
+func (m *MockDatadogMonitorAPI) SearchMonitorGroups(arg0 context.Context, arg1 ...datadogV1.SearchMonitorGroupsOptionalParameters) (datadogV1.MonitorGroupSearchResponse, *http.Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SearchMonitorGroups", varargs...)
+	ret0, _ := ret[0].(datadogV1.MonitorGroupSearchResponse)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// SearchMonitorGroups indicates an expected call of SearchMonitorGroups.
+func (mr *MockDatadogMonitorAPIMockRecorder) SearchMonitorGroups(arg0 any, arg1 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchMonitorGroups", reflect.TypeOf((*MockDatadogMonitorAPI)(nil).SearchMonitorGroups), varargs...)
+}
+
 // SearchMonitors mocks base method.
 func (m *MockDatadogMonitorAPI) SearchMonitors(arg0 context.Context, arg1 ...datadogV1.SearchMonitorsOptionalParameters) (datadogV1.MonitorSearchResponse, *http.Response, error) {
 	m.ctrl.T.Helper()

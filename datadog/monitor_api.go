@@ -2,7 +2,7 @@ package datadog
 
 import (
 	"context"
-	"strings"
+	"fmt"
 	"sync"
 	"time"
 
@@ -10,6 +10,7 @@ import (
 
 	datadog "github.com/DataDog/datadog-api-client-go/v2/api/datadog"
 	datadogV1 "github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
+	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -20,12 +21,19 @@ var (
 type DatadogMonitorAPI interface {
 	SearchMonitors(ctx context.Context, o ...datadogV1.SearchMonitorsOptionalParameters) (datadogV1.MonitorSearchResponse, *http.Response, error)
 	ListMonitors(ctx context.Context, o ...datadogV1.ListMonitorsOptionalParameters) ([]datadogV1.Monitor, *http.Response, error)
+	SearchMonitorGroups(ctx context.Context, o ...datadogV1.SearchMonitorGroupsOptionalParameters) (datadogV1.MonitorGroupSearchResponse, *http.Response, error)
 }
 
 type DDOGMONITORAPI struct {
-	api  DatadogMonitorAPI
-	ttl  time.Duration
-	lock *sync.RWMutex
+	api   DatadogMonitorAPI
+	cache map[string]cachedValue
+	ttl   time.Duration
+	lock  *sync.RWMutex
+}
+
+type cachedValue struct {
+	value       datadogV1.MonitorGroupSearchResponse
+	lastUpdated time.Time
 }
 
 func NewMonitorAPI(ttl time.Duration) (*DDOGMONITORAPI, error) {
@@ -34,51 +42,93 @@ func NewMonitorAPI(ttl time.Duration) (*DDOGMONITORAPI, error) {
 	configuration := datadog.NewConfiguration()
 	apiClient := datadog.NewAPIClient(configuration)
 
-	return &DDOGMONITORAPI{datadogV1.NewMonitorsApi(apiClient), ttl, &sync.RWMutex{}}, nil
+	return &DDOGMONITORAPI{datadogV1.NewMonitorsApi(apiClient), map[string]cachedValue{}, ttl, &sync.RWMutex{}}, nil
 }
 
 func InjectAPI(a DatadogMonitorAPI, ttl time.Duration) *DDOGMONITORAPI {
-	return &DDOGMONITORAPI{a, ttl, &sync.RWMutex{}}
+	return &DDOGMONITORAPI{a, map[string]cachedValue{}, ttl, &sync.RWMutex{}}
 }
 
-func (a DDOGMONITORAPI) TaggedCanaryMonitors(app string, tag string) (map[string][]string, error) {
-	app = "\"" + app + "\""
-	search_params := datadogV1.SearchMonitorsOptionalParameters{
-		Query: &app,
+func (a DDOGMONITORAPI) checkCache(ctx context.Context, query string) (datadogV1.MonitorGroupSearchResponse, bool) {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+	if v, ok := a.cache[query]; ok {
+		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
+			return v.value, true
+		}
+	}
+	return datadogV1.MonitorGroupSearchResponse{}, false
+}
+
+func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datadogV1.MonitorGroupSearchResponse, error) {
+	if v, ok := a.checkCache(ctx, query); ok {
+		return v, nil
+	}
+
+	// search_params := datadogV1.SearchMonitorsOptionalParameters{
+	// 	Query: &query,
+	// }
+
+	// datadog_ctx := datadog.NewDefaultContext(context.Background())
+	// val, r, err := a.api.SearchMonitors(datadog_ctx, *datadogV1.NewSearchMonitorsOptionalParameters().WithQuery(*search_params.Query))
+	// if err != nil {
+	// 	log.Error(err, "Error when calling `MonitorsApi.SearchMonitors`\n", "error", err, "response", r)
+	// 	return datadogV1.MonitorSearchResponse{}, err
+	// }
+
+	search_params := datadogV1.SearchMonitorGroupsOptionalParameters{
+		Query: &query,
 	}
 
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
-	resp, r, err := a.api.SearchMonitors(datadog_ctx, *datadogV1.NewSearchMonitorsOptionalParameters().WithQuery(*search_params.Query))
-
+	val, r, err := a.api.SearchMonitorGroups(datadog_ctx, search_params)
 	if err != nil {
 		log.Error(err, "Error when calling `MonitorsApi.SearchMonitors`\n", "error", err, "response", r)
+		return datadogV1.MonitorGroupSearchResponse{}, err
+	}
+
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	a.cache[query] = cachedValue{val, time.Now()}
+	fmt.Println("val", val)
+	return val, nil
+}
+
+func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (map[string][]string, error) {
+
+	var canary_monitor string
+	for _, d := range datadogSLOs {
+		// query: echo-http-availability-canary group:(env:production AND version:main-20250403-211750-e4cbf655ea)
+		canary_monitor = app + "-" + d.Name + "-canary group:(env:production AND version:" + tag + ") triggered:15"
+	}
+
+	val, err := a.queryWithCache(ctx, canary_monitor)
+	if err != nil {
 		return nil, err
 	}
 
-	monitors := resp.GetMonitors()
-
-	if len(monitors) == 0 {
-		log.Info("No monitors found when calling `MonitorsApi.SearchMonitors` for service", "App", app)
-		return nil, nil
-	}
+	monitors := val.GetGroups()
 
 	canary_monitors := map[string][]string{}
-	for r := range monitors {
-		m := monitors[r]
-		if m.Name == nil {
+	for _, m := range monitors {
+		// "group_tags": [
+		// 	"env:production",
+		// 	"version:main-20250401-171805-1e048b5197"
+		//   ],
+		if m.MonitorName == nil {
+			log.Info("Nil name for echo canary monitor", "status", m.Status)
 			continue
 		}
-		if strings.Contains(*m.Name, "canary") && strings.Contains(*m.Name, tag) {
-			if m.Status == nil {
-				continue
+		if m.Status == nil {
+			log.Info("Nil status for echo canary monitor", "status", m.Status)
+			continue
+		}
+		log.Info("Echo canary SLO found", "canary monitor", *m.MonitorName, "status", m.Status)
+		if *m.Status == datadogV1.MONITOROVERALLSTATES_ALERT {
+			if canary_monitors[tag] == nil {
+				canary_monitors[tag] = []string{}
 			}
-			log.Info("Echo canary SLO found", "canary monitor", *m.Name, "status", m.Status)
-			if *m.Status == datadogV1.MONITOROVERALLSTATES_ALERT {
-				if canary_monitors[tag] == nil {
-					canary_monitors[tag] = []string{}
-				}
-				canary_monitors[tag] = append(canary_monitors[tag], *m.Name)
-			}
+			canary_monitors[tag] = append(canary_monitors[tag], *m.MonitorName)
 		}
 	}
 
@@ -86,8 +136,9 @@ func (a DDOGMONITORAPI) TaggedCanaryMonitors(app string, tag string) (map[string
 }
 
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
-func (a DDOGMONITORAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, []string, error) {
-	canary_monitors, err := a.TaggedCanaryMonitors(app, tag)
+func (a DDOGMONITORAPI) IsRevisionTriggered(ctx context.Context, app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error) {
+	// we have a canary monitor set up for each ddog slo - so we need to search for app-sloname-canary
+	canary_monitors, err := a.TaggedCanaryMonitors(ctx, app, tag, datadogSLOs)
 	if err != nil {
 		return false, nil, err
 	}

@@ -92,23 +92,13 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 }
 
 type DatadogMonitorAPI interface {
-	IsRevisionTriggered(ctx context.Context, name, tag string) (bool, []string, error)
-}
-
-type DatadogMetricAPI interface {
-	EvalMetrics(app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, error)
+	IsRevisionTriggered(ctx context.Context, name, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error)
 }
 
 type NoopDatadogMonitorAPI struct{}
 
-func (n *NoopDatadogMonitorAPI) IsRevisionTriggered(ctx context.Context, name, tag string) (bool, []string, error) {
+func (n *NoopDatadogMonitorAPI) IsRevisionTriggered(ctx context.Context, name, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error) {
 	return false, nil, nil
-}
-
-type NoopDatadogMetricAPI struct{}
-
-func (n *NoopDatadogMetricAPI) EvalMetrics(app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, error) {
-	return false, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -139,7 +129,6 @@ type RevisionReconciler struct {
 	Config            utils.Config
 	PromAPI           PromAPI
 	DatadogMonitorAPI DatadogMonitorAPI
-	DatadogMetricAPI  DatadogMetricAPI
 	CustomLogger      logr.Logger
 }
 
@@ -224,25 +213,8 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 
-	// testing echo canary phase with datadogMonitor Object
-	var ddog_triggered bool
-	var ddog_err error
-	var monitors []string
-	if instance.Spec.App.Name == "echo" {
-		log.Info("ECHO Checking if Datadog SLOs are triggered - datadogMonitor")
-		ddog_triggered, monitors, ddog_err = r.DatadogMonitorAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
-	}
-
 	if err != nil {
 		return r.Requeue(log, err)
-	}
-
-	if ddog_err != nil {
-		log.Info("ignore datadog IsRevisionTriggered error for now")
-	}
-
-	if ddog_triggered {
-		log.Info("ECHO datadog IsRevisionTriggered returned true", "monitors", monitors)
 	}
 
 	// testing echo canary phase with datadog api call
@@ -258,11 +230,24 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 
 		// determine if production target is in the canary phase
-		for _, revisionTargetStatus := range status.Targets {
-			if strings.Contains(revisionTargetStatus.Name, "production") {
-				if revisionTargetStatus.State == "canarying" {
+		for _, statusTarget := range status.Targets {
+			if strings.Contains(statusTarget.Name, "production") {
+				if statusTarget.State == "canarying" {
+					// testing echo canary phase with datadogMonitor Object
+					var ddog_triggered bool
+					var ddog_err error
+					var monitors []string
 					// we are in the canarying state
-					r.DatadogMetricAPI.EvalMetrics(instance.Spec.App.Name, instance.Spec.App.Tag, datadogSLOs)
+					ddog_triggered, monitors, ddog_err = r.DatadogMonitorAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, datadogSLOs)
+
+					if ddog_err != nil {
+						log.Info("ignore datadog IsRevisionTriggered error for now")
+					}
+
+					if ddog_triggered {
+						log.Info("ECHO datadog IsRevisionTriggered returned true", "monitors", monitors)
+					}
+
 				}
 			}
 		}

@@ -1,6 +1,7 @@
 package datadog
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -11,17 +12,21 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+func TestDatadogCache(t *testing.T) {
+	testAlertCache(t)
+}
+
 func TestDatadogAlerts(t *testing.T) {
 	testAlert(t)
 }
 
-func TestDatadogEvalMetrics(t *testing.T) {
+func testAlertCache(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	defer ctrl.Finish()
 
-	m := mocks.NewMockDatadogMetricAPI(ctrl)
-	api := InjectMetricAPI(m, time.Duration(25)*time.Millisecond)
+	m := mocks.NewMockDatadogMonitorAPI(ctrl)
+	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
 	datadogSLOs := []*picchuv1alpha1.DatadogSLO{
 		{
@@ -43,8 +48,21 @@ func TestDatadogEvalMetrics(t *testing.T) {
 		},
 	}
 
-	api.EvalMetrics("echo", "main-20250325-171435-74f8c7230e", datadogSLOs)
-	assert.Equal(t, map[string][]string{}, map[string][]string{"f": {"m"}}, "Should get no firing alerts (v1)")
+	m.
+		EXPECT().
+		SearchMonitorGroups(gomock.Any(), gomock.Any()).
+		Return(datadogV1.MonitorGroupSearchResponse{}, nil, nil).
+		Times(2)
+
+	for i := 0; i < 5; i++ {
+		r, err := api.TaggedCanaryMonitors(context.TODO(), "echo", "main-123", datadogSLOs)
+		assert.Nil(t, err, "Should succeed in querying alerts")
+		assert.Equal(t, map[string][]string{}, r, "Should get no firing alerts")
+	}
+	time.Sleep(time.Duration(25) * time.Millisecond)
+	r, err := api.TaggedCanaryMonitors(context.TODO(), "echo", "main-123", datadogSLOs)
+	assert.Nil(t, err, "Should succeed in querying alerts")
+	assert.Equal(t, map[string][]string{}, r, "Should get no firing alerts")
 }
 
 func testAlert(t *testing.T) {
@@ -55,45 +73,57 @@ func testAlert(t *testing.T) {
 	m := mocks.NewMockDatadogMonitorAPI(ctrl)
 	api := InjectAPI(m, time.Duration(25)*time.Millisecond)
 
-	monitor_name_echo := "echo-main-123"
-	monitor_name_gotest := "gotest-main-345"
-	monitor_name_echo_ha := "echo-ha-main-123-canary"
-	monitor_name_echo_iha := "echo-iha-main-123-canary"
+	datadogSLOs := []*picchuv1alpha1.DatadogSLO{
+		{
+			Name:        "istio-http-success",
+			Enabled:     true,
+			Description: "test create example datadogSLO one",
+			Query: picchuv1alpha1.DatadogSLOQuery{
+				GoodEvents:  "sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
+				TotalEvents: "sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
+				BadEvents:   "sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()",
+			},
+			Tags: []string{
+				"service:example",
+				"env:prod",
+			},
+			TargetThreshold: "99.9",
+			Timeframe:       "7d",
+			Type:            "metric",
+		},
+	}
+
+	monitor_name_echo_iha := "echo-iha-canary"
+	monitor_name_echo_iha2 := "echo-iha2-canary"
 	alert := datadogV1.MONITOROVERALLSTATES_ALERT
 	not_alert := datadogV1.MONITOROVERALLSTATES_OK
-	response := datadogV1.MonitorSearchResponse{
-		Monitors: []datadogV1.MonitorSearchResult{
+	response := datadogV1.MonitorGroupSearchResponse{
+		Groups: []datadogV1.MonitorGroupSearchResult{
 			{
-				Name:   &monitor_name_echo,
-				Status: &not_alert,
+				MonitorName: &monitor_name_echo_iha,
+				Status:      &not_alert,
 			},
 			{
-				Name:   &monitor_name_echo_ha,
-				Status: &alert,
-			},
-			{
-				Name:   &monitor_name_echo_iha,
-				Status: &alert,
-			},
-			{
-				Name:   &monitor_name_gotest,
-				Status: &not_alert,
+				MonitorName: &monitor_name_echo_iha2,
+				Status:      &alert,
 			},
 		},
 	}
 
+	query := "echo-istio-http-success-canary group:(env:production AND version:main-123) triggered:15"
+
+	search_params := datadogV1.SearchMonitorGroupsOptionalParameters{
+		Query: &query,
+	}
+
 	m.
 		EXPECT().
-		SearchMonitors(gomock.Any(), gomock.Any()).
+		SearchMonitorGroups(gomock.Any(), gomock.Eq(search_params)).
 		Return(response, nil, nil).
-		Times(2)
+		Times(1)
 
-	r_echo, err := api.TaggedCanaryMonitors("echo", "main-123")
+	r_echo, err := api.TaggedCanaryMonitors(context.TODO(), "echo", "main-123", datadogSLOs)
 	assert.Nil(t, err, "Should succeed in querying alerts")
-	assert.Equal(t, map[string][]string{"main-123": {"echo-ha-main-123-canary", "echo-iha-main-123-canary"}}, r_echo, "Should get 1 firing alerts (v1)")
-
-	r_gotest, err := api.TaggedCanaryMonitors("gotest", "main-345")
-	assert.Nil(t, err, "Should succeed in querying alerts")
-	assert.Equal(t, map[string][]string{}, r_gotest, "Should get no firing alerts (v1)")
+	assert.Equal(t, map[string][]string{"main-123": {"echo-iha2-canary"}}, r_echo, "Should get 2 firing alerts (v1)")
 
 }

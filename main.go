@@ -126,19 +126,12 @@ func main() {
 
 	var ddog_monitor_api controllers.DatadogMonitorAPI
 	var errorDatadogMonitorAPI error
-	var ddog_metric_api controllers.DatadogMetricAPI
-	var errorDatadogMetricAPI error
 
 	// ddog monitor and metric api client
 	ddog_monitor_api, errorDatadogMonitorAPI = datadogapi.NewMonitorAPI(cconfig.DatadogQueryTTL)
 
 	if errorDatadogMonitorAPI != nil {
 		panic(errorDatadogMonitorAPI)
-	}
-	ddog_metric_api, errorDatadogMetricAPI = datadogapi.NewMetricAPI(cconfig.DatadogQueryTTL)
-
-	if errorDatadogMetricAPI != nil {
-		panic(errorDatadogMetricAPI)
 	}
 
 	schemeBuilders := k8sruntime.SchemeBuilder{
@@ -217,7 +210,6 @@ func main() {
 		Config:            cconfig,
 		PromAPI:           api,
 		DatadogMonitorAPI: ddog_monitor_api,
-		DatadogMetricAPI:  ddog_metric_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)
