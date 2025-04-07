@@ -32,6 +32,7 @@ import (
 	clientgoscheme "go.medium.engineering/picchu/client/scheme"
 	"go.medium.engineering/picchu/controllers"
 	"go.medium.engineering/picchu/controllers/utils"
+	datadogapi "go.medium.engineering/picchu/datadog"
 	promapi "go.medium.engineering/picchu/prometheus"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	apps "k8s.io/api/apps/v1"
@@ -72,6 +73,7 @@ func main() {
 	requeuePeriodSeconds := flag.Int("sync-period-seconds", 15, "Delay between requeues")
 	prometheusQueryAddress := flag.String("prometheus-query-address", "", "The (usually thanos) address that picchu should query to SLO alerts")
 	prometheusQueryTTL := flag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
+	datadogQueryTTL := flag.Duration("datadog-query-ttl", time.Duration(120)*time.Second, "How long to cache SLO alerts")
 	humaneReleasesEnabled := flag.Bool("humane-releases-enabled", true, "Release apps on the humane schedule")
 	prometheusEnabled := flag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
 	serviceLevelsNamespace := flag.String("service-levels-namespace", "service-level-objectives", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
@@ -98,6 +100,7 @@ func main() {
 		RequeueAfter:              requeuePeriod,
 		PrometheusQueryAddress:    *prometheusQueryAddress,
 		PrometheusQueryTTL:        *prometheusQueryTTL,
+		DatadogQueryTTL:           *datadogQueryTTL,
 		ServiceLevelsNamespace:    *serviceLevelsNamespace,
 		ServiceLevelsFleet:        *serviceLevelsFleet,
 		DatadogSLONamespace:       *datadogSLONamespace,
@@ -111,6 +114,7 @@ func main() {
 	var api controllers.PromAPI
 	var errPromAPI error
 
+	// prometheus api client
 	if cconfig.PrometheusQueryAddress != "" {
 		api, errPromAPI = promapi.NewAPI(cconfig.PrometheusQueryAddress, cconfig.PrometheusQueryTTL)
 	} else {
@@ -118,6 +122,16 @@ func main() {
 	}
 	if errPromAPI != nil {
 		panic(errPromAPI)
+	}
+
+	var ddog_monitor_api controllers.DatadogMonitorAPI
+	var errorDatadogMonitorAPI error
+
+	// ddog monitor and metric api client
+	ddog_monitor_api, errorDatadogMonitorAPI = datadogapi.NewMonitorAPI(cconfig.DatadogQueryTTL)
+
+	if errorDatadogMonitorAPI != nil {
+		panic(errorDatadogMonitorAPI)
 	}
 
 	schemeBuilders := k8sruntime.SchemeBuilder{
@@ -190,11 +204,12 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.RevisionReconciler{
-		Client:       mgr.GetClient(),
-		CustomLogger: ctrl.Log.WithName("controllers").WithName("Revision"),
-		Scheme:       mgr.GetScheme(),
-		Config:       cconfig,
-		PromAPI:      api,
+		Client:            mgr.GetClient(),
+		CustomLogger:      ctrl.Log.WithName("controllers").WithName("Revision"),
+		Scheme:            mgr.GetScheme(),
+		Config:            cconfig,
+		PromAPI:           api,
+		DatadogMonitorAPI: ddog_monitor_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)
