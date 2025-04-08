@@ -87,12 +87,17 @@ func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datad
 }
 
 func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (map[string][]string, error) {
-
 	var canary_monitor string
-	for _, d := range datadogSLOs {
-		// query: echo-http-availability-canary group:(env:production AND version:main-20250403-211750-e4cbf655ea)
-		canary_monitor = app + "-" + d.Name + "-canary group:(env:production AND version:" + tag + ") triggered:15"
+	canary_monitor = "("
+	for i := range datadogSLOs {
+		if i == 0 {
+			canary_monitor = canary_monitor + app + "-" + datadogSLOs[i].Name + "-canary"
+			continue
+		}
+		// query: (<slo-1> OR <slo-2>) group:(env:production AND version:<tag>) triggered:15
+		canary_monitor = canary_monitor + " OR " + app + "-" + datadogSLOs[i].Name + "-canary"
 	}
+	canary_monitor = canary_monitor + ") group:(env:production AND version:" + tag + ") triggered:15"
 
 	log.Info("echo queryWithCache canary_monitor", "canary_monitor", canary_monitor)
 	val, err := a.queryWithCache(ctx, canary_monitor)
