@@ -336,6 +336,7 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 
 func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 	ddog_slos := r.prepareDatadogSLOs()
+	log.Info("syncDatadogCanaryMonitors", "ddog_slos", ddog_slos, "app", r.instance.Spec.App)
 	if len(ddog_slos) > 0 {
 		if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
 			// only applied to the delivery cluster
@@ -357,8 +358,9 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
+		} else {
+			r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors", "DatadogSLOsFleet")
 		}
-		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace, "app", r.instance.Spec.App)
 	} else {
 		if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
 			if err := r.applyDeliveryPlan(ctx, "Delete App DatadogCanaryMonitors", &rmplan.DeleteDatadogCanaryMonitors{
@@ -367,8 +369,9 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
+		} else {
+			r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors")
 		}
-		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace, "app", r.instance.Spec.App)
 	}
 	return nil
 }
@@ -435,12 +438,10 @@ func (r *ResourceSyncer) prepareDatadogSLOs() []*picchuv1alpha1.DatadogSLO {
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
-				log.Info("prepareDatadogSLOs incarnation", "app", i.appName(), "tag", i.tag)
 				return i.target().DatadogSLOs
 			}
 		}
 	}
-	log.Info("prepareDatadogSLOs", "ddog_slos", ddog_slos)
 
 	return ddog_slos
 }
