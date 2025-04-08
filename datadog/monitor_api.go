@@ -62,6 +62,7 @@ func (a DDOGMONITORAPI) checkCache(ctx context.Context, query string) (datadogV1
 
 func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datadogV1.MonitorGroupSearchResponse, error) {
 	if v, ok := a.checkCache(ctx, query); ok {
+		log.Info("echo queryWithCache checkCache", "val", v, "groups", v.GetGroups())
 		return v, nil
 	}
 
@@ -71,6 +72,7 @@ func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datad
 
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
 	val, r, err := a.api.SearchMonitorGroups(datadog_ctx, search_params)
+	log.Info("echo queryWithCache SearchMonitorGroups", "val", val, "groups", val.GetGroups())
 	if err != nil {
 		log.Error(err, "Error when calling `MonitorsApi.SearchMonitors`\n", "error", err, "response", r)
 		return datadogV1.MonitorGroupSearchResponse{}, err
@@ -91,12 +93,15 @@ func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, ta
 		canary_monitor = app + "-" + d.Name + "-canary group:(env:production AND version:" + tag + ") triggered:15"
 	}
 
+	log.Info("echo queryWithCache canary_monitor", "canary_monitor", canary_monitor)
 	val, err := a.queryWithCache(ctx, canary_monitor)
 	if err != nil {
+		log.Info("echo queryWithCache error", "err", err)
 		return nil, err
 	}
 
 	monitors := val.GetGroups()
+	log.Info("echo TaggedCanaryMonitors monitors", "val", val, "monitors", monitors)
 
 	canary_monitors := map[string][]string{}
 	for _, m := range monitors {
