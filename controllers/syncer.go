@@ -358,7 +358,7 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 				return err
 			}
 		}
-		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace)
+		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace, "app", r.instance.Spec.App)
 	} else {
 		if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
 			if err := r.applyDeliveryPlan(ctx, "Delete App DatadogCanaryMonitors", &rmplan.DeleteDatadogCanaryMonitors{
@@ -368,7 +368,7 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 				return err
 			}
 		}
-		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace)
+		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace, "app", r.instance.Spec.App)
 	}
 	return nil
 }
