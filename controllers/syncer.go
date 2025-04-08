@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 	istio "istio.io/api/networking/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -346,7 +347,7 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 				return err
 			}
 
-			if err := r.applyDeliveryPlan(ctx, "Sync App SLO Rules", &rmplan.SyncDatadogCanaryMonitors{
+			if err := r.applyDeliveryPlan(ctx, "Sync App DatadogCanaryMonitors", &rmplan.SyncDatadogCanaryMonitors{
 				// only applied to the datadog namespace
 				App:       r.instance.Spec.App,
 				Namespace: r.picchuConfig.DatadogSLONamespace,
@@ -357,17 +358,17 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 				return err
 			}
 		}
-		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors")
+		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace, "app", r.instance.Spec.App)
 	} else {
 		if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
-			if err := r.applyDeliveryPlan(ctx, "Delete App SLO Rules", &rmplan.DeleteDatadogCanaryMonitors{
+			if err := r.applyDeliveryPlan(ctx, "Delete App DatadogCanaryMonitors", &rmplan.DeleteDatadogCanaryMonitors{
 				App:       r.instance.Spec.App,
 				Namespace: r.picchuConfig.DatadogSLONamespace,
 			}); err != nil {
 				return err
 			}
 		}
-		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors")
+		r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors", "DatadogSLOsFleet", r.picchuConfig.DatadogSLOsFleet, "DatadogSLONamespace", r.picchuConfig.DatadogSLONamespace, "app", r.instance.Spec.App)
 	}
 	return nil
 }
@@ -434,10 +435,12 @@ func (r *ResourceSyncer) prepareDatadogSLOs() []*picchuv1alpha1.DatadogSLO {
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
+				log.Info("prepareDatadogSLOs incarnation", "app", i.appName(), "tag", i.tag)
 				return i.target().DatadogSLOs
 			}
 		}
 	}
+	log.Info("prepareDatadogSLOs", "ddog_slos", ddog_slos)
 
 	return ddog_slos
 }
