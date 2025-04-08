@@ -71,6 +71,7 @@ func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datad
 	}
 
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
+	log.Info("echo queryWithCache generated query", "search_params", search_params, "query", query)
 	val, r, err := a.api.SearchMonitorGroups(datadog_ctx, search_params)
 	log.Info("echo queryWithCache SearchMonitorGroups", "val", val, "groups", val.GetGroups())
 	if err != nil {
