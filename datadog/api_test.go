@@ -91,10 +91,29 @@ func testAlert(t *testing.T) {
 			Timeframe:       "7d",
 			Type:            "metric",
 		},
+		{
+			Name:        "http-availability",
+			Enabled:     true,
+			Description: "test create example datadogSLO one",
+			Query: picchuv1alpha1.DatadogSLOQuery{
+				GoodEvents:  "sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
+				TotalEvents: "sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
+				BadEvents:   "sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()",
+			},
+			Tags: []string{
+				"service:example",
+				"env:prod",
+			},
+			TargetThreshold: "99.9",
+			Timeframe:       "7d",
+			Type:            "metric",
+		},
 	}
 
 	monitor_name_echo_iha := "echo-iha-canary"
 	monitor_name_echo_iha2 := "echo-iha2-canary"
+	monitor_name_echo_ha := "echo-ha-canary"
+	monitor_name_echo_ha2 := "echo-ha2-canary"
 	alert := datadogV1.MONITOROVERALLSTATES_ALERT
 	not_alert := datadogV1.MONITOROVERALLSTATES_OK
 	response := datadogV1.MonitorGroupSearchResponse{
@@ -107,10 +126,18 @@ func testAlert(t *testing.T) {
 				MonitorName: &monitor_name_echo_iha2,
 				Status:      &alert,
 			},
+			{
+				MonitorName: &monitor_name_echo_ha,
+				Status:      &not_alert,
+			},
+			{
+				MonitorName: &monitor_name_echo_ha2,
+				Status:      &alert,
+			},
 		},
 	}
 
-	query := "echo-istio-http-success-canary group:(env:production AND version:main-123) triggered:15"
+	query := "(echo-istio-http-success-canary OR echo-http-availability-canary) group:(env:production AND version:main-123) triggered:15"
 
 	search_params := datadogV1.SearchMonitorGroupsOptionalParameters{
 		Query: &query,
@@ -124,6 +151,6 @@ func testAlert(t *testing.T) {
 
 	r_echo, err := api.TaggedCanaryMonitors(context.TODO(), "echo", "main-123", datadogSLOs)
 	assert.Nil(t, err, "Should succeed in querying alerts")
-	assert.Equal(t, map[string][]string{"main-123": {"echo-iha2-canary"}}, r_echo, "Should get 2 firing alerts (v1)")
+	assert.Equal(t, map[string][]string{"main-123": {"echo-iha2-canary", "echo-ha2-canary"}}, r_echo, "Should get 2 firing alerts (v1)")
 
 }
