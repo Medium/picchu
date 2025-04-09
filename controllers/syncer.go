@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
@@ -339,6 +340,7 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 	if r.instance.Spec.App == "echo" {
 		log.Info("syncDatadogCanaryMonitors ", "ddog_slos ", ddog_slos, "app ", r.instance.Spec.App)
 	}
+
 	if len(ddog_slos) > 0 {
 		if r.instance.Spec.App == "echo" {
 			log.Info("syncDatadogCanaryMonitors ", "len ddog_slos ", len(ddog_slos), "ddog_slos ", ddog_slos)
@@ -446,10 +448,10 @@ func (r *ResourceSyncer) prepareDatadogSLOs() []*picchuv1alpha1.DatadogSLO {
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
-				if r.instance.Spec.App == "echo" {
+				if r.instance.Spec.App == "echo" && strings.Contains(i.target().Name, "production") {
 					log.Info("prepareDatadogSLOs ", "i.target().DatadogSLOs ", ddog_slos, "target ", i.target().Name)
+					return i.target().DatadogSLOs
 				}
-				return i.target().DatadogSLOs
 			}
 		}
 	}
