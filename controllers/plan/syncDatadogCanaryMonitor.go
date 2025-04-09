@@ -121,8 +121,6 @@ func (p *SyncDatadogCanaryMonitors) canaryMonitor(datadogslo *picchuv1alpha1.Dat
 
 	// taken from datadogslo
 	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, datadogslo.Tags...)
-	// add canary tag
-	ddogmonitor.Spec.Tags = append(ddogmonitor.Spec.Tags, "canary:true")
 
 	return ddogmonitor
 }

@@ -101,7 +101,6 @@ var (
 					Tags: []string{
 						"service:example",
 						"env:prod",
-						"canary:true",
 					},
 					Type: ddog.DatadogMonitorTypeMetric,
 					Options: ddog.DatadogMonitorOptions{
@@ -138,7 +137,6 @@ var (
 					Tags: []string{
 						"service:example",
 						"env:prod",
-						"canary:true",
 					},
 					Type: ddog.DatadogMonitorTypeMetric,
 					Options: ddog.DatadogMonitorOptions{
