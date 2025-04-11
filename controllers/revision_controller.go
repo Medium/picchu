@@ -217,7 +217,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		return r.Requeue(log, err)
 	}
 
-	var ddog_triggered bool
+	ddog_triggered := false
 	var ddog_err error
 	var monitors []string
 
