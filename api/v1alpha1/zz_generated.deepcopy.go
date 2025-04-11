@@ -1317,6 +1317,11 @@ func (in *ReleaseManagerRevisionStatus) DeepCopyInto(out *ReleaseManagerRevision
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.TriggeredDatadogMonitors != nil {
+		in, out := &in.TriggeredDatadogMonitors, &out.TriggeredDatadogMonitors
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.LastUpdated != nil {
 		in, out := &in.LastUpdated, &out.LastUpdated
 		*out = (*in).DeepCopy()
