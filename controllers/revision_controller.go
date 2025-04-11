@@ -258,7 +258,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	// this will only every be true if there are datadog slos defined under the production target
-	if !revisionFailing && ddog_triggered && !instance.Spec.IgnoreSLOs {
+	if !revisionFailing && ddog_triggered && !instance.Spec.IgnoreSLOs && instance.Spec.App.Name == "echo" {
 		log.Info("Revision triggered", "datadog canary monitors", monitors)
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
 		for i := range status.Targets {
