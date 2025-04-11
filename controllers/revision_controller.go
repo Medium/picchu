@@ -237,8 +237,6 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 			if strings.Contains(statusTarget.Name, "production") {
 				if statusTarget.State == "canarying" {
 					log.Info("echo found canary state for production target")
-					// testing echo canary phase with datadogMonitor Object
-					// we are in the canarying state
 					ddog_triggered, monitors, ddog_err = r.DatadogMonitorAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, datadogSLOs)
 					if ddog_err != nil {
 						return r.Requeue(log, ddog_err)
@@ -257,7 +255,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 	}
 
-	// this will only every be true if there are datadog slos defined under the production target
+	// this will be true if there are datadog slos defined under the production target
 	if !revisionFailing && ddog_triggered && !instance.Spec.IgnoreSLOs && instance.Spec.App.Name == "echo" {
 		log.Info("Revision triggered", "datadog canary monitors", monitors)
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
@@ -266,7 +264,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 
 		for _, revisionTarget := range instance.Spec.Targets {
-			// if production target continue with SLO Violation
+			// if production target continue with datadog monitor Violation
 			if revisionTarget.AcceptanceTarget || strings.Contains(revisionTarget.Name, "production") {
 				targetStatus := targetStatusMap[revisionTarget.Name]
 				if targetStatus == nil {
