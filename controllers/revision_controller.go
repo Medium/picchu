@@ -217,13 +217,17 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		return r.Requeue(log, err)
 	}
 
+	ddog_triggered := false
+	var ddog_err error
+	var monitors []string
+
 	// testing echo canary phase with datadog api call
 	if instance.Spec.App.Name == "echo" {
 		var datadogSLOs []*picchuv1alpha1.DatadogSLO
 
 		// grab datadog slos from production target
 		for _, t := range instance.Spec.Targets {
-			if strings.Contains(t.Name, "production") {
+			if strings.Contains(t.Name, "production") && t.DatadogSLOsEnabled {
 				datadogSLOs = t.DatadogSLOs
 			}
 		}
@@ -233,21 +237,10 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 			if strings.Contains(statusTarget.Name, "production") {
 				if statusTarget.State == "canarying" {
 					log.Info("echo found canary state for production target")
-					// testing echo canary phase with datadogMonitor Object
-					var ddog_triggered bool
-					var ddog_err error
-					var monitors []string
-					// we are in the canarying state
 					ddog_triggered, monitors, ddog_err = r.DatadogMonitorAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, datadogSLOs)
-
 					if ddog_err != nil {
-						log.Info("ignore datadog IsRevisionTriggered error for now")
+						return r.Requeue(log, ddog_err)
 					}
-
-					if ddog_triggered {
-						log.Info("ECHO datadog IsRevisionTriggered returned true", "monitors", monitors)
-					}
-
 				}
 			}
 		}
@@ -259,6 +252,46 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		if statusTarget.State == "timingout" {
 			revisionFailing = true
 			revisionFailingReason = "test timing out"
+		}
+	}
+
+	// this will be true if there are datadog slos defined under the production target
+	if !revisionFailing && ddog_triggered && !instance.Spec.IgnoreSLOs && instance.Spec.App.Name == "echo" {
+		log.Info("Revision triggered", "datadog canary monitors", monitors)
+		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
+		for i := range status.Targets {
+			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
+		}
+
+		for _, revisionTarget := range instance.Spec.Targets {
+			// if production target continue with datadog monitor Violation
+			if revisionTarget.AcceptanceTarget || strings.Contains(revisionTarget.Name, "production") {
+				targetStatus := targetStatusMap[revisionTarget.Name]
+				if targetStatus == nil {
+					continue
+				}
+				if targetStatus.Release.PeakPercent < AcceptancePercentage {
+					revisionFailing = true
+					revisionFailingReason = "datadog canary monitor violation"
+
+					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
+					if err != nil {
+						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
+						break
+					}
+					if rm == nil {
+						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
+						break
+					}
+					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
+					revisionStatus.TriggeredDatadogMonitors = monitors
+					rm.UpdateRevisionStatus(revisionStatus)
+					if err := utils.UpdateStatus(ctx, r.Client, rm); err != nil {
+						log.Error(err, "Could not save datadog monitors to RevisionStatus", "alarms", alarms)
+					}
+				}
+				break
+			}
 		}
 	}
 

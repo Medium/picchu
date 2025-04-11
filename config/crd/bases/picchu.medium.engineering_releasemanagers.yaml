@@ -166,6 +166,10 @@ spec:
                       items:
                         type: string
                       type: array
+                    triggeredDatadogMonitors:
+                      items:
+                        type: string
+                      type: array
                     ttl:
                       format: int64
                       type: integer

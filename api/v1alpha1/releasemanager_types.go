@@ -72,6 +72,7 @@ type ReleaseManagerRevisionStatus struct {
 	PeakPercent                  uint32                              `json:"peakPercent"`
 	ReleaseEligible              bool                                `json:"releaseEligible"`
 	TriggeredAlarms              []string                            `json:"triggeredAlerts,omitempty"`
+	TriggeredDatadogMonitors     []string                            `json:"triggeredDatadogMonitors,omitempty"`
 	LastUpdated                  *metav1.Time                        `json:"lastUpdated"`
 	GitTimestamp                 *metav1.Time                        `json:"gitTimestamp,omitempty"`
 	RevisionTimestamp            *metav1.Time                        `json:"revisionTimestamp,omitempty"`
