@@ -419,8 +419,8 @@ func TestCanarying(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncCanaryRules(m(true, false, false))))))
-	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncDatadogSLOs(expectSyncCanaryRules(m(true, false, true))))))
+	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, false)))))
+	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, true)))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -602,7 +602,7 @@ func TestRetiring(t *tt.T) {
 	testcase(retiring, m(true, true, false, 1))
 	testcase(retiring, m(true, true, true, 1))
 
-	testcase(retired, expectRetire(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(m(true, false, false, 0)))))
+	testcase(retired, expectRetire(expectDeleteTaggedServiceLevels(m(true, false, false, 0))))
 	testcase(retiring, m(true, false, false, 1))
 	testcase(retiring, m(true, false, false, 100))
 
@@ -658,7 +658,7 @@ func TestDeleting(t *tt.T) {
 
 	testcase(deleting, m(false, 100))
 	testcase(deleting, m(false, 1))
-	testcase(deleted, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectDelete(m(false, 0))))))
+	testcase(deleted, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDelete(m(false, 0)))))
 	testcase(deploying, m(true, 0))
 	testcase(deleting, m(true, 100))
 	testcase(deleting, m(true, 1))
@@ -715,10 +715,10 @@ func TestFailing(t *tt.T) {
 	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
 	testcase(failing, m(true, false, ExternalTestSucceeded, 100))
 
-	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectRetire(m(true, true, ExternalTestDisabled, 0))))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectRetire(m(true, true, ExternalTestDisabled, 0)))))
 	testcase(failing, m(true, true, ExternalTestDisabled, 1))
 	testcase(failing, m(true, true, ExternalTestDisabled, 100))
-	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteDatadogSLOs(expectRetire(m(true, false, ExternalTestFailed, 0))))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectRetire(m(true, false, ExternalTestFailed, 0)))))
 	testcase(failing, m(true, false, ExternalTestFailed, 1))
 	testcase(failing, m(true, false, ExternalTestFailed, 100))
 }
@@ -793,9 +793,7 @@ type responses struct {
 	syncCanaryRules           error
 	deleteCanaryRules         error
 	syncTaggedServiceLevels   error
-	syncDatadogSLOs           error
 	deleteTaggedServiceLevels error
-	deleteDatadogSLOs         error
 	isTimingOut               bool
 	isExpired                 bool
 }
@@ -925,24 +923,6 @@ func expectDeleteTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
 		deleteTaggedServiceLevels(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectSyncDatadogSLOs(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		syncDatadogSLOs(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectDeleteDatadogSLOs(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		deleteDatadogSLOs(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock
