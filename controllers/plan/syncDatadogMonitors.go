@@ -2,7 +2,6 @@ package plan
 
 import (
 	"context"
-	"strings"
 
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
@@ -21,11 +20,9 @@ const (
 )
 
 type SyncDatadogMonitors struct {
-	App    string
-	Target string
+	App string
 	// the namesapce is ALWAYS datadog
 	Namespace string
-	Tag       string
 	Labels    map[string]string
 	// Use DatadogSLOs to define each monitor
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
@@ -73,7 +70,7 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 // Error Budget Monitor
 func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) ddog.DatadogMonitor {
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-error-budget
-	ddogmonitor_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogslo.Name + "-error-budget"
+	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-error-budget"
 
 	slo_id, err := p.getDatadogSLOIDs(datadogslo, log)
 	if err != nil {
@@ -137,7 +134,7 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 
 func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) ddog.DatadogMonitor {
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-burn-rate
-	ddogmonitor_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogslo.Name + "-burn-rate"
+	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-burn-rate"
 
 	slo_id, err := p.getDatadogSLOIDs(datadogslo, log)
 	if err != nil {
@@ -212,7 +209,7 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 		configuration := datadog.NewConfiguration()
 		apiClient := datadog.NewAPIClient(configuration)
 		api := datadogV1.NewServiceLevelObjectivesApi(apiClient)
-		ddogslo_name := "\"" + p.App + "-" + p.Target + "-" + p.Tag + "-" + datadogSLO.Name + "\""
+		ddogslo_name := "\"" + p.App + "-" + datadogSLO.Name + "-slo" + "\""
 		resp, r, err := api.SearchSLO(ctx, *datadogV1.NewSearchSLOOptionalParameters().WithQuery(ddogslo_name))
 
 		if err != nil {
@@ -232,28 +229,10 @@ func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.Datado
 }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
-	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>-<monitor-type>
+	// example: <service-name>-<slo-name>-<monitor-type>
 	// lowercase - at most 63 characters - start and end with alphanumeric
 
-	target := p.Target
-	if strings.Contains(p.Target, "-") {
-		t := strings.LastIndex(p.Target, "-")
-		first_target := p.Target[:4]
-		second_target := p.Target[t+1 : t+5]
-		target = first_target + "-" + second_target
-	} else if len(p.Target) >= 4 {
-		target = p.Target[:4]
-	}
-
-	slo_name_end := strings.LastIndex(sloName, "-")
-	new_slo_name := string(sloName[0])
-	for i := range slo_name_end + 1 {
-		if string(sloName[i]) == "-" {
-			new_slo_name = new_slo_name + string(sloName[i+1])
-		}
-	}
-
-	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag + "-" + monitor_type
+	front_tag := p.App + "-" + sloName + "-" + monitor_type
 	if len(front_tag) > 63 {
 		front_tag = front_tag[:63]
 	}
