@@ -134,6 +134,15 @@ func main() {
 		panic(errorDatadogMonitorAPI)
 	}
 
+	// var ddog_slo_api controllers.DatadogSLOAPI
+	// var errorDatadoSLOAPI error
+	// // ddog monitor and metric api client
+	// ddog_slo_api, errorDatadoSLOAPI = datadogapi.NewSLOAPI(cconfig.DatadogQueryTTL)
+
+	// if errorDatadoSLOAPI != nil {
+	// 	panic(errorDatadoSLOAPI)
+	// }
+
 	schemeBuilders := k8sruntime.SchemeBuilder{
 		apps.AddToScheme,
 		core.AddToScheme,

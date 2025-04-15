@@ -76,8 +76,10 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 	if err = r.syncDatadogCanaryMonitors(ctx); err != nil {
 		return
 	}
-
-	if err = r.syncDatadogSLOS(ctx); err != nil {
+	if err = r.syncDatadogSLOs(ctx); err != nil {
+		return
+	}
+	if err = r.syncDatadogMonitors(ctx); err != nil {
 		return
 	}
 	if err = r.garbageCollection(ctx); err != nil {

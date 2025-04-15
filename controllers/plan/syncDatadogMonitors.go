@@ -11,7 +11,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/DataDog/datadog-api-client-go/v2/api/datadog"
 	"github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
 )
 
@@ -72,7 +71,7 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-error-budget
 	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-error-budget"
 
-	slo_id, err := p.getDatadogSLOIDs(datadogslo, log)
+	slo_id, err := p.getID(datadogslo, log)
 	if err != nil {
 		log.Error(err, "Error Budget: Error getting Datadog SLO id", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
@@ -136,7 +135,7 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-burn-rate
 	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-burn-rate"
 
-	slo_id, err := p.getDatadogSLOIDs(datadogslo, log)
+	slo_id, err := p.getID(datadogslo, log)
 	if err != nil {
 		log.Error(err, "Burn Rate: Error getting Datadog SLO id", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
@@ -201,29 +200,19 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 	return ddogmonitor
 }
 
-func (p *SyncDatadogMonitors) getDatadogSLOIDs(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) (string, error) {
+func (p *SyncDatadogMonitors) getID(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) (string, error) {
 	// get the SLO ID from the datadog API
-	if p.App == "echo" {
-		ctx := datadog.NewDefaultContext(context.Background())
+	// if p.App == "echo" {
+	// 	ctx := datadog.NewDefaultContext(context.Background())
+	// 	id, err := p.DatadogSLOAPI.GetDatadogSLOID(ctx, p.App, datadogSLO)
 
-		configuration := datadog.NewConfiguration()
-		apiClient := datadog.NewAPIClient(configuration)
-		api := datadogV1.NewServiceLevelObjectivesApi(apiClient)
-		ddogslo_name := "\"" + p.App + "-" + datadogSLO.Name + "-slo" + "\""
-		resp, r, err := api.SearchSLO(ctx, *datadogV1.NewSearchSLOOptionalParameters().WithQuery(ddogslo_name))
+	// 	if err != nil {
+	// 		log.Error(err, "Error when calling `getID`:")
+	// 		return "", err
+	// 	}
 
-		if err != nil {
-			log.Error(err, "Error when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters`:", "response", r)
-			return "", err
-		}
-
-		if len(resp.Data.Attributes.Slos) == 0 || resp.Data.Attributes.Slos == nil {
-			log.Info("No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service", "App", p.App)
-			return "", nil
-		}
-
-		return *resp.Data.Attributes.Slos[0].Data.Id, nil
-	}
+	// 	return id, nil
+	// }
 	// if app is not echo, return empty string for now
 	return "", nil
 }
