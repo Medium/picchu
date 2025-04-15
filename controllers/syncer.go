@@ -15,6 +15,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
+	datadogapi "go.medium.engineering/picchu/datadog"
 	istio "istio.io/api/networking/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -450,7 +451,25 @@ func (r *ResourceSyncer) syncDatadogSLOs(ctx context.Context) error {
 	return nil
 }
 
+type DatadogSLOAPI interface {
+	GetDatadogSLOID(ctx context.Context, app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
+}
+
+type NoopDatadogSLOAPI struct{}
+
+func (n *NoopDatadogSLOAPI) GetDatadogSLOID(ctx context.Context, app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error) {
+	return "", nil
+}
+
 func (r *ResourceSyncer) syncDatadogMonitors(ctx context.Context) error {
+
+	// ddog monitor and metric api client
+	ddog_slo_api, errorDatadogSLOAPI := datadogapi.NewSLOAPI(r.picchuConfig.DatadogQueryTTL)
+
+	if errorDatadogSLOAPI != nil {
+		panic(errorDatadogSLOAPI)
+	}
+
 	ddog_slos := r.prepareDatadogSLOs()
 	if r.instance.Spec.App == "echo" {
 		log.Info("syncDatadogMonitors ", "ddog_slos ", ddog_slos, "app ", r.instance.Spec.App, "fleet", r.instance.Spec.Fleet)
@@ -476,6 +495,7 @@ func (r *ResourceSyncer) syncDatadogMonitors(ctx context.Context) error {
 					Namespace:   r.picchuConfig.DatadogSLONamespace,
 					DatadogSLOs: ddog_slos,
 					Labels:      r.defaultLabels(),
+					DDOGSLOAPI:  ddog_slo_api,
 				}); err_ddog != nil {
 					return err_ddog
 				}

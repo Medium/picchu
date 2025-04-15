@@ -3,9 +3,11 @@ package plan
 import (
 	"context"
 
+	datadog "github.com/DataDog/datadog-api-client-go/v2/api/datadog"
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
+	datadogapi "go.medium.engineering/picchu/datadog"
 	"go.medium.engineering/picchu/plan"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -25,6 +27,7 @@ type SyncDatadogMonitors struct {
 	Labels    map[string]string
 	// Use DatadogSLOs to define each monitor
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
+	DDOGSLOAPI  *datadogapi.DDOGSLOAPI
 }
 
 func (p *SyncDatadogMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -80,6 +83,8 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 		log.Info("Error Budget: No SLOs found", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
 	}
+
+	log.Info("SLOID echo error bud", "SLOID:", slo_id)
 
 	query := "error_budget(\"" + slo_id + "\").over(\"" + datadogslo.Timeframe + "\") > " + datadogslo.TargetThreshold
 	message := "The " + datadogslo.Name + " error budget is over expected @slack-eng-watch-alerts-testing"
@@ -146,6 +151,8 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 		return ddog.DatadogMonitor{}
 	}
 
+	log.Info("SLOID echo burn rate", "SLOID:", slo_id)
+
 	// how are we defining log and short window
 	// going to default to this slo for now
 	// burn_rate("slo_id").over("time_window").long_window("1h").short_window("5m") > 14.4
@@ -202,17 +209,17 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 
 func (p *SyncDatadogMonitors) getID(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) (string, error) {
 	// get the SLO ID from the datadog API
-	// if p.App == "echo" {
-	// 	ctx := datadog.NewDefaultContext(context.Background())
-	// 	id, err := p.DatadogSLOAPI.GetDatadogSLOID(ctx, p.App, datadogSLO)
+	if p.App == "echo" {
+		ctx := datadog.NewDefaultContext(context.Background())
+		id, err := p.DDOGSLOAPI.GetDatadogSLOID(ctx, p.App, datadogSLO)
 
-	// 	if err != nil {
-	// 		log.Error(err, "Error when calling `getID`:")
-	// 		return "", err
-	// 	}
+		if err != nil {
+			log.Error(err, "Error when calling `getID`:", "err", err)
+			return "", err
+		}
 
-	// 	return id, nil
-	// }
+		return id, nil
+	}
 	// if app is not echo, return empty string for now
 	return "", nil
 }
