@@ -435,38 +435,6 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
-// func (i *Incarnation) deleteDatadogSLOs(ctx context.Context) error {
-// 	if i.picchuConfig.DatadogSLOsFleet != "" && i.picchuConfig.DatadogSLONamespace != "" {
-// 		err_ddog := i.controller.applyDeliveryPlan(
-// 			ctx,
-// 			"Delete Datadog SLOs",
-// 			&rmplan.DeleteDatadogSLOs{
-// 				App:       i.appName(),
-// 				Target:    i.targetName(),
-// 				Namespace: i.picchuConfig.DatadogSLONamespace,
-// 				Tag:       i.tag,
-// 			},
-// 		)
-
-// 		if err_ddog != nil {
-// 			return err_ddog
-// 		}
-
-// 		return i.controller.applyDeliveryPlan(
-// 			ctx,
-// 			"Delete Datadog Monitors",
-// 			&rmplan.DeleteDatadogMonitors{
-// 				App:       i.appName(),
-// 				Target:    i.targetName(),
-// 				Namespace: i.picchuConfig.DatadogSLONamespace,
-// 				Tag:       i.tag,
-// 			},
-// 		)
-// 	}
-// 	i.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping DeleteDatadogSLOs and DeleteDatadogMonitors")
-// 	return nil
-// }
-
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 	if i.picchuConfig.ServiceLevelsNamespace != "" {
 		// Account for a fleet other than Delivery (old way of configuring SLOs) and Production (the only other place we ideally want SLOs to go)
