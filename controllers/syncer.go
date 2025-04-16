@@ -427,10 +427,10 @@ func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
 				if err_ddog := r.applyDeliveryPlan(ctx, "Sync Datadog Monitors", &rmplan.SyncDatadogMonitors{
 					App: r.instance.Spec.App,
 					// only applied to the datadog namespace
-					Namespace:   r.picchuConfig.DatadogSLONamespace,
-					DatadogSLOs: ddog_slos,
-					Labels:      r.defaultLabels(),
-					DDOGSLOAPI:  r.DatadogSLOAPI,
+					Namespace:     r.picchuConfig.DatadogSLONamespace,
+					DatadogSLOs:   ddog_slos,
+					Labels:        r.defaultLabels(),
+					DatadogSLOAPI: r.DatadogSLOAPI,
 				}); err_ddog != nil {
 					return err_ddog
 				}
