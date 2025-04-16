@@ -7,7 +7,6 @@ import (
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
-	datadogapi "go.medium.engineering/picchu/datadog"
 	"go.medium.engineering/picchu/plan"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -20,14 +19,18 @@ const (
 	MonitorTypeSLO = "slo"
 )
 
+type DatadogSLOAPI interface {
+	GetDatadogSLOID(ctx context.Context, app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
+}
+
 type SyncDatadogMonitors struct {
 	App string
 	// the namesapce is ALWAYS datadog
 	Namespace string
 	Labels    map[string]string
 	// Use DatadogSLOs to define each monitor
-	DatadogSLOs []*picchuv1alpha1.DatadogSLO
-	DDOGSLOAPI  *datadogapi.DDOGSLOAPI
+	DatadogSLOs   []*picchuv1alpha1.DatadogSLO
+	DatadogSLOAPI DatadogSLOAPI
 }
 
 func (p *SyncDatadogMonitors) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -60,8 +63,9 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 			errorbudget_ddogmonitor := p.errorBudget(p.DatadogSLOs[i], log)
 			ddogMonitors = append(ddogMonitors, errorbudget_ddogmonitor)
 			// call burn rate
-			burnrate_ddogmonitor := p.burnRate(p.DatadogSLOs[i], log)
-			ddogMonitors = append(ddogMonitors, burnrate_ddogmonitor)
+			// TODO - dont create burn rate for now
+			// burnrate_ddogmonitor := p.burnRate(p.DatadogSLOs[i], log)
+			// ddogMonitors = append(ddogMonitors, burnrate_ddogmonitor)
 		}
 	}
 	datadogMonitorList.Items = ddogMonitors
@@ -211,7 +215,7 @@ func (p *SyncDatadogMonitors) getID(datadogSLO *picchuv1alpha1.DatadogSLO, log l
 	// get the SLO ID from the datadog API
 	if p.App == "echo" {
 		ctx := datadog.NewDefaultContext(context.Background())
-		id, err := p.DDOGSLOAPI.GetDatadogSLOID(ctx, p.App, datadogSLO)
+		id, err := p.DatadogSLOAPI.GetDatadogSLOID(ctx, p.App, datadogSLO)
 
 		if err != nil {
 			log.Error(err, "Error when calling `getID`:", "err", err)
