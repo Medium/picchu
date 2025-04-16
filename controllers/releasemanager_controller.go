@@ -133,7 +133,7 @@ var (
 )
 
 type DatadogSLOAPI interface {
-	GetDatadogSLOID(ctx context.Context, app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
+	GetDatadogSLOID(app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
 }
 
 // ReleaseManagerReconciler reconciles a ReleaseManager object

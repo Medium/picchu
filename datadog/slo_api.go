@@ -2,7 +2,6 @@ package datadog
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -41,7 +40,11 @@ func NewSLOAPI(ttl time.Duration) (*DDOGSLOAPI, error) {
 	return &DDOGSLOAPI{datadogV1.NewServiceLevelObjectivesApi(apiClient), map[string]cachedValueSLO{}, ttl, &sync.RWMutex{}}, nil
 }
 
-func (a DDOGSLOAPI) checkCache(ctx context.Context, query string) (datadogV1.SearchSLOResponse, bool) {
+func InjectSLOAPI(a DatadogSLOAPI, ttl time.Duration) *DDOGSLOAPI {
+	return &DDOGSLOAPI{a, map[string]cachedValueSLO{}, ttl, &sync.RWMutex{}}
+}
+
+func (a DDOGSLOAPI) checkCache(query string) (datadogV1.SearchSLOResponse, bool) {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 	if v, ok := a.cache[query]; ok {
@@ -52,8 +55,8 @@ func (a DDOGSLOAPI) checkCache(ctx context.Context, query string) (datadogV1.Sea
 	return datadogV1.SearchSLOResponse{}, false
 }
 
-func (a DDOGSLOAPI) queryWithCache(ctx context.Context, query string) (datadogV1.SearchSLOResponse, error) {
-	if v, ok := a.checkCache(ctx, query); ok {
+func (a DDOGSLOAPI) queryWithCache(query string) (datadogV1.SearchSLOResponse, error) {
+	if v, ok := a.checkCache(query); ok {
 		log.Info("echo queryWithCache checkCache", "val", v, "slos", v.Data.Attributes.Slos)
 		return v, nil
 	}
@@ -70,7 +73,7 @@ func (a DDOGSLOAPI) queryWithCache(ctx context.Context, query string) (datadogV1
 		return datadogV1.SearchSLOResponse{}, err
 	}
 
-	if len(resp.Data.Attributes.Slos) == 0 || resp.Data.Attributes.Slos == nil {
+	if resp.Data == nil || len(resp.Data.Attributes.Slos) == 0 {
 		log.Info("No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service")
 		return datadogV1.SearchSLOResponse{}, nil
 	}
@@ -78,18 +81,22 @@ func (a DDOGSLOAPI) queryWithCache(ctx context.Context, query string) (datadogV1
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.cache[query] = cachedValueSLO{resp, time.Now()}
-	fmt.Println("resp", resp)
 	return resp, nil
 }
 
-func (a DDOGSLOAPI) GetDatadogSLOID(ctx context.Context, app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error) {
+func (a DDOGSLOAPI) GetDatadogSLOID(app string, datadogSLO *picchuv1alpha1.DatadogSLO) (string, error) {
 	// get the SLO ID from the datadog API
 	if app == "echo" {
-		ddogslo_name := "\"" + app + "-" + datadogSLOs.Name + "-slo" + "\""
+		ddogslo_name := "\"" + app + "-" + datadogSLO.Name + "-slo" + "\""
 
-		val, err := a.queryWithCache(ctx, ddogslo_name)
+		val, err := a.queryWithCache(ddogslo_name)
 		if err != nil {
 			log.Info("echo queryWithCache GetDatadogSLOIDs error", "err", err)
+			return "", err
+		}
+
+		if val.Data == nil {
+			log.Info("echo GetDatadogSLOIDs no SLOs found", "err", err, "response", val)
 			return "", err
 		}
 

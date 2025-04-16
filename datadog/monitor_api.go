@@ -2,7 +2,6 @@ package datadog
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -82,7 +81,6 @@ func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datad
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.cache[query] = cachedValue{val, time.Now()}
-	fmt.Println("val", val)
 	return val, nil
 }
 

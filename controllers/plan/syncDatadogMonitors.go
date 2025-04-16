@@ -3,7 +3,6 @@ package plan
 import (
 	"context"
 
-	datadog "github.com/DataDog/datadog-api-client-go/v2/api/datadog"
 	ddog "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
@@ -20,7 +19,7 @@ const (
 )
 
 type DatadogSLOAPI interface {
-	GetDatadogSLOID(ctx context.Context, app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
+	GetDatadogSLOID(app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
 }
 
 type SyncDatadogMonitors struct {
@@ -214,8 +213,7 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 func (p *SyncDatadogMonitors) getID(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) (string, error) {
 	// get the SLO ID from the datadog API
 	if p.App == "echo" {
-		ctx := datadog.NewDefaultContext(context.Background())
-		id, err := p.DatadogSLOAPI.GetDatadogSLOID(ctx, p.App, datadogSLO)
+		id, err := p.DatadogSLOAPI.GetDatadogSLOID(p.App, datadogSLO)
 
 		if err != nil {
 			log.Error(err, "Error when calling `getID`:", "err", err)
