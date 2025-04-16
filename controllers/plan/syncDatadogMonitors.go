@@ -78,6 +78,7 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-error-budget"
 
 	slo_id, err := p.getID(datadogslo, log)
+	log.Info("SLOID echo error budget", "SLOID:", slo_id)
 	if err != nil {
 		log.Error(err, "Error Budget: Error getting Datadog SLO id", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
@@ -86,8 +87,6 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 		log.Info("Error Budget: No SLOs found", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
 	}
-
-	log.Info("SLOID echo error bud", "SLOID:", slo_id)
 
 	query := "error_budget(\"" + slo_id + "\").over(\"" + datadogslo.Timeframe + "\") > " + datadogslo.TargetThreshold
 	message := "The " + datadogslo.Name + " error budget is over expected @slack-eng-watch-alerts-testing"
