@@ -127,7 +127,7 @@ func main() {
 	var ddog_monitor_api controllers.DatadogMonitorAPI
 	var errorDatadogMonitorAPI error
 
-	// ddog monitor and metric api client
+	// ddog monitor api client
 	ddog_monitor_api, errorDatadogMonitorAPI = datadogapi.NewMonitorAPI(cconfig.DatadogQueryTTL)
 
 	if errorDatadogMonitorAPI != nil {
@@ -136,7 +136,7 @@ func main() {
 
 	var ddog_slo_api controllers.DatadogSLOAPI
 	var errorDatadoSLOAPI error
-	// ddog monitor and metric api client
+	// ddog slo api client
 	ddog_slo_api, errorDatadoSLOAPI = datadogapi.NewSLOAPI(cconfig.DatadogQueryTTL)
 
 	if errorDatadoSLOAPI != nil {
