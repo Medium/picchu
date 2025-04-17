@@ -90,6 +90,9 @@ func testAlert(t *testing.T) {
 			TargetThreshold: "99.9",
 			Timeframe:       "7d",
 			Type:            "metric",
+			Canary: picchuv1alpha1.DatadogSLOCanaryConfig{
+				Enabled: true,
+			},
 		},
 		{
 			Name:        "http-availability",
@@ -107,6 +110,29 @@ func testAlert(t *testing.T) {
 			TargetThreshold: "99.9",
 			Timeframe:       "7d",
 			Type:            "metric",
+			Canary: picchuv1alpha1.DatadogSLOCanaryConfig{
+				Enabled: true,
+			},
+		},
+		{
+			Name:        "dis-http-availability",
+			Enabled:     true,
+			Description: "test create example datadogSLO one",
+			Query: picchuv1alpha1.DatadogSLOQuery{
+				GoodEvents:  "sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
+				TotalEvents: "sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
+				BadEvents:   "sum:istio.mesh.request.count.total{destination_service:echo.echo-production.svc.cluster.local AND reporter:destination AND response_code:5*}.as_count()",
+			},
+			Tags: []string{
+				"service:example",
+				"env:prod",
+			},
+			TargetThreshold: "99.9",
+			Timeframe:       "7d",
+			Type:            "metric",
+			Canary: picchuv1alpha1.DatadogSLOCanaryConfig{
+				Enabled: false,
+			},
 		},
 	}
 
