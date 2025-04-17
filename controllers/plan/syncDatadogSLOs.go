@@ -15,11 +15,9 @@ import (
 )
 
 type SyncDatadogSLOs struct {
-	App    string
-	Target string
+	App string
 	// the namesapce is ALWAYS datadog
 	Namespace   string
-	Tag         string
 	Labels      map[string]string
 	DatadogSLOs []*picchuv1alpha1.DatadogSLO
 }
@@ -53,7 +51,7 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	for i := range p.DatadogSLOs {
 		if p.DatadogSLOs[i].Enabled {
 			// update the DatadogSLO name so that it is the <service-name>-<target>-<tag>-<slo-name>
-			ddogslo_name := p.App + "-" + p.Target + "-" + p.Tag + "-" + p.DatadogSLOs[i].Name
+			ddogslo_name := p.App + "-" + p.DatadogSLOs[i].Name + "-slo"
 			ddogslo := &ddog.DatadogSLO{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      p.datadogSLOName(p.DatadogSLOs[i].Name),
@@ -65,8 +63,8 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 					Name:        ddogslo_name,
 					Description: &p.DatadogSLOs[i].Description,
 					Query: &ddog.DatadogSLOQuery{
-						Numerator:   p.injectTag(p.DatadogSLOs[i].Query.GoodEvents),
-						Denominator: p.injectTag(p.DatadogSLOs[i].Query.TotalEvents),
+						Numerator:   p.injectFilters(p.DatadogSLOs[i].Query.GoodEvents),
+						Denominator: p.injectFilters(p.DatadogSLOs[i].Query.TotalEvents),
 					},
 					// defaulted
 					Type: ddog.DatadogSLOTypeMetric,
@@ -76,10 +74,7 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 				},
 			}
 
-			target := "target:" + p.Target
 			ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, p.DatadogSLOs[i].Tags...)
-			// add target tag
-			ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, target)
 
 			ddogSlOs = append(ddogSlOs, *ddogslo)
 		}
@@ -89,42 +84,19 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	return ddogSLOList, nil
 }
 
-// jubilee-prod-sched-ssmps-main-20250226-235320-6c2cfd92bc
-
 func (p *SyncDatadogSLOs) datadogSLOName(sloName string) string {
-	// example: <service-name>-<condensed-target>-<condensed-slo-name>-<tag>
+	// example: <service-name>-<slo-name>-slo
 	// lowercase - at most 63 characters - start and end with alphanumeric
 
-	target := p.Target
-	if strings.Contains(p.Target, "-") {
-		t := strings.LastIndex(p.Target, "-")
-		first_target := p.Target[:4]
-		second_target := p.Target[t+1 : t+5]
-		target = first_target + "-" + second_target
-	} else if len(p.Target) >= 4 {
-		target = p.Target[:4]
-	}
-
-	slo_name_end := strings.LastIndex(sloName, "-")
-	new_slo_name := string(sloName[0])
-	for i := range slo_name_end + 1 {
-		if string(sloName[i]) == "-" {
-			new_slo_name = new_slo_name + string(sloName[i+1])
-		}
-	}
-
-	front_tag := p.App + "-" + target + "-" + new_slo_name + "-" + p.Tag
+	front_tag := p.App + "-" + sloName + "-slo"
 	if len(front_tag) > 63 {
 		front_tag = front_tag[:63]
-		if front_tag[len(front_tag)-1:] == "-" {
-			front_tag = front_tag[:len(front_tag)-1]
-		}
 	}
 	return front_tag
 }
 
-func (p *SyncDatadogSLOs) injectTag(query string) string {
-	bracket_index := strings.Index(query, "{")
-	tag_string := "destination_version:" + p.Tag + " AND "
-	return query[:bracket_index+1] + tag_string + query[bracket_index+1:]
+func (p *SyncDatadogSLOs) injectFilters(query string) string {
+	period_index := strings.Index(query, ".as_count()")
+	tag_string := " by {version,env}"
+	return query[:period_index] + tag_string + query[period_index:]
 }

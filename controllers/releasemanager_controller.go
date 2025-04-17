@@ -132,12 +132,17 @@ var (
 	}, []string{"app", "target"})
 )
 
+type DatadogSLOAPI interface {
+	GetDatadogSLOID(app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
+}
+
 // ReleaseManagerReconciler reconciles a ReleaseManager object
 type ReleaseManagerReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
-	Config utils.Config
+	Log           logr.Logger
+	Scheme        *runtime.Scheme
+	Config        utils.Config
+	DatadogSLOAPI DatadogSLOAPI
 }
 
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=releasemanagers,verbs=get;list;watch;create;update;patch;delete
@@ -274,6 +279,7 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		log:             rmLog,
 		picchuConfig:    r.Config,
 		faults:          faults,
+		DatadogSLOAPI:   r.DatadogSLOAPI,
 	}
 
 	if !rm.IsDeleted() {

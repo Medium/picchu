@@ -42,6 +42,7 @@ type ResourceSyncer struct {
 	log             logr.Logger
 	picchuConfig    utils.Config
 	faults          []picchuv1alpha1.HTTPPortFault
+	DatadogSLOAPI   DatadogSLOAPI
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {
@@ -74,6 +75,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 		return
 	}
 	if err = r.syncDatadogCanaryMonitors(ctx); err != nil {
+		return
+	}
+	if err = r.syncDatadogSLOsMonitors(ctx); err != nil {
 		return
 	}
 	if err = r.garbageCollection(ctx); err != nil {
@@ -358,9 +362,8 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 
 				if err := r.applyDeliveryPlan(ctx, "Sync App DatadogCanaryMonitors", &rmplan.SyncDatadogCanaryMonitors{
 					// only applied to the datadog namespace
-					App:       r.instance.Spec.App,
-					Namespace: r.picchuConfig.DatadogSLONamespace,
-					// Target:      i.targetName(),
+					App:         r.instance.Spec.App,
+					Namespace:   r.picchuConfig.DatadogSLONamespace,
 					Labels:      r.defaultLabels(),
 					DatadogSLOs: ddog_slos,
 				}); err != nil {
@@ -386,6 +389,83 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 		}
 	}
 
+	return nil
+}
+
+func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
+	ddog_slos := r.prepareDatadogSLOs()
+	if r.instance.Spec.App == "echo" {
+		log.Info("syncDatadogSLOs ", "ddog_slos ", ddog_slos, "app ", r.instance.Spec.App, "fleet", r.instance.Spec.Fleet)
+	}
+
+	if r.instance.Spec.Fleet == "production" {
+		if len(ddog_slos) > 0 {
+			if r.instance.Spec.App == "echo" {
+				log.Info("syncDatadogSLOs ", "len ddog_slos ", len(ddog_slos), "ddog_slos ", ddog_slos, "fleet", r.instance.Spec.Fleet)
+			}
+			if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
+				// only applied to the delivery cluster
+				err := r.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
+					Name: r.picchuConfig.DatadogSLONamespace,
+				})
+
+				if err != nil {
+					return err
+				}
+				err_ddog := r.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
+					App: r.instance.Spec.App,
+					// only applied to the datadog namespace
+					Namespace:   r.picchuConfig.DatadogSLONamespace,
+					DatadogSLOs: ddog_slos,
+					Labels:      r.defaultLabels(),
+				})
+
+				if err_ddog != nil {
+					return err_ddog
+				}
+
+				if err_ddog := r.applyDeliveryPlan(ctx, "Sync Datadog Monitors", &rmplan.SyncDatadogMonitors{
+					App: r.instance.Spec.App,
+					// only applied to the datadog namespace
+					Namespace:     r.picchuConfig.DatadogSLONamespace,
+					DatadogSLOs:   ddog_slos,
+					Labels:        r.defaultLabels(),
+					DatadogSLOAPI: r.DatadogSLOAPI,
+				}); err_ddog != nil {
+					return err_ddog
+				}
+			} else {
+				if r.instance.Spec.App == "echo" {
+					log.Info("syncDatadogSLOs ", "len ddog_slos ", len(ddog_slos), "ddog_slos ", ddog_slos)
+				}
+				r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogSLOS and syncDatadogMonitors")
+			}
+		} else {
+			if r.instance.Spec.App == "echo" {
+				log.Info("syncDatadogCanaryMonitors ", "len ddog_slos ", len(ddog_slos), "ddog_slos ", ddog_slos)
+			}
+
+			if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
+				err := r.applyDeliveryPlan(ctx, "Delete Datadog SLOs", &rmplan.DeleteDatadogSLOs{
+					App:       r.instance.Spec.App,
+					Namespace: r.picchuConfig.DatadogSLONamespace,
+				})
+
+				if err != nil {
+					return err
+				}
+				if err_ddog := r.applyDeliveryPlan(ctx, "Delete Datadog Monitors", &rmplan.DeleteDatadogMonitors{
+					App:       r.instance.Spec.App,
+					Namespace: r.picchuConfig.DatadogSLONamespace,
+				}); err_ddog != nil {
+					return err_ddog
+				}
+
+			} else {
+				r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogSLOs and deleteDatadogMonitors")
+			}
+		}
+	}
 	return nil
 }
 

@@ -127,11 +127,20 @@ func main() {
 	var ddog_monitor_api controllers.DatadogMonitorAPI
 	var errorDatadogMonitorAPI error
 
-	// ddog monitor and metric api client
+	// ddog monitor api client
 	ddog_monitor_api, errorDatadogMonitorAPI = datadogapi.NewMonitorAPI(cconfig.DatadogQueryTTL)
 
 	if errorDatadogMonitorAPI != nil {
 		panic(errorDatadogMonitorAPI)
+	}
+
+	var ddog_slo_api controllers.DatadogSLOAPI
+	var errorDatadoSLOAPI error
+	// ddog slo api client
+	ddog_slo_api, errorDatadoSLOAPI = datadogapi.NewSLOAPI(cconfig.DatadogQueryTTL)
+
+	if errorDatadoSLOAPI != nil {
+		panic(errorDatadoSLOAPI)
 	}
 
 	schemeBuilders := k8sruntime.SchemeBuilder{
@@ -186,10 +195,11 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.ReleaseManagerReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ReleaseManager"),
-		Scheme: mgr.GetScheme(),
-		Config: cconfig,
+		Client:        mgr.GetClient(),
+		Log:           ctrl.Log.WithName("controllers").WithName("ReleaseManager"),
+		Scheme:        mgr.GetScheme(),
+		Config:        cconfig,
+		DatadogSLOAPI: ddog_slo_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ReleaseManager")
 		os.Exit(1)
