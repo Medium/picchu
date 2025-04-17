@@ -88,12 +88,14 @@ func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, ta
 	var canary_monitor string
 	canary_monitor = "("
 	for i := range datadogSLOs {
-		if i == 0 {
-			canary_monitor = canary_monitor + app + "-" + datadogSLOs[i].Name + "-canary"
-			continue
+		if datadogSLOs[i].Canary.Enabled {
+			if i == 0 {
+				canary_monitor = canary_monitor + app + "-" + datadogSLOs[i].Name + "-canary"
+				continue
+			}
+			// query: (<slo-1> OR <slo-2>) group:(env:production AND version:<tag>) triggered:15
+			canary_monitor = canary_monitor + " OR " + app + "-" + datadogSLOs[i].Name + "-canary"
 		}
-		// query: (<slo-1> OR <slo-2>) group:(env:production AND version:<tag>) triggered:15
-		canary_monitor = canary_monitor + " OR " + app + "-" + datadogSLOs[i].Name + "-canary"
 	}
 	canary_monitor = canary_monitor + ") group:(env:production AND version:" + tag + ") triggered:15"
 
