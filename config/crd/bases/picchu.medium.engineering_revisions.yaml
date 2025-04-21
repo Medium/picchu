@@ -1170,8 +1170,6 @@ spec:
                           type:
                             description: defaulted - metric
                             type: string
-                        required:
-                        - enabled
                         type: object
                       type: array
                     defaultIngressPorts:

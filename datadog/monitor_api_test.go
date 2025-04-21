@@ -31,7 +31,6 @@ func testAlertCache(t *testing.T) {
 	datadogSLOs := []*picchuv1alpha1.DatadogSLO{
 		{
 			Name:        "istio-request-success",
-			Enabled:     true,
 			Description: "test create example datadogSLO one",
 			Query: picchuv1alpha1.DatadogSLOQuery{
 				GoodEvents:  "sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
@@ -76,7 +75,6 @@ func testAlert(t *testing.T) {
 	datadogSLOs := []*picchuv1alpha1.DatadogSLO{
 		{
 			Name:        "istio-http-success",
-			Enabled:     true,
 			Description: "test create example datadogSLO one",
 			Query: picchuv1alpha1.DatadogSLOQuery{
 				GoodEvents:  "sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
@@ -96,7 +94,6 @@ func testAlert(t *testing.T) {
 		},
 		{
 			Name:        "http-availability",
-			Enabled:     true,
 			Description: "test create example datadogSLO one",
 			Query: picchuv1alpha1.DatadogSLOQuery{
 				GoodEvents:  "sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",
@@ -116,7 +113,6 @@ func testAlert(t *testing.T) {
 		},
 		{
 			Name:        "dis-http-availability",
-			Enabled:     true,
 			Description: "test create example datadogSLO one",
 			Query: picchuv1alpha1.DatadogSLOQuery{
 				GoodEvents:  "sum:istio.mesh.request.count.total{(response_code:2* OR response_code:3* OR response_code:4*) AND destination_service:echo.echo-production.svc.cluster.local AND reporter:destination}.as_count()",

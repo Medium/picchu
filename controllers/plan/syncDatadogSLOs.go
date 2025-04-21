@@ -49,35 +49,33 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	var ddogSlOs []ddog.DatadogSLO
 
 	for i := range p.DatadogSLOs {
-		if p.DatadogSLOs[i].Enabled {
-			// update the DatadogSLO name so that it is the <service-name>-<target>-<tag>-<slo-name>
-			ddogslo_name := p.App + "-" + p.DatadogSLOs[i].Name + "-slo"
-			ddogslo := &ddog.DatadogSLO{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      p.datadogSLOName(p.DatadogSLOs[i].Name),
-					Namespace: p.Namespace,
-					Labels:    p.Labels,
+		// update the DatadogSLO name so that it is the <service-name>-<target>-<tag>-<slo-name>
+		ddogslo_name := p.App + "-" + p.DatadogSLOs[i].Name + "-slo"
+		ddogslo := &ddog.DatadogSLO{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      p.datadogSLOName(p.DatadogSLOs[i].Name),
+				Namespace: p.Namespace,
+				Labels:    p.Labels,
+			},
+			Spec: ddog.DatadogSLOSpec{
+				// defaulted
+				Name:        ddogslo_name,
+				Description: &p.DatadogSLOs[i].Description,
+				Query: &ddog.DatadogSLOQuery{
+					Numerator:   p.injectFilters(p.DatadogSLOs[i].Query.GoodEvents),
+					Denominator: p.injectFilters(p.DatadogSLOs[i].Query.TotalEvents),
 				},
-				Spec: ddog.DatadogSLOSpec{
-					// defaulted
-					Name:        ddogslo_name,
-					Description: &p.DatadogSLOs[i].Description,
-					Query: &ddog.DatadogSLOQuery{
-						Numerator:   p.injectFilters(p.DatadogSLOs[i].Query.GoodEvents),
-						Denominator: p.injectFilters(p.DatadogSLOs[i].Query.TotalEvents),
-					},
-					// defaulted
-					Type: ddog.DatadogSLOTypeMetric,
-					// defaulted 30d for now
-					Timeframe:       ddog.DatadogSLOTimeFrame7d,
-					TargetThreshold: resource.MustParse(p.DatadogSLOs[i].TargetThreshold),
-				},
-			}
-
-			ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, p.DatadogSLOs[i].Tags...)
-
-			ddogSlOs = append(ddogSlOs, *ddogslo)
+				// defaulted
+				Type: ddog.DatadogSLOTypeMetric,
+				// defaulted 30d for now
+				Timeframe:       ddog.DatadogSLOTimeFrame7d,
+				TargetThreshold: resource.MustParse(p.DatadogSLOs[i].TargetThreshold),
+			},
 		}
+
+		ddogslo.Spec.Tags = append(ddogslo.Spec.Tags, p.DatadogSLOs[i].Tags...)
+
+		ddogSlOs = append(ddogSlOs, *ddogslo)
 	}
 	ddogSLOList.Items = ddogSlOs
 

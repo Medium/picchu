@@ -57,15 +57,13 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 	// for each ddog slo we generate two datadog monitors, one for error budeget and the other burn rate
 	for i := range p.DatadogSLOs {
 		// check if the slo is enabled or not - do not create otherwise
-		if p.DatadogSLOs[i].Enabled {
-			// call error budget
-			errorbudget_ddogmonitor := p.errorBudget(p.DatadogSLOs[i], log)
-			ddogMonitors = append(ddogMonitors, errorbudget_ddogmonitor)
-			// call burn rate
-			// TODO - dont create burn rate for now
-			// burnrate_ddogmonitor := p.burnRate(p.DatadogSLOs[i], log)
-			// ddogMonitors = append(ddogMonitors, burnrate_ddogmonitor)
-		}
+		// call error budget
+		errorbudget_ddogmonitor := p.errorBudget(p.DatadogSLOs[i], log)
+		ddogMonitors = append(ddogMonitors, errorbudget_ddogmonitor)
+		// call burn rate
+		// TODO - dont create burn rate for now
+		// burnrate_ddogmonitor := p.burnRate(p.DatadogSLOs[i], log)
+		// ddogMonitors = append(ddogMonitors, burnrate_ddogmonitor)
 	}
 	datadogMonitorList.Items = ddogMonitors
 
