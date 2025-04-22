@@ -219,25 +219,22 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 
 	ddog_triggered := false
 	var ddog_err error
-	var monitors []string
+	var datadog_monitors []string
+	var datadogSLOs []*picchuv1alpha1.DatadogSLO
 
-	// testing echo canary phase with datadog api call
-	if instance.Spec.App.Name == "echo" {
-		var datadogSLOs []*picchuv1alpha1.DatadogSLO
-
-		// grab datadog slos from production target
-		for _, t := range instance.Spec.Targets {
-			if strings.Contains(t.Name, "production") && t.DatadogSLOsEnabled {
-				datadogSLOs = t.DatadogSLOs
-			}
+	// grab datadog slos from production target
+	for _, t := range instance.Spec.Targets {
+		if strings.Contains(t.Name, "production") && t.DatadogSLOsEnabled {
+			datadogSLOs = t.DatadogSLOs
 		}
+	}
 
+	if len(datadogSLOs) > 0 {
 		// determine if production target is in the canary phase
 		for _, statusTarget := range status.Targets {
 			if strings.Contains(statusTarget.Name, "production") {
 				if statusTarget.State == "canarying" {
-					log.Info("echo found canary state for production target")
-					ddog_triggered, monitors, ddog_err = r.DatadogMonitorAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, datadogSLOs)
+					ddog_triggered, datadog_monitors, ddog_err = r.DatadogMonitorAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, datadogSLOs)
 					if ddog_err != nil {
 						return r.Requeue(log, ddog_err)
 					}
@@ -256,8 +253,8 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	// this will be true if there are datadog slos defined under the production target
-	if !revisionFailing && ddog_triggered && !instance.Spec.IgnoreSLOs && instance.Spec.App.Name == "echo" {
-		log.Info("Revision triggered", "datadog canary monitors", monitors)
+	if !revisionFailing && ddog_triggered && !instance.Spec.IgnoreSLOs {
+		log.Info("Revision triggered", "datadog canary monitors", datadog_monitors, "app", instance.Spec.App.Name, "tag", instance.Spec.App.Tag)
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
 		for i := range status.Targets {
 			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
@@ -284,7 +281,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 						break
 					}
 					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
-					revisionStatus.TriggeredDatadogMonitors = monitors
+					revisionStatus.TriggeredDatadogMonitors = datadog_monitors
 					rm.UpdateRevisionStatus(revisionStatus)
 					if err := utils.UpdateStatus(ctx, r.Client, rm); err != nil {
 						log.Error(err, "Could not save datadog monitors to RevisionStatus", "alarms", alarms)
