@@ -61,7 +61,6 @@ func (a DDOGMONITORAPI) checkCache(ctx context.Context, query string) (datadogV1
 
 func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datadogV1.MonitorGroupSearchResponse, error) {
 	if v, ok := a.checkCache(ctx, query); ok {
-		monitor_log.Info("echo queryWithCache checkCache", "val", v, "groups", v.GetGroups())
 		return v, nil
 	}
 
@@ -70,9 +69,7 @@ func (a DDOGMONITORAPI) queryWithCache(ctx context.Context, query string) (datad
 	}
 
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
-	monitor_log.Info("echo queryWithCache generated query", "search_params", search_params, "query", query)
 	val, r, err := a.api.SearchMonitorGroups(datadog_ctx, search_params)
-	monitor_log.Info("echo queryWithCache SearchMonitorGroups", "val", val, "groups", val.GetGroups())
 	if err != nil {
 		monitor_log.Error(err, "Error when calling `MonitorsApi.SearchMonitors`\n", "error", err, "response", r)
 		return datadogV1.MonitorGroupSearchResponse{}, err
@@ -99,27 +96,24 @@ func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, ta
 	}
 	canary_monitor = canary_monitor + ") group:(env:production AND version:" + tag + ") triggered:15"
 
-	monitor_log.Info("echo queryWithCache canary_monitor", "canary_monitor", canary_monitor)
 	val, err := a.queryWithCache(ctx, canary_monitor)
 	if err != nil {
-		monitor_log.Info("echo queryWithCache error", "err", err)
+		monitor_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
 		return nil, err
 	}
 
 	monitors := val.GetGroups()
-	monitor_log.Info("echo TaggedCanaryMonitors monitors", "val", val, "monitors", monitors)
 
 	canary_monitors := map[string][]string{}
 	for _, m := range monitors {
 		if m.MonitorName == nil {
-			monitor_log.Info("Nil name for echo canary monitor", "status", m.Status)
+			monitor_log.Info("Nil name for canary monitor", "status", m.Status, "monitor", m, "app", app, "tag", tag)
 			continue
 		}
 		if m.Status == nil {
-			monitor_log.Info("Nil status for echo canary monitor", "status", m.Status)
+			monitor_log.Info("Nil status for canary monitor", "status", m.Status, "monitor", m, "app", app, "tag", tag)
 			continue
 		}
-		monitor_log.Info("Echo canary SLO found", "canary monitor", *m.MonitorName, "status", m.Status)
 		if *m.Status == datadogV1.MONITOROVERALLSTATES_ALERT {
 			if canary_monitors[tag] == nil {
 				canary_monitors[tag] = []string{}
@@ -134,14 +128,12 @@ func (a DDOGMONITORAPI) TaggedCanaryMonitors(ctx context.Context, app string, ta
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
 func (a DDOGMONITORAPI) IsRevisionTriggered(ctx context.Context, app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error) {
 	canary_monitors, err := a.TaggedCanaryMonitors(ctx, app, tag, datadogSLOs)
-	monitor_log.Info("echo found canary_monitors", "canary_monitors", canary_monitors)
 	if err != nil {
-		monitor_log.Info("error != nil IsRevisionTriggered")
+		monitor_log.Error(err, "Error when calling `IsRevisionTriggered`\n", "error", err)
 		return false, nil, err
 	}
 
 	if monitors, ok := canary_monitors[tag]; ok && len(monitors) > 0 {
-		monitor_log.Info("triggered monitors found for echo tag, length greater than 0", "monitors", monitors)
 		return true, monitors, nil
 	}
 	return false, nil, nil

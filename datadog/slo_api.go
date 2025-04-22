@@ -58,7 +58,6 @@ func (a DDOGSLOAPI) checkCache(query string) (datadogV1.SearchSLOResponse, bool)
 
 func (a DDOGSLOAPI) queryWithCache(query string) (datadogV1.SearchSLOResponse, error) {
 	if v, ok := a.checkCache(query); ok {
-		slo_log.Info("echo queryWithCache checkCache", "val", v, "slos", v.Data.Attributes.Slos)
 		return v, nil
 	}
 
@@ -75,7 +74,7 @@ func (a DDOGSLOAPI) queryWithCache(query string) (datadogV1.SearchSLOResponse, e
 	}
 
 	if resp.Data == nil || len(resp.Data.Attributes.Slos) == 0 {
-		slo_log.Info("No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service")
+		slo_log.Error(err, "Error when calling `queryWithCache` - No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service\n", "error", err, "response", resp)
 		return datadogV1.SearchSLOResponse{}, nil
 	}
 
@@ -87,27 +86,24 @@ func (a DDOGSLOAPI) queryWithCache(query string) (datadogV1.SearchSLOResponse, e
 
 func (a DDOGSLOAPI) GetDatadogSLOID(app string, datadogSLO *picchuv1alpha1.DatadogSLO) (string, error) {
 	// get the SLO ID from the datadog API
-	if app == "echo" {
-		ddogslo_name := "\"" + app + "-" + datadogSLO.Name + "-slo" + "\""
+	ddogslo_name := "\"" + app + "-" + datadogSLO.Name + "-slo" + "\""
 
-		val, err := a.queryWithCache(ddogslo_name)
-		if err != nil {
-			slo_log.Info("echo queryWithCache GetDatadogSLOIDs error", "err", err)
-			return "", err
-		}
-
-		if val.Data == nil {
-			slo_log.Info("echo GetDatadogSLOIDs no SLOs found", "err", err, "response", val)
-			return "", err
-		}
-
-		if len(val.Data.Attributes.Slos) == 1 {
-			return *val.Data.Attributes.Slos[0].Data.Id, nil
-		} else {
-			slo_log.Info("echo GetDatadogSLOIDs response was more than one slo object", "err", err, "response", val)
-			return "", err
-		}
+	val, err := a.queryWithCache(ddogslo_name)
+	if err != nil {
+		slo_log.Error(err, "Error when calling `GetDatadogSLOID`\n", "error", err, "response", val)
+		return "", err
 	}
-	// if app is not echo, return empty string for now
-	return "", nil
+
+	if val.Data == nil {
+		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - no SLOs found\n", "error", err, "response", val)
+		return "", err
+	}
+
+	if len(val.Data.Attributes.Slos) == 1 {
+		return *val.Data.Attributes.Slos[0].Data.Id, nil
+	} else {
+		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - response was more than one slo object\n", "error", err, "response", val)
+		return "", err
+	}
+
 }

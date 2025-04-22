@@ -76,7 +76,6 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-error-budget"
 
 	slo_id, err := p.getID(datadogslo, log)
-	log.Info("SLOID echo error budget", "SLOID:", slo_id)
 	if err != nil {
 		log.Error(err, "Error Budget: Error getting Datadog SLO id", "DatadogSLO Name:", datadogslo.Name)
 		return ddog.DatadogMonitor{}
@@ -151,8 +150,6 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 		return ddog.DatadogMonitor{}
 	}
 
-	log.Info("SLOID echo burn rate", "SLOID:", slo_id)
-
 	// how are we defining log and short window
 	// going to default to this slo for now
 	// burn_rate("slo_id").over("time_window").long_window("1h").short_window("5m") > 14.4
@@ -209,18 +206,14 @@ func (p *SyncDatadogMonitors) burnRate(datadogslo *picchuv1alpha1.DatadogSLO, lo
 
 func (p *SyncDatadogMonitors) getID(datadogSLO *picchuv1alpha1.DatadogSLO, log logr.Logger) (string, error) {
 	// get the SLO ID from the datadog API
-	if p.App == "echo" {
-		id, err := p.DatadogSLOAPI.GetDatadogSLOID(p.App, datadogSLO)
+	id, err := p.DatadogSLOAPI.GetDatadogSLOID(p.App, datadogSLO)
 
-		if err != nil {
-			log.Error(err, "Error when calling `getID`:", "err", err)
-			return "", err
-		}
-
-		return id, nil
+	if err != nil {
+		log.Error(err, "Error when calling `getID`:", "err", err)
+		return "", err
 	}
-	// if app is not echo, return empty string for now
-	return "", nil
+
+	return id, nil
 }
 
 func (p *SyncDatadogMonitors) datadogMonitorName(sloName string, monitor_type string) string {
