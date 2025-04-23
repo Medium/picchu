@@ -29,7 +29,7 @@ func (p *DeleteSpecificDatadogMonitors) Apply(ctx context.Context, cli client.Cl
 			LabelSelector: labels.SelectorFromSet(map[string]string{
 				picchuv1alpha1.LabelApp:         p.App,
 				picchuv1alpha1.LabelMonitorType: MonitorTypeSLO,
-				picchuv1alpha1.LabelMonitorName: *slo.Data.Attributes.Name,
+				picchuv1alpha1.LabelSLOName:     *slo.Data.Attributes.Name,
 			}),
 		}
 
