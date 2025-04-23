@@ -402,8 +402,16 @@ func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
 				// find slos to delete if any
 				to_remove := r.datadogSLOsToDelete(ddog_slos, current_ddog_slos)
 				if len(to_remove) > 0 {
-					// delete
-					if err_ddog := r.applyDeliveryPlan(ctx, "Delete Datadog Monitors", &rmplan.DeleteSpecificDatadogMonitors{
+					// delete slo + monitor
+					if err_ddog := r.applyDeliveryPlan(ctx, "Delete removed Datadog SLO", &rmplan.DeleteSpecificDatadogSLOs{
+						App:       r.instance.Spec.App,
+						Namespace: r.picchuConfig.DatadogSLONamespace,
+						ToRemove:  to_remove,
+					}); err_ddog != nil {
+						return err_ddog
+					}
+
+					if err_ddog := r.applyDeliveryPlan(ctx, "Delete removed Datadog Monitors", &rmplan.DeleteSpecificDatadogMonitors{
 						App:       r.instance.Spec.App,
 						Namespace: r.picchuConfig.DatadogSLONamespace,
 						ToRemove:  to_remove,

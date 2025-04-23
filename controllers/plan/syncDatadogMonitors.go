@@ -94,6 +94,7 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	options_true := true
 
 	p.Labels[picchuv1alpha1.LabelMonitorType] = MonitorTypeSLO
+	p.Labels[picchuv1alpha1.LabelMonitorName] = ddogmonitor_name
 
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
