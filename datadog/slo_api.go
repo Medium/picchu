@@ -74,7 +74,7 @@ func (a DDOGSLOAPI) queryWithCache(query string) (datadogV1.SearchSLOResponse, e
 	}
 
 	if resp.Data == nil || len(resp.Data.Attributes.Slos) == 0 {
-		slo_log.Error(err, "Error when calling `queryWithCache` - No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service\n", "error", err, "response", resp)
+		slo_log.Info("Error when calling `queryWithCache` - No SLOs found when calling `ServiceLevelObjectivesApi.NewSearchSLOOptionalParameters` for service\n")
 		return datadogV1.SearchSLOResponse{}, nil
 	}
 
@@ -90,19 +90,19 @@ func (a DDOGSLOAPI) GetDatadogSLOID(app string, datadogSLO *picchuv1alpha1.Datad
 
 	val, err := a.queryWithCache(ddogslo_name)
 	if err != nil {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID`\n", "error", err, "response", val)
+		slo_log.Error(err, "Error when calling `GetDatadogSLOID`\n", "error", err)
 		return "", err
 	}
 
 	if val.Data == nil {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - no SLOs found\n", "error", err, "response", val)
+		slo_log.Info("Error when calling `GetDatadogSLOID` - no SLOs found\n")
 		return "", err
 	}
 
 	if len(val.Data.Attributes.Slos) == 1 {
 		return *val.Data.Attributes.Slos[0].Data.Id, nil
 	} else {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - response was more than one slo object\n", "error", err, "response", val)
+		slo_log.Info("Error when calling `GetDatadogSLOID` - response was more than one slo object\n", "error", err, "response", val)
 		return "", err
 	}
 
@@ -114,19 +114,19 @@ func (a DDOGSLOAPI) GetCurrentDatadogSLOs(app string) ([]datadogV1.SearchService
 
 	val, err := a.queryWithCache(ddogslo_name)
 	if err != nil {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID`\n", "error", err, "response", val)
+		slo_log.Error(err, "Error when calling `GetCurrentDatadogSLOs`\n", "error", err)
 		return []datadogV1.SearchServiceLevelObjective{}, err
 	}
 
 	if val.Data == nil {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - no SLOs found\n", "error", err, "response", val)
+		slo_log.Info("Error when calling `GetCurrentDatadogSLOs` - no SLOs found\n", "error", err)
 		return []datadogV1.SearchServiceLevelObjective{}, err
 	}
 
 	if len(val.Data.Attributes.Slos) > 0 {
 		return val.Data.Attributes.Slos, nil
 	} else {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - no SLOs\n", "error", err, "response", val)
+		slo_log.Info("Error when calling `GetCurrentDatadogSLOs` - no SLOs\n", "error", err, "response", val)
 		return []datadogV1.SearchServiceLevelObjective{}, err
 	}
 
