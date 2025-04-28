@@ -39,7 +39,6 @@ func (p *DeleteSpecificDatadogMonitors) Apply(ctx context.Context, cli client.Cl
 		}
 
 		for _, sl := range ddogmonitorlist.Items {
-			log.Info("Deleting datadog monitor", "name", sl.Name, "slo name", sl.Labels[picchuv1alpha1.LabelSLOName])
 			err := cli.Delete(ctx, &sl)
 			if err != nil && !errors.IsNotFound(err) {
 				plan.LogSync(log, "deleted", err, &sl)
