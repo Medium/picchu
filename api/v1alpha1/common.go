@@ -52,6 +52,7 @@ const (
 	LabelCommit       = "picchu.medium.engineering/commit"
 	LabelRuleType     = "picchu.medium.engineering/ruleType"
 	LabelMonitorType  = "picchu.medium.engineering/monitorType"
+	LabelSLOName      = "picchu.medium.engineering/SLOName"
 	LabelFleetPrefix  = "fleet.picchu.medium.engineering/"
 	LabelIgnore       = "picchu.medium.engineering/ignore"
 	// LabelTargetDeletablePrefix is used to signal that a releasemanager no longer needs the revision and it can be deleted
