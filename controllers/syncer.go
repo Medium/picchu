@@ -11,7 +11,6 @@ import (
 	"go.medium.engineering/picchu/controllers/utils"
 	"go.medium.engineering/picchu/plan"
 
-	datadogV1 "github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
@@ -385,7 +384,6 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 
 func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
 	ddog_slos := r.prepareDatadogSLOs()
-	current_ddog_slos := r.currentDatadogSLOs(r.instance.Spec.App)
 
 	if r.instance.Spec.Fleet == "production" {
 		if len(ddog_slos) > 0 {
@@ -398,29 +396,6 @@ func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
-
-				// find slos to delete if any
-				to_remove := r.datadogSLOsToDelete(ddog_slos, current_ddog_slos)
-				if len(to_remove) > 0 {
-					// delete slo + monitor
-					if err_ddog := r.applyDeliveryPlan(ctx, "Delete removed Datadog SLO", &rmplan.DeleteSpecificDatadogSLOs{
-						App:       r.instance.Spec.App,
-						Namespace: r.picchuConfig.DatadogSLONamespace,
-						ToRemove:  to_remove,
-					}); err_ddog != nil {
-						return err_ddog
-					}
-
-					if err_ddog := r.applyDeliveryPlan(ctx, "Delete removed Datadog Monitors", &rmplan.DeleteSpecificDatadogMonitors{
-						App:       r.instance.Spec.App,
-						Namespace: r.picchuConfig.DatadogSLONamespace,
-						ToRemove:  to_remove,
-					}); err_ddog != nil {
-						return err_ddog
-					}
-
-				}
-
 				err_ddog := r.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
 					App: r.instance.Spec.App,
 					// only applied to the datadog namespace
@@ -541,39 +516,6 @@ func (r *ResourceSyncer) prepareDatadogSLOs() []*picchuv1alpha1.DatadogSLO {
 	}
 
 	return ddog_slos
-}
-
-func (r *ResourceSyncer) currentDatadogSLOs(app string) []datadogV1.SearchServiceLevelObjective {
-	// query ddog api
-	current_ddog_slos, err := r.DatadogSLOAPI.GetCurrentDatadogSLOs(app)
-	if err != nil {
-		r.log.Error(err, "Error when calling `GetCurrentDatadogSLOs`", "error", err)
-		return nil
-	}
-
-	return current_ddog_slos
-}
-
-func (r *ResourceSyncer) datadogSLOsToDelete(incoming []*picchuv1alpha1.DatadogSLO, current []datadogV1.SearchServiceLevelObjective) []datadogV1.SearchServiceLevelObjective {
-	// incoming source of truth
-
-	incoming_set := make(map[string]struct{})
-
-	for _, d := range incoming {
-		incoming_set[d.Name] = struct{}{}
-	}
-
-	to_remove := []datadogV1.SearchServiceLevelObjective{}
-	for _, c := range current {
-		name := *c.Data.Attributes.Name
-		if _, ok := incoming_set[name]; ok {
-			continue
-		} else {
-			to_remove = append(to_remove, c)
-		}
-	}
-
-	return to_remove
 }
 
 func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {

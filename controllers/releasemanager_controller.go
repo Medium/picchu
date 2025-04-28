@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"time"
 
-	datadogV1 "github.com/DataDog/datadog-api-client-go/v2/api/datadogV1"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -135,7 +134,6 @@ var (
 
 type DatadogSLOAPI interface {
 	GetDatadogSLOID(app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
-	GetCurrentDatadogSLOs(app string) ([]datadogV1.SearchServiceLevelObjective, error)
 }
 
 // ReleaseManagerReconciler reconciles a ReleaseManager object

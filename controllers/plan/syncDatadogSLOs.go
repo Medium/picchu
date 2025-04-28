@@ -51,7 +51,6 @@ func (p *SyncDatadogSLOs) datadogSLOs() (*ddog.DatadogSLOList, error) {
 	for i := range p.DatadogSLOs {
 		// update the DatadogSLO name so that it is the <service-name>-<target>-<tag>-<slo-name>
 		ddogslo_name := p.App + "-" + p.DatadogSLOs[i].Name + "-slo"
-		p.Labels[picchuv1alpha1.LabelSLOName] = ddogslo_name
 		ddogslo := &ddog.DatadogSLO{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      p.datadogSLOName(p.DatadogSLOs[i].Name),

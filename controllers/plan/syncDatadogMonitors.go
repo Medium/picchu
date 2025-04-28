@@ -74,7 +74,6 @@ func (p *SyncDatadogMonitors) datadogMonitors(log logr.Logger) (*ddog.DatadogMon
 func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO, log logr.Logger) ddog.DatadogMonitor {
 	// update the DatadogMonitor name so that it is the <service-name>-<target>-<tag>-<slo-name>-error-budget
 	ddogmonitor_name := p.App + "-" + datadogslo.Name + "-error-budget"
-	ddogslo_name := p.App + "-" + datadogslo.Name + "-slo"
 
 	slo_id, err := p.getID(datadogslo, log)
 	if err != nil {
@@ -95,7 +94,6 @@ func (p *SyncDatadogMonitors) errorBudget(datadogslo *picchuv1alpha1.DatadogSLO,
 	options_true := true
 
 	p.Labels[picchuv1alpha1.LabelMonitorType] = MonitorTypeSLO
-	p.Labels[picchuv1alpha1.LabelSLOName] = ddogslo_name
 
 	ddogmonitor := ddog.DatadogMonitor{
 		ObjectMeta: metav1.ObjectMeta{
