@@ -20,25 +20,24 @@ type DeleteSpecificDatadogSLOs struct {
 }
 
 func (p *DeleteSpecificDatadogSLOs) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	ddogmonitorlist := &ddog.DatadogMonitorList{}
+	ddogslolist := &ddog.DatadogSLOList{}
 
 	// for each slo to remove, remove it
 	for _, slo := range p.ToRemove {
 		opts := &client.ListOptions{
 			Namespace: p.Namespace,
 			LabelSelector: labels.SelectorFromSet(map[string]string{
-				picchuv1alpha1.LabelApp:         p.App,
-				picchuv1alpha1.LabelMonitorType: MonitorTypeSLO,
-				picchuv1alpha1.LabelSLOName:     *slo.Data.Attributes.Name,
+				picchuv1alpha1.LabelApp:     p.App,
+				picchuv1alpha1.LabelSLOName: *slo.Data.Attributes.Name,
 			}),
 		}
 
-		if err := cli.List(ctx, ddogmonitorlist, opts); err != nil {
-			log.Error(err, "Failed to delete datadog monitor")
+		if err := cli.List(ctx, ddogslolist, opts); err != nil {
+			log.Error(err, "Failed to delete datadog slo")
 			return err
 		}
 
-		for _, sl := range ddogmonitorlist.Items {
+		for _, sl := range ddogslolist.Items {
 			err := cli.Delete(ctx, &sl)
 			if err != nil && !errors.IsNotFound(err) {
 				plan.LogSync(log, "deleted", err, &sl)
