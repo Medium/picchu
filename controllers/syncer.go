@@ -386,7 +386,6 @@ func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
 func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
 	ddog_slos := r.prepareDatadogSLOs()
 	current_ddog_slos := r.currentDatadogSLOs(r.instance.Spec.App)
-	r.log.Info("syncDatadogSLOsMonitors- CurrentDatadog SLOs", "current_ddog_slos", current_ddog_slos)
 
 	if r.instance.Spec.Fleet == "production" {
 		if len(ddog_slos) > 0 {
@@ -402,7 +401,6 @@ func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
 
 				// find slos to delete if any
 				to_remove := r.datadogSLOsToDelete(ddog_slos, current_ddog_slos)
-				r.log.Info("syncDatadogSLOsMonitors- Datadog SLOs to remove", "to_remove", to_remove)
 				if len(to_remove) > 0 {
 					// delete slo + monitor
 					if err_ddog := r.applyDeliveryPlan(ctx, "Delete removed Datadog SLO", &rmplan.DeleteSpecificDatadogSLOs{
