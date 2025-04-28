@@ -38,9 +38,7 @@ func (p *DeleteSpecificDatadogSLOs) Apply(ctx context.Context, cli client.Client
 		}
 
 		for _, sl := range ddogslolist.Items {
-			if p.App == "echo" {
-				log.Info("Deleting datadog slo", "name", sl.Name, "slo name", sl.Labels[picchuv1alpha1.LabelSLOName])
-			}
+			log.Info("Deleting datadog slo", "name", sl.Name, "slo name", sl.Labels[picchuv1alpha1.LabelSLOName])
 			err := cli.Delete(ctx, &sl)
 			if err != nil && !errors.IsNotFound(err) {
 				plan.LogSync(log, "deleted", err, &sl)
