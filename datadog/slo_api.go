@@ -107,27 +107,3 @@ func (a DDOGSLOAPI) GetDatadogSLOID(app string, datadogSLO *picchuv1alpha1.Datad
 	}
 
 }
-
-func (a DDOGSLOAPI) GetCurrentDatadogSLOs(app string) ([]datadogV1.SearchServiceLevelObjective, error) {
-	// get the SLO ID from the datadog API
-	ddogslo_name := "\"" + app + "\""
-
-	val, err := a.queryWithCache(ddogslo_name)
-	if err != nil {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID`\n", "error", err, "response", val)
-		return []datadogV1.SearchServiceLevelObjective{}, err
-	}
-
-	if val.Data == nil {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - no SLOs found\n", "error", err, "response", val)
-		return []datadogV1.SearchServiceLevelObjective{}, err
-	}
-
-	if len(val.Data.Attributes.Slos) > 0 {
-		return val.Data.Attributes.Slos, nil
-	} else {
-		slo_log.Error(err, "Error when calling `GetDatadogSLOID` - no SLOs\n", "error", err, "response", val)
-		return []datadogV1.SearchServiceLevelObjective{}, err
-	}
-
-}
