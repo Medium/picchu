@@ -1,0 +1,1193 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "picchu.medium.engineering/v1alpha1",
+      "kind": "Revision",
+      "metadata": {
+        "annotations": {
+          "git-scm.com/committer-timestamp": "2025-04-30T14:50:30Z",
+          "git-scm.com/ref": "main",
+          "github.com/repository": "Medium/mono",
+          "picchu.medium.engineering/repo": "Medium/mono"
+        },
+        "labels": {
+          "app.kubernetes.io/managed-by": "kbfd",
+          "fleet.picchu.medium.engineering/delivery": "",
+          "fleet.picchu.medium.engineering/internal": "",
+          "fleet.picchu.medium.engineering/production": "",
+          "fleet.picchu.medium.engineering/sandbox": "",
+          "medium.build/app": "echo",
+          "medium.build/commit": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+          "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+          "picchu.medium.engineering/app": "echo",
+          "picchu.medium.engineering/commit": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+          "picchu.medium.engineering/tag": "main-20250430-151034-b4c52cd0cf"
+        },
+        "name": "echo-main-20250430-151034-b4c52cd0cf",
+        "namespace": "picchu"
+      },
+      "spec": {
+        "app": {
+          "image": "docker.medium.build/echo:main-20250430-151034-b4c52cd0cf",
+          "name": "echo",
+          "ref": "main",
+          "tag": "main-20250430-151034-b4c52cd0cf"
+        },
+        "canaryWithSLIRules": true,
+        "failed": false,
+        "sentry": {},
+        "tagRoutingHeader": "medium-tag-echo",
+        "targets": [
+          {
+            "aws": {
+              "iam": {}
+            },
+            "canary": {
+              "percent": 0,
+              "ttl": 0
+            },
+            "configSelector": {
+              "matchLabels": {
+                "medium.build/app": "echo",
+                "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+                "medium.build/target": "delivery"
+              }
+            },
+            "defaultIngressPorts": {
+              "private": "http",
+              "public": "http"
+            },
+            "env": [
+              {
+                "name": "OTEL_HOST",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "status.hostIP"
+                  }
+                }
+              }
+            ],
+            "externalTest": {
+              "completed": false,
+              "enabled": false,
+              "started": false,
+              "timeout": "2h0m0s"
+            },
+            "fleet": "delivery",
+            "istio": {
+              "sidecar": {
+                "egressHosts": [
+                  "lightstep/*",
+                  "./*",
+                  "istio-system/*"
+                ]
+              },
+              "trafficPolicy": {
+                "portLevelSettings": [
+                  {
+                    "connectionPool": {
+                      "http": {}
+                    },
+                    "port": {
+                      "number": 80
+                    }
+                  },
+                  {
+                    "connectionPool": {
+                      "http": {
+                        "http2MaxRequests": 10
+                      }
+                    },
+                    "port": {
+                      "number": 4242
+                    }
+                  }
+                ]
+              }
+            },
+            "lifecycle": {
+              "preStop": {
+                "exec": {
+                  "command": [
+                    "sleep",
+                    "20"
+                  ]
+                }
+              }
+            },
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "name": "delivery",
+            "podAnnotations": {
+              "ad.datadoghq.com/tags": "{\"env\":\"delivery\",\"service\":\"echo\",\"version\":\"main-20250430-151034-b4c52cd0cf\"}",
+              "go.medium.engineering/PodTerminationGracePeriodSeconds": "60",
+              "medium.engineering/pod-ttl": "604800",
+              "prometheus.io/dd-scrape": "true",
+              "prometheus.io/port": "8082",
+              "proxy.istio.io/config": "proxyStatsMatcher:\n  inclusionPrefixes:\n  - \"listener\"\n  - \"cluster.inbound\"\n  - \"cluster_manager\"\n  - \"listener_manager\"\n  - \"http_mixer_filter\"\n  - \"tcp_mixer_filter\"\n  - \"server\"\n  - \"cluster.xds-grpc\"",
+              "sidecar.istio.io/preStopGracePeriod": "40",
+              "traffic.sidecar.istio.io/includeOutboundIPRanges": "*"
+            },
+            "ports": [
+              {
+                "containerPort": 8080,
+                "hosts": [
+                  "echo.medium.build"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "public",
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2,
+                      "perTryTimeout": "3s",
+                      "retryOn": "5xx"
+                    },
+                    "timeout": "3s"
+                  }
+                },
+                "mode": "private",
+                "name": "http",
+                "port": 80,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8081,
+                "hosts": [
+                  "echo-grpc.delivery.medm.cloud"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 1
+                    }
+                  }
+                },
+                "mode": "private",
+                "name": "grpc",
+                "port": 81,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8082,
+                "ingressPort": 443,
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2
+                    }
+                  }
+                },
+                "mode": "local",
+                "name": "status",
+                "port": 4242,
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "release": {
+              "eligible": true,
+              "geometricScaling": {
+                "delay": "1m0s",
+                "factor": 2,
+                "start": 13
+              },
+              "linearScaling": {
+                "delay": "10s",
+                "increment": 5
+              },
+              "max": 100,
+              "scalingStrategy": "geometric",
+              "schedule": "always",
+              "ttl": 432000
+            },
+            "resources": {
+              "limits": {
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "ephemeral-storage": "100Mi",
+                "memory": "32Mi"
+              }
+            },
+            "scale": {
+              "default": 1,
+              "max": 2,
+              "min": 2,
+              "requestsRateMetric": "istio_requests_rate",
+              "targetCPUUtilizationPercentage": 95
+            },
+            "serviceLevelObjectiveLabels": {},
+            "serviceMonitors": [
+              {
+                "labels": {
+                  "prometheus": "cluster"
+                },
+                "name": "delivery-cluster",
+                "sloRegex": false,
+                "spec": {
+                  "endpoints": [
+                    {
+                      "bearerTokenSecret": {
+                        "key": ""
+                      },
+                      "interval": "30s",
+                      "port": "status",
+                      "relabelings": [
+                        {
+                          "action": "replace",
+                          "sourceLabels": [
+                            "__meta_kubernetes_pod_label_picchu_medium_engineering_tag"
+                          ],
+                          "targetLabel": "tag"
+                        }
+                      ]
+                    }
+                  ],
+                  "namespaceSelector": {},
+                  "selector": {
+                    "matchLabels": {
+                      "prometheus.io/scrape": "true"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "aws": {
+              "iam": {}
+            },
+            "canary": {
+              "percent": 0,
+              "ttl": 0
+            },
+            "configSelector": {
+              "matchLabels": {
+                "medium.build/app": "echo",
+                "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+                "medium.build/target": "internal"
+              }
+            },
+            "defaultIngressPorts": {
+              "private": "http",
+              "public": "http"
+            },
+            "env": [
+              {
+                "name": "OTEL_HOST",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "status.hostIP"
+                  }
+                }
+              }
+            ],
+            "externalTest": {
+              "completed": false,
+              "enabled": false,
+              "started": false,
+              "timeout": "2h0m0s"
+            },
+            "fleet": "internal",
+            "istio": {
+              "sidecar": {
+                "egressHosts": [
+                  "istio-system/*",
+                  "lightstep/*",
+                  "./*"
+                ]
+              },
+              "trafficPolicy": {
+                "portLevelSettings": [
+                  {
+                    "connectionPool": {
+                      "http": {}
+                    },
+                    "port": {
+                      "number": 80
+                    }
+                  },
+                  {
+                    "connectionPool": {
+                      "http": {
+                        "http2MaxRequests": 10
+                      }
+                    },
+                    "port": {
+                      "number": 4242
+                    }
+                  }
+                ]
+              }
+            },
+            "lifecycle": {
+              "preStop": {
+                "exec": {
+                  "command": [
+                    "sleep",
+                    "20"
+                  ]
+                }
+              }
+            },
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "name": "internal",
+            "podAnnotations": {
+              "ad.datadoghq.com/tags": "{\"env\":\"internal\",\"service\":\"echo\",\"version\":\"main-20250430-151034-b4c52cd0cf\"}",
+              "go.medium.engineering/PodTerminationGracePeriodSeconds": "60",
+              "medium.engineering/pod-ttl": "604800",
+              "prometheus.io/dd-scrape": "true",
+              "prometheus.io/port": "8082",
+              "proxy.istio.io/config": "proxyStatsMatcher:\n  inclusionPrefixes:\n  - \"listener\"\n  - \"cluster.inbound\"\n  - \"cluster_manager\"\n  - \"listener_manager\"\n  - \"http_mixer_filter\"\n  - \"tcp_mixer_filter\"\n  - \"server\"\n  - \"cluster.xds-grpc\"",
+              "sidecar.istio.io/preStopGracePeriod": "40",
+              "traffic.sidecar.istio.io/includeOutboundIPRanges": "*"
+            },
+            "ports": [
+              {
+                "containerPort": 8080,
+                "hosts": [
+                  "echo.medium.run"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "public",
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2,
+                      "perTryTimeout": "3s",
+                      "retryOn": "5xx"
+                    },
+                    "timeout": "3s"
+                  }
+                },
+                "mode": "private",
+                "name": "http",
+                "port": 80,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8081,
+                "hosts": [
+                  "echo-grpc.internal.medm.cloud"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 1
+                    }
+                  }
+                },
+                "mode": "private",
+                "name": "grpc",
+                "port": 81,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8082,
+                "ingressPort": 443,
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2
+                    }
+                  }
+                },
+                "mode": "local",
+                "name": "status",
+                "port": 4242,
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "release": {
+              "eligible": true,
+              "geometricScaling": {
+                "delay": "1m0s",
+                "factor": 2,
+                "start": 13
+              },
+              "linearScaling": {
+                "delay": "10s",
+                "increment": 5
+              },
+              "max": 100,
+              "scalingStrategy": "geometric",
+              "schedule": "always",
+              "ttl": 432000
+            },
+            "resources": {
+              "limits": {
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "ephemeral-storage": "100Mi",
+                "memory": "32Mi"
+              }
+            },
+            "scale": {
+              "default": 1,
+              "max": 2,
+              "min": 2,
+              "requestsRateMetric": "istio_requests_rate",
+              "targetCPUUtilizationPercentage": 95
+            },
+            "serviceLevelObjectiveLabels": {},
+            "serviceMonitors": [
+              {
+                "labels": {
+                  "prometheus": "cluster"
+                },
+                "name": "internal-cluster",
+                "sloRegex": false,
+                "spec": {
+                  "endpoints": [
+                    {
+                      "bearerTokenSecret": {
+                        "key": ""
+                      },
+                      "interval": "30s",
+                      "port": "status",
+                      "relabelings": [
+                        {
+                          "action": "replace",
+                          "sourceLabels": [
+                            "__meta_kubernetes_pod_label_picchu_medium_engineering_tag"
+                          ],
+                          "targetLabel": "tag"
+                        }
+                      ]
+                    }
+                  ],
+                  "namespaceSelector": {},
+                  "selector": {
+                    "matchLabels": {
+                      "prometheus.io/scrape": "true"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "aws": {
+              "iam": {}
+            },
+            "canary": {
+              "percent": 0,
+              "ttl": 0
+            },
+            "configSelector": {
+              "matchLabels": {
+                "medium.build/app": "echo",
+                "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+                "medium.build/target": "sandbox"
+              }
+            },
+            "defaultIngressPorts": {
+              "private": "http",
+              "public": "http"
+            },
+            "env": [
+              {
+                "name": "OTEL_HOST",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "status.hostIP"
+                  }
+                }
+              }
+            ],
+            "externalTest": {
+              "completed": false,
+              "enabled": false,
+              "started": false,
+              "timeout": "2h0m0s"
+            },
+            "fleet": "sandbox",
+            "istio": {
+              "sidecar": {
+                "egressHosts": [
+                  "istio-system/*",
+                  "lightstep/*",
+                  "./*"
+                ]
+              },
+              "trafficPolicy": {
+                "portLevelSettings": [
+                  {
+                    "connectionPool": {
+                      "http": {}
+                    },
+                    "port": {
+                      "number": 80
+                    }
+                  },
+                  {
+                    "connectionPool": {
+                      "http": {
+                        "http2MaxRequests": 10
+                      }
+                    },
+                    "port": {
+                      "number": 4242
+                    }
+                  }
+                ]
+              }
+            },
+            "lifecycle": {
+              "preStop": {
+                "exec": {
+                  "command": [
+                    "sleep",
+                    "20"
+                  ]
+                }
+              }
+            },
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "name": "sandbox",
+            "podAnnotations": {
+              "ad.datadoghq.com/tags": "{\"env\":\"sandbox\",\"service\":\"echo\",\"version\":\"main-20250430-151034-b4c52cd0cf\"}",
+              "go.medium.engineering/PodTerminationGracePeriodSeconds": "60",
+              "medium.engineering/pod-ttl": "604800",
+              "prometheus.io/dd-scrape": "true",
+              "prometheus.io/port": "8082",
+              "proxy.istio.io/config": "proxyStatsMatcher:\n  inclusionPrefixes:\n  - \"listener\"\n  - \"cluster.inbound\"\n  - \"cluster_manager\"\n  - \"listener_manager\"\n  - \"http_mixer_filter\"\n  - \"tcp_mixer_filter\"\n  - \"server\"\n  - \"cluster.xds-grpc\"",
+              "sidecar.istio.io/preStopGracePeriod": "40",
+              "traffic.sidecar.istio.io/includeOutboundIPRanges": "*"
+            },
+            "ports": [
+              {
+                "containerPort": 8080,
+                "hosts": [
+                  "echo.medium.sh",
+                  "echo.medium.dev"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "public",
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2,
+                      "perTryTimeout": "3s",
+                      "retryOn": "5xx"
+                    },
+                    "timeout": "3s"
+                  }
+                },
+                "mode": "private",
+                "name": "http",
+                "port": 80,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8081,
+                "hosts": [
+                  "echo-grpc.sandbox.medm.cloud"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 1
+                    }
+                  }
+                },
+                "mode": "private",
+                "name": "grpc",
+                "port": 81,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8082,
+                "ingressPort": 443,
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2
+                    }
+                  }
+                },
+                "mode": "local",
+                "name": "status",
+                "port": 4242,
+                "protocol": "TCP"
+              }
+            ],
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "release": {
+              "eligible": true,
+              "geometricScaling": {
+                "delay": "1m0s",
+                "factor": 2,
+                "start": 13
+              },
+              "linearScaling": {
+                "delay": "10s",
+                "increment": 5
+              },
+              "max": 100,
+              "scalingStrategy": "geometric",
+              "schedule": "always",
+              "ttl": 432000
+            },
+            "resources": {
+              "limits": {
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "ephemeral-storage": "100Mi",
+                "memory": "32Mi"
+              }
+            },
+            "scale": {
+              "default": 1,
+              "max": 2,
+              "min": 2,
+              "requestsRateMetric": "istio_requests_rate",
+              "targetCPUUtilizationPercentage": 95
+            },
+            "serviceLevelObjectiveLabels": {},
+            "serviceMonitors": [
+              {
+                "labels": {
+                  "prometheus": "cluster"
+                },
+                "name": "sandbox-cluster",
+                "sloRegex": false,
+                "spec": {
+                  "endpoints": [
+                    {
+                      "bearerTokenSecret": {
+                        "key": ""
+                      },
+                      "interval": "30s",
+                      "port": "status",
+                      "relabelings": [
+                        {
+                          "action": "replace",
+                          "sourceLabels": [
+                            "__meta_kubernetes_pod_label_picchu_medium_engineering_tag"
+                          ],
+                          "targetLabel": "tag"
+                        }
+                      ]
+                    }
+                  ],
+                  "namespaceSelector": {},
+                  "selector": {
+                    "matchLabels": {
+                      "prometheus.io/scrape": "true"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "aws": {
+              "iam": {}
+            },
+            "canary": {
+              "percent": 0,
+              "ttl": 0
+            },
+            "configSelector": {
+              "matchLabels": {
+                "medium.build/app": "echo",
+                "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+                "medium.build/target": "production"
+              }
+            },
+            "defaultIngressPorts": {
+              "private": "http",
+              "public": "http"
+            },
+            "env": [
+              {
+                "name": "OTEL_HOST",
+                "valueFrom": {
+                  "fieldRef": {
+                    "fieldPath": "status.hostIP"
+                  }
+                }
+              }
+            ],
+            "externalTest": {
+              "completed": false,
+              "enabled": false,
+              "started": false,
+              "timeout": "2h0m0s"
+            },
+            "fleet": "production",
+            "istio": {
+              "sidecar": {
+                "egressHosts": [
+                  "istio-system/*",
+                  "lightstep/*",
+                  "./*"
+                ]
+              },
+              "trafficPolicy": {
+                "portLevelSettings": [
+                  {
+                    "connectionPool": {
+                      "http": {}
+                    },
+                    "port": {
+                      "number": 80
+                    }
+                  },
+                  {
+                    "connectionPool": {
+                      "http": {
+                        "http2MaxRequests": 10
+                      }
+                    },
+                    "port": {
+                      "number": 4242
+                    }
+                  }
+                ]
+              }
+            },
+            "lifecycle": {
+              "preStop": {
+                "exec": {
+                  "command": [
+                    "sleep",
+                    "20"
+                  ]
+                }
+              }
+            },
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "name": "production",
+            "podAnnotations": {
+              "ad.datadoghq.com/tags": "{\"env\":\"production\",\"service\":\"echo\",\"version\":\"main-20250430-151034-b4c52cd0cf\"}",
+              "go.medium.engineering/PodTerminationGracePeriodSeconds": "60",
+              "medium.engineering/pod-ttl": "604800",
+              "prometheus.io/dd-scrape": "true",
+              "prometheus.io/port": "8082",
+              "proxy.istio.io/config": "proxyStatsMatcher:\n  inclusionPrefixes:\n  - \"listener\"\n  - \"cluster.inbound\"\n  - \"cluster_manager\"\n  - \"listener_manager\"\n  - \"http_mixer_filter\"\n  - \"tcp_mixer_filter\"\n  - \"server\"\n  - \"cluster.xds-grpc\"",
+              "sidecar.istio.io/preStopGracePeriod": "40",
+              "traffic.sidecar.istio.io/includeOutboundIPRanges": "*"
+            },
+            "ports": [
+              {
+                "containerPort": 8080,
+                "hosts": [
+                  "echo.medium.systems"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "public",
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2,
+                      "perTryTimeout": "3s",
+                      "retryOn": "5xx"
+                    },
+                    "timeout": "3s"
+                  }
+                },
+                "mode": "private",
+                "name": "http",
+                "port": 80,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8081,
+                "hosts": [
+                  "echo-grpc.production.medm.cloud"
+                ],
+                "ingressPort": 443,
+                "ingresses": [
+                  "private"
+                ],
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 1
+                    }
+                  }
+                },
+                "mode": "private",
+                "name": "grpc",
+                "port": 81,
+                "protocol": "TCP"
+              },
+              {
+                "containerPort": 8082,
+                "ingressPort": 443,
+                "istio": {
+                  "http": {
+                    "retries": {
+                      "attempts": 2
+                    }
+                  }
+                },
+                "mode": "local",
+                "name": "status",
+                "port": 4242,
+                "protocol": "TCP"
+              }
+            ],
+            "priorityClassName": "low-priority",
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              },
+              "initialDelaySeconds": 5,
+              "periodSeconds": 5,
+              "timeoutSeconds": 2
+            },
+            "release": {
+              "eligible": true,
+              "geometricScaling": {
+                "delay": "1m0s",
+                "factor": 2,
+                "start": 13
+              },
+              "linearScaling": {
+                "delay": "10s",
+                "increment": 5
+              },
+              "max": 100,
+              "scalingStrategy": "geometric",
+              "schedule": "always",
+              "ttl": 432000
+            },
+            "resources": {
+              "limits": {
+                "memory": "64Mi"
+              },
+              "requests": {
+                "cpu": "10m",
+                "ephemeral-storage": "100Mi",
+                "memory": "32Mi"
+              }
+            },
+            "scale": {
+              "default": 1,
+              "max": 8,
+              "min": 4,
+              "requestsRateMetric": "istio_requests_rate",
+              "targetCPUUtilizationPercentage": 95
+            },
+            "serviceLevelObjectiveLabels": {
+              "alertLabels": {
+                "channel": "#eng-watch-alerts",
+                "severity": "slack"
+              },
+              "serviceLevelLabels": {
+                "channel": "#eng-watch-alerts",
+                "team": "core-platform"
+              }
+            },
+            "serviceLevelObjectives": [
+              {
+                "alerting": {
+                  "labels": {
+                    "channel": "#eng-watch-alerts",
+                    "severity": "slack"
+                  },
+                  "name": "istio-http-availability",
+                  "pageAlert": {
+                    "labels": {
+                      "channel": "#eng-watch-alerts",
+                      "severity": "slack"
+                    }
+                  },
+                  "ticketAlert": {
+                    "disable": true
+                  }
+                },
+                "description": "99.9% of istio http requests must be successful.",
+                "enabled": true,
+                "name": "istio-http-availability",
+                "objectivePercentString": "99.900000",
+                "serviceLevelIndicator": {
+                  "alertAfter": "5m",
+                  "canary": {
+                    "allowancePercentString": "1.000000",
+                    "enabled": true,
+                    "failAfter": "2m"
+                  },
+                  "errorQuery": "sum(rate(istio_requests_total{reporter=\"source\", destination_service=\"echo.echo-production.svc.cluster.local\", response_code!~\"[234][0-9]{2}\"}[2m])) by (tag)",
+                  "tagKey": "tag",
+                  "totalQuery": "sum(rate(istio_requests_total{reporter=\"source\", destination_service=\"echo.echo-production.svc.cluster.local\"}[2m])) by (tag)"
+                },
+                "serviceLevelObjectiveLabels": {}
+              },
+              {
+                "alerting": {
+                  "labels": {
+                    "channel": "#eng-watch-alerts",
+                    "severity": "slack"
+                  },
+                  "name": "http-availability",
+                  "pageAlert": {
+                    "labels": {
+                      "channel": "#eng-watch-alerts",
+                      "severity": "slack"
+                    }
+                  },
+                  "ticketAlert": {
+                    "disable": true
+                  }
+                },
+                "description": "99.9% of http requests must be successful.",
+                "enabled": true,
+                "name": "http-availability",
+                "objectivePercentString": "99.900000",
+                "serviceLevelIndicator": {
+                  "alertAfter": "5m",
+                  "canary": {
+                    "allowancePercentString": "1.000000",
+                    "enabled": true,
+                    "failAfter": "2m"
+                  },
+                  "errorQuery": "sum(rate(echo_errors[2m])) by (tag)",
+                  "tagKey": "tag",
+                  "totalQuery": "sum(rate(echo_requests[2m])) by (tag)"
+                },
+                "serviceLevelObjectiveLabels": {}
+              }
+            ],
+            "serviceMonitors": [
+              {
+                "labels": {
+                  "prometheus": "cluster"
+                },
+                "name": "production-cluster",
+                "sloRegex": true,
+                "spec": {
+                  "endpoints": [
+                    {
+                      "bearerTokenSecret": {
+                        "key": ""
+                      },
+                      "interval": "30s",
+                      "metricRelabelings": [
+                        {
+                          "action": "drop",
+                          "sourceLabels": [
+                            "__name__"
+                          ]
+                        }
+                      ],
+                      "port": "status",
+                      "relabelings": [
+                        {
+                          "action": "replace",
+                          "sourceLabels": [
+                            "__meta_kubernetes_pod_label_picchu_medium_engineering_tag"
+                          ],
+                          "targetLabel": "tag"
+                        }
+                      ]
+                    }
+                  ],
+                  "namespaceSelector": {},
+                  "selector": {
+                    "matchLabels": {
+                      "prometheus.io/scrape": "true"
+                    }
+                  }
+                }
+              },
+              {
+                "labels": {
+                  "prometheus": "slo"
+                },
+                "name": "production-slo",
+                "sloRegex": true,
+                "spec": {
+                  "endpoints": [
+                    {
+                      "bearerTokenSecret": {
+                        "key": ""
+                      },
+                      "interval": "30s",
+                      "metricRelabelings": [
+                        {
+                          "action": "keep",
+                          "sourceLabels": [
+                            "__name__"
+                          ]
+                        }
+                      ],
+                      "port": "status",
+                      "relabelings": [
+                        {
+                          "action": "replace",
+                          "sourceLabels": [
+                            "__meta_kubernetes_pod_label_picchu_medium_engineering_tag"
+                          ],
+                          "targetLabel": "tag"
+                        }
+                      ]
+                    }
+                  ],
+                  "namespaceSelector": {},
+                  "selector": {
+                    "matchLabels": {
+                      "prometheus.io/scrape": "true"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "status": {
+        "sentry": {},
+        "targets": [
+          {
+            "name": "delivery",
+            "release": {
+              "currentPercent": 0,
+              "peakPercent": 100
+            },
+            "scale": {
+              "current": 0,
+              "desired": 0,
+              "peak": 2
+            },
+            "state": "retired"
+          },
+          {
+            "name": "internal",
+            "release": {
+              "currentPercent": 0,
+              "peakPercent": 100
+            },
+            "scale": {
+              "current": 0,
+              "desired": 0,
+              "peak": 2
+            },
+            "state": "retired"
+          },
+          {
+            "name": "sandbox",
+            "release": {
+              "currentPercent": 0,
+              "peakPercent": 100
+            },
+            "scale": {
+              "current": 0,
+              "desired": 0,
+              "peak": 2
+            },
+            "state": "retired"
+          },
+          {
+            "name": "production",
+            "release": {
+              "currentPercent": 0,
+              "peakPercent": 30
+            },
+            "scale": {
+              "current": 0,
+              "desired": 0,
+              "peak": 4
+            },
+            "state": "retired"
+          }
+        ]
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

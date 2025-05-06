@@ -1,0 +1,17 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert
+  namespace: picchu
+spec:
+  subject:
+    organizations:
+      - cluster-api
+  dnsNames:
+  - webhook-service.picchu.svc
+  - webhook-service.picchu.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-server-cert

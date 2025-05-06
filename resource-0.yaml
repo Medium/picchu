@@ -1,0 +1,153 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "data": {
+        "APP": "echo",
+        "BUILD_COMMIT": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+        "BUILD_REF": "main",
+        "FLEET": "delivery",
+        "GRPC_PORT": "8081",
+        "HTTP_PORT": "8080",
+        "KUBERNETES": "true",
+        "OTEL_PORT": "4317",
+        "STATUS_PORT": "8082",
+        "TAG": "main-20250430-151034-b4c52cd0cf",
+        "TARGET": "delivery"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "config.kbfd.medium.build/inline-env": "[{\"name\":\"OTEL_HOST\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"status.hostIP\"}}}]",
+          "git-scm.com/committer-timestamp": "2025-04-30T14:50:30Z",
+          "git-scm.com/ref": "main",
+          "github.com/repository": "Medium/mono"
+        },
+        "labels": {
+          "app.kubernetes.io/managed-by": "kbfd",
+          "config.kbfd.medium.build/type": "environment",
+          "kbfd.medium.build/role": "config",
+          "medium.build/app": "echo",
+          "medium.build/commit": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+          "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+          "medium.build/target": "delivery"
+        },
+        "name": "echo-main-20250430-151034-b4c52cd0cf-delivery",
+        "namespace": "picchu"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "APP": "echo",
+        "BUILD_COMMIT": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+        "BUILD_REF": "main",
+        "FLEET": "internal",
+        "GRPC_PORT": "8081",
+        "HTTP_PORT": "8080",
+        "KUBERNETES": "true",
+        "OTEL_PORT": "4317",
+        "STATUS_PORT": "8082",
+        "TAG": "main-20250430-151034-b4c52cd0cf",
+        "TARGET": "internal"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "config.kbfd.medium.build/inline-env": "[{\"name\":\"OTEL_HOST\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"status.hostIP\"}}}]",
+          "git-scm.com/committer-timestamp": "2025-04-30T14:50:30Z",
+          "git-scm.com/ref": "main",
+          "github.com/repository": "Medium/mono"
+        },
+        "labels": {
+          "app.kubernetes.io/managed-by": "kbfd",
+          "config.kbfd.medium.build/type": "environment",
+          "kbfd.medium.build/role": "config",
+          "medium.build/app": "echo",
+          "medium.build/commit": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+          "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+          "medium.build/target": "internal"
+        },
+        "name": "echo-main-20250430-151034-b4c52cd0cf-internal",
+        "namespace": "picchu"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "APP": "echo",
+        "BUILD_COMMIT": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+        "BUILD_REF": "main",
+        "FLEET": "production",
+        "GRPC_PORT": "8081",
+        "HTTP_PORT": "8080",
+        "KUBERNETES": "true",
+        "OTEL_PORT": "4317",
+        "STATUS_PORT": "8082",
+        "TAG": "main-20250430-151034-b4c52cd0cf",
+        "TARGET": "production"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "config.kbfd.medium.build/inline-env": "[{\"name\":\"OTEL_HOST\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"status.hostIP\"}}}]",
+          "git-scm.com/committer-timestamp": "2025-04-30T14:50:30Z",
+          "git-scm.com/ref": "main",
+          "github.com/repository": "Medium/mono"
+        },
+        "labels": {
+          "app.kubernetes.io/managed-by": "kbfd",
+          "config.kbfd.medium.build/type": "environment",
+          "kbfd.medium.build/role": "config",
+          "medium.build/app": "echo",
+          "medium.build/commit": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+          "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+          "medium.build/target": "production"
+        },
+        "name": "echo-main-20250430-151034-b4c52cd0cf-production",
+        "namespace": "picchu"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "APP": "echo",
+        "BUILD_COMMIT": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+        "BUILD_REF": "main",
+        "FLEET": "sandbox",
+        "GRPC_PORT": "8081",
+        "HTTP_PORT": "8080",
+        "KUBERNETES": "true",
+        "OTEL_PORT": "4317",
+        "STATUS_PORT": "8082",
+        "TAG": "main-20250430-151034-b4c52cd0cf",
+        "TARGET": "sandbox"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "config.kbfd.medium.build/inline-env": "[{\"name\":\"OTEL_HOST\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"status.hostIP\"}}}]",
+          "git-scm.com/committer-timestamp": "2025-04-30T14:50:30Z",
+          "git-scm.com/ref": "main",
+          "github.com/repository": "Medium/mono"
+        },
+        "labels": {
+          "app.kubernetes.io/managed-by": "kbfd",
+          "config.kbfd.medium.build/type": "environment",
+          "kbfd.medium.build/role": "config",
+          "medium.build/app": "echo",
+          "medium.build/commit": "b4c52cd0cf7e0ca666a13e807ae22cc57a0966e3",
+          "medium.build/tag": "main-20250430-151034-b4c52cd0cf",
+          "medium.build/target": "sandbox"
+        },
+        "name": "echo-main-20250430-151034-b4c52cd0cf-sandbox",
+        "namespace": "picchu"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}
