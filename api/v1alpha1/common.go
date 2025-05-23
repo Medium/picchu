@@ -63,6 +63,7 @@ const (
 	AnnotationGitCommitterTimestamp     = "git-scm.com/committer-timestamp"
 	AnnotationRevisionCreationTimestamp = "revisionCreationTimestamp"
 	AnnotationIAMRole                   = "iam.amazonaws.com/role"
+	AnnotationKedaServiceAccount        = "eks.amazonaws.com/role-arn"
 	// TODO(bob): camelCase
 	AnnotationFailedAt               = "picchu.medium.engineering/failed-at-timestamp"
 	AnnotationRepo                   = "picchu.medium.engineering/repo"
@@ -133,6 +134,9 @@ type KedaScaleInfo struct {
 	Triggers []kedav1.ScaleTriggers `json:"triggers"`
 	// +optional
 	Fallback *kedav1.Fallback `json:"fallback,omitempty"`
+
+	// +optional
+	AwsEksAuth bool `json:"awsEksAuth,omitempty"`
 }
 
 type ScaleInfo struct {

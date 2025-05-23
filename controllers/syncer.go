@@ -54,6 +54,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 	if err = r.syncNamespace(ctx); err != nil {
 		return
 	}
+	if err = r.syncServiceAccount(ctx); err != nil {
+		return
+	}
 	if err = r.reportMetrics(); err != nil {
 		r.log.Error(err, "Failed to report metrics")
 		return
@@ -134,6 +137,15 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 		Name:      r.instance.TargetNamespace(),
 		OwnerName: r.instance.Name,
 		OwnerType: picchuv1alpha1.OwnerReleaseManager,
+	})
+}
+
+func (r *ResourceSyncer) syncServiceAccount(ctx context.Context) error {
+	return r.applyPlan(ctx, "Ensure ServiceAccount", &rmplan.EnsureServiceAccount{
+		Name:      r.instance.Spec.App,
+		OwnerName: r.instance.Name,
+		OwnerType: picchuv1alpha1.OwnerReleaseManager,
+		Namespace: r.instance.TargetNamespace(),
 	})
 }
 
