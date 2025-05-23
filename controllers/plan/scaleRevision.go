@@ -218,6 +218,10 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log lo
 }
 
 func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Client, log logr.Logger) error {
+	provider := kedav1.PodIdentityProviderAwsKiam
+	if p.KedaWorker.AwsEksAuth {
+		provider = kedav1.PodIdentityProviderAwsEKS
+	}
 	triggerAuth := &kedav1.TriggerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.Tag,
@@ -226,7 +230,7 @@ func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Cli
 		},
 		Spec: kedav1.TriggerAuthenticationSpec{
 			PodIdentity: &kedav1.AuthPodIdentity{
-				Provider: kedav1.PodIdentityProviderAwsKiam,
+				Provider: provider,
 			},
 		},
 	}
