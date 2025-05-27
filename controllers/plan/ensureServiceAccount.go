@@ -40,6 +40,7 @@ func (p *EnsureServiceAccount) Apply(ctx context.Context, cli client.Client, clu
 			picchuv1alpha1.LabelOwnerName: p.OwnerName,
 		},
 		Annotations: annotations,
+		Namespace:   p.Namespace,
 	}
 
 	return plan.CreateOrUpdate(ctx, log, cli, &corev1.ServiceAccount{ObjectMeta: om})
