@@ -422,8 +422,13 @@ func (p *SyncRevision) patchServiceAccount(ctx context.Context, cli client.Clien
 		sa.Annotations = map[string]string{}
 	}
 
+	if p.IAMRole == "" {
+		//Skipping ServiceAccount patch, IAMRole is empty
+		return nil
+	}
+
 	if sa.Annotations[picchuv1alpha1.AnnotationKedaServiceAccount] == p.IAMRole {
-		log.Info("ServiceAccount already has desired annotation", "key", picchuv1alpha1.AnnotationKedaServiceAccount, "value", p.IAMRole)
+		// ServiceAccount already has IAMRole annotation
 		return nil
 	}
 
