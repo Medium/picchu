@@ -172,6 +172,10 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		}
 	}
 
+	if err := p.patchServiceAccount(ctx, cli, log); err != nil {
+		return err
+	}
+
 	if p.PodDisruptionBudget == nil {
 		maxUnavailable := intstr.FromString(picchuv1alpha1.MaxUnavailable)
 		p.PodDisruptionBudget = &policyv1.PodDisruptionBudget{
@@ -406,6 +410,31 @@ func (p *SyncRevision) syncPodDisruptionBudget(ctx context.Context, cli client.C
 		},
 	}
 	return plan.CreateOrUpdate(ctx, log, cli, p.PodDisruptionBudget)
+}
+
+func (p *SyncRevision) patchServiceAccount(ctx context.Context, cli client.Client, log logr.Logger) error {
+	sa := &corev1.ServiceAccount{}
+	if err := cli.Get(ctx, client.ObjectKey{Namespace: p.Namespace, Name: p.App}, sa); err != nil {
+		return err
+	}
+
+	if sa.Annotations == nil {
+		sa.Annotations = map[string]string{}
+	}
+
+	if p.IAMRole == "" {
+		//Skipping ServiceAccount patch, IAMRole is empty
+		return nil
+	}
+
+	if sa.Annotations[picchuv1alpha1.AnnotationKedaServiceAccount] == p.IAMRole {
+		// ServiceAccount already has IAMRole annotation
+		return nil
+	}
+
+	log.Info("Patching ServiceAccount with annotation", "key", picchuv1alpha1.AnnotationKedaServiceAccount, "value", p.IAMRole)
+	sa.Annotations[picchuv1alpha1.AnnotationKedaServiceAccount] = p.IAMRole
+	return cli.Update(ctx, sa)
 }
 func DefaultDNSConfig() *corev1.PodDNSConfig {
 	oneStr := "1"

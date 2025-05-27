@@ -129,6 +129,28 @@ func CreateOrUpdate(
 		if err != nil {
 			return err
 		}
+	case *corev1.ServiceAccount:
+		typed := orig.DeepCopy()
+		serviceAccount := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, serviceAccount, func() error {
+			if isIgnored(serviceAccount.ObjectMeta) {
+				kind := utils.MustGetKind(serviceAccount).Kind
+				log.Info("Resource is ignored", "namespace", serviceAccount.Namespace, "name", serviceAccount.Name, "kind", kind)
+				return nil
+			}
+			serviceAccount.Labels = CopyStringMap(typed.Labels)
+			serviceAccount.Annotations = CopyStringMap(typed.Annotations)
+			return nil
+		})
+		LogSync(log, op, err, serviceAccount)
+		if err != nil {
+			return err
+		}
 	case *istiov1alpha3.DestinationRule:
 		typed := orig.DeepCopy()
 		dr := &istiov1alpha3.DestinationRule{

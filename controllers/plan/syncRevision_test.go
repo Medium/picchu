@@ -19,7 +19,19 @@ import (
 )
 
 var (
-	maxUnavailable      = intstr.FromString("5%")
+	maxUnavailable        = intstr.FromString("5%")
+	defaultServiceAccount = &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testapp",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				"test": "label",
+			},
+			Annotations: map[string]string{
+				"test": "annotation",
+			},
+		},
+	}
 	defaultRevisionPlan = &SyncRevision{
 		App:       "testapp",
 		Tag:       "testtag",
@@ -73,7 +85,7 @@ var (
 		PodAnnotations: map[string]string{
 			"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
 		},
-		ServiceAccountName: "testaccount",
+		ServiceAccountName: defaultServiceAccount.Name,
 		EnvVars: []corev1.EnvVar{{
 			Name: "NODE_IP",
 			ValueFrom: &corev1.EnvVarSource{
@@ -154,7 +166,7 @@ var (
 			},
 		},
 		IAMRole:            "testrole",
-		ServiceAccountName: "testaccount",
+		ServiceAccountName: defaultServiceAccount.Name,
 	}
 	zero   int32 = 0
 	one    int32 = 1
@@ -198,7 +210,7 @@ var (
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "testaccount",
+					ServiceAccountName: defaultServiceAccount.Name,
 					Containers: []corev1.Container{{
 						Env: []corev1.EnvVar{{
 							Name: "NODE_IP",
@@ -365,7 +377,7 @@ var (
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "testaccount",
+					ServiceAccountName: defaultServiceAccount.Name,
 					Containers: []corev1.Container{{
 						EnvFrom: []corev1.EnvFromSource{},
 						Image:   "docker.medium.sh/test:testtag",
@@ -431,7 +443,7 @@ var (
 func TestSyncRevisionNoChange(t *testing.T) {
 	ctx := context.TODO()
 	log := test.MustNewLogger()
-	cli := fakeClient(defaultExpectedReplicaSet)
+	cli := fakeClient(defaultExpectedReplicaSet, defaultServiceAccount)
 
 	rsl := &appsv1.ReplicaSetList{}
 	assert.NoError(t, defaultRevisionPlan.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
@@ -447,7 +459,7 @@ func TestSyncRevisionWithChange(t *testing.T) {
 	existing.Labels["name"] = "updateme"
 	expected := defaultExpectedReplicaSet.DeepCopy()
 	expected.ObjectMeta.ResourceVersion = "2"
-	cli := fakeClient(existing)
+	cli := fakeClient(existing, defaultServiceAccount)
 
 	rsl := &appsv1.ReplicaSetList{}
 	assert.NoError(t, defaultRevisionPlan.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
@@ -465,8 +477,7 @@ func TestSyncRevisionExistingReplicasZero(t *testing.T) {
 	existing.Spec.Replicas = &zero
 	expected := defaultExpectedReplicaSet.DeepCopy()
 	expected.ObjectMeta.ResourceVersion = "2"
-	cli := fakeClient(existing)
-
+	cli := fakeClient(existing, defaultServiceAccount)
 	rsl := &appsv1.ReplicaSetList{}
 	assert.NoError(t, defaultRevisionPlan.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
 	assert.NoError(t, cli.List(ctx, rsl))
@@ -482,7 +493,7 @@ func TestSyncRevisionRetirement(t *testing.T) {
 	existing.Spec.Replicas = &twenty
 	expected := retiredExpectedReplicaSet.DeepCopy()
 	expected.ObjectMeta.ResourceVersion = "1000"
-	cli := fakeClient(existing)
+	cli := fakeClient(existing, defaultServiceAccount)
 
 	rsl := &appsv1.ReplicaSetList{}
 	assert.NoError(t, retiredRevisionPlan.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
@@ -497,7 +508,7 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 	expected := defaultExpectedReplicaSet.DeepCopy()
 	expected.ObjectMeta.ResourceVersion = "1"
 	expected.TypeMeta = metav1.TypeMeta{}
-	cli := fakeClient()
+	cli := fakeClient(defaultServiceAccount)
 
 	rsl := &appsv1.ReplicaSetList{}
 	assert.NoError(t, defaultRevisionPlan.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
@@ -509,7 +520,7 @@ func TestSyncRevisionWithCreate(t *testing.T) {
 func TestSyncRevisionWithCreateAndSecret(t *testing.T) {
 	log := test.MustNewLogger()
 	ctx := context.TODO()
-	cli := fakeClient()
+	cli := fakeClient(defaultServiceAccount)
 
 	expectedRs := defaultExpectedReplicaSet.DeepCopy()
 	expectedRs.TypeMeta = metav1.TypeMeta{}
