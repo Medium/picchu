@@ -97,7 +97,7 @@ generate: deps
 
 # Build the docker image
 docker-build:
-	docker build . -t ${IMG}
+	docker build . --platform linux/amd64 -t ${IMG}
 
 # Push the docker image
 docker-push:
