@@ -218,11 +218,9 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log lo
 }
 
 func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Client, log logr.Logger) error {
-	//let's keep the kiam as the default provider for backwards compatibility for now
-	provider := kedav1.PodIdentityProviderAwsKiam
-	if p.KedaWorker.AwsEksAuth {
-		provider = kedav1.PodIdentityProviderAwsEKS
-	}
+
+	provider := kedav1.PodIdentityProviderAwsEKS
+
 	triggerAuth := &kedav1.TriggerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      p.Tag,
