@@ -105,7 +105,7 @@ func TestRetireExistingRevision(t *testing.T) {
 	kedaTriggerAuth := &kedav1.TriggerAuthentication{
 		Spec: kedav1.TriggerAuthenticationSpec{
 			PodIdentity: &kedav1.AuthPodIdentity{
-				Provider: kedav1.PodIdentityProviderAwsKiam,
+				Provider: kedav1.PodIdentityProviderAwsEKS,
 			},
 		},
 	}
