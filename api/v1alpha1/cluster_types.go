@@ -39,6 +39,7 @@ type ClusterSpec struct {
 	Ingresses           ClusterIngresses `json:"ingresses"`
 	EnableDevRoutes     bool             `json:"enableDevRoutes,omitempty"`
 	DevRouteTagTemplate string           `json:"devRouteTagTemplate,omitempty"`
+	DisableEventDriven  bool             `json:"disableEventDriven,omitempty"`
 }
 
 type ClusterConfig struct {

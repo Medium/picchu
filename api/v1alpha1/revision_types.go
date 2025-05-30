@@ -53,6 +53,7 @@ type RevisionSpec struct {
 	Sentry                SentryInfo       `json:"sentry,omitempty"`
 	TagRoutingHeader      string           `json:"tagRoutingHeader,omitempty"`
 	DisableMirroring      bool             `json:"disableMirroring,omitempty"`
+	EventDriven           bool             `json:"eventDriven,omitempty"`
 }
 
 type RevisionApp struct {
