@@ -32,6 +32,7 @@ type ScaleRevision struct {
 	RequestsRateTarget *resource.Quantity
 	Worker             *picchuv1alpha1.WorkerScaleInfo
 	KedaWorker         *picchuv1alpha1.KedaScaleInfo
+	EventDriven        bool
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -52,6 +53,11 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		e := errors.New("cluster scalingFactor can't be nil")
 		log.Error(e, "Cluster scalingFactor nil")
 		return e
+	}
+
+	if cluster.Spec.DisableEventDriven && p.EventDriven {
+		f := 0.0
+		scalingFactor = &f
 	}
 
 	scaledMin := int32(math.Ceil(float64(p.Min) * *scalingFactor))

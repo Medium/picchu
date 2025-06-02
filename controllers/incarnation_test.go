@@ -173,6 +173,67 @@ func TestIncarnation_divideReplicas(t *ttesting.T) {
 	}
 }
 
+func TestIncarnation_eventDrivenDisabled(t *ttesting.T) {
+	for _, test := range []struct {
+		Name                string
+		EventDriven         bool
+		EventDrivenDisabled bool
+		Expected            int32
+		ScalingFactor       float64
+		Count               int32
+		Percent             int32
+	}{
+		{
+			Name:                "EventDrivenTrue + EventDrivenDisabledTrue",
+			EventDriven:         true,
+			EventDrivenDisabled: true,
+			Expected:            0,
+			ScalingFactor:       0.0,
+			Count:               0,
+			Percent:             100,
+		},
+		{
+			Name:                "EventDrivenFalse + EventDrivenDisabledTrue",
+			EventDriven:         false,
+			EventDrivenDisabled: true,
+			Expected:            5,
+			ScalingFactor:       1.0,
+			Count:               5,
+			Percent:             100,
+		},
+		{
+			Name:                "EventDrivenFalse + EventDrivenDisabledFalse",
+			EventDriven:         false,
+			EventDrivenDisabled: false,
+			Expected:            10,
+			ScalingFactor:       1.0,
+			Count:               10,
+			Percent:             100,
+		},
+	} {
+		t.Run(test.Name, func(t *ttesting.T) {
+			assert := assert.New(t)
+			i := &Incarnation{
+				revision: &picchu.Revision{
+					Spec: picchu.RevisionSpec{
+						EventDriven: test.EventDriven,
+					},
+				},
+				controller: &IncarnationController{
+					clusterInfo: ClusterInfoList{
+						{
+							Name:          "test-cluster",
+							Live:          true,
+							ScalingFactor: test.ScalingFactor,
+						},
+					},
+				},
+			}
+			assert.Equal(test.Expected, i.controller.expectedTotalReplicas(test.Count, test.Percent))
+		})
+	}
+}
+
 func TestIncarnation_divideReplicasNoAutoscale(t *ttesting.T) {
 	for _, test := range []struct {
 		Name         string

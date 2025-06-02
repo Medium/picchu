@@ -519,6 +519,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		RequestsRateTarget: requestsRateTarget,
 		Worker:             i.target().Scale.Worker,
 		KedaWorker:         i.target().Scale.KedaWorker,
+		EventDriven:        i.isEventDriven(),
 	}
 }
 
@@ -836,6 +837,10 @@ func (i *Incarnation) secondsSinceRevision() float64 {
 	expected := ExpectedReleaseLatency(*i, i.target().Release.Max)
 	latency := time.Since(start.Time) - expected
 	return latency.Seconds()
+}
+
+func (i *Incarnation) isEventDriven() bool {
+	return i.revision.Spec.EventDriven
 }
 
 // IncarnationCollection helps us collect and select appropriate incarnations
