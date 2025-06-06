@@ -14,38 +14,8 @@ rules:
   - external-secrets.io
   resources:
   - clustersecretstores
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - external-secrets.io
-  resources:
   - externalsecrets
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - external-secrets.io
-  resources:
   - externalsecrets/finalizers
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - external-secrets.io
-  resources:
   - externalsecrets/status
   verbs:
   - create
@@ -58,65 +28,8 @@ rules:
   - picchu.medium.engineering
   resources:
   - clusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - picchu.medium.engineering
-  resources:
-  - clusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - picchu.medium.engineering
-  resources:
   - clustersecrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - picchu.medium.engineering
-  resources:
-  - clustersecrets/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - picchu.medium.engineering
-  resources:
   - releasemanagers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - picchu.medium.engineering
-  resources:
-  - releasemanagers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - picchu.medium.engineering
-  resources:
   - revisions
   verbs:
   - create
@@ -129,6 +42,9 @@ rules:
 - apiGroups:
   - picchu.medium.engineering
   resources:
+  - clusters/status
+  - clustersecrets/status
+  - releasemanagers/status
   - revisions/status
   verbs:
   - get
