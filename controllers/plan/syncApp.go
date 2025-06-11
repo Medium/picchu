@@ -163,9 +163,11 @@ func (p *SyncApp) ingressHosts(
 ) []string {
 	hostMap := map[string]bool{}
 	fleetSuffix := fmt.Sprintf("-%s", p.Fleet)
-	log.Info("DEBUGGING: Checking ingress host", "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains)
+	log.Info("DEBUGGING: Checking ingress host", "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
 	addDefaultHost := func(host string) {
+		log.Info("DEBUGGING: Adding ingress host", "host", host, "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
 		if p.isUserDefined(host) {
+			log.Info("DEBUGGING: host is user defined", "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
 			return
 		}
 		defaultPort, ok := p.DefaultIngressPorts[ingressName]
@@ -175,10 +177,12 @@ func (p *SyncApp) ingressHosts(
 		if defaultPort != port.Name {
 			return
 		}
+		log.Info("DEBUGGING: Added ingress host", "host", host, "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
 		hostMap[host] = true
 	}
 
 	for _, domain := range defaultDomains {
+		log.Info("DEBUGGING: Adding defaultDomain", "defaultDomain", domain, "App", p.App, "target", p.Target, "namespace", p.Namespace, "portName", port.Name)
 		addDefaultHost(fmt.Sprintf("%s.%s", p.Namespace, domain))
 
 		if p.Target == p.Fleet {
@@ -189,7 +193,7 @@ func (p *SyncApp) ingressHosts(
 		}
 	}
 
-	log.Info("DEBUGGING: Checking defaultHost length", "App", p.App, "target", p.Target, "namespace", p.Namespace, "ingressHosts", hostMap)
+	log.Info("DEBUGGING: Checking defaultHost length", "App", p.App, "target", p.Target, "namespace", p.Namespace, "ingressHosts", hostMap, "portName", port.Name)
 
 	for _, host := range port.Hosts {
 		hostMap[host] = true
@@ -279,7 +283,7 @@ func (p *SyncApp) portHeaderMatches(
 	}
 	if privateEnabled {
 		hosts := p.privateHosts(log, port, cluster)
-		log.Info("DEBUGGING: Checking private host length", "App", p.App, "target", p.Target, "namespace", p.Namespace, "hostLength", len(hosts), "hosts", hosts)
+		log.Info("DEBUGGING: Checking private host length", "App", p.App, "target", p.Target, "namespace", p.Namespace, "hostLength", len(hosts), "hosts", hosts, "portName", port.Name)
 		if len(hosts) > 0 {
 			for _, host := range hosts {
 				hostMap[host] = true
