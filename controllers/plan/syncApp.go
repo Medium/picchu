@@ -163,7 +163,7 @@ func (p *SyncApp) ingressHosts(
 ) []string {
 	hostMap := map[string]bool{}
 	fleetSuffix := fmt.Sprintf("-%s", p.Fleet)
-
+	log.Info("DEBUGGING: Checking ingress host", "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains)
 	addDefaultHost := func(host string) {
 		if p.isUserDefined(host) {
 			return
@@ -188,6 +188,8 @@ func (p *SyncApp) ingressHosts(
 			addDefaultHost(fmt.Sprintf("%s.%s", basename, domain))
 		}
 	}
+
+	log.Info("DEBUGGING: Checking defaultHost length", "App", p.App, "target", p.Target, "namespace", p.Namespace, "ingressHosts", hostMap)
 
 	for _, host := range port.Hosts {
 		hostMap[host] = true
