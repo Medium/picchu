@@ -5,7 +5,7 @@ metadata:
   annotations:
     config.kubernetes.io/origin: |
       path: bases/picchu.medium.engineering_faultinjectors.yaml
-    controller-gen.kubebuilder.io/version: v0.17.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: faultinjectors.picchu.medium.engineering
 spec:
   group: picchu.medium.engineering
@@ -56,6 +56,7 @@ spec:
                         Fault specification is part of a VirtualService rule. Faults include
                         aborting the Http request from downstream service, and/or delaying
                         proxying of requests. A fault rule MUST HAVE delay or abort or both.
+
 
                         *Note:* Delay and abort faults are independent of one another, even if
                         both are specified simultaneously.
