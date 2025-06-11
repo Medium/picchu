@@ -251,7 +251,7 @@ func (p *SyncApp) portHeaderMatches(
 		}
 	}
 
-	log.Info("DEBUGGING: Checking private/public enable", "App", p.App, "target", p.Target, "namespace", p.Namespace, "privateEnabled", privateEnabled, "publicEnabled", publicEnabled)
+	log.Info("DEBUGGING: Checking private/public enable", "App", p.App, "target", p.Target, "namespace", p.Namespace, "privateEnabled", privateEnabled, "publicEnabled", publicEnabled, "portName", port.Name)
 
 	if publicEnabled {
 		hosts := p.publicHosts(log, port, cluster)
