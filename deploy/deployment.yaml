@@ -1,0 +1,336 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: picchu
+  name: picchu
+  namespace: picchu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: picchu
+  template:
+    metadata:
+      labels:
+        control-plane: picchu
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=127.0.0.1:8383
+        - --enable-leader-election
+        command:
+        - /manager
+        image: controller:latest
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            memory: 6Gi
+          requests:
+            cpu: "3"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8383/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: picchu
+  name: picchu
+  namespace: picchu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: picchu
+  template:
+    metadata:
+      labels:
+        control-plane: picchu
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=127.0.0.1:8383
+        - --enable-leader-election
+        command:
+        - /manager
+        image: controller:latest
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            memory: 6Gi
+          requests:
+            cpu: "3"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8383/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: picchu
+  name: picchu
+  namespace: picchu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: picchu
+  template:
+    metadata:
+      labels:
+        control-plane: picchu
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=127.0.0.1:8383
+        - --enable-leader-election
+        command:
+        - /manager
+        image: controller:latest
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            memory: 6Gi
+          requests:
+            cpu: "3"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8383/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: picchu
+  name: picchu
+  namespace: picchu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: picchu
+  template:
+    metadata:
+      labels:
+        control-plane: picchu
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=127.0.0.1:8383
+        - --enable-leader-election
+        command:
+        - /manager
+        image: controller:latest
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            memory: 6Gi
+          requests:
+            cpu: "3"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8383/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: picchu
+  name: picchu
+  namespace: picchu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: picchu
+  template:
+    metadata:
+      labels:
+        control-plane: picchu
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=127.0.0.1:8383
+        - --enable-leader-election
+        command:
+        - /manager
+        image: controller:latest
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            memory: 6Gi
+          requests:
+            cpu: "3"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8383/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: picchu
+  name: picchu
+  namespace: picchu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: picchu
+  template:
+    metadata:
+      labels:
+        control-plane: picchu
+    spec:
+      containers:
+      - args:
+        - --metrics-addr=127.0.0.1:8383
+        - --enable-leader-election
+        command:
+        - /manager
+        image: controller:latest
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            memory: 6Gi
+          requests:
+            cpu: "3"
+            memory: 4Gi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8383/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert

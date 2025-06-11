@@ -1,0 +1,84 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert
+  namespace: picchu
+spec:
+  dnsNames:
+  - webhook-service.picchu.svc
+  - webhook-service.picchu.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert
+  namespace: picchu
+spec:
+  dnsNames:
+  - webhook-service.picchu.svc
+  - webhook-service.picchu.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert
+  namespace: picchu
+spec:
+  dnsNames:
+  - webhook-service.picchu.svc
+  - webhook-service.picchu.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert
+  namespace: picchu
+spec:
+  dnsNames:
+  - webhook-service.picchu.svc
+  - webhook-service.picchu.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert
+  namespace: picchu
+spec:
+  dnsNames:
+  - webhook-service.picchu.svc
+  - webhook-service.picchu.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert
+  namespace: picchu
+spec:
+  dnsNames:
+  - webhook-service.picchu.svc
+  - webhook-service.picchu.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-server-cert

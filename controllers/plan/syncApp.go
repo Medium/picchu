@@ -102,9 +102,8 @@ func (p *SyncApp) Apply(
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Syncing virtualservice for %s", p.App))
-	virtualService := p.virtualService(log, cluster)
 
+	virtualService := p.virtualService(log, cluster)
 	if virtualService == nil {
 		log.Info("No virtualService")
 		return nil
@@ -163,11 +162,9 @@ func (p *SyncApp) ingressHosts(
 ) []string {
 	hostMap := map[string]bool{}
 	fleetSuffix := fmt.Sprintf("-%s", p.Fleet)
-	log.Info("DEBUGGING: Checking ingress host", "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
+
 	addDefaultHost := func(host string) {
-		log.Info("DEBUGGING: Adding ingress host", "host", host, "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
 		if p.isUserDefined(host) {
-			log.Info("DEBUGGING: host is user defined", "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
 			return
 		}
 		defaultPort, ok := p.DefaultIngressPorts[ingressName]
@@ -177,12 +174,10 @@ func (p *SyncApp) ingressHosts(
 		if defaultPort != port.Name {
 			return
 		}
-		log.Info("DEBUGGING: Added ingress host", "host", host, "App", p.App, "target", p.Target, "namespace", p.Namespace, "defaultDomains", defaultDomains, "portName", port.Name)
 		hostMap[host] = true
 	}
 
 	for _, domain := range defaultDomains {
-		log.Info("DEBUGGING: Adding defaultDomain", "defaultDomain", domain, "App", p.App, "target", p.Target, "namespace", p.Namespace, "portName", port.Name)
 		addDefaultHost(fmt.Sprintf("%s.%s", p.Namespace, domain))
 
 		if p.Target == p.Fleet {
@@ -192,8 +187,6 @@ func (p *SyncApp) ingressHosts(
 			addDefaultHost(fmt.Sprintf("%s.%s", basename, domain))
 		}
 	}
-
-	log.Info("DEBUGGING: Checking defaultHost length", "App", p.App, "target", p.Target, "namespace", p.Namespace, "ingressHosts", hostMap, "portName", port.Name)
 
 	for _, host := range port.Hosts {
 		hostMap[host] = true
@@ -255,8 +248,6 @@ func (p *SyncApp) portHeaderMatches(
 		}
 	}
 
-	log.Info("DEBUGGING: Checking private/public enable", "App", p.App, "target", p.Target, "namespace", p.Namespace, "privateEnabled", privateEnabled, "publicEnabled", publicEnabled, "portName", port.Name)
-
 	if publicEnabled {
 		hosts := p.publicHosts(log, port, cluster)
 		if len(hosts) > 0 {
@@ -283,7 +274,6 @@ func (p *SyncApp) portHeaderMatches(
 	}
 	if privateEnabled {
 		hosts := p.privateHosts(log, port, cluster)
-		log.Info("DEBUGGING: Checking private host length", "App", p.App, "target", p.Target, "namespace", p.Namespace, "hostLength", len(hosts), "hosts", hosts, "portName", port.Name)
 		if len(hosts) > 0 {
 			for _, host := range hosts {
 				hostMap[host] = true
@@ -544,24 +534,18 @@ func (p *SyncApp) destinationRule() *istioclient.DestinationRule {
 // virtualService will return nil if there are not configured routes
 func (p *SyncApp) virtualService(log logr.Logger, cluster *picchuv1alpha1.Cluster) *istioclient.VirtualService {
 	hostMap := map[string]bool{}
-	log.Info(fmt.Sprintf("DEBUGGING: Syncing taggedRoutes for %s", p.App), "target", p.Target, "namespace", p.Namespace)
+
 	taggedRoutes, taggedHosts := p.taggedRoutes(log, cluster)
 	for _, host := range taggedHosts {
 		hostMap[host] = true
 	}
-	log.Info(fmt.Sprintf("DEBUGGING: Finished syncing taggedRoutes for %s", p.App), "target", p.Target, "namespace", p.Namespace, "hostMap", hostMap)
 
-	log.Info(fmt.Sprintf("DEBUGGING: Syncing releasedRoutes for %s", p.App))
 	releaseRoutes, releaseHosts := p.releaseRoutes(log, cluster)
 	for _, host := range releaseHosts {
 		hostMap[host] = true
 	}
 
-	log.Info(fmt.Sprintf("DEBUGGING: Finished syncing releasedRoutes for %s", p.App), "target", p.Target, "namespace", p.Namespace, "hostMap", hostMap)
-
-	log.Info(fmt.Sprintf("DEBUGGING: Syncing devRoutes for %s", p.App), "target", p.Target, "namespace", p.Namespace)
 	devRoutes := p.devRoutes(cluster)
-	log.Info(fmt.Sprintf("DEBUGGING: Finished syncing devRoutes for %s", p.App), "target", p.Target, "namespace", p.Namespace)
 
 	http := append(devRoutes, taggedRoutes...)
 	http = append(http, releaseRoutes...)

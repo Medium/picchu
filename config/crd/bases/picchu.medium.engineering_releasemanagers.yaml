@@ -5,7 +5,7 @@ metadata:
   annotations:
     config.kubernetes.io/origin: |
       path: bases/picchu.medium.engineering_releasemanagers.yaml
-    controller-gen.kubebuilder.io/version: v0.17.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: releasemanagers.picchu.medium.engineering
 spec:
   group: picchu.medium.engineering
