@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +36,8 @@ var revisionlog = logf.Log.WithName("revision-resource")
 func (r *Revision) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r).
+		WithValidator(r).
 		Complete()
 }
 
@@ -42,13 +45,18 @@ func (r *Revision) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:webhook:path=/mutate-picchu-medium-engineering-v1alpha1-revision,mutating=true,failurePolicy=fail,groups=picchu.medium.engineering,resources=revisions,verbs=create;update,versions=v1alpha1,name=mrevision.kb.io,admissionReviewVersions=v1,sideEffects=None
 
-var _ webhook.Defaulter = &Revision{}
+var _ webhook.CustomDefaulter = &Revision{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *Revision) Default() {
-	revisionlog.Info("default", "name", r.Name)
-	r.getPatches()
+func (r *Revision) Default(ctx context.Context, obj runtime.Object) error {
+	rev, ok := obj.(*Revision)
+	if !ok {
+		return fmt.Errorf("expected Revision, got %T", obj)
+	}
+	revisionlog.Info("default", "name", rev.Name)
+	err := rev.getPatches()
 	// TODO(user): fill in your defaulting logic.
+	return err
 }
 
 func (r *Revision) getPatches() error {
@@ -128,26 +136,43 @@ func (r *Revision) getIngressDefaultPortPatches() error {
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 // +kubebuilder:webhook:verbs=create;update,path=/validate-picchu-medium-engineering-v1alpha1-revision,mutating=false,failurePolicy=fail,groups=picchu.medium.engineering,resources=revisions,versions=v1alpha1,name=vrevision.kb.io,admissionReviewVersions=v1,sideEffects=None
 
-var _ webhook.Validator = &Revision{}
+var _ webhook.CustomValidator = &Revision{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Revision) ValidateCreate() (admission.Warnings, error) {
-	revisionlog.Info("validate create", "name", r.Name)
+func (r *Revision) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	rev, ok := obj.(*Revision)
+	if !ok {
+		return nil, fmt.Errorf("expected Revision, got %T", obj)
+	}
+	revisionlog.Info("validate create", "name", rev.Name)
 	// TODO(user): fill in your validation logic upon object creation.
-	return nil, r.validate()
+	return nil, rev.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Revision) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	revisionlog.Info("validate update", "name", r.Name)
+func (r *Revision) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
+	newRev, ok := newObj.(*Revision)
+	if !ok {
+		return nil, fmt.Errorf("expected Revision, got %T", newObj)
+	}
+
+	_, ok = oldObj.(*Revision)
+	if !ok {
+		return nil, fmt.Errorf("expected Revision, got %T", oldObj)
+	}
+	revisionlog.Info("validate update", "name", newRev.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
-	return nil, r.validate()
+	return nil, newRev.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Revision) ValidateDelete() (admission.Warnings, error) {
-	revisionlog.Info("validate delete", "name", r.Name)
+func (r *Revision) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	rev, ok := obj.(*Revision)
+	if !ok {
+		return nil, fmt.Errorf("expected Revision, got %T", obj)
+	}
+	revisionlog.Info("validate delete", "name", rev.Name)
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
 }
