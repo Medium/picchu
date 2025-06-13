@@ -191,6 +191,15 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 
 func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
 	//If a trigger doesn't have an auth defined, fall back to the identity of the pod.
+	clonedTriggers := deepCopyTriggers(p.KedaWorker.Triggers)
+	for i := range clonedTriggers {
+		if clonedTriggers[i].AuthenticationRef == nil {
+			clonedTriggers[i].AuthenticationRef = &kedav1.AuthenticationRef{
+				Name: p.Tag,
+			}
+			clonedTriggers[i].Metadata["identityOwner"] = "pod"
+		}
+	}
 	for index, trigger := range p.KedaWorker.Triggers {
 		if trigger.AuthenticationRef == nil {
 			p.KedaWorker.Triggers[index].AuthenticationRef = &kedav1.AuthenticationRef{
@@ -216,7 +225,7 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log lo
 			MinReplicaCount:  &scaledMin,
 			MaxReplicaCount:  &scaledMax,
 			Advanced:         p.KedaWorker.Advanced,
-			Triggers:         p.KedaWorker.Triggers,
+			Triggers:         clonedTriggers,
 			Fallback:         p.KedaWorker.Fallback,
 		},
 	}
@@ -240,4 +249,16 @@ func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Cli
 		},
 	}
 	return plan.CreateOrUpdate(ctx, log, cli, triggerAuth)
+}
+
+func deepCopyTriggers(triggers []kedav1.ScaleTriggers) []kedav1.ScaleTriggers {
+	copied := make([]kedav1.ScaleTriggers, len(triggers))
+	for i, t := range triggers {
+		copied[i] = t
+		copied[i].Metadata = make(map[string]string)
+		for k, v := range t.Metadata {
+			copied[i].Metadata[k] = v
+		}
+	}
+	return copied
 }
