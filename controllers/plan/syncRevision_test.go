@@ -135,7 +135,13 @@ var (
 				MaxUnavailable: &maxUnavailable,
 			},
 		},
+		TopologySpreadConstraint: &corev1.TopologySpreadConstraint{
+			TopologyKey:       "kubernetes.io/hostname",
+			MaxSkew:           3,
+			WhenUnsatisfiable: "ScheduleAnyway",
+		},
 	}
+
 	retiredRevisionPlan = &SyncRevision{
 		App:       "testapp",
 		Tag:       "testtag",
@@ -306,6 +312,13 @@ var (
 							Name:  "ndots",
 							Value: &oneStr,
 						}},
+					},
+					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+						{
+							TopologyKey:       "kubernetes.io/hostname",
+							MaxSkew:           3,
+							WhenUnsatisfiable: "ScheduleAnyway",
+						},
 					},
 					Affinity: &corev1.Affinity{
 						NodeAffinity: &corev1.NodeAffinity{

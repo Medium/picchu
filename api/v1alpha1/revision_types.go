@@ -64,43 +64,44 @@ type RevisionApp struct {
 }
 
 type RevisionTarget struct {
-	Name                        string                        `json:"name"`
-	Fleet                       string                        `json:"fleet"`
-	Scale                       ScaleInfo                     `json:"scale"`
-	Release                     ReleaseInfo                   `json:"release,omitempty"`
-	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
-	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
-	DatadogSLOs                 []*DatadogSLO                 `json:"datadogServiceLevelObjectives,omitempty"`
-	DatadogSLOsEnabled          bool                          `json:"datadogSLOsEnabled,omitempty"`
-	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
-	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
-	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`
-	AWS                         AWSInfo                       `json:"aws,omitempty"`
-	AlertRules                  []monitoringv1.Rule           `json:"alertRules,omitempty"`
-	Sidecars                    []corev1.Container            `json:"sidecars,omitempty"`
-	VolumeMounts                []corev1.VolumeMount          `json:"volumeMounts,omitempty"`
-	Volumes                     []corev1.Volume               `json:"volumes,omitempty"`
+	Name                        string                              `json:"name"`
+	Fleet                       string                              `json:"fleet"`
+	Scale                       ScaleInfo                           `json:"scale"`
+	Release                     ReleaseInfo                         `json:"release,omitempty"`
+	ServiceMonitors             []*ServiceMonitor                   `json:"serviceMonitors,omitempty"`
+	SlothServiceLevelObjectives []*SlothServiceLevelObjective       `json:"serviceLevelObjectives,omitempty"`
+	DatadogSLOs                 []*DatadogSLO                       `json:"datadogServiceLevelObjectives,omitempty"`
+	DatadogSLOsEnabled          bool                                `json:"datadogSLOsEnabled,omitempty"`
+	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels         `json:"serviceLevelObjectiveLabels,omitempty"`
+	AcceptanceTarget            bool                                `json:"acceptanceTarget,omitempty"`
+	ConfigSelector              *metav1.LabelSelector               `json:"configSelector,omitempty"`
+	AWS                         AWSInfo                             `json:"aws,omitempty"`
+	AlertRules                  []monitoringv1.Rule                 `json:"alertRules,omitempty"`
+	Sidecars                    []corev1.Container                  `json:"sidecars,omitempty"`
+	VolumeMounts                []corev1.VolumeMount                `json:"volumeMounts,omitempty"`
+	Volumes                     []corev1.Volume                     `json:"volumes,omitempty"`
 
-	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
-	ServiceAccountName string            `json:"serviceAccountName,omitempty"`
+	PodAnnotations              map[string]string                   `json:"podAnnotations,omitempty"`
+	ServiceAccountName          string                              `json:"serviceAccountName,omitempty"`
 
-	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
-	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
-	ReadinessProbe *corev1.Probe               `json:"readinessProbe,omitempty"`
-	Lifecycle      *corev1.Lifecycle           `json:"lifecycle,omitempty"`
+	Resources                   corev1.ResourceRequirements         `json:"resources,omitempty"`
+	LivenessProbe               *corev1.Probe                       `json:"livenessProbe,omitempty"`
+	ReadinessProbe              *corev1.Probe                       `json:"readinessProbe,omitempty"`
+	Lifecycle                   *corev1.Lifecycle                   `json:"lifecycle,omitempty"`
 
-	Affinity          *corev1.Affinity    `json:"affinity,omitempty"`
-	PriorityClassName string              `json:"priorityClassName,omitempty"`
-	Tolerations       []corev1.Toleration `json:"tolerations,omitempty"`
+	Affinity                    *corev1.Affinity                    `json:"affinity,omitempty"`
+	PriorityClassName           string                              `json:"priorityClassName,omitempty"`
+	Tolerations                 []corev1.Toleration                 `json:"tolerations,omitempty"`
 
-	ExternalTest        ExternalTest      `json:"externalTest,omitempty"`
-	Canary              Canary            `json:"canary,omitempty"`
-	DefaultIngressPorts map[string]string `json:"defaultIngressPorts,omitempty"`
-	Ports               []PortInfo        `json:"ports,omitempty"`
-	Env                 []corev1.EnvVar   `json:"env,omitempty"`
+	ExternalTest                ExternalTest                        `json:"externalTest,omitempty"`
+	Canary                      Canary                              `json:"canary,omitempty"`
+	DefaultIngressPorts         map[string]string                   `json:"defaultIngressPorts,omitempty"`
+	Ports                       []PortInfo                          `json:"ports,omitempty"`
+	Env                         []corev1.EnvVar                     `json:"env,omitempty"`
 
-	Istio               *Istio                        `json:"istio,omitempty"`
-	PodDisruptionBudget *policyv1.PodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
+	Istio                       *Istio                              `json:"istio,omitempty"`
+	PodDisruptionBudget         *policyv1.PodDisruptionBudget       `json:"podDisruptionBudget,omitempty"`
+	TopologySpreadConstraint    *corev1.TopologySpreadConstraint    `json:"topologySpreadConstraint,omitempty"`
 }
 
 type ExternalTest struct {

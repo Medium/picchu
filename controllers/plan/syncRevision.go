@@ -61,33 +61,34 @@ func init() {
 }
 
 type SyncRevision struct {
-	App                 string
-	Tag                 string
-	Namespace           string
-	Labels              map[string]string // Labels applied to all resources
-	Configs             []runtime.Object  // Secret and ConfigMap objects supported and mapped to environment
-	Ports               []picchuv1alpha1.PortInfo
-	Replicas            int32
-	Image               string
-	Resources           corev1.ResourceRequirements
-	IAMRole             string            // AWS iam role
-	PodAnnotations      map[string]string // metadata.annotations in the Pod template
-	ServiceAccountName  string            // k8s ServiceAccount
-	LivenessProbe       *corev1.Probe
-	ReadinessProbe      *corev1.Probe
-	MinReadySeconds     int32
-	Worker              *picchuv1alpha1.WorkerScaleInfo
-	KedaWorker          *picchuv1alpha1.KedaScaleInfo
-	Lifecycle           *corev1.Lifecycle
-	PriorityClassName   string
-	Affinity            *corev1.Affinity
-	Tolerations         []corev1.Toleration
-	EnvVars             []corev1.EnvVar
-	Sidecars            []corev1.Container // Additional sidecar containers.
-	VolumeMounts        []corev1.VolumeMount
-	Volumes             []corev1.Volume
-	PodDisruptionBudget *policyv1.PodDisruptionBudget
-	ExternalSecrets     []es.ExternalSecret
+	App                      string
+	Tag                      string
+	Namespace                string
+	Labels                   map[string]string // Labels applied to all resources
+	Configs                  []runtime.Object  // Secret and ConfigMap objects supported and mapped to environment
+	Ports                    []picchuv1alpha1.PortInfo
+	Replicas                 int32
+	Image                    string
+	Resources                corev1.ResourceRequirements
+	IAMRole                  string            // AWS iam role
+	PodAnnotations           map[string]string // metadata.annotations in the Pod template
+	ServiceAccountName       string            // k8s ServiceAccount
+	LivenessProbe            *corev1.Probe
+	ReadinessProbe           *corev1.Probe
+	MinReadySeconds          int32
+	Worker                   *picchuv1alpha1.WorkerScaleInfo
+	KedaWorker               *picchuv1alpha1.KedaScaleInfo
+	Lifecycle                *corev1.Lifecycle
+	PriorityClassName        string
+	Affinity                 *corev1.Affinity
+	Tolerations              []corev1.Toleration
+	EnvVars                  []corev1.EnvVar
+	Sidecars                 []corev1.Container // Additional sidecar containers.
+	VolumeMounts             []corev1.VolumeMount
+	Volumes                  []corev1.Volume
+	PodDisruptionBudget      *policyv1.PodDisruptionBudget
+	TopologySpreadConstraint *corev1.TopologySpreadConstraint
+	ExternalSecrets          []es.ExternalSecret
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -342,6 +343,20 @@ func (p *SyncRevision) syncReplicaSet(
 			Tolerations:        p.Tolerations,
 			Volumes:            p.Volumes,
 		},
+	}
+
+	// We do not want folks accidentally causing their own services to not deploy.
+	// This should only be a temporary measure until perhaps we shift away from current
+	// deployment setup, but I have fears around accidentally shooting ourselves in the toes
+	// by forcing things to not schedule on account of infra.
+	if p.TopologySpreadConstraint != nil {
+		if p.TopologySpreadConstraint.WhenUnsatisfiable == "DoNotSchedule" {
+			p.TopologySpreadConstraint.WhenUnsatisfiable = "ScheduleAnyway"
+		}
+
+		template.Spec.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
+			*p.TopologySpreadConstraint,
+		}
 	}
 
 	if termGraceStr := p.PodAnnotations["go.medium.engineering/PodTerminationGracePeriodSeconds"]; termGraceStr != "" {
