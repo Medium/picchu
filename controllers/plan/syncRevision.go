@@ -88,6 +88,7 @@ type SyncRevision struct {
 	Volumes             []corev1.Volume
 	PodDisruptionBudget *policyv1.PodDisruptionBudget
 	ExternalSecrets     []es.ExternalSecret
+	EventDriven         bool
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -109,6 +110,7 @@ func (p *SyncRevision) Printable() interface{} {
 		Lifecycle          *corev1.Lifecycle
 		Affinity           *corev1.Affinity
 		PriorityClassName  string
+		EventDriven        bool
 	}{
 
 		App:                p.App,
@@ -128,6 +130,7 @@ func (p *SyncRevision) Printable() interface{} {
 		Lifecycle:          p.Lifecycle,
 		Affinity:           p.Affinity,
 		PriorityClassName:  p.PriorityClassName,
+		EventDriven:        p.EventDriven,
 	}
 }
 
@@ -249,6 +252,13 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		log.Error(e, "Failed to sync revision")
 		return e
 	}
+
+	if cluster.Spec.DisableEventDriven && p.EventDriven {
+		log.Info(fmt.Sprintf("Event driven scaling is disabled for this cluster:%s, ignoring event driven scaling for %s, Namespace: %s", cluster.Name, p.Tag, p.Namespace))
+		f := 0.0
+		scalingFactor = &f
+	}
+
 	return p.syncReplicaSet(ctx, cli, *scalingFactor, labels, envs, log)
 }
 

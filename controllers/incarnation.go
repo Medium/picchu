@@ -407,6 +407,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Volumes:            i.target().Volumes,
 		VolumeMounts:       i.target().VolumeMounts,
 		ExternalSecrets:    append([]es.ExternalSecret{}, externalSecrets...),
+		EventDriven:        i.isEventDriven(),
 	}
 
 	if !i.isRoutable() {
