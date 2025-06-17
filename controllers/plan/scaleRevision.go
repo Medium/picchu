@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 
@@ -54,14 +55,20 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		log.Error(e, "Cluster scalingFactor nil")
 		return e
 	}
+	log.Info(fmt.Sprintf("App: %s, Namespace: %s, EventDriven: %t, ClusterDisableEventDriven: %t", p.Tag, p.Namespace, p.EventDriven, cluster.Spec.DisableEventDriven))
 
 	if cluster.Spec.DisableEventDriven && p.EventDriven {
+		log.Info(fmt.Sprintf("Event driven scaling is disabled for this cluster:%s, ignoring event driven scaling for %s, Namespace: %s", cluster.Name, p.Tag, p.Namespace))
 		f := 0.0
 		scalingFactor = &f
 	}
 
 	scaledMin := int32(math.Ceil(float64(p.Min) * *scalingFactor))
 	scaledMax := int32(math.Ceil(float64(p.Max) * *scalingFactor))
+
+	if cluster.Spec.DisableEventDriven && p.EventDriven {
+		log.Info(fmt.Sprintf("Event driven scaling is disabled for this cluster:%s, ignoring event driven scaling for %s, Namespace: %s, scaledMin: %d, scaledMax: %d", cluster.Name, p.Tag, p.Namespace, scaledMin, scaledMax))
+	}
 
 	if p.Worker != nil {
 		return p.applyWPA(ctx, cli, log, scaledMin, scaledMax)
