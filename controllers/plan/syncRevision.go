@@ -87,6 +87,7 @@ type SyncRevision struct {
 	VolumeMounts        []corev1.VolumeMount
 	Volumes             []corev1.Volume
 	PodDisruptionBudget *policyv1.PodDisruptionBudget
+	TopologySpreadConstraint *corev1.TopologySpreadConstraint
 	ExternalSecrets     []es.ExternalSecret
 	EventDriven         bool
 }
@@ -352,6 +353,20 @@ func (p *SyncRevision) syncReplicaSet(
 			Tolerations:        p.Tolerations,
 			Volumes:            p.Volumes,
 		},
+	}
+
+	// We do not want folks accidentally causing their own services to not deploy.
+	// This should only be a temporary measure until perhaps we shift away from current
+	// deployment setup, but I have fears around accidentally shooting ourselves in the toes
+	// by forcing things to not schedule on account of infra.
+	if p.TopologySpreadConstraint != nil {
+		if p.TopologySpreadConstraint.WhenUnsatisfiable == "DoNotSchedule" {
+			p.TopologySpreadConstraint.WhenUnsatisfiable = "ScheduleAnyway"
+		}
+
+		template.Spec.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
+			*p.TopologySpreadConstraint,
+		}
 	}
 
 	if termGraceStr := p.PodAnnotations["go.medium.engineering/PodTerminationGracePeriodSeconds"]; termGraceStr != "" {
