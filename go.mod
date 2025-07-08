@@ -5,7 +5,6 @@ go 1.23.8
 toolchain go1.23.10
 
 require (
-	github.com/DataDog/datadog-operator v1.9.0
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/external-secrets/external-secrets v0.9.13
 	github.com/go-logr/logr v1.4.2
@@ -37,8 +36,6 @@ require (
 )
 
 require (
-	github.com/DataDog/datadog-api-client-go/v2 v2.27.0 // indirect
-	github.com/DataDog/zstd v1.5.5 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -55,7 +52,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
