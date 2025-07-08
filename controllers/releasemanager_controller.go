@@ -132,17 +132,12 @@ var (
 	}, []string{"app", "target"})
 )
 
-type DatadogSLOAPI interface {
-	GetDatadogSLOID(app string, datadogSLOs *picchuv1alpha1.DatadogSLO) (string, error)
-}
-
 // ReleaseManagerReconciler reconciles a ReleaseManager object
 type ReleaseManagerReconciler struct {
 	client.Client
-	Log           logr.Logger
-	Scheme        *runtime.Scheme
-	Config        utils.Config
-	DatadogSLOAPI DatadogSLOAPI
+	Log    logr.Logger
+	Scheme *runtime.Scheme
+	Config utils.Config
 }
 
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=releasemanagers,verbs=get;list;watch;create;update;patch;delete
@@ -212,33 +207,6 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return r.requeue(rmLog, err)
 	}
 
-	deliveryClusters, err := r.getClustersByFleet(ctx, rm.Namespace, r.Config.DatadogSLOsFleet)
-	if err != nil {
-		return r.requeue(rmLog, fmt.Errorf("failed to get delivery clusters for fleet %s: %w", r.Config.DatadogSLOsFleet, err))
-	}
-	deliveryClusterInfo := ClusterInfoList{}
-	for _, cluster := range deliveryClusters {
-		var scalingFactor = 0.0
-		if cluster.Spec.ScalingFactorString != nil {
-			f, err := strconv.ParseFloat(*cluster.Spec.ScalingFactorString, 64)
-			if err != nil {
-				reqLog.Error(err, "Could not parse %v to float", *cluster.Spec.ScalingFactorString)
-			} else {
-				scalingFactor = f
-			}
-		}
-		deliveryClusterInfo = append(deliveryClusterInfo, ClusterInfo{
-			Name:          cluster.Name,
-			Live:          !cluster.Spec.HotStandby,
-			ScalingFactor: scalingFactor,
-		})
-	}
-
-	deliveryApplier, err := r.newPlanApplier(ctx, rmLog, deliveryClusters)
-	if err != nil {
-		return r.requeue(rmLog, err)
-	}
-
 	observer, err := r.newObserver(ctx, rmLog, clusters)
 	if err != nil {
 		return r.requeue(rmLog, err)
@@ -260,26 +228,23 @@ func (r *ReleaseManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	ic := &IncarnationController{
-		deliveryClient:  r.Client,
-		deliveryApplier: deliveryApplier,
-		planApplier:     planApplier,
-		log:             rmLog,
-		releaseManager:  rm,
-		clusterInfo:     clusterInfo,
+		deliveryClient: r.Client,
+		planApplier:    planApplier,
+		log:            rmLog,
+		releaseManager: rm,
+		clusterInfo:    clusterInfo,
 	}
 
 	syncer := ResourceSyncer{
-		deliveryClient:  r.Client,
-		deliveryApplier: deliveryApplier,
-		planApplier:     planApplier,
-		observer:        observer,
-		instance:        rm,
-		incarnations:    newIncarnationCollection(ic, revisions, observation, r.Config),
-		reconciler:      r,
-		log:             rmLog,
-		picchuConfig:    r.Config,
-		faults:          faults,
-		DatadogSLOAPI:   r.DatadogSLOAPI,
+		deliveryClient: r.Client,
+		planApplier:    planApplier,
+		observer:       observer,
+		instance:       rm,
+		incarnations:   newIncarnationCollection(ic, revisions, observation, r.Config),
+		reconciler:     r,
+		log:            rmLog,
+		picchuConfig:   r.Config,
+		faults:         faults,
 	}
 
 	if !rm.IsDeleted() {

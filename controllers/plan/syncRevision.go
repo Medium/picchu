@@ -61,35 +61,35 @@ func init() {
 }
 
 type SyncRevision struct {
-	App                 string
-	Tag                 string
-	Namespace           string
-	Labels              map[string]string // Labels applied to all resources
-	Configs             []runtime.Object  // Secret and ConfigMap objects supported and mapped to environment
-	Ports               []picchuv1alpha1.PortInfo
-	Replicas            int32
-	Image               string
-	Resources           corev1.ResourceRequirements
-	IAMRole             string            // AWS iam role
-	PodAnnotations      map[string]string // metadata.annotations in the Pod template
-	ServiceAccountName  string            // k8s ServiceAccount
-	LivenessProbe       *corev1.Probe
-	ReadinessProbe      *corev1.Probe
-	MinReadySeconds     int32
-	Worker              *picchuv1alpha1.WorkerScaleInfo
-	KedaWorker          *picchuv1alpha1.KedaScaleInfo
-	Lifecycle           *corev1.Lifecycle
-	PriorityClassName   string
-	Affinity            *corev1.Affinity
-	Tolerations         []corev1.Toleration
-	EnvVars             []corev1.EnvVar
-	Sidecars            []corev1.Container // Additional sidecar containers.
-	VolumeMounts        []corev1.VolumeMount
-	Volumes             []corev1.Volume
-	PodDisruptionBudget *policyv1.PodDisruptionBudget
+	App                      string
+	Tag                      string
+	Namespace                string
+	Labels                   map[string]string // Labels applied to all resources
+	Configs                  []runtime.Object  // Secret and ConfigMap objects supported and mapped to environment
+	Ports                    []picchuv1alpha1.PortInfo
+	Replicas                 int32
+	Image                    string
+	Resources                corev1.ResourceRequirements
+	IAMRole                  string            // AWS iam role
+	PodAnnotations           map[string]string // metadata.annotations in the Pod template
+	ServiceAccountName       string            // k8s ServiceAccount
+	LivenessProbe            *corev1.Probe
+	ReadinessProbe           *corev1.Probe
+	MinReadySeconds          int32
+	Worker                   *picchuv1alpha1.WorkerScaleInfo
+	KedaWorker               *picchuv1alpha1.KedaScaleInfo
+	Lifecycle                *corev1.Lifecycle
+	PriorityClassName        string
+	Affinity                 *corev1.Affinity
+	Tolerations              []corev1.Toleration
+	EnvVars                  []corev1.EnvVar
+	Sidecars                 []corev1.Container // Additional sidecar containers.
+	VolumeMounts             []corev1.VolumeMount
+	Volumes                  []corev1.Volume
+	PodDisruptionBudget      *policyv1.PodDisruptionBudget
 	TopologySpreadConstraint *corev1.TopologySpreadConstraint
-	ExternalSecrets     []es.ExternalSecret
-	EventDriven         bool
+	ExternalSecrets          []es.ExternalSecret
+	EventDriven              bool
 }
 
 func (p *SyncRevision) Printable() interface{} {

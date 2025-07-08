@@ -91,16 +91,6 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 	return false, nil, nil
 }
 
-type DatadogMonitorAPI interface {
-	IsRevisionTriggered(ctx context.Context, name, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error)
-}
-
-type NoopDatadogMonitorAPI struct{}
-
-func (n *NoopDatadogMonitorAPI) IsRevisionTriggered(ctx context.Context, name, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error) {
-	return false, nil, nil
-}
-
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler, c utils.Config) error {
 	_, err := builder.ControllerManagedBy(mgr).
@@ -124,12 +114,11 @@ var _ reconcile.Reconciler = &RevisionReconciler{}
 type RevisionReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	Client            client.Client
-	Scheme            *runtime.Scheme
-	Config            utils.Config
-	PromAPI           PromAPI
-	DatadogMonitorAPI DatadogMonitorAPI
-	CustomLogger      logr.Logger
+	Client       client.Client
+	Scheme       *runtime.Scheme
+	Config       utils.Config
+	PromAPI      PromAPI
+	CustomLogger logr.Logger
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
@@ -217,78 +206,12 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		return r.Requeue(log, err)
 	}
 
-	ddog_triggered := false
-	var ddog_err error
-	var datadog_monitors []string
-	var datadogSLOs []*picchuv1alpha1.DatadogSLO
-
-	// grab datadog slos from production target
-	for _, t := range instance.Spec.Targets {
-		if strings.Contains(t.Name, "production") && t.DatadogSLOsEnabled {
-			datadogSLOs = t.DatadogSLOs
-		}
-	}
-
-	if len(datadogSLOs) > 0 {
-		// determine if production target is in the canary phase
-		for _, statusTarget := range status.Targets {
-			if strings.Contains(statusTarget.Name, "production") {
-				if statusTarget.State == "canarying" {
-					ddog_triggered, datadog_monitors, ddog_err = r.DatadogMonitorAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, datadogSLOs)
-					if ddog_err != nil {
-						return r.Requeue(log, ddog_err)
-					}
-				}
-			}
-		}
-	}
-
 	var revisionFailing bool
 	var revisionFailingReason string
 	for _, statusTarget := range status.Targets {
 		if statusTarget.State == "timingout" {
 			revisionFailing = true
 			revisionFailingReason = "test timing out"
-		}
-	}
-
-	// this will be true if there are datadog slos defined under the production target
-	if !revisionFailing && ddog_triggered && !instance.Spec.IgnoreSLOs {
-		log.Info("Revision triggered", "datadog canary monitors", datadog_monitors, "app", instance.Spec.App.Name, "tag", instance.Spec.App.Tag)
-		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
-		for i := range status.Targets {
-			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
-		}
-
-		for _, revisionTarget := range instance.Spec.Targets {
-			// if production target continue with datadog monitor Violation
-			if revisionTarget.AcceptanceTarget || strings.Contains(revisionTarget.Name, "production") {
-				targetStatus := targetStatusMap[revisionTarget.Name]
-				if targetStatus == nil {
-					continue
-				}
-				if targetStatus.Release.PeakPercent < AcceptancePercentage {
-					revisionFailing = true
-					revisionFailingReason = "datadog canary monitor violation"
-
-					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
-					if err != nil {
-						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
-						break
-					}
-					if rm == nil {
-						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
-						break
-					}
-					revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
-					revisionStatus.TriggeredDatadogMonitors = datadog_monitors
-					rm.UpdateRevisionStatus(revisionStatus)
-					if err := utils.UpdateStatus(ctx, r.Client, rm); err != nil {
-						log.Error(err, "Could not save datadog monitors to RevisionStatus", "alarms", alarms)
-					}
-				}
-				break
-			}
 		}
 	}
 
