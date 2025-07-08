@@ -30,16 +30,16 @@ type Incarnations interface {
 }
 
 type ResourceSyncer struct {
-	deliveryClient  client.Client
-	deliveryApplier plan.Applier
-	planApplier     plan.Applier
-	observer        observe.Observer
-	instance        *picchuv1alpha1.ReleaseManager
-	incarnations    Incarnations
-	reconciler      *ReleaseManagerReconciler
-	log             logr.Logger
-	picchuConfig    utils.Config
-	faults          []picchuv1alpha1.HTTPPortFault
+	deliveryClient client.Client
+	// deliveryApplier plan.Applier
+	planApplier  plan.Applier
+	observer     observe.Observer
+	instance     *picchuv1alpha1.ReleaseManager
+	incarnations Incarnations
+	reconciler   *ReleaseManagerReconciler
+	log          logr.Logger
+	picchuConfig utils.Config
+	faults       []picchuv1alpha1.HTTPPortFault
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {
@@ -116,9 +116,9 @@ func (r *ResourceSyncer) del(ctx context.Context) error {
 	})
 }
 
-func (r *ResourceSyncer) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
-	return r.deliveryApplier.Apply(ctx, p)
-}
+// func (r *ResourceSyncer) applyDeliveryPlan(ctx context.Context, name string, p plan.Plan) error {
+// 	return r.deliveryApplier.Apply(ctx, p)
+// }
 
 func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan) error {
 	return r.planApplier.Apply(ctx, p)
