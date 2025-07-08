@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 
@@ -523,73 +522,6 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, pdb)
-		if err != nil {
-			return err
-		}
-	case *ddogv1alpha1.DatadogSLO:
-		typed := orig.DeepCopy()
-		ddogslo := &ddogv1alpha1.DatadogSLO{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      typed.Name,
-				Namespace: typed.Namespace,
-			},
-		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, ddogslo, func() error {
-			if isIgnored(ddogslo.ObjectMeta) {
-				kind := utils.MustGetKind(ddogslo).Kind
-				log.Info("Resource is ignored", "namespace", ddogslo.Namespace, "name", ddogslo.Name, "kind", kind)
-				return nil
-			}
-			ddogslo.Spec = typed.Spec
-			ddogslo.Labels = CopyStringMap(typed.Labels)
-			return nil
-		})
-		// find the id from the cluster?
-		LogSync(log, op, err, ddogslo)
-		if err != nil {
-			return err
-		}
-	case *ddogv1alpha1.DatadogMonitor:
-		typed := orig.DeepCopy()
-		ddogmonitor := &ddogv1alpha1.DatadogMonitor{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      typed.Name,
-				Namespace: typed.Namespace,
-			},
-		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, ddogmonitor, func() error {
-			if isIgnored(ddogmonitor.ObjectMeta) {
-				kind := utils.MustGetKind(ddogmonitor).Kind
-				log.Info("Resource is ignored", "namespace", ddogmonitor.Namespace, "name", ddogmonitor.Name, "kind", kind)
-				return nil
-			}
-			ddogmonitor.Spec = typed.Spec
-			ddogmonitor.Labels = CopyStringMap(typed.Labels)
-			return nil
-		})
-		LogSync(log, op, err, ddogmonitor)
-		if err != nil {
-			return err
-		}
-	case *ddogv1alpha1.DatadogMetric:
-		typed := orig.DeepCopy()
-		ddogMetric := &ddogv1alpha1.DatadogMetric{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      typed.Name,
-				Namespace: typed.Namespace,
-			},
-		}
-		op, err := controllerutil.CreateOrUpdate(ctx, cli, ddogMetric, func() error {
-			if isIgnored(ddogMetric.ObjectMeta) {
-				kind := utils.MustGetKind(ddogMetric).Kind
-				log.Info("Resource is ignored", "namespace", ddogMetric.Namespace, "name", ddogMetric.Name, "kind", kind)
-				return nil
-			}
-			ddogMetric.Spec = typed.Spec
-			ddogMetric.Labels = CopyStringMap(typed.Labels)
-			return nil
-		})
-		LogSync(log, op, err, ddogMetric)
 		if err != nil {
 			return err
 		}

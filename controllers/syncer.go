@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
@@ -41,7 +40,6 @@ type ResourceSyncer struct {
 	log             logr.Logger
 	picchuConfig    utils.Config
 	faults          []picchuv1alpha1.HTTPPortFault
-	DatadogSLOAPI   DatadogSLOAPI
 }
 
 func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseManagerRevisionStatus, err error) {
@@ -74,12 +72,6 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 		return
 	}
 	if err = r.syncSLORules(ctx); err != nil {
-		return
-	}
-	if err = r.syncDatadogCanaryMonitors(ctx); err != nil {
-		return
-	}
-	if err = r.syncDatadogSLOsMonitors(ctx); err != nil {
 		return
 	}
 	if err = r.garbageCollection(ctx); err != nil {
@@ -350,114 +342,6 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 	return nil
 }
 
-func (r *ResourceSyncer) syncDatadogCanaryMonitors(ctx context.Context) error {
-	ddog_slos := r.prepareDatadogSLOs()
-
-	if r.instance.Spec.Fleet == "production" {
-		if len(ddog_slos) > 0 {
-			if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
-				// only applied to the delivery cluster
-				err := r.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
-					Name: r.picchuConfig.DatadogSLONamespace,
-				})
-
-				if err != nil {
-					return err
-				}
-
-				if err := r.applyDeliveryPlan(ctx, "Sync App DatadogCanaryMonitors", &rmplan.SyncDatadogCanaryMonitors{
-					// only applied to the datadog namespace
-					App:         r.instance.Spec.App,
-					Namespace:   r.picchuConfig.DatadogSLONamespace,
-					Labels:      r.defaultLabels(),
-					DatadogSLOs: ddog_slos,
-				}); err != nil {
-					return err
-				}
-			} else {
-				r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogCanaryMonitors", "DatadogSLOsFleet")
-			}
-		} else {
-			if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
-				if err := r.applyDeliveryPlan(ctx, "Delete App DatadogCanaryMonitors", &rmplan.DeleteDatadogCanaryMonitors{
-					App:       r.instance.Spec.App,
-					Namespace: r.picchuConfig.DatadogSLONamespace,
-				}); err != nil {
-					return err
-				}
-			} else {
-				r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogCanaryMonitors")
-			}
-		}
-	}
-
-	return nil
-}
-
-func (r *ResourceSyncer) syncDatadogSLOsMonitors(ctx context.Context) error {
-	ddog_slos := r.prepareDatadogSLOs()
-
-	if r.instance.Spec.Fleet == "production" {
-		if len(ddog_slos) > 0 {
-			if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
-				// only applied to the delivery cluster
-				err := r.applyDeliveryPlan(ctx, "Ensure Datadog Namespace", &rmplan.EnsureNamespace{
-					Name: r.picchuConfig.DatadogSLONamespace,
-				})
-
-				if err != nil {
-					return err
-				}
-				err_ddog := r.applyDeliveryPlan(ctx, "Sync Datadog SLOs", &rmplan.SyncDatadogSLOs{
-					App: r.instance.Spec.App,
-					// only applied to the datadog namespace
-					Namespace:   r.picchuConfig.DatadogSLONamespace,
-					DatadogSLOs: ddog_slos,
-					Labels:      r.defaultLabels(),
-				})
-
-				if err_ddog != nil {
-					return err_ddog
-				}
-
-				if err_ddog := r.applyDeliveryPlan(ctx, "Sync Datadog Monitors", &rmplan.SyncDatadogMonitors{
-					App: r.instance.Spec.App,
-					// only applied to the datadog namespace
-					Namespace:     r.picchuConfig.DatadogSLONamespace,
-					DatadogSLOs:   ddog_slos,
-					Labels:        r.defaultLabels(),
-					DatadogSLOAPI: r.DatadogSLOAPI,
-				}); err_ddog != nil {
-					return err_ddog
-				}
-			} else {
-				r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping syncDatadogSLOS and syncDatadogMonitors")
-			}
-		} else {
-			if r.picchuConfig.DatadogSLOsFleet != "" && r.picchuConfig.DatadogSLONamespace != "" {
-				err := r.applyDeliveryPlan(ctx, "Delete Datadog SLOs", &rmplan.DeleteDatadogSLOs{
-					App:       r.instance.Spec.App,
-					Namespace: r.picchuConfig.DatadogSLONamespace,
-				})
-
-				if err != nil {
-					return err
-				}
-				if err_ddog := r.applyDeliveryPlan(ctx, "Delete Datadog Monitors", &rmplan.DeleteDatadogMonitors{
-					App:       r.instance.Spec.App,
-					Namespace: r.picchuConfig.DatadogSLONamespace,
-				}); err_ddog != nil {
-					return err_ddog
-				}
-
-			} else {
-				r.log.Info("datadog-slo-fleet and datadog-slo-namespace not set, skipping deleteDatadogSLOs and deleteDatadogMonitors")
-			}
-		}
-	}
-	return nil
-}
-
 func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {
 	return markGarbage(ctx, r.log, r.deliveryClient, r.incarnations.sorted())
 }
@@ -510,24 +394,6 @@ func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.Slot
 	}
 
 	return slos, picchuv1alpha1.ServiceLevelObjectiveLabels{}
-}
-
-// returns the datadogSLOs from the latest released revision
-func (r *ResourceSyncer) prepareDatadogSLOs() []*picchuv1alpha1.DatadogSLO {
-	var ddog_slos []*picchuv1alpha1.DatadogSLO
-
-	if len(r.incarnations.deployed()) > 0 {
-		releasable := r.incarnations.releasable()
-		for _, i := range releasable {
-			if i.target() != nil {
-				if strings.Contains(i.target().Name, "production") {
-					return i.target().DatadogSLOs
-				}
-			}
-		}
-	}
-
-	return ddog_slos
 }
 
 func (r *ResourceSyncer) prepareRevisions() []rmplan.Revision {

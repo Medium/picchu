@@ -19,8 +19,6 @@ package v1alpha1
 import (
 	"time"
 
-	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
-
 	istio "istio.io/api/networking/v1alpha3"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -44,16 +42,15 @@ type IstioSidecar struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                   RevisionApp      `json:"app"`
-	Targets               []RevisionTarget `json:"targets"`
-	Failed                bool             `json:"failed"`
-	IgnoreSLOs            bool             `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules    bool             `json:"canaryWithSLIRules,omitempty"`
-	CanaryWithDatadogSLOs bool             `json:"canaryWithDatadogSLOs,omitempty"`
-	Sentry                SentryInfo       `json:"sentry,omitempty"`
-	TagRoutingHeader      string           `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring      bool             `json:"disableMirroring,omitempty"`
-	EventDriven           bool             `json:"eventDriven,omitempty"`
+	App                RevisionApp      `json:"app"`
+	Targets            []RevisionTarget `json:"targets"`
+	Failed             bool             `json:"failed"`
+	IgnoreSLOs         bool             `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules bool             `json:"canaryWithSLIRules,omitempty"`
+	Sentry             SentryInfo       `json:"sentry,omitempty"`
+	TagRoutingHeader   string           `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring   bool             `json:"disableMirroring,omitempty"`
+	EventDriven        bool             `json:"eventDriven,omitempty"`
 }
 
 type RevisionApp struct {
@@ -70,8 +67,6 @@ type RevisionTarget struct {
 	Release                     ReleaseInfo                   `json:"release,omitempty"`
 	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
 	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
-	DatadogSLOs                 []*DatadogSLO                 `json:"datadogServiceLevelObjectives,omitempty"`
-	DatadogSLOsEnabled          bool                          `json:"datadogSLOsEnabled,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
 	AcceptanceTarget            bool                          `json:"acceptanceTarget,omitempty"`
 	ConfigSelector              *metav1.LabelSelector         `json:"configSelector,omitempty"`
@@ -143,128 +138,6 @@ type ServiceLevelIndicator struct {
 }
 
 type SLICanaryConfig struct {
-	Enabled                bool    `json:"enabled"`
-	AllowancePercentString string  `json:"allowancePercentString,omitempty"`
-	AllowancePercent       float64 `json:"allowancePercent,omitempty"`
-	FailAfter              string  `json:"failAfter,omitempty"`
-}
-
-type DatadogMonitor struct {
-	// defaulted - <app>-<slo name>-<target>-datadogmonitor
-	Name string `json:"name,omitempty"`
-	// defaulted
-	Message string `json:"message,omitempty"`
-	// defaulted
-	Query string `json:"query,omitempty"`
-	// both dev and defaulted - target name
-	Tags []string `json:"tags,omitempty"`
-	// defaulted - "slo alert"
-	Type    ddogv1alpha1.DatadogMonitorType `json:"type,omitempty"`
-	Options DatadogMonitorOptions           `json:"options,omitempty"`
-}
-
-// double check this matches the one in kbfd
-type DatadogMonitorOptions struct {
-	// A Boolean indicating whether to send a log sample when the log monitor triggers.
-	// defaulted - true
-	EnableLogsSample *bool `json:"enableLogsSample,omitempty"`
-
-	// A message to include with a re-notification.
-	// defaulted - "renotifying for <slo>" or something similar
-	EscalationMessage *string `json:"escalationMessage,omitempty"`
-
-	// Time (in seconds) to delay evaluation, as a non-negative integer. For example, if the value is set to 300 (5min),
-	// the timeframe is set to last_5m and the time is 7:00, the monitor evaluates data from 6:50 to 6:55.
-	// This is useful for AWS CloudWatch and other backfilled metrics to ensure the monitor always has data during evaluation.
-	// defaulted - 5m for now
-	EvaluationDelay *int64 `json:"evaluationDelay,omitempty"`
-
-	// A Boolean indicating whether notifications from this monitor automatically inserts its triggering tags into the title.
-	// default - true
-	IncludeTags *bool `json:"includeTags,omitempty"`
-
-	// The number of minutes before a monitor notifies after data stops reporting. Datadog recommends at least 2x the
-	// monitor timeframe for metric alerts or 2 minutes for service checks. If omitted, 2x the evaluation timeframe
-	// is used for metric alerts, and 24 hours is used for service checks.
-	// default - 3m for now
-	NoDataTimeframe *int64 `json:"noDataTimeframe,omitempty"`
-
-	// An enum that toggles the display of additional content sent in the monitor notification.
-	// defaulted - `show_all`
-	NotificationPresetName string `json:"notificationPresetName,omitempty"`
-
-	// A Boolean indicating whether this monitor notifies when data stops reporting.
-	// defaulted - true
-	NotifyNoData *bool `json:"notifyNoData,omitempty"`
-
-	// The types of statuses for which re-notification messages should be sent. Valid values are alert, warn, no data.
-	// +listType=set
-	// defaulted - "alert" and "no data"
-	RenotifyStatuses []string `json:"renotifyStatuses,omitempty"`
-
-	// The number of minutes after the last notification before a monitor re-notifies on the current status.
-	// It only re-notifies if it’s not resolved.
-	// defaulted - 5min
-	RenotifyInterval *int64 `json:"renotifyInterval,omitempty"`
-
-	// The number of times re-notification messages should be sent on the current status at the provided re-notification interval.
-	// defaulted - 2 times
-	RenotifyOccurrences *int64 `json:"renotifyOccurrences,omitempty"`
-
-	// A Boolean indicating whether this monitor needs a full window of data before it’s evaluated. We highly
-	// recommend you set this to false for sparse metrics, otherwise some evaluations are skipped. Default is false.
-	// defaulted - true for now
-	RequireFullWindow *bool `json:"requireFullWindow,omitempty"`
-
-	// A struct of the different monitor threshold values.
-	Thresholds *DatadogMonitorOptionsThresholds `json:"thresholds,omitempty"`
-
-	// A struct of the alerting time window options.
-	ThresholdWindows *DatadogMonitorOptionsThresholdWindows `json:"thresholdWindows,omitempty"`
-}
-
-// Values read from the monitor query
-type DatadogMonitorOptionsThresholds struct {
-	// The monitor CRITICAL threshold.
-	Critical *string `json:"critical,omitempty"`
-	// The monitor CRITICAL recovery threshold.
-	CriticalRecovery *string `json:"criticalRecovery,omitempty"`
-	// The monitor OK threshold.
-	OK *string `json:"ok,omitempty"`
-	// The monitor UNKNOWN threshold.
-	Unknown *string `json:"unknown,omitempty"`
-}
-
-// defaulted - 5m
-type DatadogMonitorOptionsThresholdWindows struct {
-	// Describes how long an anomalous metric must be normal before the alert recovers.
-	RecoveryWindow *string `json:"recoveryWindow,omitempty"`
-	// Describes how long a metric must be anomalous before an alert triggers.
-	TriggerWindow *string `json:"triggerWindow,omitempty"`
-}
-
-// ddog specific slos
-type DatadogSLO struct {
-	// defaulted
-	Name            string          `json:"name,omitempty"`
-	Description     string          `json:"description,omitempty"`
-	Enabled         bool            `json:"enabled,omitempty"`
-	Query           DatadogSLOQuery `json:"query,omitempty"`
-	Tags            []string        `json:"tags,omitempty"`
-	TargetThreshold string          `json:"targetThreshold,omitempty"`
-	Timeframe       string          `json:"timeframe,omitempty"`
-	// defaulted - metric
-	Type   string                 `json:"type,omitempty"`
-	Canary DatadogSLOCanaryConfig `json:"canary,omitempty"`
-}
-
-type DatadogSLOQuery struct {
-	GoodEvents  string `json:"goodevents"`
-	BadEvents   string `json:"badevents"`
-	TotalEvents string `json:"totalevents"`
-}
-
-type DatadogSLOCanaryConfig struct {
 	Enabled                bool    `json:"enabled"`
 	AllowancePercentString string  `json:"allowancePercentString,omitempty"`
 	AllowancePercent       float64 `json:"allowancePercent,omitempty"`
@@ -423,7 +296,7 @@ func (r *RevisionTarget) IsExternalTestSuccessful() bool {
 
 func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 	// if canary values aren't set or no SLOs set up for service
-	if r.Canary.Percent == 0 || r.Canary.TTL == 0 || (len(r.SlothServiceLevelObjectives) == 0 && len(r.DatadogSLOs) == 0) {
+	if r.Canary.Percent == 0 || r.Canary.TTL == 0 || len(r.SlothServiceLevelObjectives) == 0 {
 		return false
 	}
 
