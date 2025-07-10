@@ -154,6 +154,7 @@ mocks: go.sum
 	go get github.com/golang/mock/mockgen
 	mockgen --build_flags=--mod=mod -destination=mocks/client.go -package=mocks sigs.k8s.io/controller-runtime/pkg/client Client
 	mockgen --build_flags=--mod=mod -destination=prometheus/mocks/mock_promapi.go -package=mocks $(PACKAGE)/prometheus PromAPI
+	mockgen --build_flags=--mod=mod -destination=datadog/mocks/mock_datadogmonitorapi.go -package=mocks $(PACKAGE)/datadog DatadogMonitorAPI
 	mockgen --build_flags=--mod=mod -destination=controllers/mock_deployment.go -package=controllers $(PACKAGE)/controllers Deployment
 	mockgen --build_flags=--mod=mod -destination=controllers/mock_incarnations.go -package=controllers $(PACKAGE)/controllers Incarnations
 	mockgen --build_flags=--mod=mod -destination=controllers/scaling/mocks/scalabletarget_mock.go -package=mocks $(PACKAGE)/controllers/scaling ScalableTarget
