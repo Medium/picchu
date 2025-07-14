@@ -9,7 +9,6 @@ import (
 
 	datadog "github.com/DataDog/datadog-api-client-go/v2/api/datadog"
 	datadogV2 "github.com/DataDog/datadog-api-client-go/v2/api/datadogV2"
-	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -62,9 +61,26 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 		return v, nil
 	}
 
+	now := time.Now()
+	// 5 minutes before current time
+	fiveMinutesAgo := now.Add(-5 * time.Minute)
+
+	body := datadogV2.EventsListRequest{
+		Filter: &datadogV2.EventsQueryFilter{
+			// Query: datadog.PtrString("lite-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
+			Query: datadog.PtrString(query),
+			From:  datadog.PtrString(fiveMinutesAgo.Format(time.RFC3339)),
+			To:    datadog.PtrString(now.Format(time.RFC3339)),
+		},
+		Sort: datadogV2.EVENTSSORT_TIMESTAMP_ASCENDING.Ptr(),
+		Page: &datadogV2.EventsRequestPage{
+			Limit: datadog.PtrInt32(5),
+		},
+	}
+
 	// fix this
 	search_params := datadogV2.SearchEventsOptionalParameters{
-		Body: &datadogV2.EventsListRequest{},
+		Body: &body,
 	}
 
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
@@ -80,60 +96,19 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 	return val, nil
 }
 
-// func (a DDOGEVENTSAPI) TaggedCanaryMonitors(ctx context.Context, app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (map[string][]string, error) {
-// 	var canary_monitor string
-// 	canary_monitor = "("
-// 	for i := range datadogSLOs {
-// 		if datadogSLOs[i].Canary.Enabled {
-// 			if i == 0 {
-// 				canary_monitor = canary_monitor + app + "-" + datadogSLOs[i].Name + "-canary"
-// 				continue
-// 			}
-// 			// query: (<slo-1> OR <slo-2>) group:(env:production AND version:<tag>) triggered:15
-// 			canary_monitor = canary_monitor + " OR " + app + "-" + datadogSLOs[i].Name + "-canary"
-// 		}
-// 	}
-// 	canary_monitor = canary_monitor + ") group:(env:production AND version:" + tag + ") triggered:15"
-
-// 	val, err := a.queryWithCache(ctx, canary_monitor)
-// 	if err != nil {
-// 		monitor_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
-// 		return nil, err
-// 	}
-
-// 	monitors := val.GetGroups()
-
-// 	canary_monitors := map[string][]string{}
-// 	for _, m := range monitors {
-// 		if m.MonitorName == nil {
-// 			monitor_log.Info("Nil name for canary monitor", "status", m.Status, "monitor", m, "app", app, "tag", tag)
-// 			continue
-// 		}
-// 		if m.Status == nil {
-// 			monitor_log.Info("Nil status for canary monitor", "status", m.Status, "monitor", m, "app", app, "tag", tag)
-// 			continue
-// 		}
-// 		if *m.Status == datadogV1.MONITOROVERALLSTATES_ALERT {
-// 			if canary_monitors[tag] == nil {
-// 				canary_monitors[tag] = []string{}
-// 			}
-// 			canary_monitors[tag] = append(canary_monitors[tag], *m.MonitorName)
-// 		}
-// 	}
-
-// 	return canary_monitors, nil
-// }
-
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
-func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error) {
-	// canary_monitors, err := a.TaggedCanaryMonitors(ctx, app, tag, datadogSLOs)
-	// if err != nil {
-	// 	monitor_log.Error(err, "Error when calling `IsRevisionTriggered`\n", "error", err)
-	// 	return false, nil, err
-	// }
+func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
+	// Query: datadog.PtrString("lite-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
+	canary_monitor := app + "-composite-canary, destination_workload:" + tag
+	val, err := a.queryWithCache(ctx, canary_monitor)
+	if err != nil {
+		monitor_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
+		return false, err
+	}
+	e := datadogV2.EVENTSTATUSTYPE_ERROR
+	if val.Data[0].Attributes.Attributes.Status == &e {
+		return true, nil
+	}
 
-	// if monitors, ok := canary_monitors[tag]; ok && len(monitors) > 0 {
-	// 	return true, monitors, nil
-	// }
-	return false, nil, nil
+	return false, nil
 }

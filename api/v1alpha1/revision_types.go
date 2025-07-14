@@ -65,6 +65,8 @@ type RevisionTarget struct {
 	Fleet                       string                        `json:"fleet"`
 	Scale                       ScaleInfo                     `json:"scale"`
 	Release                     ReleaseInfo                   `json:"release,omitempty"`
+	DatadogCanaryEnabled        bool                          `json:"datadogCanaryEnabled,omitempty"`
+	DatadogCanaryMonitor        string                        `json:"datadogCanaryMonitor,omitempty"`
 	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
 	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`

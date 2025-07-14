@@ -102,13 +102,13 @@ func (n *NoopDatadogMonitorAPI) IsRevisionTriggered(ctx context.Context, name, t
 }
 
 type DatadogEventsAPI interface {
-	IsRevisionTriggered(ctx context.Context, name, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error)
+	IsRevisionTriggered(ctx context.Context, canary_monitor string) (bool, error)
 }
 
 type NoopDatadogEventsAPI struct{}
 
-func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, name, tag string, datadogSLOs []*picchuv1alpha1.DatadogSLO) (bool, []string, error) {
-	return false, nil, nil
+func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, canary_monitor string) (bool, error) {
+	return false, nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -224,6 +224,23 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 
+	// get prod target if DatadogCanaryEnabled
+	var prod picchuv1alpha1.RevisionTarget
+	for _, t := range instance.Spec.Targets {
+		if strings.Contains(t.Name, "production") && t.DatadogCanaryEnabled {
+			prod = t
+		}
+	}
+
+	// check if canary monitor are triggered for prod target
+	var canary_monitor_triggered bool
+	if prod.DatadogCanaryEnabled {
+		canary_monitor_triggered, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), prod.DatadogCanaryMonitor)
+		if err != nil {
+			return r.Requeue(log, err)
+		}
+	}
+
 	if err != nil {
 		return r.Requeue(log, err)
 	}
@@ -235,6 +252,11 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 			revisionFailing = true
 			revisionFailingReason = "test timing out"
 		}
+	}
+
+	// if canary monitor are triggered for prod target
+	if !revisionFailing && canary_monitor_triggered {
+		log.Info("Datadog canary monitor triggered", "DatadogCanaryMonitor", prod.DatadogCanaryMonitor)
 	}
 
 	if !revisionFailing && triggered && !instance.Spec.IgnoreSLOs {
