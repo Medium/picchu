@@ -67,7 +67,7 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 
 	body := datadogV2.EventsListRequest{
 		Filter: &datadogV2.EventsQueryFilter{
-			// Query: datadog.PtrString("lite-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
+			// Query: datadog.PtrString("<service>-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
 			Query: datadog.PtrString(query),
 			From:  datadog.PtrString(fiveMinutesAgo.Format(time.RFC3339)),
 			To:    datadog.PtrString(now.Format(time.RFC3339)),
@@ -78,7 +78,6 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 		},
 	}
 
-	// fix this
 	search_params := datadogV2.SearchEventsOptionalParameters{
 		Body: &body,
 	}
@@ -98,7 +97,7 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
 func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
-	// Query: datadog.PtrString("lite-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
+	// Query: datadog.PtrString("<service>-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
 	canary_monitor := app + "-composite-canary, destination_workload:" + tag
 	val, err := a.queryWithCache(ctx, canary_monitor)
 	if err != nil {
