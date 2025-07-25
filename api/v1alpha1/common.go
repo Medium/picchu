@@ -74,7 +74,7 @@ const (
 	AutoscalerTypeWPA  = "wpa"
 	AutoscalerTypeKEDA = "keda"
 
-	MaxUnavailable = "1%"
+	MaxUnavailable = "10%"
 )
 
 type PortInfo struct {
