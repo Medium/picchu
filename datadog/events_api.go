@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	events_log = logf.Log.WithName("datadog_alerts")
+	events_log = logf.Log.WithName("datadog_events_alerts")
 )
 
 type DatadogEventsAPI interface {
@@ -33,7 +33,7 @@ type cachedEventsValue struct {
 }
 
 func NewEventsAPI(ttl time.Duration) (*DDOGEVENTSAPI, error) {
-	monitor_log.Info("Creating Datadog Monitor API")
+	events_log.Info("Creating Datadog Monitor API")
 
 	configuration := datadog.NewConfiguration()
 	apiClient := datadog.NewAPIClient(configuration)
@@ -85,7 +85,7 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 	datadog_ctx := datadog.NewDefaultContext(context.Background())
 	val, r, err := a.api.SearchEvents(datadog_ctx, search_params)
 	if err != nil {
-		monitor_log.Error(err, "Error when calling `EventsApi.SearchEvents`\n", "error", err, "response", r)
+		events_log.Error(err, "Error when calling `EventsApi.SearchEvents`\n", "error", err, "response", r)
 		return datadogV2.EventsListResponse{}, err
 	}
 
@@ -98,10 +98,10 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
 func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
 	// Query: datadog.PtrString("<service>-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
-	canary_monitor := app + "-composite-canary, destination_workload:" + tag
+	canary_monitor := app + "-canary-monitor, version:" + tag
 	val, err := a.queryWithCache(ctx, canary_monitor)
 	if err != nil {
-		monitor_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
+		events_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
 		return false, err
 	}
 	e := datadogV2.EVENTSTATUSTYPE_ERROR

@@ -78,8 +78,6 @@ func main() {
 	prometheusEnabled := flag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
 	serviceLevelsNamespace := flag.String("service-levels-namespace", "service-level-objectives", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
 	serviceLevelsFleet := flag.String("service-levels-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
-	datadogSLONamespace := flag.String("datadog-slo-namespace", "datadog", "The namespace to use when creating DatadogSLO resources in the delivery cluster")
-	datadogSLOsFleet := flag.String("datadog-slo-fleet", "delivery", "The fleet to use when creating ServiceLevel resources")
 	concurrentRevisions := flag.Int("concurrent-revisions", 20, "How many concurrent revisions to reconcile")
 	concurrentReleaseManagers := flag.Int("concurrent-release-managers", 50, "How many concurrent release managers to reconcile")
 	devRoutesServiceHost := flag.String("dev-routes-service-host", "", "Configures the dev routes service host, if cluster dev routes are enabled")
@@ -102,8 +100,6 @@ func main() {
 		PrometheusQueryTTL:        *prometheusQueryTTL,
 		ServiceLevelsNamespace:    *serviceLevelsNamespace,
 		DatadogQueryTTL:           *datadogQueryTTL,
-		DatadogSLONamespace:       *datadogSLONamespace,
-		DatadogSLOsFleet:          *datadogSLOsFleet,
 		ServiceLevelsFleet:        *serviceLevelsFleet,
 		ConcurrentRevisions:       *concurrentRevisions,
 		ConcurrentReleaseManagers: *concurrentReleaseManagers,
@@ -122,16 +118,6 @@ func main() {
 	}
 	if errPromAPI != nil {
 		panic(errPromAPI)
-	}
-
-	var ddog_monitor_api controllers.DatadogMonitorAPI
-	var errorDatadogMonitorAPI error
-
-	// ddog monitor api client
-	ddog_monitor_api, errorDatadogMonitorAPI = datadogapi.NewMonitorAPI(cconfig.DatadogQueryTTL)
-
-	if errorDatadogMonitorAPI != nil {
-		panic(errorDatadogMonitorAPI)
 	}
 
 	var ddog_events_api controllers.DatadogEventsAPI
@@ -214,13 +200,12 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.RevisionReconciler{
-		Client:            mgr.GetClient(),
-		CustomLogger:      ctrl.Log.WithName("controllers").WithName("Revision"),
-		Scheme:            mgr.GetScheme(),
-		Config:            cconfig,
-		PromAPI:           api,
-		DatadogMonitorAPI: ddog_monitor_api,
-		DatadogEventsAPI:  ddog_events_api,
+		Client:           mgr.GetClient(),
+		CustomLogger:     ctrl.Log.WithName("controllers").WithName("Revision"),
+		Scheme:           mgr.GetScheme(),
+		Config:           cconfig,
+		PromAPI:          api,
+		DatadogEventsAPI: ddog_events_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)
