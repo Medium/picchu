@@ -97,7 +97,7 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 
 // IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
 func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
-	// Query: datadog.PtrString("<service>-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
+	// Query: datadog.PtrString("*-<service>-canary-monitor, destination_workload:main-20250711-124839-8ed97ca881"),
 	canary_monitor := app + "-canary-monitor, version:" + tag
 	val, err := a.queryWithCache(ctx, canary_monitor)
 	if err != nil {
