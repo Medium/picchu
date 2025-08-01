@@ -42,15 +42,17 @@ type IstioSidecar struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                RevisionApp      `json:"app"`
-	Targets            []RevisionTarget `json:"targets"`
-	Failed             bool             `json:"failed"`
-	IgnoreSLOs         bool             `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules bool             `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo       `json:"sentry,omitempty"`
-	TagRoutingHeader   string           `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring   bool             `json:"disableMirroring,omitempty"`
-	EventDriven        bool             `json:"eventDriven,omitempty"`
+	App                  RevisionApp      `json:"app"`
+	Targets              []RevisionTarget `json:"targets"`
+	Failed               bool             `json:"failed"`
+	DatadogCanaryEnabled bool             `json:"datadogCanaryEnabled,omitempty"`
+	IgnoreDatadogCanary  bool             `json:"ignoreDatadogCanary,omitempty"`
+	IgnoreSLOs           bool             `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules   bool             `json:"canaryWithSLIRules,omitempty"`
+	Sentry               SentryInfo       `json:"sentry,omitempty"`
+	TagRoutingHeader     string           `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring     bool             `json:"disableMirroring,omitempty"`
+	EventDriven          bool             `json:"eventDriven,omitempty"`
 }
 
 type RevisionApp struct {

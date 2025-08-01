@@ -91,6 +91,16 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 	return false, nil, nil
 }
 
+type DatadogEventsAPI interface {
+	IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error)
+}
+
+type NoopDatadogEventsAPI struct{}
+
+func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
+	return false, nil
+}
+
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler, c utils.Config) error {
 	_, err := builder.ControllerManagedBy(mgr).
@@ -114,11 +124,12 @@ var _ reconcile.Reconciler = &RevisionReconciler{}
 type RevisionReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	Client       client.Client
-	Scheme       *runtime.Scheme
-	Config       utils.Config
-	PromAPI      PromAPI
-	CustomLogger logr.Logger
+	Client           client.Client
+	Scheme           *runtime.Scheme
+	Config           utils.Config
+	PromAPI          PromAPI
+	DatadogEventsAPI DatadogEventsAPI
+	CustomLogger     logr.Logger
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
