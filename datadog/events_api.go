@@ -67,7 +67,7 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 
 	body := datadogV2.EventsListRequest{
 		Filter: &datadogV2.EventsQueryFilter{
-			// Query: datadog.PtrString("<service>-composite-canary, destination_workload:main-20250711-124839-8ed97ca881"),
+			// Query: datadog.PtrString("*-<service>-canary-monitor AND status:error AND version:<tag>")
 			Query: datadog.PtrString(query),
 			From:  datadog.PtrString(fiveMinutesAgo.Format(time.RFC3339)),
 			To:    datadog.PtrString(now.Format(time.RFC3339)),
@@ -95,19 +95,22 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 	return val, nil
 }
 
-// IsRevisionTriggered returns the offending alerts if any SLO alerts are currently triggered for the app/tag pair.
+// IsRevisionTriggered returns the true if any datadog metric canary monitoras are triggereing
 func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
-	// Query: datadog.PtrString("*-<service>-canary-monitor, destination_workload:main-20250711-124839-8ed97ca881"),
-	canary_monitor := app + "-canary-monitor, version:" + tag
-	val, err := a.queryWithCache(ctx, canary_monitor)
+	// Query: datadog.PtrString("*-<service>-canary-monitor AND status:error AND version:<tag>")
+	canary_monitor_query := "*-" + app + "-canary-monitor AND status:error AND version:" + tag
+	val, err := a.queryWithCache(ctx, canary_monitor_query)
 	if err != nil {
 		events_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
 		return false, err
 	}
 	e := datadogV2.EVENTSTATUSTYPE_ERROR
-	if val.Data[0].Attributes.Attributes.Status == &e {
-		return true, nil
+	// Look through all event responses for alerts with status ERROR
+	for _, d := range val.Data {
+		if d.Attributes.Attributes.Status == &e {
+			return true, nil
+		}
 	}
-
+	// No alerts are firing
 	return false, nil
 }

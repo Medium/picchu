@@ -211,23 +211,6 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 	}
 
-	if instance.Spec.App.Name == "echo" {
-		// check if the echo revision is canarying
-		canarying := false
-		for i := range status.Targets {
-			if strings.Contains(status.Targets[i].Name, "production") && status.Targets[i].State == "canarying" {
-				canarying = true
-			}
-		}
-
-		// echo production target is canarying
-		if canarying {
-			triggered, err := r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
-			log.Info("Echo IsRevisionTriggered result", "Triggered", triggered, "Error", err, "Revision", instance.Spec.App.Tag)
-		}
-
-	}
-
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 
 	if err != nil {
