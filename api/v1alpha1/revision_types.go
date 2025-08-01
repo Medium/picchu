@@ -115,10 +115,6 @@ type Canary struct {
 	TTL     int64  `json:"ttl"`
 }
 
-// ddog specific slos
-type DatadogSLO struct {
-}
-
 type SlothServiceLevelObjective struct {
 	Name                        string                      `json:"name,omitempty"`
 	Description                 string                      `json:"description,omitempty"`
