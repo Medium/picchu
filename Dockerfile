@@ -15,6 +15,7 @@ COPY api/ api/
 COPY controllers/ controllers/
 COPY client/ client/
 COPY prometheus/ prometheus/
+COPY datadog/ datadog/
 COPY plan/ plan/
 
 # Build
