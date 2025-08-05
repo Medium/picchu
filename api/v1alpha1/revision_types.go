@@ -42,17 +42,18 @@ type IstioSidecar struct {
 
 // RevisionSpec defines the desired state of Revision
 type RevisionSpec struct {
-	App                  RevisionApp      `json:"app"`
-	Targets              []RevisionTarget `json:"targets"`
-	Failed               bool             `json:"failed"`
-	DatadogCanaryEnabled bool             `json:"datadogCanaryEnabled,omitempty"`
-	IgnoreDatadogCanary  bool             `json:"ignoreDatadogCanary,omitempty"`
-	IgnoreSLOs           bool             `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules   bool             `json:"canaryWithSLIRules,omitempty"`
-	Sentry               SentryInfo       `json:"sentry,omitempty"`
-	TagRoutingHeader     string           `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring     bool             `json:"disableMirroring,omitempty"`
-	EventDriven          bool             `json:"eventDriven,omitempty"`
+	App     RevisionApp      `json:"app"`
+	Targets []RevisionTarget `json:"targets"`
+	Failed  bool             `json:"failed"`
+	// These are required for --fast-release
+	IgnoreDatadogCanary bool `json:"ignoreDatadogCanary,omitempty"`
+	IgnoreSLOs          bool `json:"ignoreSLOs,omitempty"`
+	// CanaryWithSLIRules will be irrelevant to datadog canary - it is only used in the prometheus api's isRevisionTriggered function
+	CanaryWithSLIRules bool       `json:"canaryWithSLIRules,omitempty"`
+	Sentry             SentryInfo `json:"sentry,omitempty"`
+	TagRoutingHeader   string     `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring   bool       `json:"disableMirroring,omitempty"`
+	EventDriven        bool       `json:"eventDriven,omitempty"`
 }
 
 type RevisionApp struct {
@@ -67,6 +68,7 @@ type RevisionTarget struct {
 	Fleet                       string                        `json:"fleet"`
 	Scale                       ScaleInfo                     `json:"scale"`
 	Release                     ReleaseInfo                   `json:"release,omitempty"`
+	DatadogMonitoring           DatadogMonitoring             `json:"datadogMonitoring,omitempty"`
 	ServiceMonitors             []*ServiceMonitor             `json:"serviceMonitors,omitempty"`
 	SlothServiceLevelObjectives []*SlothServiceLevelObjective `json:"serviceLevelObjectives,omitempty"`
 	ServiceLevelObjectiveLabels ServiceLevelObjectiveLabels   `json:"serviceLevelObjectiveLabels,omitempty"`
@@ -99,6 +101,11 @@ type RevisionTarget struct {
 	Istio                    *Istio                           `json:"istio,omitempty"`
 	PodDisruptionBudget      *policyv1.PodDisruptionBudget    `json:"podDisruptionBudget,omitempty"`
 	TopologySpreadConstraint *corev1.TopologySpreadConstraint `json:"topologySpreadConstraint,omitempty"`
+}
+
+type DatadogMonitoring struct {
+	// this will default to false, which means we are defaulting to prometheus monitoring
+	Enabled bool `json:"enabled"`
 }
 
 type ExternalTest struct {
