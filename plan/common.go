@@ -8,6 +8,7 @@ import (
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 
+	datadogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
@@ -522,6 +523,28 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, pdb)
+		if err != nil {
+			return err
+		}
+	case *datadogv1alpha1.DatadogMetric:
+		typed := orig.DeepCopy()
+		datadogMetric := &datadogv1alpha1.DatadogMetric{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+				Labels:    typed.Labels,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, datadogMetric, func() error {
+			if isIgnored(datadogMetric.ObjectMeta) {
+				kind := utils.MustGetKind(datadogMetric).Kind
+				log.Info("Resource is ignored", "namespace", datadogMetric.Namespace, "name", datadogMetric.Name, "kind", kind)
+				return nil
+			}
+			datadogMetric.Spec = typed.Spec
+			return nil
+		})
+		LogSync(log, op, err, datadogMetric)
 		if err != nil {
 			return err
 		}
