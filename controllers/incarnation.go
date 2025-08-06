@@ -273,6 +273,14 @@ func (i *Incarnation) isCanaryPending() bool {
 	return target.IsCanaryPending(i.status.CanaryStartTimestamp)
 }
 
+func (i *Incarnation) datadogMonitoring() bool {
+	target := i.target()
+	if target == nil {
+		return false
+	}
+	return target.DatadogMonitoring.Enabled
+}
+
 func (i *Incarnation) ports() []picchuv1alpha1.PortInfo {
 	target := i.target()
 	if target == nil {
