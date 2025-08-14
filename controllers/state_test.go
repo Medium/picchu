@@ -77,13 +77,14 @@ func TestDeployed(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, markedAsFailed, isDeployed, isReleaseEligible, isCanaryPending, isExpired bool, externalTestStatus ExternalTestStatus) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isDeployed, isReleaseEligible, isCanaryPending, datadogMonitoring, isExpired bool, externalTestStatus ExternalTestStatus) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:        hasRevision,
 			markedAsFailed:     markedAsFailed,
 			isDeployed:         isDeployed,
 			isReleaseEligible:  isReleaseEligible,
 			isCanaryPending:    isCanaryPending,
+			datadogMonitoring:  datadogMonitoring,
 			externalTestStatus: externalTestStatus,
 			isExpired:          isExpired,
 		})
@@ -96,187 +97,276 @@ func TestDeployed(t *tt.T) {
 	}
 
 	// TODO(lyra): clean up; when !hasRevision, only ExternalTestUnknown is possible
-	testcase(deleting, m(false, false, false, false, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, true, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, false, false, false, ExternalTestPending))
-	testcase(deleting, m(false, false, false, true, false, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, false, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, false, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, false, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, false, false, ExternalTestPending))
-	testcase(deleting, m(false, true, false, false, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, true, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, false, false, false, ExternalTestPending))
-	testcase(deleting, m(false, true, false, true, false, false, ExternalTestPending))
-	testcase(deleting, m(false, true, true, false, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, true, false, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, false, false, false, ExternalTestPending))
-	testcase(deleting, m(false, true, true, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, false, false, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, false, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, false, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, false, false, false, ExternalTestPending))
 
-	testcase(failing, m(true, true, false, false, false, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, true, false, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, false, false, false, ExternalTestPending))
-	testcase(failing, m(true, true, false, true, false, false, ExternalTestPending))
-	testcase(failing, m(true, true, true, false, false, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, true, false, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, false, false, false, ExternalTestPending))
-	testcase(failing, m(true, true, true, true, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, false, false, false, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, false, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, false, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, false, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, false, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, false, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, false, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, false, false, false, ExternalTestPending))
 
-	testcase(deploying, expectSync(m(true, false, false, false, false, false, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, true, false, false, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, false, false, false, ExternalTestPending)))
-	testcase(deploying, expectSync(m(true, false, false, true, false, false, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, false, false, false, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, false, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, false, false, false, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, false, false, ExternalTestPending)))
 
-	testcase(deployed, expectSync(m(true, false, true, false, false, false, ExternalTestDisabled)))
+	testcase(deployed, expectSync(m(true, false, true, false, false, false, false, ExternalTestDisabled)))
 
-	testcase(pendingtest, expectSync(m(true, false, true, true, false, false, ExternalTestPending)))
-	testcase(pendingtest, expectSync(m(true, false, true, false, false, false, ExternalTestPending)))
-	testcase(testing, expectSync(m(true, false, true, true, false, false, ExternalTestStarted)))
-	testcase(testing, expectSync(m(true, false, true, false, false, false, ExternalTestStarted)))
-	testcase(tested, expectSync(m(true, false, true, true, false, false, ExternalTestSucceeded)))
-	testcase(tested, expectSync(m(true, false, true, false, false, false, ExternalTestSucceeded)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, false, false, false, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, false, false, false, ExternalTestPending)))
+	testcase(testing, expectSync(m(true, false, true, true, false, false, false, ExternalTestStarted)))
+	testcase(testing, expectSync(m(true, false, true, false, false, false, false, ExternalTestStarted)))
+	testcase(tested, expectSync(m(true, false, true, true, false, false, false, ExternalTestSucceeded)))
+	testcase(tested, expectSync(m(true, false, true, false, false, false, false, ExternalTestSucceeded)))
 
-	testcase(pendingrelease, expectSync(m(true, false, true, true, false, false, ExternalTestDisabled)))
-
-	// now with canaries
-	testcase(deleting, m(false, false, false, false, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, true, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, false, true, false, ExternalTestPending))
-	testcase(deleting, m(false, false, false, true, true, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, true, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, true, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, true, false, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, true, false, ExternalTestPending))
-	testcase(deleting, m(false, true, false, false, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, true, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, false, true, false, ExternalTestPending))
-	testcase(deleting, m(false, true, false, true, true, false, ExternalTestPending))
-	testcase(deleting, m(false, true, true, false, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, true, true, false, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, false, true, false, ExternalTestPending))
-	testcase(deleting, m(false, true, true, true, true, false, ExternalTestPending))
-
-	testcase(failing, m(true, true, false, false, true, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, true, true, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, false, true, false, ExternalTestPending))
-	testcase(failing, m(true, true, false, true, true, false, ExternalTestPending))
-	testcase(failing, m(true, true, true, false, true, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, true, true, false, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, false, true, false, ExternalTestPending))
-	testcase(failing, m(true, true, true, true, true, false, ExternalTestPending))
-	testcase(failing, m(true, false, true, true, true, false, ExternalTestFailed))
-	testcase(failing, m(true, false, true, true, false, false, ExternalTestFailed))
-
-	testcase(deploying, expectSync(m(true, false, false, false, true, false, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, true, true, false, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, false, true, false, ExternalTestPending)))
-	testcase(deploying, expectSync(m(true, false, false, true, true, false, ExternalTestPending)))
-
-	testcase(deployed, expectSync(m(true, false, true, false, true, false, ExternalTestDisabled)))
-
-	testcase(pendingtest, expectSync(m(true, false, true, true, true, false, ExternalTestPending)))
-	testcase(pendingtest, expectSync(m(true, false, true, false, true, false, ExternalTestPending)))
-
-	testcase(canarying, expectSync(m(true, false, true, true, true, false, ExternalTestDisabled)))
-
-	testcase(deleting, m(false, false, false, false, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, true, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, false, false, true, ExternalTestPending))
-	testcase(deleting, m(false, false, false, true, false, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, false, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, false, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, false, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, false, true, ExternalTestPending))
-	testcase(deleting, m(false, true, false, false, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, true, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, false, false, true, ExternalTestPending))
-	testcase(deleting, m(false, true, false, true, false, true, ExternalTestPending))
-	testcase(deleting, m(false, true, true, false, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, true, false, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, false, false, true, ExternalTestPending))
-	testcase(deleting, m(false, true, true, true, false, true, ExternalTestPending))
-
-	testcase(failing, m(true, true, false, false, false, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, true, false, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, false, false, true, ExternalTestPending))
-	testcase(failing, m(true, true, false, true, false, true, ExternalTestPending))
-	testcase(failing, m(true, true, true, false, false, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, true, false, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, false, false, true, ExternalTestPending))
-	testcase(failing, m(true, true, true, true, false, true, ExternalTestPending))
-
-	testcase(deploying, expectSync(m(true, false, false, false, false, true, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, true, false, true, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, false, false, true, ExternalTestPending)))
-	testcase(deploying, expectSync(m(true, false, false, true, false, true, ExternalTestPending)))
-
-	testcase(retiring, expectSync(m(true, false, true, false, false, true, ExternalTestDisabled)))
-
-	testcase(pendingtest, expectSync(m(true, false, true, true, false, true, ExternalTestPending)))
-	testcase(pendingtest, expectSync(m(true, false, true, false, false, true, ExternalTestPending)))
-	testcase(testing, expectSync(m(true, false, true, true, false, true, ExternalTestStarted)))
-	testcase(testing, expectSync(m(true, false, true, false, false, true, ExternalTestStarted)))
-	testcase(tested, expectSync(m(true, false, true, true, false, true, ExternalTestSucceeded)))
-	testcase(tested, expectSync(m(true, false, true, false, false, true, ExternalTestSucceeded)))
-
-	testcase(pendingrelease, expectSync(m(true, false, true, true, false, true, ExternalTestDisabled)))
+	testcase(pendingrelease, expectSync(m(true, false, true, true, false, false, false, ExternalTestDisabled)))
 
 	// now with canaries
-	testcase(deleting, m(false, false, false, false, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, true, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, false, false, true, true, ExternalTestPending))
-	testcase(deleting, m(false, false, false, true, true, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, true, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, true, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, false, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, true, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, false, true, false, true, true, ExternalTestPending))
-	testcase(deleting, m(false, false, true, true, true, true, ExternalTestPending))
-	testcase(deleting, m(false, true, false, false, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, true, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, false, false, true, true, ExternalTestPending))
-	testcase(deleting, m(false, true, false, true, true, true, ExternalTestPending))
-	testcase(deleting, m(false, true, true, false, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, true, true, true, ExternalTestDisabled))
-	testcase(deleting, m(false, true, true, false, true, true, ExternalTestPending))
-	testcase(deleting, m(false, true, true, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, false, false, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, true, false, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, true, false, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, true, false, false, ExternalTestPending))
 
-	testcase(failing, m(true, true, false, false, true, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, true, true, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, false, false, true, true, ExternalTestPending))
-	testcase(failing, m(true, true, false, true, true, true, ExternalTestPending))
-	testcase(failing, m(true, true, true, false, true, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, true, true, true, ExternalTestDisabled))
-	testcase(failing, m(true, true, true, false, true, true, ExternalTestPending))
-	testcase(failing, m(true, true, true, true, true, true, ExternalTestPending))
-	testcase(failing, m(true, false, true, true, true, true, ExternalTestFailed))
-	testcase(failing, m(true, false, true, true, false, true, ExternalTestFailed))
+	testcase(failing, m(true, true, false, false, true, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, true, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, true, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, true, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, true, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, true, false, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, true, false, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, true, false, false, ExternalTestPending))
+	testcase(failing, m(true, false, true, true, true, false, false, ExternalTestFailed))
+	testcase(failing, m(true, false, true, true, false, false, false, ExternalTestFailed))
 
-	testcase(deploying, expectSync(m(true, false, false, false, true, true, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, true, true, true, ExternalTestDisabled)))
-	testcase(deploying, expectSync(m(true, false, false, false, true, true, ExternalTestPending)))
-	testcase(deploying, expectSync(m(true, false, false, true, true, true, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, false, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, false, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, false, false, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, false, false, ExternalTestPending)))
 
-	testcase(retiring, expectSync(m(true, false, true, false, true, true, ExternalTestDisabled)))
+	testcase(deployed, expectSync(m(true, false, true, false, true, false, false, ExternalTestDisabled)))
 
-	testcase(pendingtest, expectSync(m(true, false, true, true, true, true, ExternalTestPending)))
-	testcase(pendingtest, expectSync(m(true, false, true, false, true, true, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, true, true, false, false, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, true, false, false, ExternalTestPending)))
 
-	testcase(canarying, expectSync(m(true, false, true, true, true, true, ExternalTestDisabled)))
+	// ddog canaries
+	testcase(deleting, m(false, false, false, false, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, true, true, false, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, true, true, false, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, true, true, false, ExternalTestPending))
+
+	testcase(failing, m(true, true, false, false, true, true, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, true, true, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, true, true, false, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, true, true, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, true, true, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, true, true, false, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, true, true, false, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, true, true, false, ExternalTestPending))
+	testcase(failing, m(true, false, true, true, true, true, false, ExternalTestFailed))
+	testcase(failing, m(true, false, true, true, false, false, false, ExternalTestFailed))
+
+	testcase(deploying, expectSync(m(true, false, false, false, true, true, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, true, false, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, true, false, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, true, false, ExternalTestPending)))
+
+	testcase(deployed, expectSync(m(true, false, true, false, true, true, false, ExternalTestDisabled)))
+
+	testcase(pendingtest, expectSync(m(true, false, true, true, true, true, false, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, true, true, false, ExternalTestPending)))
+
+	testcase(canarying, expectSync(m(true, false, true, true, true, false, false, ExternalTestDisabled)))
+	// ddog canarying
+	testcase(canaryingdatadog, expectSync(m(true, false, true, true, true, true, false, ExternalTestDisabled)))
+
+	testcase(deleting, m(false, false, false, false, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, false, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, false, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, false, false, true, ExternalTestPending))
+
+	testcase(failing, m(true, true, false, false, false, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, false, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, false, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, false, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, false, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, false, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, false, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, false, false, true, ExternalTestPending))
+
+	testcase(deploying, expectSync(m(true, false, false, false, false, false, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, false, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, false, false, true, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, false, false, true, ExternalTestPending)))
+
+	testcase(retiring, expectSync(m(true, false, true, false, false, false, true, ExternalTestDisabled)))
+
+	testcase(pendingtest, expectSync(m(true, false, true, true, false, false, true, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, false, false, true, ExternalTestPending)))
+	testcase(testing, expectSync(m(true, false, true, true, false, false, true, ExternalTestStarted)))
+	testcase(testing, expectSync(m(true, false, true, false, false, false, true, ExternalTestStarted)))
+	testcase(tested, expectSync(m(true, false, true, true, false, false, true, ExternalTestSucceeded)))
+	testcase(tested, expectSync(m(true, false, true, false, false, false, true, ExternalTestSucceeded)))
+
+	testcase(pendingrelease, expectSync(m(true, false, true, true, false, false, true, ExternalTestDisabled)))
+
+	// now with canaries
+	testcase(deleting, m(false, false, false, false, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, true, false, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, true, false, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, true, false, true, ExternalTestPending))
+
+	testcase(failing, m(true, true, false, false, true, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, true, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, true, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, true, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, true, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, true, false, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, true, false, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, true, false, true, ExternalTestPending))
+	testcase(failing, m(true, false, true, true, true, false, true, ExternalTestFailed))
+	testcase(failing, m(true, false, true, true, false, false, true, ExternalTestFailed))
+
+	testcase(deploying, expectSync(m(true, false, false, false, true, false, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, false, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, false, true, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, false, true, ExternalTestPending)))
+
+	testcase(retiring, expectSync(m(true, false, true, false, true, false, true, ExternalTestDisabled)))
+
+	testcase(pendingtest, expectSync(m(true, false, true, true, true, false, true, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, true, false, true, ExternalTestPending)))
+
+	// ddog canaries
+	testcase(deleting, m(false, false, false, false, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, true, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, false, false, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, false, true, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, false, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, true, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, false, true, false, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, false, true, true, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, false, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, true, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, false, false, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, true, false, true, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, false, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, true, true, true, true, ExternalTestDisabled))
+	testcase(deleting, m(false, true, true, false, true, true, true, ExternalTestPending))
+	testcase(deleting, m(false, true, true, true, true, true, true, ExternalTestPending))
+
+	testcase(failing, m(true, true, false, false, true, true, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, true, true, true, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, false, false, true, true, true, ExternalTestPending))
+	testcase(failing, m(true, true, false, true, true, true, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, false, true, true, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, true, true, true, true, ExternalTestDisabled))
+	testcase(failing, m(true, true, true, false, true, true, true, ExternalTestPending))
+	testcase(failing, m(true, true, true, true, true, true, true, ExternalTestPending))
+	testcase(failing, m(true, false, true, true, true, true, true, ExternalTestFailed))
+	testcase(failing, m(true, false, true, true, false, true, true, ExternalTestFailed))
+
+	testcase(deploying, expectSync(m(true, false, false, false, true, false, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, false, true, ExternalTestDisabled)))
+	testcase(deploying, expectSync(m(true, false, false, false, true, false, true, ExternalTestPending)))
+	testcase(deploying, expectSync(m(true, false, false, true, true, false, true, ExternalTestPending)))
+
+	testcase(retiring, expectSync(m(true, false, true, false, true, true, true, ExternalTestDisabled)))
+
+	testcase(pendingtest, expectSync(m(true, false, true, true, true, true, true, ExternalTestPending)))
+	testcase(pendingtest, expectSync(m(true, false, true, false, true, true, true, ExternalTestPending)))
+
+	testcase(canarying, expectSync(m(true, false, true, true, true, false, true, ExternalTestDisabled)))
+	testcase(canaryingdatadog, expectSync(m(true, false, true, true, true, true, true, ExternalTestDisabled)))
 }
 
 func TestPendingTest(t *tt.T) {
@@ -360,12 +450,13 @@ func TestTested(t *tt.T) {
 	ctx := context.TODO()
 	defer ctrl.Finish()
 
-	m := func(hasRevision, markedAsFailed, isReleaseEligible, isCanaryPending bool, externalTestStatus ExternalTestStatus) *MockDeployment {
+	m := func(hasRevision, markedAsFailed, isReleaseEligible, isCanaryPending bool, datadogMonitoring bool, externalTestStatus ExternalTestStatus) *MockDeployment {
 		return createMockDeployment(ctrl, responses{
 			hasRevision:        hasRevision,
 			markedAsFailed:     markedAsFailed,
 			isReleaseEligible:  isReleaseEligible,
 			isCanaryPending:    isCanaryPending,
+			datadogMonitoring:  datadogMonitoring,
 			externalTestStatus: externalTestStatus,
 		})
 	}
@@ -374,28 +465,51 @@ func TestTested(t *tt.T) {
 		testHandler(ctx, t, "tested", expected, mock, nil)
 	}
 
-	testcase(deleting, m(false, false, false, false, ExternalTestSucceeded))
-	testcase(deleting, m(false, false, true, false, ExternalTestSucceeded))
-	testcase(deleting, m(false, true, false, false, ExternalTestSucceeded))
-	testcase(deleting, m(false, true, true, false, ExternalTestSucceeded))
-	testcase(tested, m(true, false, false, false, ExternalTestSucceeded))
-	testcase(pendingtest, m(true, false, false, false, ExternalTestPending))
-	testcase(testing, m(true, false, false, false, ExternalTestStarted))
-	testcase(pendingrelease, m(true, false, true, false, ExternalTestSucceeded))
-	testcase(failing, m(true, true, false, false, ExternalTestSucceeded))
-	testcase(failing, m(true, true, true, false, ExternalTestSucceeded))
-	testcase(failing, m(true, false, false, false, ExternalTestFailed))
-	testcase(failing, m(true, false, true, false, ExternalTestFailed))
+	testcase(deleting, m(false, false, false, false, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, false, true, false, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, false, false, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, true, false, false, ExternalTestSucceeded))
+	testcase(tested, m(true, false, false, false, false, ExternalTestSucceeded))
+	testcase(pendingtest, m(true, false, false, false, false, ExternalTestPending))
+	testcase(testing, m(true, false, false, false, false, ExternalTestStarted))
+	testcase(pendingrelease, m(true, false, true, false, false, ExternalTestSucceeded))
+	testcase(failing, m(true, true, false, false, false, ExternalTestSucceeded))
+	testcase(failing, m(true, true, true, false, false, ExternalTestSucceeded))
+	testcase(failing, m(true, false, false, false, false, ExternalTestFailed))
+	testcase(failing, m(true, false, true, false, false, ExternalTestFailed))
+
+	testcase(deleting, m(false, false, false, false, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, false, true, false, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, false, false, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, true, false, true, ExternalTestSucceeded))
+	testcase(tested, m(true, false, false, false, true, ExternalTestSucceeded))
+	testcase(pendingtest, m(true, false, false, false, true, ExternalTestPending))
+	testcase(testing, m(true, false, false, false, true, ExternalTestStarted))
+	testcase(pendingrelease, m(true, false, true, false, true, ExternalTestSucceeded))
+	testcase(failing, m(true, true, false, false, true, ExternalTestSucceeded))
+	testcase(failing, m(true, true, true, false, true, ExternalTestSucceeded))
+	testcase(failing, m(true, false, false, false, true, ExternalTestFailed))
+	testcase(failing, m(true, false, true, false, true, ExternalTestFailed))
 
 	// now with canary
-	testcase(deleting, m(false, false, false, true, ExternalTestSucceeded))
-	testcase(deleting, m(false, false, true, true, ExternalTestSucceeded))
-	testcase(deleting, m(false, true, false, true, ExternalTestSucceeded))
-	testcase(deleting, m(false, true, true, true, ExternalTestSucceeded))
-	testcase(tested, m(true, false, false, true, ExternalTestSucceeded))
-	testcase(canarying, m(true, false, true, true, ExternalTestSucceeded))
-	testcase(failing, m(true, true, false, true, ExternalTestSucceeded))
-	testcase(failing, m(true, true, true, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, false, false, true, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, false, true, true, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, false, true, false, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, true, true, false, ExternalTestSucceeded))
+	testcase(tested, m(true, false, false, true, false, ExternalTestSucceeded))
+	testcase(canarying, m(true, false, true, true, false, ExternalTestSucceeded))
+	testcase(failing, m(true, true, false, true, false, ExternalTestSucceeded))
+	testcase(failing, m(true, true, true, true, false, ExternalTestSucceeded))
+
+	// now with canary ddog
+	testcase(deleting, m(false, false, false, true, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, false, true, true, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, false, true, true, ExternalTestSucceeded))
+	testcase(deleting, m(false, true, true, true, true, ExternalTestSucceeded))
+	testcase(tested, m(true, false, false, true, true, ExternalTestSucceeded))
+	testcase(canaryingdatadog, m(true, false, true, true, true, ExternalTestSucceeded))
+	testcase(failing, m(true, true, false, true, true, ExternalTestSucceeded))
+	testcase(failing, m(true, true, true, true, true, ExternalTestSucceeded))
 }
 
 func TestCanarying(t *tt.T) {
@@ -425,6 +539,33 @@ func TestCanarying(t *tt.T) {
 	testcase(failing, m(true, true, true))
 }
 
+func TestCanaryingDatadog(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, markedAsFailed, isCanaryPending bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:     hasRevision,
+			markedAsFailed:  markedAsFailed,
+			isCanaryPending: isCanaryPending,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "canaryingdatadog", expected, mock, nil)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(canarieddatadog, expectSync((m(true, false, false))))
+	testcase(canaryingdatadog, expectSync((m(true, false, true))))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
 func TestCanaried(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.TODO()
@@ -448,6 +589,33 @@ func TestCanaried(t *tt.T) {
 	testcase(deleting, m(false, true, true))
 	testcase(canaried, expectSync(expectDeleteCanaryRules(m(true, false, false))))
 	testcase(pendingrelease, expectSync(expectDeleteCanaryRules(m(true, false, true))))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
+func TestCanariedDatadog(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			markedAsFailed:    markedAsFailed,
+			isReleaseEligible: isReleaseEligible,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "canarieddatadog", expected, mock, nil)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(canarieddatadog, expectSync(m(true, false, false)))
+	testcase(pendingrelease, expectSync(m(true, false, true)))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -786,6 +954,7 @@ type responses struct {
 	isReleaseEligible         bool
 	externalTestStatus        ExternalTestStatus
 	isCanaryPending           bool
+	datadogMonitoring         bool
 	isDeployed                bool
 	schedulePermitsRelease    bool
 	currentPercent            uint32
@@ -831,6 +1000,11 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		EXPECT().
 		isCanaryPending().
 		Return(r.isCanaryPending).
+		AnyTimes()
+	m.
+		EXPECT().
+		datadogMonitoring().
+		Return(r.datadogMonitoring).
 		AnyTimes()
 	m.
 		EXPECT().
