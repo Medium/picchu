@@ -186,6 +186,40 @@ func (i *Incarnation) reportMetrics(log logr.Logger) {
 		}
 	}
 
+	if current == canarieddatadog {
+		if i.status.Metrics.GitCanarySecondsInt == nil {
+			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.GitCanarySecondsInt = &elapsedInt
+			incarnationGitCanaryLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
+		if i.status.Metrics.RevisionCanarySecondsInt == nil {
+			elapsed := time.Since(i.status.RevisionTimestamp.Time).Seconds()
+			elapsedInt := int(elapsed)
+			i.status.Metrics.RevisionCanarySecondsInt = &elapsedInt
+			incarnationRevisionCanaryLatency.With(prometheus.Labels{
+				"app":    i.appName(),
+				"target": i.targetName(),
+			}).Observe(elapsed)
+		}
+
+		if i.status.Metrics.CanarySecondsInt == nil {
+			if i.status.CanaryStartTimestamp != nil {
+				elapsed := time.Since(i.status.CanaryStartTimestamp.Time).Seconds()
+				elapsedInt := int(elapsed)
+				i.status.Metrics.CanarySecondsInt = &elapsedInt
+				incarnationCanaryLatency.With(prometheus.Labels{
+					"app":    i.appName(),
+					"target": i.targetName(),
+				}).Observe(elapsed)
+			}
+		}
+	}
+
 	if current == pendingrelease {
 		if i.status.Metrics.GitPendingReleaseSecondsInt == nil {
 			elapsed := time.Since(i.status.GitTimestamp.Time).Seconds()
@@ -313,7 +347,7 @@ func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
 
 func (i *Incarnation) isRoutable() bool {
 	currentState := State(i.status.State.Current)
-	return currentState != canaried && currentState != pendingrelease
+	return currentState != canaried && currentState != canarieddatadog && currentState != pendingrelease
 }
 
 func (i *Incarnation) isTimingOut() bool {
@@ -613,6 +647,12 @@ func (i *Incarnation) setState(state string) {
 			i.status.CanaryStartTimestamp = &t
 		}
 	}
+	if state == "canaryingdatadog" {
+		if i.status.CanaryStartTimestamp == nil && i.status.CurrentPercent > 0 {
+			t := metav1.Now()
+			i.status.CanaryStartTimestamp = &t
+		}
+	}
 	if state == "pendingRelease" {
 		if i.status.PendingReleaseStartTimestamp == nil {
 			t := metav1.Now()
@@ -779,7 +819,7 @@ func (i *Incarnation) divideReplicas(count int32) int32 {
 	}
 
 	var perc uint32 = 100
-	if status.State.Current == "canarying" {
+	if status.State.Current == "canarying" || status.State.Current == "canaryingdatadog" {
 		perc = i.target().Canary.Percent
 	} else {
 		if i.isRamping {
@@ -822,7 +862,7 @@ func (i *Incarnation) currentPercentTarget(max uint32) uint32 {
 		return 0
 	}
 
-	if State(status.State.Current) == canarying {
+	if State(status.State.Current) == canarying || State(status.State.Current) == canaryingdatadog {
 		if max > i.target().Canary.Percent {
 			max = i.target().Canary.Percent
 		}
@@ -895,7 +935,7 @@ func newIncarnationCollection(controller Controller, revisionList *picchuv1alpha
 	for i := range sorted {
 		inc := sorted[i]
 		state := State(inc.status.State.Current)
-		if state != canaried && state != canarying {
+		if state != canaried && state != canarying && state != canarieddatadog && state != canaryingdatadog {
 			inc.isRamping = true
 			break
 		}
@@ -909,7 +949,7 @@ func (i *IncarnationCollection) deployed() (r []*Incarnation) {
 	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
-		case "deployed", "pendingtest", "testing", "tested", "pendingrelease", "releasing", "released", "canarying", "canaried":
+		case "deployed", "pendingtest", "testing", "tested", "pendingrelease", "releasing", "released", "canarying", "canaried", "canaryingdatadog", "canarieddatadog":
 			r = append(r, i)
 		}
 	}
@@ -920,7 +960,7 @@ func (i *IncarnationCollection) willRelease() (r []*Incarnation) {
 	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
-		case "deploying", "deployed", "precanary", "canarying", "canaried", "pendingrelease":
+		case "deploying", "deployed", "precanary", "canarying", "canaried", "canaryingdatadog", "canarieddatadog", "pendingrelease":
 			if i.isReleaseEligible() {
 				r = append(r, i)
 			}
@@ -935,7 +975,7 @@ func (i *IncarnationCollection) releasable() (r []*Incarnation) {
 	r = []*Incarnation{}
 	for _, i := range i.sorted() {
 		switch i.status.State.Current {
-		case "canarying":
+		case "canarying", "canaryingdatadog":
 			r = append(r, i)
 		}
 	}
@@ -980,7 +1020,7 @@ func (i *IncarnationCollection) alertable() (r []*Incarnation) {
 	r = []*Incarnation{}
 	for _, i := range i.revisioned() {
 		switch i.status.State.Current {
-		case "canarying", "canaried", "pendingrelease":
+		case "canarying", "canaried", "canaryingdatadog", "canarieddatadog", "pendingrelease":
 			r = append(r, i)
 		}
 	}
