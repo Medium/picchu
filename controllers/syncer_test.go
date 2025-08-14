@@ -231,6 +231,53 @@ func TestPrepareRevisionsAndRulesBadAddition(t *tt.T) {
 	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 80, 0, 0})
 }
 
+func TestPrepareRevisionsAndRulesBadAdditionDatadog(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := createTestIncarnations(ctrl)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          test.MustNewLogger(),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		// sorted by GitTimestamp, newest first
+		// note: does not add up to 100
+		createTestIncarnation("test1 incarnation0", canaryingdatadog, 10),
+		createTestIncarnation("test1 incarnation1", canaryingdatadog, 10),
+		createTestIncarnation("test1 incarnation2", releasing, 10),
+		createTestIncarnation("test1 incarnation3", releasing, 10),
+		createTestIncarnation("test1 incarnation4", released, 40),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	// testing when revision percents don't add up to 100
+	// revisions should add up after running prepareRevisions() once
+	revisions := testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 30, 10, 40})
+
+	// testing "normal" test case
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 50, 10, 20})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 70, 10, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 80, 0, 0})
+
+	// canary will end on it's own
+	// will stop getting returned from releasable() when it transitions to canaried
+	// which happens in the state machine after ttl expires
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 10, 80, 0, 0})
+}
+
 func TestPrepareRevisionsAndRulesNormalCase(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -243,6 +290,44 @@ func TestPrepareRevisionsAndRulesNormalCase(t *tt.T) {
 
 	releasableIncarnations := []*Incarnation{
 		createTestIncarnation("test2 incarnation0", canarying, 10),
+		createTestIncarnation("test2 incarnation1", releasing, 10),
+		createTestIncarnation("test2 incarnation2", releasing, 50),
+		createTestIncarnation("test2 incarnation3", released, 30),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	revisions := testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 30, 50, 10})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 50, 40, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 70, 20, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 90, 0, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{10, 90, 0, 0})
+}
+
+func TestPrepareRevisionsAndRulesNormalCaseDatadog(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := createTestIncarnations(ctrl)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          test.MustNewLogger(),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		createTestIncarnation("test2 incarnation0", canaryingdatadog, 10),
 		createTestIncarnation("test2 incarnation1", releasing, 10),
 		createTestIncarnation("test2 incarnation2", releasing, 50),
 		createTestIncarnation("test2 incarnation3", released, 30),
@@ -283,6 +368,47 @@ func TestPrepareRevisionsAndRulesIllegalStates(t *tt.T) {
 		createTestIncarnation("test3 incarnation0", releasing, 10),
 		createTestIncarnation("test3 incarnation1", canaried, 10), // illegal state
 		createTestIncarnation("test3 incarnation2", canarying, 10),
+		createTestIncarnation("test3 incarnation3", pendingrelease, 10), // illegal state
+		createTestIncarnation("test3 incarnation4", releasing, 20),
+		createTestIncarnation("test3 incarnation5", released, 30),
+		createTestIncarnation("test3 incarnation6", retiring, 10),
+	}
+	m.
+		EXPECT().
+		releasable().
+		Return(releasableIncarnations).
+		AnyTimes()
+
+	revisions := testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{30, 10, 10, 10, 20, 20, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{50, 10, 10, 10, 20, 0, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{70, 10, 10, 10, 0, 0, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{90, 10, 0, 0, 0, 0, 0})
+
+	revisions = testResourceSyncer.prepareRevisions()
+	assertIncarnationPercent(t, releasableIncarnations, revisions, []int{100, 0, 0, 0, 0, 0, 0})
+}
+
+func TestPrepareRevisionsAndRulesIllegalStatesDatadog(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := createTestIncarnations(ctrl)
+	testResourceSyncer := &ResourceSyncer{
+		incarnations: m,
+		log:          test.MustNewLogger(),
+	}
+
+	releasableIncarnations := []*Incarnation{
+		createTestIncarnation("test3 incarnation0", releasing, 10),
+		createTestIncarnation("test3 incarnation1", canarieddatadog, 10), // illegal state
+		createTestIncarnation("test3 incarnation2", canaryingdatadog, 10),
 		createTestIncarnation("test3 incarnation3", pendingrelease, 10), // illegal state
 		createTestIncarnation("test3 incarnation4", releasing, 20),
 		createTestIncarnation("test3 incarnation5", released, 30),
