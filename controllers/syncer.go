@@ -373,7 +373,7 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 	if len(r.incarnations.deployed()) > 0 {
 		alertable := r.incarnations.alertable()
 		for _, i := range alertable {
-			if i.target() != nil {
+			if i.target() != nil && !i.target().DatadogMonitoring.Enabled {
 				sm = i.target().ServiceMonitors
 				break
 			}

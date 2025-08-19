@@ -108,9 +108,11 @@ func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag 
 	// Look through all event responses for alerts with status ERROR
 	for _, d := range val.Data {
 		if d.Attributes.Attributes.Status == &e {
+			events_log.Info("Found triggered canary monitor", "app", app, "tag", tag, "query", canary_monitor_query)
 			return true, nil
 		}
 	}
 	// No alerts are firing
+	events_log.Info("No canary monitor triggered", "app", app, "tag", tag, "query", canary_monitor_query)
 	return false, nil
 }
