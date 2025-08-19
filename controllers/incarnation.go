@@ -18,6 +18,7 @@ import (
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -304,6 +305,9 @@ func (i *Incarnation) isCanaryPending() bool {
 	if target == nil {
 		return false
 	}
+	if i.appName() == "echo" {
+		log.Info("isCanaryPending() incarnation - Checking if Datadog canary is pending", "target", target.Name, "canary start timestamp", i.status.CanaryStartTimestamp, "iscanarypending", target.IsCanaryPending(i.status.CanaryStartTimestamp))
+	}
 	return target.IsCanaryPending(i.status.CanaryStartTimestamp)
 }
 
@@ -311,6 +315,9 @@ func (i *Incarnation) datadogMonitoring() bool {
 	target := i.target()
 	if target == nil {
 		return false
+	}
+	if i.appName() == "echo" {
+		log.Info("datadogMonitoring() - Checking if Datadog monitoring is enabled for incarnation", "target", target.Name)
 	}
 	return target.DatadogMonitoring.Enabled
 }

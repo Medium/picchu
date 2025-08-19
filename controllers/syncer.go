@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
 	istio "istio.io/api/networking/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -377,6 +378,9 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 				sm = i.target().ServiceMonitors
 				break
 			}
+			if r.instance.Spec.App == "echo" {
+				log.Info("prepareServiceMonitors() syncer - DatadogMonitoring is enabled", "datadogmonitoring", i.target().DatadogMonitoring.Enabled, "target", i.target().Name)
+			}
 		}
 	}
 
@@ -393,6 +397,9 @@ func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.Slot
 			// return target SLOs only if the target is non nil and DatadogMonitoring is disabled
 			if i.target() != nil && !i.target().DatadogMonitoring.Enabled {
 				return i.target().SlothServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
+			}
+			if r.instance.Spec.App == "echo" {
+				log.Info("prepareServiceLevelObjectives() syncer - DatadogMonitoring is enabled", "datadogmonitoring", i.target().DatadogMonitoring.Enabled, "target", i.target().Name)
 			}
 		}
 	}
