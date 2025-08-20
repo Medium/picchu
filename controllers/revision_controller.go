@@ -217,7 +217,6 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		for _, t := range status.Targets {
 			// if we are in thist state, ddogmonitoring is enabled
 			if strings.Contains(t.Name, "production") && t.State == "canaryingdatadog" {
-				log.Info("echo datadog canary test - prod_canarying and Target Status", "Target", t.Name, "State", t.State, "Release", t.Release)
 				// prod target is canarying
 				prod_canarying = true
 			}
@@ -230,7 +229,9 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 				log.Info("echo datadog canary test - Datadog events api IsRevisionTriggered error", "Error", err)
 				// do nothing
 			}
-			log.Info("echo datadog canary test - Datadog canary monitor output", "canary_monitor_triggered", canary_monitor_triggered)
+			if canary_monitor_triggered {
+				log.Info("echo datadog canary test - Datadog canary monitor output TRUE", "canary_monitor_triggered", canary_monitor_triggered)
+			}
 			// do nothing
 		}
 	}
