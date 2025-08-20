@@ -104,6 +104,7 @@ func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag 
 		events_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
 		return false, err
 	}
+	events_log.Info("queryWithCache val.Data output", "query", canary_monitor_query, "val.Data", val.Data)
 	e := datadogV2.EVENTSTATUSTYPE_ERROR
 	// Look through all event responses for alerts with status ERROR
 	for _, d := range val.Data {
