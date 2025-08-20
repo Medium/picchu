@@ -317,7 +317,7 @@ func (i *Incarnation) datadogMonitoring() bool {
 		return false
 	}
 	if i.appName() == "echo" {
-		log.Info("datadogMonitoring() - Checking if Datadog monitoring is enabled for incarnation", "target", target.Name)
+		log.Info("datadogMonitoring() - Checking if Datadog monitoring is enabled for incarnation", "target", target.Name, "ddog monitoring", target.DatadogMonitoring.Enabled)
 	}
 	return target.DatadogMonitoring.Enabled
 }
