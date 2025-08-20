@@ -211,6 +211,30 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 	}
 
+	// this block ois only for echo - it will execute IsRevisionTriggered but does nothing else
+	if instance.Spec.App.Name == "echo" {
+		prod_canarying := false
+		for _, t := range status.Targets {
+			// if we are in thist state, ddogmonitoring is enabled
+			if strings.Contains(t.Name, "production") && t.State == "canaryingdatadog" {
+				log.Info("echo datadog canary test - prod_canarying and Target Status", "Target", t.Name, "State", t.State, "Release", t.Release)
+				// prod target is canarying
+				prod_canarying = true
+			}
+		}
+
+		// check if canary monitor are triggered
+		if prod_canarying {
+			canary_monitor_triggered, err := r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+			if err != nil {
+				log.Info("echo datadog canary test - Datadog events api IsRevisionTriggered error", "Error", err)
+				// do nothing
+			}
+			log.Info("echo datadog canary test - Datadog canary monitor output", "canary_monitor_triggered", canary_monitor_triggered)
+			// do nothing
+		}
+	}
+
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 
 	if err != nil {
