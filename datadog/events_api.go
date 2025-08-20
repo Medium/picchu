@@ -108,6 +108,7 @@ func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag 
 	e := datadogV2.EVENTSTATUSTYPE_ERROR
 	// Look through all event responses for alerts with status ERROR
 	for _, d := range val.Data {
+		events_log.Info("queryWithCache &e", "&e", &e, "d.Attributes.Attributes.Status", d.Attributes.Attributes.Status)
 		if d.Attributes.Attributes.Status == &e {
 			events_log.Info("Found triggered canary monitor", "app", app, "tag", tag, "query", canary_monitor_query)
 			return true, nil
