@@ -212,6 +212,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	// this block ois only for echo - it will execute IsRevisionTriggered but does nothing else
+	var canary_monitor_triggered bool
 	if instance.Spec.App.Name == "echo" {
 		prod_canarying := false
 		for _, t := range status.Targets {
@@ -224,15 +225,14 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 
 		// check if canary monitor are triggered
 		if prod_canarying {
-			canary_monitor_triggered, err := r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+			canary_monitor_triggered, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
 			if err != nil {
 				log.Info("echo datadog canary test - Datadog events api IsRevisionTriggered error", "Error", err)
-				// do nothing
+				return r.Requeue(log, err)
 			}
 			if canary_monitor_triggered {
 				log.Info("echo datadog canary test - Datadog canary monitor output TRUE", "canary_monitor_triggered", canary_monitor_triggered)
 			}
-			// do nothing
 		}
 	}
 
@@ -249,6 +249,48 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 			revisionFailing = true
 			revisionFailingReason = "test timing out"
 		}
+	}
+
+	if !revisionFailing && canary_monitor_triggered && !instance.Spec.IgnoreDatadogCanary {
+		log.Info("Revision triggered - Datadog Monitors")
+		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
+		for i := range status.Targets {
+			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
+		}
+
+		for _, revisionTarget := range instance.Spec.Targets {
+			// if production target continue with SLO Violation
+			if strings.Contains(revisionTarget.Name, "production") {
+				targetStatus := targetStatusMap[revisionTarget.Name]
+				if targetStatus == nil {
+					continue
+				}
+				// im not sure what this is checking, peak percent < 50%? why 50?
+				if targetStatus.Release.PeakPercent < AcceptancePercentage {
+					revisionFailing = true
+					revisionFailingReason = "Datadog Monitor violation"
+
+					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
+					if err != nil {
+						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
+						break
+					}
+					if rm == nil {
+						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
+						break
+					}
+					// do we need to update the revision status?
+					// revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
+					// revisionStatus.TriggeredAlarms = alarms
+					// rm.UpdateRevisionStatus(revisionStatus)
+					// if err := utils.UpdateStatus(ctx, r.Client, rm); err != nil {
+					// 	log.Error(err, "Could not save alarms to RevisionStatus", "alarms", alarms)
+					// }
+				}
+				break
+			}
+		}
+
 	}
 
 	if !revisionFailing && triggered && !instance.Spec.IgnoreSLOs {
