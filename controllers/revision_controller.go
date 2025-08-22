@@ -227,11 +227,8 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		if prod_canarying {
 			canary_monitor_triggered, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
 			if err != nil {
-				log.Info("echo datadog canary test - Datadog events api IsRevisionTriggered error", "Error", err)
+				log.Error(err, "Datadog events api IsRevisionTriggered error", "Error", err)
 				return r.Requeue(log, err)
-			}
-			if canary_monitor_triggered {
-				log.Info("echo datadog canary test - Datadog canary monitor output TRUE", "canary_monitor_triggered", canary_monitor_triggered)
 			}
 		}
 	}
