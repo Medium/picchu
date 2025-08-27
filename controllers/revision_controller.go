@@ -234,7 +234,6 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
-	log.Info("echo datatog test: ", "triggered", triggered, "alarms", alarms, "canary_monitor_triggered", canary_monitor_triggered)
 	if err != nil {
 		return r.Requeue(log, err)
 	}
