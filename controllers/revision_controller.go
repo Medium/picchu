@@ -234,7 +234,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
-
+	log.Info("echo datatog test: ", "triggered", triggered, "alarms", alarms, "canary_monitor_triggered", canary_monitor_triggered)
 	if err != nil {
 		return r.Requeue(log, err)
 	}
@@ -256,7 +256,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 
 		for _, revisionTarget := range instance.Spec.Targets {
-			// if production target continue with SLO Violation
+			// if production target continue with Datadog Monitor Violation
 			if strings.Contains(revisionTarget.Name, "production") {
 				targetStatus := targetStatusMap[revisionTarget.Name]
 				if targetStatus == nil {
@@ -276,13 +276,6 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
 						break
 					}
-					// do we need to update the revision status?
-					// revisionStatus := rm.RevisionStatus(instance.Spec.App.Tag)
-					// revisionStatus.TriggeredAlarms = alarms
-					// rm.UpdateRevisionStatus(revisionStatus)
-					// if err := utils.UpdateStatus(ctx, r.Client, rm); err != nil {
-					// 	log.Error(err, "Could not save alarms to RevisionStatus", "alarms", alarms)
-					// }
 				}
 				break
 			}
