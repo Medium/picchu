@@ -24,6 +24,8 @@ const (
 	ScalingStrategyNone      = "none"
 	ScalingStrategyLinear    = "linear"
 	ScalingStrategyGeometric = "geometric"
+
+	DefaultDatadogDefaultRollup = "120"
 )
 
 var (
