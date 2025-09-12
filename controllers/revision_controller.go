@@ -92,12 +92,12 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 }
 
 type DatadogEventsAPI interface {
-	IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error)
+	IsRevisionTriggered(ctx context.Context, app string, tag string, target string) (bool, error)
 }
 
 type NoopDatadogEventsAPI struct{}
 
-func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
+func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app string, tag string, target string) (bool, error) {
 	return false, nil
 }
 
@@ -215,17 +215,20 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	var canary_monitor_triggered bool
 	if instance.Spec.App.Name == "echo" {
 		prod_canarying := false
+		prod_target := "production"
 		for _, t := range status.Targets {
 			// if we are in thist state, ddogmonitoring is enabled
 			if strings.Contains(t.Name, "production") && t.State == "canaryingdatadog" {
 				// prod target is canarying
 				prod_canarying = true
+				prod_target = t.Name
+				log.Info("Production target is canarying with datadog monitors", "Target", prod_target)
 			}
 		}
 
 		// check if canary monitor are triggered
 		if prod_canarying {
-			canary_monitor_triggered, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+			canary_monitor_triggered, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, prod_target)
 			if err != nil {
 				log.Error(err, "Datadog events api IsRevisionTriggered error", "Error", err)
 				return r.Requeue(log, err)
