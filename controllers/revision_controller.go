@@ -213,7 +213,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 
 	// this block ois only for echo - it will execute IsRevisionTriggered but does nothing else
 	var canary_monitor_triggered bool
-	if instance.Spec.App.Name == "echo" {
+	if instance.Spec.App.Name == "echo" || instance.Spec.App.Name == "fred" {
 		prod_canarying := false
 		prod_target := "production"
 		for _, t := range status.Targets {
