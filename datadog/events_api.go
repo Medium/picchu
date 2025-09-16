@@ -96,11 +96,11 @@ func (a DDOGEVENTSAPI) queryWithCache(ctx context.Context, query string) (datado
 }
 
 // IsRevisionTriggered returns the true if any datadog metric canary monitoras are triggereing
-func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string, target string) (bool, error) {
+func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
 	// Query: datadog.PtrString("*-<service>-canary-monitor AND status:error AND version:<tag>")
 
 	// tags:echo-production
-	canary_monitor_query := "*-" + app + "-canary-monitor AND status:error AND version:" + tag + " AND tags:" + target
+	canary_monitor_query := "*-" + app + "-canary-monitor AND status:error AND version:" + tag
 	val, err := a.queryWithCache(ctx, canary_monitor_query)
 	if err != nil {
 		events_log.Error(err, "Error when calling `queryWithCach`\n", "error", err, "response", val)
