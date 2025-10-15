@@ -2,7 +2,6 @@ package datadog
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	slack "github.com/slack-go/slack"
@@ -24,11 +23,10 @@ type SLACKAPI struct {
 func NewSlackAPI() (*SLACKAPI, error) {
 	slack_log.Info("Creating Datadog Monitor API")
 
-	token := os.Getenv("SLACK_BOT_TOKEN")
+	token := os.Getenv("SLACK_TOKEN")
 	if token == "" {
-		fmt.Println("SLACK_BOT_TOKEN environment variable is required")
-		// idk
-		os.Exit(1)
+		slack_log.Info("Error when calling `NewSlackAPI` - token empty \n")
+		return nil, nil
 	}
 
 	return &SLACKAPI{slack.New(token)}, nil
