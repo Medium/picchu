@@ -21,11 +21,6 @@ type SLACKAPI struct {
 	api SlackAPI
 }
 
-// type cachedSlackValue struct {
-// 	value       datadogV2.EventsListResponse
-// 	lastUpdated time.Time
-// }
-
 func NewSlackAPI() (*SLACKAPI, error) {
 	slack_log.Info("Creating Datadog Monitor API")
 
