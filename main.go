@@ -34,6 +34,7 @@ import (
 	"go.medium.engineering/picchu/controllers/utils"
 	datadogapi "go.medium.engineering/picchu/datadog"
 	promapi "go.medium.engineering/picchu/prometheus"
+	slackapi "go.medium.engineering/picchu/slack"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	apps "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2"
@@ -130,6 +131,16 @@ func main() {
 		panic(errorDatadogEventsAPI)
 	}
 
+	// slack api client
+	var slack_api controllers.SlackAPI
+	var errorSlackAPI error
+
+	slack_api, errorSlackAPI = slackapi.NewSlackAPI()
+
+	if errorSlackAPI != nil {
+		panic(errorSlackAPI)
+	}
+
 	schemeBuilders := k8sruntime.SchemeBuilder{
 		apps.AddToScheme,
 		core.AddToScheme,
@@ -206,6 +217,7 @@ func main() {
 		Config:           cconfig,
 		PromAPI:          api,
 		DatadogEventsAPI: ddog_events_api,
+		SlackAPI:         slack_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)

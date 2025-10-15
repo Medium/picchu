@@ -22,6 +22,7 @@ require (
 	github.com/prometheus/client_golang v1.21.1
 	github.com/prometheus/common v0.63.0
 	github.com/prometheus/prometheus v0.41.0
+	github.com/slack-go/slack v0.17.3
 	github.com/slok/sloth v0.11.0
 	github.com/stretchr/testify v1.10.0
 	go.medium.engineering/kubernetes v0.1.7
@@ -61,6 +62,7 @@ require (
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
