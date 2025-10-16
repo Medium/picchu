@@ -1,4 +1,4 @@
-package datadog
+package slack
 
 import (
 	"context"
@@ -21,7 +21,7 @@ type SLACKAPI struct {
 }
 
 func NewSlackAPI() (*SLACKAPI, error) {
-	slack_log.Info("Creating Datadog Monitor API")
+	slack_log.Info("Creating Slack API")
 
 	token := os.Getenv("SLACK_TOKEN")
 	if token == "" {
