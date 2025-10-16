@@ -259,8 +259,10 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 
 	if !revisionFailing && canary_monitor_triggered && !instance.Spec.IgnoreDatadogCanary {
 		log.Info("Revision triggered - Datadog Monitors")
-		// send slack alert
-		r.SlackAPI.PostMessage(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+		// send slack alert - only apply to echo for now
+		if instance.Spec.App.Name == "echo" {
+			r.SlackAPI.PostMessage(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+		}
 
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
 		for i := range status.Targets {
