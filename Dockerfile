@@ -16,6 +16,7 @@ COPY controllers/ controllers/
 COPY client/ client/
 COPY prometheus/ prometheus/
 COPY datadog/ datadog/
+COPY slack/ slack/
 COPY plan/ plan/
 
 # Build
