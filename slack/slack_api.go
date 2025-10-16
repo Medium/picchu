@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/DataDog/datadog-api-client-go/v2/api/datadogV2"
 	slack "github.com/slack-go/slack"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -37,7 +38,7 @@ func InjectSlackAPI(a SlackAPI) *SLACKAPI {
 }
 
 // test channel #eng-fredbottest: C02EKA9SB
-func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string) (bool, error) {
+func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) (bool, error) {
 	respChannelID, timestamp, err := a.api.PostMessage(
 		"C02EKA9SB",
 		slack.MsgOptionText("Canary is Failing for "+app+" - Picchu detected an issue with revision "+tag, false),
