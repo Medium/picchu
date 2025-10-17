@@ -45,7 +45,7 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 	monitor_id := *eventAttributes.Monitor.Get().Id
 
 	iris_url := fmt.Sprintf("https://iris.medium.build/servers/%s/revisions/%s?target=production", app, tag)
-	dataog_url := fmt.Sprintf("https://app.datadoghq.com/monitors/%s", string(monitor_id)) + "?q=version%3A" + tag
+	dataog_url := "https://app.datadoghq.com/monitors/" + fmt.Sprint(monitor_id) + "?q=version%3A" + tag
 
 	elements := make([]slack.BlockElement, 0, 3)
 	addLink := func(label, link string) {
