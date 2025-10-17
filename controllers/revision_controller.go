@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+	"github.com/DataDog/datadog-api-client-go/v2/api/datadogV2"
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -92,22 +93,22 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 }
 
 type DatadogEventsAPI interface {
-	IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error)
+	IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, *datadogV2.EventAttributes, error)
 }
 
 type NoopDatadogEventsAPI struct{}
 
-func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, error) {
-	return false, nil
+func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, *datadogV2.EventAttributes, error) {
+	return false, nil, nil
 }
 
 type SlackAPI interface {
-	PostMessage(ctx context.Context, app string, tag string) (bool, error)
+	PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) (bool, error)
 }
 
 type NoopSlackAPI struct{}
 
-func (n *NoopSlackAPI) PostMessage(ctx context.Context, app string, tag string) (bool, error) {
+func (n *NoopSlackAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) (bool, error) {
 	return false, nil
 }
 
@@ -223,6 +224,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	var canary_monitor_triggered bool
+	var ddogEventAttributes *datadogV2.EventAttributes
 
 	prod_datadogcanarying := false
 	for _, t := range status.Targets {
@@ -236,7 +238,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 
 	// check if canary monitor are triggered
 	if prod_datadogcanarying {
-		canary_monitor_triggered, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+		canary_monitor_triggered, ddogEventAttributes, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
 		if err != nil {
 			log.Error(err, "Datadog events api IsRevisionTriggered error", "Error", err)
 			return r.Requeue(log, err)
@@ -261,7 +263,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		log.Info("Revision triggered - Datadog Monitors")
 		// send slack alert - only apply to echo for now
 		if instance.Spec.App.Name == "echo" {
-			r.SlackAPI.PostMessage(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+			r.SlackAPI.PostMessage(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, ddogEventAttributes)
 		}
 
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
