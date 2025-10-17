@@ -8,7 +8,7 @@ import (
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/go-logr/logr"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"

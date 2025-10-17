@@ -7,7 +7,7 @@ import (
 	"go.medium.engineering/picchu/mocks"
 	"go.medium.engineering/picchu/test"
 
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"

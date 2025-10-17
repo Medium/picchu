@@ -11,7 +11,7 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
 
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
