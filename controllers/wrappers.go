@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"

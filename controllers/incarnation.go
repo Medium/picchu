@@ -15,7 +15,7 @@ import (
 	"go.medium.engineering/picchu/controllers/utils"
 	"go.medium.engineering/picchu/plan"
 
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	istiov1alpha3 "istio.io/api/networking/v1alpha3"
