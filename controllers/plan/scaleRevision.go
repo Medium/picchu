@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 
+	datadogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 
 	"go.medium.engineering/picchu/controllers/utils"
@@ -77,6 +78,22 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 	}
 
 	return p.applyHPA(ctx, cli, log, scaledMin, scaledMax)
+}
+
+func (p *ScaleRevision) applyDatadogMetric(ctx context.Context, cli client.Client, log logr.Logger) error {
+	query := fmt.Sprintf("sum:istio.mesh.request.count.total{reporter:destination, kube_namespace:%s, kube_replica_set:%s}.as_count().rollup(avg, %s)", p.Namespace, p.Tag, picchuv1alpha1.DefaultDatadogDefaultRollup)
+	datadogMetric := &datadogv1alpha1.DatadogMetric{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.Tag,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: datadogv1alpha1.DatadogMetricSpec{
+			Query: query,
+		},
+	}
+
+	return plan.CreateOrUpdate(ctx, log, cli, datadogMetric)
 }
 
 func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
@@ -194,12 +211,22 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
 	//If a trigger doesn't have an auth defined, fall back to the identity of the pod.
 	clonedTriggers := deepCopyTriggers(p.KedaWorker.Triggers)
+	createDatadogMetric := false
 	for i := range clonedTriggers {
 		if clonedTriggers[i].AuthenticationRef == nil {
 			clonedTriggers[i].AuthenticationRef = &kedav1.AuthenticationRef{
 				Name: p.Tag,
 			}
 			clonedTriggers[i].Metadata["identityOwner"] = "pod"
+		}
+		if clonedTriggers[i].Type == "datadog" {
+			clonedTriggers[i].Metadata["datadogMetricName"] = p.Tag
+			createDatadogMetric = true
+		}
+	}
+	if createDatadogMetric {
+		if err := p.applyDatadogMetric(ctx, cli, log); err != nil {
+			return err
 		}
 	}
 	for index, trigger := range p.KedaWorker.Triggers {
