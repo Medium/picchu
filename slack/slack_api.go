@@ -87,6 +87,7 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 		if strings.Contains(message.Text, ":failure-error-cross-x: :canary:") && strings.Contains(message.Text, tag) && strings.Contains(message.Text, strings.ToUpper(app)) {
 			slack_log.Info("FOUND CANARY MESSAGE:\n", "error", err, "tag", tag, "app", app)
 			send = false
+			break
 		}
 	}
 
