@@ -42,7 +42,7 @@ func InjectSlackAPI(a SlackAPI) *SLACKAPI {
 
 // test channel #eng-fredbottest: C02EKA9SB
 // if message already present, do not post again
-func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) (bool, error) {
+func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) error {
 	monitor_name := *eventAttributes.Monitor.Get().Name
 	monitor_id := *eventAttributes.Monitor.Get().Id
 
@@ -79,7 +79,7 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 	messages, err := a.api.GetConversationHistoryContext(context.Background(), &params)
 	if err != nil {
 		slack_log.Error(err, "Error when calling `GetConversationHistoryContextostMessage`\n", "error", err, "messages", messages)
-		return false, err
+		return err
 	}
 
 	send := true
@@ -99,11 +99,11 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 		)
 		if err != nil {
 			slack_log.Error(err, "Error when calling `PostMessage`\n", "error", err, "respChannelID", respChannelID)
-			return false, err
+			return err
 		}
 		slack_log.Info("Slack message successfully sent to channel #eng-fredbottest", "respChannelID", respChannelID, "app", app, "tag", tag, "timestamp", timestamp)
-		return true, nil
+		return nil
 	}
 
-	return false, nil
+	return nil
 }
