@@ -109,7 +109,7 @@ type SlackAPI interface {
 type NoopSlackAPI struct{}
 
 func (n *NoopSlackAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) error {
-	return false, nil
+	return nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
