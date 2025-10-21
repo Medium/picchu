@@ -6,7 +6,7 @@
 package scheme
 
 import (
-	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
