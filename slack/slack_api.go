@@ -62,7 +62,7 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 
 	block := slack.NewActionBlock("useful_links", elements...)
 
-	text := ":failure-error-cross-x: :canary: *" + strings.ToUpper(app) + "* release `" + "main-20251017-181807-e7e818488e" + "` is failing Datadog Canary\n:datadog: Triggered Monitor `" + monitor_name + "`\n"
+	text := ":failure-error-cross-x: :canary: *" + strings.ToUpper(app) + "* release `" + tag + "` is failing Datadog Canary\n:datadog: Triggered Monitor `" + monitor_name + "`\n"
 	textBlock := slack.NewTextBlockObject("mrkdwn", text, false, false)
 
 	opts := []slack.MsgOption{
