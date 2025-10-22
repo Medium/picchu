@@ -103,13 +103,13 @@ func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app stri
 }
 
 type SlackAPI interface {
-	PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) (bool, error)
+	PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) error
 }
 
 type NoopSlackAPI struct{}
 
-func (n *NoopSlackAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) (bool, error) {
-	return false, nil
+func (n *NoopSlackAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) error {
+	return nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -263,7 +263,10 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		log.Info("Revision triggered - Datadog Monitors")
 		// send slack alert - only apply to echo for now
 		if instance.Spec.App.Name == "echo" {
-			r.SlackAPI.PostMessage(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, ddogEventAttributes)
+			err := r.SlackAPI.PostMessage(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, ddogEventAttributes)
+			if err != nil {
+				log.Error(err, "Slack api PostMessage error", "Error", err)
+			}
 		}
 
 		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}

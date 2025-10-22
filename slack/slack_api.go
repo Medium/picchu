@@ -17,6 +17,7 @@ var (
 
 type SlackAPI interface {
 	PostMessage(channelID string, options ...slack.MsgOption) (string, string, error)
+	GetConversationHistoryContext(ctx context.Context, params *slack.GetConversationHistoryParameters) (*slack.GetConversationHistoryResponse, error)
 }
 
 type SLACKAPI struct {
@@ -40,7 +41,8 @@ func InjectSlackAPI(a SlackAPI) *SLACKAPI {
 }
 
 // test channel #eng-fredbottest: C02EKA9SB
-func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) (bool, error) {
+// if message already present, do not post again
+func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) error {
 	monitor_name := *eventAttributes.Monitor.Get().Name
 	monitor_id := *eventAttributes.Monitor.Get().Id
 
@@ -60,7 +62,7 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 
 	block := slack.NewActionBlock("useful_links", elements...)
 
-	text := ":failure-error-cross-x: :canary: *" + strings.ToUpper("echo") + "* release `" + "main-20251017-181807-e7e818488e" + "` is failing Datadog Canary\n:datadog: Triggered Monitor `" + monitor_name + "`\n"
+	text := ":failure-error-cross-x: :canary: *" + strings.ToUpper(app) + "* release `" + "main-20251017-181807-e7e818488e" + "` is failing Datadog Canary\n:datadog: Triggered Monitor `" + monitor_name + "`\n"
 	textBlock := slack.NewTextBlockObject("mrkdwn", text, false, false)
 
 	opts := []slack.MsgOption{
@@ -69,15 +71,39 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 		slack.MsgOptionBlocks(slack.NewSectionBlock(textBlock, nil, nil), block),
 	}
 
-	respChannelID, timestamp, err := a.api.PostMessage(
-		"C02EKA9SB",
-		opts...,
-	)
-	if err != nil {
-		slack_log.Error(err, "Error when calling `PostMessage`\n", "error", err, "respChannelID", respChannelID)
-		return false, err
+	// get channel history first to see if message already present
+	params := slack.GetConversationHistoryParameters{
+		ChannelID: "C02EKA9SB",
+		Limit:     5,
 	}
-	slack_log.Info("Slack message successfully sent to channel #eng-fredbottest", "respChannelID", respChannelID, "app", app, "tag", tag, "timestamp", timestamp)
+	messages, err := a.api.GetConversationHistoryContext(context.Background(), &params)
+	if err != nil {
+		slack_log.Error(err, "Error when calling `GetConversationHistoryContextostMessage`\n", "error", err, "messages", messages)
+		return err
+	}
 
-	return false, nil
+	send := true
+	for _, message := range messages.Messages {
+		if strings.Contains(message.Text, ":failure-error-cross-x: :canary:") && strings.Contains(message.Text, tag) && strings.Contains(message.Text, strings.ToUpper(app)) {
+			slack_log.Info("FOUND CANARY MESSAGE:\n", "error", err, "tag", tag, "app", app)
+			send = false
+			break
+		}
+	}
+
+	// message not found, send it
+	if send {
+		respChannelID, timestamp, err := a.api.PostMessage(
+			"C02EKA9SB",
+			opts...,
+		)
+		if err != nil {
+			slack_log.Error(err, "Error when calling `PostMessage`\n", "error", err, "respChannelID", respChannelID)
+			return err
+		}
+		slack_log.Info("Slack message successfully sent to channel #eng-fredbottest", "respChannelID", respChannelID, "app", app, "tag", tag, "timestamp", timestamp)
+		return nil
+	}
+
+	return nil
 }
