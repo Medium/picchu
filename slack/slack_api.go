@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/DataDog/datadog-api-client-go/v2/api/datadogV2"
 	slack "github.com/slack-go/slack"
@@ -21,10 +23,18 @@ type SlackAPI interface {
 }
 
 type SLACKAPI struct {
-	api SlackAPI
+	api   SlackAPI
+	cache map[slack.GetConversationHistoryParameters]cachedSlackValue
+	ttl   time.Duration
+	lock  *sync.RWMutex
 }
 
-func NewSlackAPI() (*SLACKAPI, error) {
+type cachedSlackValue struct {
+	value       *slack.GetConversationHistoryResponse
+	lastUpdated time.Time
+}
+
+func NewSlackAPI(ttl time.Duration) (*SLACKAPI, error) {
 	slack_log.Info("Creating Slack API")
 
 	token := os.Getenv("SLACK_TOKEN")
@@ -33,11 +43,41 @@ func NewSlackAPI() (*SLACKAPI, error) {
 		return nil, nil
 	}
 
-	return &SLACKAPI{slack.New(token)}, nil
+	return &SLACKAPI{slack.New(token), map[slack.GetConversationHistoryParameters]cachedSlackValue{}, ttl, &sync.RWMutex{}}, nil
 }
 
-func InjectSlackAPI(a SlackAPI) *SLACKAPI {
-	return &SLACKAPI{a}
+func InjectSlackAPI(a SlackAPI, ttl time.Duration) *SLACKAPI {
+	return &SLACKAPI{a, map[slack.GetConversationHistoryParameters]cachedSlackValue{}, ttl, &sync.RWMutex{}}
+}
+
+func (a SLACKAPI) checkCache(ctx context.Context, params slack.GetConversationHistoryParameters) (slack.GetConversationHistoryResponse, bool) {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+	if v, ok := a.cache[params]; ok {
+		if v.lastUpdated.Add(a.ttl).After(time.Now()) {
+			return *v.value, true
+		}
+	}
+	return slack.GetConversationHistoryResponse{}, false
+}
+
+func (a SLACKAPI) getConversationWithCache(ctx context.Context, params slack.GetConversationHistoryParameters) (slack.GetConversationHistoryResponse, error) {
+	if v, ok := a.checkCache(ctx, params); ok {
+		return v, nil
+	}
+
+	// get channel history first to see if message already present
+	messages, err := a.api.GetConversationHistoryContext(context.Background(), &params)
+
+	if err != nil {
+		slack_log.Error(err, "Error when calling `GetConversationHistoryContextostMessage`\n", "error", err, "messages", messages)
+		return slack.GetConversationHistoryResponse{}, err
+	}
+
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	a.cache[params] = cachedSlackValue{messages, time.Now()}
+	return *messages, nil
 }
 
 // test channel #eng-fredbottest: C02EKA9SB
@@ -71,16 +111,12 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 		slack.MsgOptionBlocks(slack.NewSectionBlock(textBlock, nil, nil), block),
 	}
 
-	// get channel history first to see if message already present
+	// hardcoded test channel #eng-fredbottest: C02EKA9SB for now
 	params := slack.GetConversationHistoryParameters{
 		ChannelID: "C02EKA9SB",
 		Limit:     5,
 	}
-	messages, err := a.api.GetConversationHistoryContext(context.Background(), &params)
-	if err != nil {
-		slack_log.Error(err, "Error when calling `GetConversationHistoryContextostMessage`\n", "error", err, "messages", messages)
-		return err
-	}
+	messages, err := a.getConversationWithCache(ctx, params)
 
 	send := true
 	for _, message := range messages.Messages {
