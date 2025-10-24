@@ -135,7 +135,7 @@ func main() {
 	var slack_api controllers.SlackAPI
 	var errorSlackAPI error
 
-	slack_api, errorSlackAPI = slackapi.NewSlackAPI()
+	slack_api, errorSlackAPI = slackapi.NewSlackAPI(cconfig.DatadogQueryTTL)
 
 	if errorSlackAPI != nil {
 		panic(errorSlackAPI)
