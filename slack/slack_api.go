@@ -98,7 +98,7 @@ func (a SLACKAPI) PostMessage(ctx context.Context, app string, tag string, event
 	}
 	addLink(":iris: Iris", iris_url)
 	addLink(":datadog: Datadog Triggered Monitor", dataog_url)
-	addLink(":notion: Canary Runbook", "")
+	addLink(":notion: Canary Runbook", "https://www.notion.so/medium-teamspace/Datadog-Canary-Playbook-293230e0983b8065a5d8e615d97bfb3d")
 
 	block := slack.NewActionBlock("useful_links", elements...)
 
