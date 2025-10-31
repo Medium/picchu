@@ -50,8 +50,6 @@ func TestDefaultStrategyVariousStates(t *testing.T) {
 		rev(1, 2014, "tested"),
 		rev(1, 2015, "canarying"),
 		rev(1, 2004, "retired"),
-		rev(1, 2016, "canarieddatadog"),
-		rev(1, 2017, "canaryingdatadog"),
 	}
 	testLogger := logr.Logger{}
 	out, err := FindGarbage(testLogger, DefaultStrategy, in)
@@ -79,8 +77,6 @@ func TestDefaultStrategyNonExpiredRevisions(t *testing.T) {
 		rev(1, 2014, "tested"),
 		rev(1, 2015, "canarying"),
 		rev(1, 2004, "retired"),
-		rev(1, 2016, "canarieddatadog"),
-		rev(1, 2017, "canaryingdatadog"),
 		// undeletable because of ttl
 		rev(1, time.Now().Year()+1, "retired"),
 		rev(1, time.Now().Year()+2, "retired"),
@@ -113,8 +109,6 @@ func TestDefaultStrategyNotEnoughExpired(t *testing.T) {
 		rev(1, 2013, "canaried"),
 		rev(1, 2014, "tested"),
 		rev(1, 2015, "canarying"),
-		rev(1, 2016, "canarieddatadog"),
-		rev(1, 2017, "canaryingdatadog"),
 	}
 	testLogger := logr.Logger{}
 	out, err := FindGarbage(testLogger, DefaultStrategy, in)

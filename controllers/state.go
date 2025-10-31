@@ -10,50 +10,46 @@ import (
 
 var (
 	handlers = map[string]StateHandler{
-		string(created):          Created,
-		string(deploying):        Deploying,
-		string(deployed):         Deployed,
-		string(pendingrelease):   PendingRelease,
-		string(releasing):        Releasing,
-		string(released):         Released,
-		string(retiring):         Retiring,
-		string(retired):          Retired,
-		string(deleting):         Deleting,
-		string(deleted):          Deleted,
-		string(failing):          Failing,
-		string(failed):           Failed,
-		string(pendingtest):      PendingTest,
-		string(testing):          Testing,
-		string(tested):           Tested,
-		string(canarying):        Canarying,
-		string(canaried):         Canaried,
-		string(canaryingdatadog): CanaryingDatadog,
-		string(canarieddatadog):  CanariedDatadog,
-		string(timingout):        Timingout,
+		string(created):        Created,
+		string(deploying):      Deploying,
+		string(deployed):       Deployed,
+		string(pendingrelease): PendingRelease,
+		string(releasing):      Releasing,
+		string(released):       Released,
+		string(retiring):       Retiring,
+		string(retired):        Retired,
+		string(deleting):       Deleting,
+		string(deleted):        Deleted,
+		string(failing):        Failing,
+		string(failed):         Failed,
+		string(pendingtest):    PendingTest,
+		string(testing):        Testing,
+		string(tested):         Tested,
+		string(canarying):      Canarying,
+		string(canaried):       Canaried,
+		string(timingout):      Timingout,
 	}
 )
 
 const (
-	created          State = "created"
-	deploying        State = "deploying"
-	deployed         State = "deployed"
-	pendingrelease   State = "pendingrelease"
-	releasing        State = "releasing"
-	released         State = "released"
-	retiring         State = "retiring"
-	retired          State = "retired"
-	deleting         State = "deleting"
-	deleted          State = "deleted"
-	failing          State = "failing"
-	failed           State = "failed"
-	pendingtest      State = "pendingtest"
-	testing          State = "testing"
-	tested           State = "tested"
-	canarying        State = "canarying"
-	canaried         State = "canaried"
-	canaryingdatadog State = "canaryingdatadog"
-	canarieddatadog  State = "canarieddatadog"
-	timingout        State = "timingout"
+	created        State = "created"
+	deploying      State = "deploying"
+	deployed       State = "deployed"
+	pendingrelease State = "pendingrelease"
+	releasing      State = "releasing"
+	released       State = "released"
+	retiring       State = "retiring"
+	retired        State = "retired"
+	deleting       State = "deleting"
+	deleted        State = "deleted"
+	failing        State = "failing"
+	failed         State = "failed"
+	pendingtest    State = "pendingtest"
+	testing        State = "testing"
+	tested         State = "tested"
+	canarying      State = "canarying"
+	canaried       State = "canaried"
+	timingout      State = "timingout"
 
 	DeployingTimeout = (time.Minute * 15)
 	CreatedTimeout   = time.Hour
@@ -223,12 +219,9 @@ func Deployed(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 	}
 	if deployment.isReleaseEligible() {
 		if deployment.isCanaryPending() {
-			// check if datadog or prometheus is enabled
-			if deployment.datadogMonitoring() {
-				return canaryingdatadog, nil
-			} else {
-				return canarying, nil
-			}
+
+			return canarying, nil
+
 		}
 		return pendingrelease, nil
 	}
@@ -312,12 +305,8 @@ func Tested(ctx context.Context, deployment Deployment, lastUpdated *time.Time) 
 	}
 	if deployment.isReleaseEligible() {
 		if deployment.isCanaryPending() {
-			// check if datadog or prometheus is enabled
-			if deployment.datadogMonitoring() {
-				return canaryingdatadog, nil
-			} else {
-				return canarying, nil
-			}
+			return canarying, nil
+
 		}
 		return pendingrelease, nil
 	}
@@ -496,22 +485,6 @@ func Canarying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	return canarying, nil
 }
 
-func CanaryingDatadog(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
-	if !deployment.hasRevision() {
-		return deleting, nil
-	}
-	if deployment.markedAsFailed() {
-		return failing, nil
-	}
-	if err := deployment.sync(ctx); err != nil {
-		return canaryingdatadog, err
-	}
-	if !deployment.isCanaryPending() {
-		return canarieddatadog, nil
-	}
-	return canaryingdatadog, nil
-}
-
 func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
@@ -529,22 +502,6 @@ func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return pendingrelease, nil
 	}
 	return canaried, nil
-}
-
-func CanariedDatadog(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
-	if !deployment.hasRevision() {
-		return deleting, nil
-	}
-	if deployment.markedAsFailed() {
-		return failing, nil
-	}
-	if err := deployment.sync(ctx); err != nil {
-		return canaryingdatadog, err
-	}
-	if deployment.isReleaseEligible() {
-		return pendingrelease, nil
-	}
-	return canarieddatadog, nil
 }
 
 // Timingout state is responsible for cleaning up a timing out release

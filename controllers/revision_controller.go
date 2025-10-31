@@ -135,13 +135,12 @@ var _ reconcile.Reconciler = &RevisionReconciler{}
 type RevisionReconciler struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	Client           client.Client
-	Scheme           *runtime.Scheme
-	Config           utils.Config
-	PromAPI          PromAPI
-	DatadogEventsAPI DatadogEventsAPI
-	SlackAPI         SlackAPI
-	CustomLogger     logr.Logger
+	Client       client.Client
+	Scheme       *runtime.Scheme
+	Config       utils.Config
+	PromAPI      PromAPI
+	SlackAPI     SlackAPI
+	CustomLogger logr.Logger
 }
 
 // Reconcile reads that state of the cluster for a Revision object and makes changes based on the state read
@@ -223,28 +222,6 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 		}
 	}
 
-	var canary_monitor_triggered bool
-	var ddogEventAttributes *datadogV2.EventAttributes
-
-	prod_datadogcanarying := false
-	for _, t := range status.Targets {
-		// if we are in thist state, ddogmonitoring is enabled
-		if strings.Contains(t.Name, "production") && t.State == "canaryingdatadog" {
-			// one or more prod targets are canarying
-			prod_datadogcanarying = true
-			log.Info("Production target is canarying with datadog monitors", "Target", t.Name)
-		}
-	}
-
-	// check if canary monitor are triggered
-	if prod_datadogcanarying {
-		canary_monitor_triggered, ddogEventAttributes, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
-		if err != nil {
-			log.Error(err, "Datadog events api IsRevisionTriggered error", "Error", err)
-			return r.Requeue(log, err)
-		}
-	}
-
 	triggered, alarms, err := r.PromAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, instance.Spec.CanaryWithSLIRules)
 	if err != nil {
 		return r.Requeue(log, err)
@@ -257,49 +234,6 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 			revisionFailing = true
 			revisionFailingReason = "test timing out"
 		}
-	}
-
-	if !revisionFailing && canary_monitor_triggered && !instance.Spec.IgnoreDatadogCanary {
-		log.Info("Revision triggered - Datadog Monitors")
-		// send slack alert - only apply to echo for now
-		if instance.Spec.App.Name == "echo" {
-			err := r.SlackAPI.PostMessage(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag, ddogEventAttributes)
-			if err != nil {
-				log.Error(err, "Slack api PostMessage error", "Error", err)
-			}
-		}
-
-		targetStatusMap := map[string]*picchuv1alpha1.RevisionTargetStatus{}
-		for i := range status.Targets {
-			targetStatusMap[status.Targets[i].Name] = &status.Targets[i]
-		}
-
-		for _, revisionTarget := range instance.Spec.Targets {
-			// if production target continue with Datadog Monitor Violation
-			if strings.Contains(revisionTarget.Name, "production") {
-				targetStatus := targetStatusMap[revisionTarget.Name]
-				if targetStatus == nil {
-					continue
-				}
-				// im not sure what this is checking, peak percent < 50%? why 50?
-				if targetStatus.Release.PeakPercent < AcceptancePercentage {
-					revisionFailing = true
-					revisionFailingReason = "Datadog Monitor violation"
-
-					rm, _, err := r.getReleaseManager(log, &revisionTarget, instance)
-					if err != nil {
-						log.Error(err, "could not getReleaseManager", "revisionTarget", revisionTarget.Name)
-						break
-					}
-					if rm == nil {
-						log.Info("missing ReleaseManager", "revisionTarget", revisionTarget.Name)
-						break
-					}
-				}
-				break
-			}
-		}
-
 	}
 
 	if !revisionFailing && triggered && !instance.Spec.IgnoreSLOs {

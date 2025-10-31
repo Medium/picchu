@@ -230,8 +230,6 @@ func TestDeployed(t *tt.T) {
 	testcase(pendingtest, expectSync(m(true, false, true, false, true, true, false, ExternalTestPending)))
 
 	testcase(canarying, expectSync(m(true, false, true, true, true, false, false, ExternalTestDisabled)))
-	// ddog canarying
-	testcase(canaryingdatadog, expectSync(m(true, false, true, true, true, true, false, ExternalTestDisabled)))
 
 	testcase(deleting, m(false, false, false, false, false, false, true, ExternalTestDisabled))
 	testcase(deleting, m(false, false, false, true, false, false, true, ExternalTestDisabled))
@@ -366,7 +364,6 @@ func TestDeployed(t *tt.T) {
 	testcase(pendingtest, expectSync(m(true, false, true, false, true, true, true, ExternalTestPending)))
 
 	testcase(canarying, expectSync(m(true, false, true, true, true, false, true, ExternalTestDisabled)))
-	testcase(canaryingdatadog, expectSync(m(true, false, true, true, true, true, true, ExternalTestDisabled)))
 }
 
 func TestPendingTest(t *tt.T) {
@@ -507,7 +504,6 @@ func TestTested(t *tt.T) {
 	testcase(deleting, m(false, true, false, true, true, ExternalTestSucceeded))
 	testcase(deleting, m(false, true, true, true, true, ExternalTestSucceeded))
 	testcase(tested, m(true, false, false, true, true, ExternalTestSucceeded))
-	testcase(canaryingdatadog, m(true, false, true, true, true, ExternalTestSucceeded))
 	testcase(failing, m(true, true, false, true, true, ExternalTestSucceeded))
 	testcase(failing, m(true, true, true, true, true, ExternalTestSucceeded))
 }
@@ -539,33 +535,6 @@ func TestCanarying(t *tt.T) {
 	testcase(failing, m(true, true, true))
 }
 
-func TestCanaryingDatadog(t *tt.T) {
-	ctrl := gomock.NewController(t)
-	ctx := context.TODO()
-	defer ctrl.Finish()
-
-	m := func(hasRevision, markedAsFailed, isCanaryPending bool) *MockDeployment {
-		return createMockDeployment(ctrl, responses{
-			hasRevision:     hasRevision,
-			markedAsFailed:  markedAsFailed,
-			isCanaryPending: isCanaryPending,
-		})
-	}
-
-	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "canaryingdatadog", expected, mock, nil)
-	}
-
-	testcase(deleting, m(false, false, false))
-	testcase(deleting, m(false, false, true))
-	testcase(deleting, m(false, true, false))
-	testcase(deleting, m(false, true, true))
-	testcase(canarieddatadog, expectSync((m(true, false, false))))
-	testcase(canaryingdatadog, expectSync((m(true, false, true))))
-	testcase(failing, m(true, true, false))
-	testcase(failing, m(true, true, true))
-}
-
 func TestCanaried(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.TODO()
@@ -589,33 +558,6 @@ func TestCanaried(t *tt.T) {
 	testcase(deleting, m(false, true, true))
 	testcase(canaried, expectSync(expectDeleteCanaryRules(m(true, false, false))))
 	testcase(pendingrelease, expectSync(expectDeleteCanaryRules(m(true, false, true))))
-	testcase(failing, m(true, true, false))
-	testcase(failing, m(true, true, true))
-}
-
-func TestCanariedDatadog(t *tt.T) {
-	ctrl := gomock.NewController(t)
-	ctx := context.TODO()
-	defer ctrl.Finish()
-
-	m := func(hasRevision, markedAsFailed, isReleaseEligible bool) *MockDeployment {
-		return createMockDeployment(ctrl, responses{
-			hasRevision:       hasRevision,
-			markedAsFailed:    markedAsFailed,
-			isReleaseEligible: isReleaseEligible,
-		})
-	}
-
-	testcase := func(expected State, mock *MockDeployment) {
-		testHandler(ctx, t, "canarieddatadog", expected, mock, nil)
-	}
-
-	testcase(deleting, m(false, false, false))
-	testcase(deleting, m(false, false, true))
-	testcase(deleting, m(false, true, false))
-	testcase(deleting, m(false, true, true))
-	testcase(canarieddatadog, expectSync(m(true, false, false)))
-	testcase(pendingrelease, expectSync(m(true, false, true)))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }

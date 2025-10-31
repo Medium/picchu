@@ -32,7 +32,6 @@ import (
 	clientgoscheme "go.medium.engineering/picchu/client/scheme"
 	"go.medium.engineering/picchu/controllers"
 	"go.medium.engineering/picchu/controllers/utils"
-	datadogapi "go.medium.engineering/picchu/datadog"
 	promapi "go.medium.engineering/picchu/prometheus"
 	slackapi "go.medium.engineering/picchu/slack"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -121,16 +120,6 @@ func main() {
 		panic(errPromAPI)
 	}
 
-	var ddog_events_api controllers.DatadogEventsAPI
-	var errorDatadogEventsAPI error
-
-	// ddog events api client
-	ddog_events_api, errorDatadogEventsAPI = datadogapi.NewEventsAPI(cconfig.DatadogQueryTTL)
-
-	if errorDatadogEventsAPI != nil {
-		panic(errorDatadogEventsAPI)
-	}
-
 	// slack api client
 	var slack_api controllers.SlackAPI
 	var errorSlackAPI error
@@ -211,13 +200,12 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.RevisionReconciler{
-		Client:           mgr.GetClient(),
-		CustomLogger:     ctrl.Log.WithName("controllers").WithName("Revision"),
-		Scheme:           mgr.GetScheme(),
-		Config:           cconfig,
-		PromAPI:          api,
-		DatadogEventsAPI: ddog_events_api,
-		SlackAPI:         slack_api,
+		Client:       mgr.GetClient(),
+		CustomLogger: ctrl.Log.WithName("controllers").WithName("Revision"),
+		Scheme:       mgr.GetScheme(),
+		Config:       cconfig,
+		PromAPI:      api,
+		SlackAPI:     slack_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)
