@@ -46,9 +46,7 @@ type RevisionSpec struct {
 	Targets []RevisionTarget `json:"targets"`
 	Failed  bool             `json:"failed"`
 	// These are required for --fast-release
-	IgnoreDatadogCanary bool `json:"ignoreDatadogCanary,omitempty"`
-	IgnoreSLOs          bool `json:"ignoreSLOs,omitempty"`
-	// CanaryWithSLIRules will be irrelevant to datadog canary - it is only used in the prometheus api's isRevisionTriggered function
+	IgnoreSLOs         bool       `json:"ignoreSLOs,omitempty"`
 	CanaryWithSLIRules bool       `json:"canaryWithSLIRules,omitempty"`
 	Sentry             SentryInfo `json:"sentry,omitempty"`
 	TagRoutingHeader   string     `json:"tagRoutingHeader,omitempty"`
@@ -305,7 +303,7 @@ func (r *RevisionTarget) IsExternalTestSuccessful() bool {
 
 func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 	// if canary values aren't set or no SLOs set up for service
-	if r.Canary.Percent == 0 || r.Canary.TTL == 0 || (len(r.SlothServiceLevelObjectives) == 0 && !r.DatadogMonitoring.Enabled) {
+	if r.Canary.Percent == 0 || r.Canary.TTL == 0 || (len(r.SlothServiceLevelObjectives) == 0) {
 		return false
 	}
 

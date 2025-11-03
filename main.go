@@ -21,7 +21,6 @@ import (
 	"os"
 	"time"
 
-	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -73,7 +72,7 @@ func main() {
 	requeuePeriodSeconds := flag.Int("sync-period-seconds", 15, "Delay between requeues")
 	prometheusQueryAddress := flag.String("prometheus-query-address", "", "The (usually thanos) address that picchu should query to SLO alerts")
 	prometheusQueryTTL := flag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
-	datadogQueryTTL := flag.Duration("datadog-query-ttl", time.Duration(120)*time.Second, "How long to cache SLO alerts")
+	slackQueryTTL := flag.Duration("slack-query-ttl", time.Duration(120)*time.Second, "How long to cache SLO alerts")
 	humaneReleasesEnabled := flag.Bool("humane-releases-enabled", true, "Release apps on the humane schedule")
 	prometheusEnabled := flag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
 	serviceLevelsNamespace := flag.String("service-levels-namespace", "service-level-objectives", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
@@ -99,7 +98,7 @@ func main() {
 		PrometheusQueryAddress:    *prometheusQueryAddress,
 		PrometheusQueryTTL:        *prometheusQueryTTL,
 		ServiceLevelsNamespace:    *serviceLevelsNamespace,
-		DatadogQueryTTL:           *datadogQueryTTL,
+		SlackQueryTTL:             *slackQueryTTL,
 		ServiceLevelsFleet:        *serviceLevelsFleet,
 		ConcurrentRevisions:       *concurrentRevisions,
 		ConcurrentReleaseManagers: *concurrentReleaseManagers,
@@ -124,7 +123,7 @@ func main() {
 	var slack_api controllers.SlackAPI
 	var errorSlackAPI error
 
-	slack_api, errorSlackAPI = slackapi.NewSlackAPI(cconfig.DatadogQueryTTL)
+	slack_api, errorSlackAPI = slackapi.NewSlackAPI(cconfig.slackQueryTTL)
 
 	if errorSlackAPI != nil {
 		panic(errorSlackAPI)
@@ -138,7 +137,6 @@ func main() {
 		istio.AddToScheme,
 		monitoring.AddToScheme,
 		slo.AddToScheme,
-		ddogv1alpha1.AddToScheme,
 		kedav1.AddToScheme,
 		wpav1.AddToScheme,
 		apis.AddToScheme,

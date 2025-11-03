@@ -92,16 +92,6 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 	return false, nil, nil
 }
 
-type DatadogEventsAPI interface {
-	IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, *datadogV2.EventAttributes, error)
-}
-
-type NoopDatadogEventsAPI struct{}
-
-func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, *datadogV2.EventAttributes, error) {
-	return false, nil, nil
-}
-
 type SlackAPI interface {
 	PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) error
 }

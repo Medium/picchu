@@ -86,7 +86,6 @@ type Deployment interface {
 	currentPercent() uint32
 	peakPercent() uint32
 	isCanaryPending() bool
-	datadogMonitoring() bool
 	isTimingOut() bool
 	isExpired() bool
 }
