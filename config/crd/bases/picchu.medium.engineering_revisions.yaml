@@ -58,8 +58,6 @@ spec:
                 - tag
                 type: object
               canaryWithSLIRules:
-                description: CanaryWithSLIRules will be irrelevant to datadog canary
-                  - it is only used in the prometheus api's isRevisionTriggered function
                 type: boolean
               disableMirroring:
                 type: boolean
@@ -67,10 +65,8 @@ spec:
                 type: boolean
               failed:
                 type: boolean
-              ignoreDatadogCanary:
-                description: These are required for --fast-release
-                type: boolean
               ignoreSLOs:
+                description: These are required for --fast-release
                 type: boolean
               sentry:
                 properties:
