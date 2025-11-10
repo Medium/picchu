@@ -91,7 +91,7 @@ func main() {
 		*prometheusQueryAddress = ""
 	}
 
-	cconfig := utils.Config{
+	config := utils.Config{
 		ManageRoute53:             *manageRoute53,
 		HumaneReleasesEnabled:     *humaneReleasesEnabled,
 		RequeueAfter:              requeuePeriod,
@@ -110,8 +110,8 @@ func main() {
 	var errPromAPI error
 
 	// prometheus api client
-	if cconfig.PrometheusQueryAddress != "" {
-		api, errPromAPI = promapi.NewAPI(cconfig.PrometheusQueryAddress, cconfig.PrometheusQueryTTL)
+	if config.PrometheusQueryAddress != "" {
+		api, errPromAPI = promapi.NewAPI(config.PrometheusQueryAddress, config.PrometheusQueryTTL)
 	} else {
 		api = &controllers.NoopPromAPI{}
 	}
@@ -123,7 +123,7 @@ func main() {
 	var slack_api controllers.SlackAPI
 	var errorSlackAPI error
 
-	slack_api, errorSlackAPI = slackapi.NewSlackAPI(cconfig.slackQueryTTL)
+	slack_api, errorSlackAPI = slackapi.NewSlackAPI(config.SlackQueryTTL)
 
 	if errorSlackAPI != nil {
 		panic(errorSlackAPI)
@@ -174,7 +174,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
 		Scheme: mgr.GetScheme(),
-		Config: cconfig,
+		Config: config,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
@@ -183,7 +183,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ReleaseManager"),
 		Scheme: mgr.GetScheme(),
-		Config: cconfig,
+		Config: config,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ReleaseManager")
 		os.Exit(1)
@@ -192,7 +192,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("ClusterSecrets"),
 		Scheme: mgr.GetScheme(),
-		Config: cconfig,
+		Config: config,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterSecrets")
 		os.Exit(1)
@@ -201,7 +201,7 @@ func main() {
 		Client:       mgr.GetClient(),
 		CustomLogger: ctrl.Log.WithName("controllers").WithName("Revision"),
 		Scheme:       mgr.GetScheme(),
-		Config:       cconfig,
+		Config:       config,
 		PromAPI:      api,
 		SlackAPI:     slack_api,
 	}).SetupWithManager(mgr); err != nil {
