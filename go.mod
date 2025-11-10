@@ -6,7 +6,6 @@ toolchain go1.24.3
 
 require (
 	github.com/DataDog/datadog-api-client-go/v2 v2.42.0
-	github.com/DataDog/datadog-operator/api v0.0.0-20250710174539-2de64d056b14
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/external-secrets/external-secrets v0.16.2
 	github.com/go-logr/logr v1.4.2

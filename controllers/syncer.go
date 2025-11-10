@@ -71,8 +71,6 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 	if err = r.syncServiceMonitors(ctx); err != nil {
 		return
 	}
-	// this will only create SLO rules if there are prometheus SLOs defined in the target
-	// and the DatadogMonitoring toggle is disabled
 	if err = r.syncSLORules(ctx); err != nil {
 		return
 	}
@@ -373,7 +371,7 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 	if len(r.incarnations.deployed()) > 0 {
 		alertable := r.incarnations.alertable()
 		for _, i := range alertable {
-			if i.target() != nil && !i.target().DatadogMonitoring.Enabled {
+			if i.target() != nil {
 				sm = i.target().ServiceMonitors
 				break
 			}
@@ -390,8 +388,7 @@ func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.Slot
 	if len(r.incarnations.deployed()) > 0 {
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
-			// return target SLOs only if the target is non nil and DatadogMonitoring is disabled
-			if i.target() != nil && !i.target().DatadogMonitoring.Enabled {
+			if i.target() != nil {
 				return i.target().SlothServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
 			}
 		}

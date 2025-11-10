@@ -55,20 +55,6 @@ func (mr *MockDeploymentMockRecorder) currentPercent() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "currentPercent", reflect.TypeOf((*MockDeployment)(nil).currentPercent))
 }
 
-// datadogMonitoring mocks base method.
-func (m *MockDeployment) datadogMonitoring() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "datadogMonitoring")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// datadogMonitoring indicates an expected call of datadogMonitoring.
-func (mr *MockDeploymentMockRecorder) datadogMonitoring() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "datadogMonitoring", reflect.TypeOf((*MockDeployment)(nil).datadogMonitoring))
-}
-
 // del mocks base method.
 func (m *MockDeployment) del(arg0 context.Context) error {
 	m.ctrl.T.Helper()
