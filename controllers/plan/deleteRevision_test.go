@@ -7,6 +7,7 @@ import (
 	"go.medium.engineering/picchu/mocks"
 	"go.medium.engineering/picchu/test"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
@@ -149,6 +150,11 @@ func TestDeleteRevision(t *testing.T) {
 	m.
 		EXPECT().
 		List(ctx, mocks.InjectExternalSecrets(externalSecrets), mocks.ListOptions(opts)).
+		Return(nil).
+		Times(1)
+	m.
+		EXPECT().
+		List(ctx, &ddogv1alpha1.DatadogMetricList{}, mocks.ListOptions(opts)).
 		Return(nil).
 		Times(1)
 	m.
