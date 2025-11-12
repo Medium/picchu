@@ -38,6 +38,7 @@ import (
 	autoscaling "k8s.io/api/autoscaling/v2"
 	core "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -141,6 +142,7 @@ func main() {
 		wpav1.AddToScheme,
 		apis.AddToScheme,
 		policyv1.AddToScheme,
+		rbacv1.AddToScheme,
 	}
 
 	for _, sch := range []*k8sruntime.Scheme{clientgoscheme.Scheme} {

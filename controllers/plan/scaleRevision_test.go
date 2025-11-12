@@ -8,6 +8,7 @@ import (
 	"go.medium.engineering/picchu/mocks"
 	"go.medium.engineering/picchu/test"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	"github.com/stretchr/testify/assert"
@@ -149,6 +150,8 @@ func TestScaleRevisionByRequestsRate(t *testing.T) {
 				o.Spec.Metrics[0].Pods.Target.AverageValue.String() == "5" &&
 				o.Spec.Metrics[0].Pods.Metric.Name == "request_rate" &&
 				len(o.Spec.Metrics) == 1
+		case *ddogv1alpha1.DatadogMetric:
+			return true
 		default:
 			return false
 		}

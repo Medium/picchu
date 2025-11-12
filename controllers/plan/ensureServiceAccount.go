@@ -43,5 +43,18 @@ func (p *EnsureServiceAccount) Apply(ctx context.Context, cli client.Client, clu
 		Namespace:   p.Namespace,
 	}
 
+	if err := plan.CreateOrUpdate(ctx, log, cli, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "service-account-token",
+			Namespace: p.Namespace,
+			Annotations: map[string]string{
+				"kubernetes.io/service-account.name": p.Name,
+			},
+		},
+		Type: corev1.SecretTypeServiceAccountToken,
+	}); err != nil {
+		return err
+	}
+
 	return plan.CreateOrUpdate(ctx, log, cli, &corev1.ServiceAccount{ObjectMeta: om})
 }

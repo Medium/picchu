@@ -19,6 +19,7 @@ import (
 	autoscaling "k8s.io/api/autoscaling/v2"
 	core "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -76,6 +77,9 @@ func init() {
 			panic(err)
 		}
 		if err := policyv1.AddToScheme(s); err != nil {
+			panic(err)
+		}
+		if err := rbacv1.AddToScheme(s); err != nil {
 			panic(err)
 		}
 	}

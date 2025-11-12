@@ -522,6 +522,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		Worker:             i.target().Scale.Worker,
 		KedaWorker:         i.target().Scale.KedaWorker,
 		EventDriven:        i.isEventDriven(),
+		ServiceAccountName: i.appName(),
 	}
 }
 
