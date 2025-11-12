@@ -4,10 +4,10 @@ dist: bionic
 
 env:
   global:
-    - TRAVIS_GO_VERSION=1.22.0
+    - TRAVIS_GO_VERSION=1.25.0
 
 go:
-- 1.22.0
+- 1.25.0
 
 sudo: required
 
