@@ -1,11 +1,10 @@
 module go.medium.engineering/picchu
 
-go 1.24.2
-
-toolchain go1.24.3
+go 1.25
 
 require (
 	github.com/DataDog/datadog-api-client-go/v2 v2.42.0
+	github.com/DataDog/datadog-operator/api v0.0.0-20251110224013-76f698af3867
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/external-secrets/external-secrets v0.16.2
 	github.com/go-logr/logr v1.4.2
