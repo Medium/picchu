@@ -199,15 +199,10 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log lo
 			clonedTriggers[i].AuthenticationRef = &kedav1.AuthenticationRef{
 				Name: p.Tag,
 			}
-			clonedTriggers[i].Metadata["identityOwner"] = "pod"
-		}
-	}
-	for index, trigger := range p.KedaWorker.Triggers {
-		if trigger.AuthenticationRef == nil {
-			p.KedaWorker.Triggers[index].AuthenticationRef = &kedav1.AuthenticationRef{
-				Name: p.Tag,
+			if clonedTriggers[i].Metadata == nil {
+				clonedTriggers[i].Metadata = make(map[string]string)
 			}
-			p.KedaWorker.Triggers[index].Metadata["identityOwner"] = "pod"
+			clonedTriggers[i].Metadata["identityOwner"] = "pod"
 		}
 	}
 	keda := &kedav1.ScaledObject{
