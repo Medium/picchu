@@ -96,9 +96,9 @@ type RevisionTarget struct {
 	Ports               []PortInfo        `json:"ports,omitempty"`
 	Env                 []corev1.EnvVar   `json:"env,omitempty"`
 
-	Istio                    *Istio                           `json:"istio,omitempty"`
-	PodDisruptionBudget      *policyv1.PodDisruptionBudget    `json:"podDisruptionBudget,omitempty"`
-	TopologySpreadConstraint *corev1.TopologySpreadConstraint `json:"topologySpreadConstraint,omitempty"`
+	Istio                    *Istio                            `json:"istio,omitempty"`
+	PodDisruptionBudget      *policyv1.PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
+	TopologySpreadConstraint *corev1.TopologySpreadConstraint  `json:"topologySpreadConstraint,omitempty"`
 }
 
 type DatadogMonitoring struct {

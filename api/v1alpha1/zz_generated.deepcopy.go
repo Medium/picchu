@@ -1514,7 +1514,7 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 	}
 	if in.PodDisruptionBudget != nil {
 		in, out := &in.PodDisruptionBudget, &out.PodDisruptionBudget
-		*out = new(policyv1.PodDisruptionBudget)
+		*out = new(policyv1.PodDisruptionBudgetSpec)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.TopologySpreadConstraint != nil {

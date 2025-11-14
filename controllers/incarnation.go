@@ -409,6 +409,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		ExternalSecrets:          append([]es.ExternalSecret{}, externalSecrets...),
 		EventDriven:              i.isEventDriven(),
 		TopologySpreadConstraint: i.target().TopologySpreadConstraint,
+		PodDisruptionBudget:      i.target().PodDisruptionBudget,
 	}
 
 	if !i.isRoutable() {
