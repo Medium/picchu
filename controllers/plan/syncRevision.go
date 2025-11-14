@@ -86,7 +86,7 @@ type SyncRevision struct {
 	Sidecars                 []corev1.Container // Additional sidecar containers.
 	VolumeMounts             []corev1.VolumeMount
 	Volumes                  []corev1.Volume
-	PodDisruptionBudget      *policyv1.PodDisruptionBudget
+	PodDisruptionBudget      *policyv1.PodDisruptionBudgetSpec
 	TopologySpreadConstraint *corev1.TopologySpreadConstraint
 	ExternalSecrets          []es.ExternalSecret
 	EventDriven              bool
@@ -180,19 +180,8 @@ func (p *SyncRevision) Apply(ctx context.Context, cli client.Client, cluster *pi
 		return err
 	}
 
-	if p.PodDisruptionBudget == nil {
-		maxUnavailable := intstr.FromString(picchuv1alpha1.MaxUnavailable)
-		p.PodDisruptionBudget = &policyv1.PodDisruptionBudget{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      p.App,
-				Namespace: p.Namespace,
-				Labels:    p.Labels,
-			},
-			Spec: policyv1.PodDisruptionBudgetSpec{
-				MaxUnavailable: &maxUnavailable,
-			},
-		}
-	}
+	// Create or update PodDisruptionBudget
+	// Convert PodDisruptionBudgetSpec (from kbfd) to full PodDisruptionBudget object
 	if err := p.syncPodDisruptionBudget(ctx, cli, log); err != nil {
 		return err
 	}
@@ -429,12 +418,42 @@ func (p *SyncRevision) syncReplicaSet(
 }
 
 func (p *SyncRevision) syncPodDisruptionBudget(ctx context.Context, cli client.Client, log logr.Logger) error {
-	p.PodDisruptionBudget.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			picchuv1alpha1.LabelApp: p.App,
+	// Create PodDisruptionBudget with proper ObjectMeta
+	pdb := &policyv1.PodDisruptionBudget{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.App,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					picchuv1alpha1.LabelApp: p.App,
+				},
+			},
 		},
 	}
-	return plan.CreateOrUpdate(ctx, log, cli, p.PodDisruptionBudget)
+
+	// Set fields from spec, or use default
+	if p.PodDisruptionBudget != nil {
+		// Copy all fields from the spec (maxUnavailable, minAvailable, unhealthyPodEvictionPolicy, etc.)
+		// but override selector since we manage that ourselves
+		pdb.Spec = *p.PodDisruptionBudget
+		// Always set selector ourselves - users shouldn't configure this
+		pdb.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				picchuv1alpha1.LabelApp: p.App,
+			},
+		}
+	}
+
+	// If neither was set, use default
+	if pdb.Spec.MaxUnavailable == nil && pdb.Spec.MinAvailable == nil {
+		maxUnavailable := intstr.FromString(picchuv1alpha1.MaxUnavailable)
+		pdb.Spec.MaxUnavailable = &maxUnavailable
+	}
+
+	return plan.CreateOrUpdate(ctx, log, cli, pdb)
 }
 
 func (p *SyncRevision) patchServiceAccount(ctx context.Context, cli client.Client, log logr.Logger) error {

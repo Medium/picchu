@@ -123,17 +123,8 @@ var (
 				MountPath: "/dev/shm",
 			},
 		},
-		PodDisruptionBudget: &policyv1.PodDisruptionBudget{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testapp",
-				Namespace: "testnamespace",
-				Labels: map[string]string{
-					"test": "label",
-				},
-			},
-			Spec: policyv1.PodDisruptionBudgetSpec{
-				MaxUnavailable: &maxUnavailable,
-			},
+		PodDisruptionBudget: &policyv1.PodDisruptionBudgetSpec{
+			MaxUnavailable: &maxUnavailable,
 		},
 		TopologySpreadConstraint: &corev1.TopologySpreadConstraint{
 			TopologyKey:       "kubernetes.io/hostname",

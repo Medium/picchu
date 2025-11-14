@@ -179,7 +179,17 @@ func (r *Revision) ValidateDelete(ctx context.Context, obj runtime.Object) (admi
 
 func (r *Revision) validate() error {
 	var allErrors field.ErrorList
-	for _, target := range r.Spec.Targets {
+	for i, target := range r.Spec.Targets {
+		targetPath := field.NewPath("spec", "targets").Index(i)
+
+		// Validate PodDisruptionBudget: cannot set both maxUnavailable and minAvailable
+		if target.PodDisruptionBudget != nil {
+			if target.PodDisruptionBudget.MaxUnavailable != nil && target.PodDisruptionBudget.MinAvailable != nil {
+				err := field.Invalid(targetPath.Child("podDisruptionBudget"), "both maxUnavailable and minAvailable set", "podDisruptionBudget: cannot set both maxUnavailable and minAvailable")
+				allErrors = append(allErrors, err)
+			}
+		}
+
 		found := target.Release.ScalingStrategy == ""
 		for _, s := range ScalingStrategies {
 			if target.Release.ScalingStrategy == s {
