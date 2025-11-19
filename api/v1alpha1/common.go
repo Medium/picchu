@@ -74,7 +74,8 @@ const (
 	AutoscalerTypeWPA  = "wpa"
 	AutoscalerTypeKEDA = "keda"
 
-	MaxUnavailable = "10%"
+	MaxUnavailable       = "10%"
+	DatadogDefaultRollup = 120
 )
 
 type PortInfo struct {

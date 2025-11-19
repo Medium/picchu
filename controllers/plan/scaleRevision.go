@@ -334,7 +334,7 @@ func (p *ScaleRevision) datadogMetric(cluster *picchuv1alpha1.Cluster) *ddogv1al
 			Labels:    p.Labels,
 		},
 		Spec: ddogv1alpha1.DatadogMetricSpec{
-			Query: fmt.Sprintf("avg:istio.mesh.request.count{reporter:destination, cluster:%s, kube_namespace:%s, version:%s}.rollup(count, 120)", cluster.Name, p.Namespace, p.Tag),
+			Query: fmt.Sprintf("avg:istio.mesh.request.count{reporter:destination, cluster:%s, kube_namespace:%s, version:%s}.rollup(count, %d)", cluster.Name, p.Namespace, p.Tag, picchuv1alpha1.DatadogDefaultRollup),
 		},
 	}
 }
