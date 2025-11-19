@@ -230,7 +230,7 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, cluste
 		},
 	}
 	// Create DatadogMetric if RequestsRateTarget or RequestsRateMetric is set
-	if p.RequestsRateTarget != nil || p.RequestsRateMetric != "" {
+	if p.RequestsRateTarget != nil {
 		datadogMetric := p.datadogMetric(cluster)
 		if datadogMetric != nil {
 			if err := plan.CreateOrUpdate(ctx, log, cli, datadogMetric); err != nil {
