@@ -8,6 +8,7 @@ import (
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/controllers/utils"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/go-logr/logr"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
@@ -19,6 +20,7 @@ import (
 	autoscaling "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -308,9 +310,11 @@ func CreateOrUpdate(
 		typed := orig.DeepCopy()
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      typed.Name,
-				Namespace: typed.Namespace,
+				Name:        typed.Name,
+				Namespace:   typed.Namespace,
+				Annotations: typed.Annotations,
 			},
+			Type: typed.Type,
 		}
 		op, err := controllerutil.CreateOrUpdate(ctx, cli, secret, func() error {
 			if isIgnored(secret.ObjectMeta) {
@@ -435,6 +439,28 @@ func CreateOrUpdate(
 		if err != nil {
 			return err
 		}
+	case *ddogv1alpha1.DatadogMetric:
+		typed := orig.DeepCopy()
+		dm := &ddogv1alpha1.DatadogMetric{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, dm, func() error {
+			if isIgnored(dm.ObjectMeta) {
+				kind := utils.MustGetKind(dm).Kind
+				log.Info("Resource is ignored", "namespace", dm.Namespace, "name", dm.Name, "kind", kind)
+				return nil
+			}
+			dm.Spec = typed.Spec
+			dm.Labels = CopyStringMap(typed.Labels)
+			return nil
+		})
+		LogSync(log, op, err, dm)
+		if err != nil {
+			return err
+		}
 	case *wpav1.WorkerPodAutoScaler:
 		typed := orig.DeepCopy()
 		wpa := &wpav1.WorkerPodAutoScaler{
@@ -522,6 +548,49 @@ func CreateOrUpdate(
 			return nil
 		})
 		LogSync(log, op, err, pdb)
+		if err != nil {
+			return err
+		}
+	case *rbacv1.Role:
+		typed := orig.DeepCopy()
+		role := &rbacv1.Role{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, role, func() error {
+			if isIgnored(role.ObjectMeta) {
+				kind := utils.MustGetKind(role).Kind
+				log.Info("Resource is ignored", "namespace", role.Namespace, "name", role.Name, "kind", kind)
+				return nil
+			}
+			role.Rules = typed.Rules
+			return nil
+		})
+		LogSync(log, op, err, role)
+		if err != nil {
+			return err
+		}
+	case *rbacv1.RoleBinding:
+		typed := orig.DeepCopy()
+		roleBinding := &rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      typed.Name,
+				Namespace: typed.Namespace,
+			},
+		}
+		op, err := controllerutil.CreateOrUpdate(ctx, cli, roleBinding, func() error {
+			if isIgnored(roleBinding.ObjectMeta) {
+				kind := utils.MustGetKind(roleBinding).Kind
+				log.Info("Resource is ignored", "namespace", roleBinding.Namespace, "name", roleBinding.Name, "kind", kind)
+				return nil
+			}
+			roleBinding.Subjects = typed.Subjects
+			roleBinding.RoleRef = typed.RoleRef
+			return nil
+		})
+		LogSync(log, op, err, roleBinding)
 		if err != nil {
 			return err
 		}

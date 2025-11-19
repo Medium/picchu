@@ -1,6 +1,7 @@
 package plan
 
 import (
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	es "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
@@ -47,6 +48,10 @@ type KedaAuthList struct {
 	Item *kedav1.TriggerAuthenticationList
 }
 
+type DatadogMetricList struct {
+	Item *ddogv1alpha1.DatadogMetricList
+}
+
 func NewSecretList() *SecretList {
 	return &SecretList{&corev1.SecretList{}}
 }
@@ -77,6 +82,10 @@ func NewKedaPodAutoscalerList() *KedaPodAutoscalerList {
 
 func NewKedaAuthList() *KedaAuthList {
 	return &KedaAuthList{&kedav1.TriggerAuthenticationList{}}
+}
+
+func NewDatadogMetricList() *DatadogMetricList {
+	return &DatadogMetricList{&ddogv1alpha1.DatadogMetricList{}}
 }
 
 func (s *SecretList) GetItems() (r []client.Object) {
@@ -135,6 +144,13 @@ func (s *KedaAuthList) GetItems() (r []client.Object) {
 	return
 }
 
+func (s *DatadogMetricList) GetItems() (r []client.Object) {
+	for _, i := range s.Item.Items {
+		r = append(r, &i)
+	}
+	return
+}
+
 func (s *SecretList) GetList() (r client.ObjectList) {
 	return s.Item
 }
@@ -164,5 +180,9 @@ func (s *KedaPodAutoscalerList) GetList() (r client.ObjectList) {
 }
 
 func (s *KedaAuthList) GetList() (r client.ObjectList) {
+	return s.Item
+}
+
+func (s *DatadogMetricList) GetList() (r client.ObjectList) {
 	return s.Item
 }

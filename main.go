@@ -21,6 +21,7 @@ import (
 	"os"
 	"time"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	monitoring "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -38,6 +39,7 @@ import (
 	autoscaling "k8s.io/api/autoscaling/v2"
 	core "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -141,6 +143,8 @@ func main() {
 		wpav1.AddToScheme,
 		apis.AddToScheme,
 		policyv1.AddToScheme,
+		rbacv1.AddToScheme,
+		ddogv1alpha1.AddToScheme,
 	}
 
 	for _, sch := range []*k8sruntime.Scheme{clientgoscheme.Scheme} {

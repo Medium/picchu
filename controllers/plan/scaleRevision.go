@@ -12,10 +12,12 @@ import (
 	"go.medium.engineering/picchu/controllers/utils"
 	"go.medium.engineering/picchu/plan"
 
+	ddogv1alpha1 "github.com/DataDog/datadog-operator/api/datadoghq/v1alpha1"
 	"github.com/go-logr/logr"
 	kedav1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	wpav1 "github.com/practo/k8s-worker-pod-autoscaler/pkg/apis/workerpodautoscaler/v1"
 	autoscaling "k8s.io/api/autoscaling/v2"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,6 +36,7 @@ type ScaleRevision struct {
 	Worker             *picchuv1alpha1.WorkerScaleInfo
 	KedaWorker         *picchuv1alpha1.KedaScaleInfo
 	EventDriven        bool
+	ServiceAccountName string
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -73,13 +76,13 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		if err := p.applyKedaTriggerAuth(ctx, cli, log); err != nil {
 			return err
 		}
-		return p.applyKeda(ctx, cli, log, scaledMin, scaledMax)
+		return p.applyKeda(ctx, cli, cluster, log, scaledMin, scaledMax)
 	}
 
-	return p.applyHPA(ctx, cli, log, scaledMin, scaledMax)
+	return p.applyHPA(ctx, cli, cluster, log, scaledMin, scaledMax)
 }
 
-func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger, scaledMin int32, scaledMax int32) error {
 	var metrics []autoscaling.MetricSpec
 
 	if p.CPUTarget != nil {
@@ -191,7 +194,7 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 	return plan.CreateOrUpdate(ctx, log, cli, wpa)
 }
 
-func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger, scaledMin int32, scaledMax int32) error {
 	//If a trigger doesn't have an auth defined, fall back to the identity of the pod.
 	clonedTriggers := deepCopyTriggers(p.KedaWorker.Triggers)
 	for i := range clonedTriggers {
@@ -226,11 +229,27 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, log lo
 			Fallback:         p.KedaWorker.Fallback,
 		},
 	}
+	// Create DatadogMetric if RequestsRateTarget or RequestsRateMetric is set
+	if p.RequestsRateTarget != nil || p.RequestsRateMetric != "" {
+		datadogMetric := p.datadogMetric(cluster)
+		if datadogMetric != nil {
+			if err := plan.CreateOrUpdate(ctx, log, cli, datadogMetric); err != nil {
+				return err
+			}
+		}
+	}
 	return plan.CreateOrUpdate(ctx, log, cli, keda)
 }
 
 func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Client, log logr.Logger) error {
 
+	hasDatadogTrigger := false
+	for _, trigger := range p.KedaWorker.Triggers {
+		if trigger.Type == "datadog" {
+			hasDatadogTrigger = true
+			break
+		}
+	}
 	provider := kedav1.PodIdentityProviderAwsEKS
 
 	triggerAuth := &kedav1.TriggerAuthentication{
@@ -245,7 +264,74 @@ func (p *ScaleRevision) applyKedaTriggerAuth(ctx context.Context, cli client.Cli
 			},
 		},
 	}
+	if !hasDatadogTrigger {
+		return plan.CreateOrUpdate(ctx, log, cli, triggerAuth)
+	}
+
+	datadogConfigMap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("dd-cfg-%s", p.Tag),
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Data: map[string]string{
+			"datadogNamespace":      "datadog",
+			"datadogMetricsService": "datadog-cluster-agent-metrics-server",
+			"authMode":              "bearer",
+			"unsafeSsl":             "true",
+		},
+	}
+	if err := plan.CreateOrUpdate(ctx, log, cli, datadogConfigMap); err != nil {
+		return err
+	}
+	triggerAuth.Spec.ConfigMapTargetRef = []kedav1.AuthConfigMapTargetRef{
+		{
+			Parameter: "datadogNamespace",
+			Name:      datadogConfigMap.Name, // Reference the specific ConfigMap we just created
+			Key:       "datadogNamespace",
+		},
+		{
+			Parameter: "authMode",
+			Name:      datadogConfigMap.Name,
+			Key:       "authMode",
+		},
+		{
+			Parameter: "datadogMetricsService",
+			Name:      datadogConfigMap.Name,
+			Key:       "datadogMetricsService",
+		},
+		{
+			Parameter: "unsafeSsl",
+			Name:      datadogConfigMap.Name,
+			Key:       "unsafeSsl",
+		},
+	}
+	triggerAuth.Spec.SecretTargetRef = []kedav1.AuthSecretTargetRef{
+		{
+			Parameter: "token",
+			Name:      "service-account-token", // Expected secret name
+			Key:       "token",
+		},
+	}
+
 	return plan.CreateOrUpdate(ctx, log, cli, triggerAuth)
+}
+
+func (p *ScaleRevision) datadogMetric(cluster *picchuv1alpha1.Cluster) *ddogv1alpha1.DatadogMetric {
+	if p.RequestsRateMetric == "" {
+		return nil
+	}
+
+	return &ddogv1alpha1.DatadogMetric{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.Tag,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: ddogv1alpha1.DatadogMetricSpec{
+			Query: fmt.Sprintf("avg:istio.mesh.request.count{reporter:destination, cluster:%s, kube_namespace:%s, version:%s}.rollup(count, %d)", cluster.Name, p.Namespace, p.Tag, picchuv1alpha1.DatadogDefaultRollup),
+		},
+	}
 }
 
 func deepCopyTriggers(triggers []kedav1.ScaleTriggers) []kedav1.ScaleTriggers {
