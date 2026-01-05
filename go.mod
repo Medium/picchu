@@ -122,5 +122,3 @@ replace github.com/prometheus/client_golang => github.com/prometheus/client_gola
 // replace k8s.io/component-base => k8s.io/component-base v0.26.0
 
 // replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.4
-
-replace github.com/kedacore/keda/v2 => github.com/Medium/keda/v2 v2.17.2
