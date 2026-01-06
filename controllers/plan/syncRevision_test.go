@@ -170,10 +170,7 @@ var (
 	oneStr       = "1"
 
 	defaultExpectedReplicaSet = &appsv1.ReplicaSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ReplicaSet",
-			APIVersion: "apps/v1",
-		},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testtag",
 			Namespace: "testnamespace",
@@ -346,10 +343,7 @@ var (
 		},
 	}
 	retiredExpectedReplicaSet = &appsv1.ReplicaSet{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ReplicaSet",
-			APIVersion: "apps/v1",
-		},
+		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testtag",
 			Namespace: "testnamespace",
