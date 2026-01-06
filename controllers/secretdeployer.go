@@ -7,7 +7,6 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,7 +57,7 @@ func (s *secretDeployer) deploy(ctx context.Context) error {
 			return nil
 		})
 		if err != nil {
-			log.Error(err, "Failed to sync secret", "secret.Name", src.Name)
+			s.log.Error(err, "Failed to sync secret", "secret.Name", src.Name)
 			errs = append(errs, err)
 		}
 	}
