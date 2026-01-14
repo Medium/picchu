@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -166,15 +165,13 @@ func TestSyncServiceMonitors(t *testing.T) {
 	}
 
 	for i := range smexpected.Items {
-		for _, obj := range []runtime.Object{
-			&smexpected.Items[i],
-		} {
-			m.
-				EXPECT().
-				Create(ctx, common.K8sEqual(obj)).
-				Return(nil).
-				Times(1)
-		}
+		obj := &smexpected.Items[i]
+
+		m.
+			EXPECT().
+			Create(ctx, common.K8sEqual(obj)).
+			Return(nil).
+			Times(1)
 	}
 
 	assert.NoError(t, smplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
