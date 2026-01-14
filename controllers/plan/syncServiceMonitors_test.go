@@ -69,56 +69,52 @@ var (
 				},
 			},
 		},
-
-		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{
-			{
-				Enabled:   true,
-				Name:      "test-app-availability",
-				Objective: "99.999",
-				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
-					Canary: picchuv1alpha1.SLICanaryConfig{
-						Enabled:          true,
-						AllowancePercent: 1,
-						FailAfter:        "1m",
-					},
-					TagKey:     "destination_workload",
-					AlertAfter: "1m",
-					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
-					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{{
+			Enabled:   true,
+			Name:      "test-app-availability",
+			Objective: "99.999",
+			ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+				Canary: picchuv1alpha1.SLICanaryConfig{
+					Enabled:          true,
+					AllowancePercent: 1,
+					FailAfter:        "1m",
 				},
+				TagKey:     "destination_workload",
+				AlertAfter: "1m",
+				ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+				TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
 			},
-		},
+		}},
 	}
 
 	smexpected = monitoringv1.ServiceMonitorList{
-		Items: []monitoringv1.ServiceMonitor{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test1",
-					Namespace: "testnamespace",
-					Labels: map[string]string{
+		Items: []monitoringv1.ServiceMonitor{{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test1",
+				Namespace: "testnamespace",
+				Labels: map[string]string{
+					"test": "test",
+				},
+			},
+			Spec: monitoringv1.ServiceMonitorSpec{
+				Endpoints: []monitoringv1.Endpoint{{
+					Interval: "15s",
+					MetricRelabelConfigs: []monitoringv1.RelabelConfig{{
+						Action:       "drop",
+						Regex:        "test_metric|test_metric2",
+						SourceLabels: []monitoringv1.LabelName{"__name__"},
+					}},
+				}},
+				NamespaceSelector: monitoringv1.NamespaceSelector{
+					MatchNames: []string{"testnamespace"},
+				},
+				Selector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
 						"test": "test",
 					},
 				},
-				Spec: monitoringv1.ServiceMonitorSpec{
-					Endpoints: []monitoringv1.Endpoint{{
-						Interval: "15s",
-						MetricRelabelConfigs: []monitoringv1.RelabelConfig{{
-							Action:       "drop",
-							Regex:        "test_metric|test_metric2",
-							SourceLabels: []monitoringv1.LabelName{"__name__"},
-						}},
-					}},
-					NamespaceSelector: monitoringv1.NamespaceSelector{
-						MatchNames: []string{"testnamespace"},
-					},
-					Selector: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"test": "test",
-						},
-					},
-				},
 			},
+		},
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test2",
@@ -146,8 +142,7 @@ var (
 					},
 				},
 			},
-		},
-	}
+		}}
 )
 
 func TestSyncServiceMonitors(t *testing.T) {
