@@ -57,7 +57,7 @@ var (
 	}
 
 	slorexpected = &monitoringv1.PrometheusRuleList{
-		Items: []*monitoringv1.PrometheusRule{{
+		Items: []monitoringv1.PrometheusRule{{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-app-slo",
 				Namespace: "testnamespace",
@@ -111,7 +111,7 @@ func TestSLORules(t *testing.T) {
 
 	for i := range slorexpected.Items {
 		for _, obj := range []runtime.Object{
-			slorexpected.Items[i],
+			&slorexpected.Items[i],
 		} {
 			m.
 				EXPECT().

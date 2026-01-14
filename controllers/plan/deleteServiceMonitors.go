@@ -32,7 +32,9 @@ func (p *DeleteServiceMonitors) Apply(ctx context.Context, cli client.Client, cl
 		return err
 	}
 
-	for _, sm := range smlist.Items {
+	for i := range smlist.Items {
+		sm := &smlist.Items[i]
+
 		err := cli.Delete(ctx, sm)
 		if err != nil && !errors.IsNotFound(err) {
 			plan.LogSync(log, "deleted", err, sm)

@@ -128,7 +128,7 @@ func InjectPrometheusRules(rules []monitoringv1.PrometheusRule) gomock.Matcher {
 		switch o := x.(type) {
 		case *monitoringv1.PrometheusRuleList:
 			for i := range rules {
-				o.Items = append(o.Items, &rules[i])
+				o.Items = append(o.Items, rules[i])
 			}
 			return true
 		default:
@@ -160,7 +160,7 @@ func InjectServiceMonitors(sms []monitoringv1.ServiceMonitor) gomock.Matcher {
 		switch o := x.(type) {
 		case *monitoringv1.ServiceMonitorList:
 			for i := range sms {
-				o.Items = append(o.Items, &sms[i])
+				o.Items = append(o.Items, sms[i])
 			}
 			return true
 		default:

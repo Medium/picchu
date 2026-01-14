@@ -33,14 +33,16 @@ func (p *DeleteSLORules) Apply(ctx context.Context, cli client.Client, cluster *
 		return err
 	}
 
-	for _, prometheusRule := range prlist.Items {
-		err := cli.Delete(ctx, prometheusRule)
+	for i := range prlist.Items {
+		pr := &prlist.Items[i]
+
+		err := cli.Delete(ctx, pr)
 		if err != nil && !errors.IsNotFound(err) {
-			plan.LogSync(log, "deleted", err, prometheusRule)
+			plan.LogSync(log, "deleted", err, pr)
 			return err
 		}
 		if err == nil {
-			plan.LogSync(log, "deleted", err, prometheusRule)
+			plan.LogSync(log, "deleted", err, pr)
 		}
 	}
 

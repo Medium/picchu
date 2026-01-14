@@ -84,8 +84,9 @@ var (
 		},
 	}
 
-	crexpected = monitoringv1.PrometheusRuleList{
-		Items: []*monitoringv1.PrometheusRule{{
+	d          monitoringv1.Duration = "1m"
+	crexpected                       = monitoringv1.PrometheusRuleList{
+		Items: []monitoringv1.PrometheusRule{{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-app-canary-tag",
 				Namespace: "testnamespace",
@@ -106,7 +107,7 @@ var (
 								Alert: "test_app_availability_canary",
 								Expr: intstr.FromString("test_app:test_app_availability:errors{destination_workload=\"tag\"} / test_app:test_app_availability:total{destination_workload=\"tag\"} - 0.01 " +
 									"> ignoring(destination_workload) sum(test_app:test_app_availability:errors) / sum(test_app:test_app_availability:total)"),
-								For: "1m",
+								For: &d,
 								Annotations: map[string]string{
 									CanaryMessageAnnotation: "Test description",
 									CanarySummaryAnnotation: "test-app - Canary is failing SLO",
@@ -130,7 +131,7 @@ var (
 								Alert: "test_app_availability_two_canary",
 								Expr: intstr.FromString("test_app:test_app_availability_two:errors{destination_workload=\"tag\"} / test_app:test_app_availability_two:total{destination_workload=\"tag\"} - 0.01 " +
 									"> ignoring(destination_workload) sum(test_app:test_app_availability_two:errors) / sum(test_app:test_app_availability_two:total)"),
-								For: "1m",
+								For: &d,
 								Annotations: map[string]string{
 									CanaryMessageAnnotation: "Test description",
 									CanarySummaryAnnotation: "test-app - Canary is failing SLO",
@@ -175,7 +176,7 @@ func TestSyncCanaryRules(t *testing.T) {
 
 	for i := range crexpected.Items {
 		for _, obj := range []runtime.Object{
-			crexpected.Items[i],
+			&crexpected.Items[i],
 		} {
 			m.
 				EXPECT().

@@ -37,7 +37,7 @@ var (
 					},
 					Endpoints: []monitoringv1.Endpoint{{
 						Interval: "15s",
-						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
+						MetricRelabelConfigs: []monitoringv1.RelabelConfig{{
 							Action:       "drop",
 							SourceLabels: []monitoringv1.LabelName{"__name__"},
 						}},
@@ -60,7 +60,7 @@ var (
 					},
 					Endpoints: []monitoringv1.Endpoint{{
 						Interval: "15s",
-						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
+						MetricRelabelConfigs: []monitoringv1.RelabelConfig{{
 							Action:       "keep",
 							Regex:        "(.*)",
 							SourceLabels: []monitoringv1.LabelName{"__name__"},
@@ -88,7 +88,7 @@ var (
 	}
 
 	smexpected = monitoringv1.ServiceMonitorList{
-		Items: []*monitoringv1.ServiceMonitor{{
+		Items: []monitoringv1.ServiceMonitor{{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test1",
 				Namespace: "testnamespace",
@@ -99,7 +99,7 @@ var (
 			Spec: monitoringv1.ServiceMonitorSpec{
 				Endpoints: []monitoringv1.Endpoint{{
 					Interval: "15s",
-					MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
+					MetricRelabelConfigs: []monitoringv1.RelabelConfig{{
 						Action:       "drop",
 						Regex:        "test_metric|test_metric2",
 						SourceLabels: []monitoringv1.LabelName{"__name__"},
@@ -126,7 +126,7 @@ var (
 				Spec: monitoringv1.ServiceMonitorSpec{
 					Endpoints: []monitoringv1.Endpoint{{
 						Interval: "15s",
-						MetricRelabelConfigs: []*monitoringv1.RelabelConfig{{
+						MetricRelabelConfigs: []monitoringv1.RelabelConfig{{
 							Action:       "keep",
 							Regex:        "(.*)",
 							SourceLabels: []monitoringv1.LabelName{"__name__"},
@@ -167,7 +167,7 @@ func TestSyncServiceMonitors(t *testing.T) {
 
 	for i := range smexpected.Items {
 		for _, obj := range []runtime.Object{
-			smexpected.Items[i],
+			&smexpected.Items[i],
 		} {
 			m.
 				EXPECT().

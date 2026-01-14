@@ -44,7 +44,9 @@ func (p *SyncCanaryRules) Apply(ctx context.Context, cli client.Client, cluster 
 	}
 
 	if len(prometheusRules.Items) > 0 {
-		for _, pr := range prometheusRules.Items {
+		for i := range prometheusRules.Items {
+			pr := &prometheusRules.Items[i]
+
 			if err := plan.CreateOrUpdate(ctx, log, cli, pr); err != nil {
 				return err
 			}
@@ -83,7 +85,9 @@ func (p *SyncCanaryRules) prometheusRules(log logr.Logger) (*monitoringv1.Promet
 	}
 
 	prs = append(prs, rule)
-	prl.Items = prs
+	for _, r := range prs {
+		prl.Items = append(prl.Items, *r)
+	}
 	return prl, nil
 }
 
@@ -121,12 +125,14 @@ func (s *SLOConfig) canaryRules(log logr.Logger) []*monitoringv1.RuleGroup {
 
 	canaryLabels["channel"] = "#eng-releases"
 
+	failAfter := monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter)
+
 	canaryRuleGroup := &monitoringv1.RuleGroup{
 		Name: s.canaryAlertName(),
 		Rules: []monitoringv1.Rule{
 			{
 				Alert:       s.canaryAlertName(),
-				For:         monitoringv1.Duration(s.SLO.ServiceLevelIndicator.Canary.FailAfter),
+				For:         &failAfter,
 				Expr:        intstr.FromString(s.canaryQuery(log)),
 				Labels:      canaryLabels,
 				Annotations: s.canaryRuleAnnotations(log),

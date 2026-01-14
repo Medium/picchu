@@ -29,7 +29,7 @@ func (p *SyncServiceMonitors) Apply(ctx context.Context, cli client.Client, clus
 	}
 	if len(serviceMonitors.Items) > 0 {
 		for i := range serviceMonitors.Items {
-			if err := plan.CreateOrUpdate(ctx, log, cli, serviceMonitors.Items[i]); err != nil {
+			if err := plan.CreateOrUpdate(ctx, log, cli, &serviceMonitors.Items[i]); err != nil {
 				return err
 			}
 		}
@@ -52,8 +52,10 @@ func (p *SyncServiceMonitors) serviceMonitors() (*monitoringv1.ServiceMonitorLis
 		sm := p.serviceMonitor(p.ServiceMonitors[i], metricNamesRegex)
 		sms = append(sms, sm)
 	}
-	sml.Items = sms
 
+	for _, r := range sms {
+		sml.Items = append(sml.Items, *r)
+	}
 	return sml, nil
 }
 
