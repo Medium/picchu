@@ -26,12 +26,24 @@ func (s *ScalableTargetAdapter) CanRampTo(desiredPercent uint32) bool {
 		return false
 	}
 
-	totalReplicas := float64(controller.expectedTotalReplicas(*target.Scale.Min, int32(desiredPercent)))
+	// Use actual total current capacity across all revisions instead of Scale.Min
+	// This ensures we check against real traffic capacity, not just a static minimum
+	totalCurrentCapacity := controller.getTotalCurrentCapacity()
+
+	// Fallback to Scale.Min if no current capacity (e.g., first deployment)
+	baseCapacity := totalCurrentCapacity
+	if baseCapacity == 0 {
+		baseCapacity = int32(*target.Scale.Min)
+	}
+
+	totalReplicas := float64(controller.expectedTotalReplicas(baseCapacity, int32(desiredPercent)))
 	expectedReplicas := int32(math.Ceil(totalReplicas * Threshold))
 
 	log.Info(
 		"Computed expectedReplicas",
 		"desiredPercent", desiredPercent,
+		"totalCurrentCapacity", totalCurrentCapacity,
+		"baseCapacity", baseCapacity,
 		"expectedReplicas", expectedReplicas,
 		"currentReplicas", status.Scale.Current,
 	)
