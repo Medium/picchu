@@ -151,26 +151,6 @@ func (i *IncarnationController) expectedTotalReplicas(count int32, percent int32
 	return int32(i.clusterInfo.ExpectedReplicaCount(true, answer))
 }
 
-// getTotalCurrentCapacity returns the sum of current replicas across all revisions serving production traffic
-// This represents the actual total capacity of the system, used for capacity-aware ramp checks.
-// Only counts revisions with CurrentPercent > 0 to exclude automation tags/stage branches that don't serve traffic.
-func (i *IncarnationController) getTotalCurrentCapacity() int32 {
-	rm := i.getReleaseManager()
-	if rm == nil {
-		return 0
-	}
-
-	var total int32 = 0
-	for _, rev := range rm.Status.Revisions {
-		// Only count revisions that are actually serving production traffic
-		// This excludes automation tags, stage branches, and fully retired revisions
-		if rev.CurrentPercent > 0 && rev.Scale.Current > 0 {
-			total += int32(rev.Scale.Current)
-		}
-	}
-	return total
-}
-
 func (i *IncarnationController) liveCount() int {
 	return i.clusterInfo.ClusterCount(true)
 }
