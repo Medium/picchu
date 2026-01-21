@@ -37,6 +37,7 @@ type Controller interface {
 	getSecrets(context.Context, *client.ListOptions) ([]runtime.Object, error)
 	getExternalSecrets(context.Context, *client.ListOptions) ([]es.ExternalSecret, error)
 	liveCount() int
+	getTotalCurrentCapacity(excludeTag string) int32
 }
 
 // Incarnation respresents an applied revision
