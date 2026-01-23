@@ -58,9 +58,6 @@ func (s *ScalableTargetAdapter) CanRampTo(desiredPercent uint32) bool {
 	var baseCapacity int32
 	if totalPods == 0 || totalTrafficPercent == 0 {
 		baseCapacity = int32(*target.Scale.Min)
-	} else if hasUnscaledRevision {
-		// Use pod count as baseline when a revision used to serve 100%.
-		baseCapacity = totalPods
 	} else {
 		// Normalize: X pods serving Y% traffic => 100% capacity = X / (Y/100).
 		normalizedCapacity := float64(totalPods) / (float64(totalTrafficPercent) / 100.0)
