@@ -26,18 +26,11 @@ func (s *ScalableTargetAdapter) CanRampTo(desiredPercent uint32) bool {
 		return false
 	}
 
-	// Use actual total current capacity across all OTHER revisions (excluding this one) instead of Scale.Min
-	// This ensures we check against real traffic capacity, not just a static minimum
-	// Excluding the current revision prevents circular dependency where we check if we have enough pods
-	// to handle traffic that includes our own pods.
+	// Use actual capacity from other revisions; exclude this tag to avoid circular dependency.
 	currentTag := s.Incarnation.tag
 	rm := controller.getReleaseManager()
 
-	// Calculate normalized 100% capacity based on other revisions' pods and traffic percentages
-	// If old revision has 4 pods at 60% traffic, then 100% capacity = 4 / 0.6 = 6.67 pods
-	// However, if the old revision was previously at 100% (PeakPercent == 100) and is now serving less traffic,
-	// it either hasn't scaled down yet OR has scaled down to Scale.Min and can't go lower.
-	// In both cases, the pods are sized for more traffic than they're currently serving, so use pod count as-is.
+	// Calculate 100% capacity based on other revisions' pods and traffic percentages.
 	var totalPods int32 = 0
 	var totalTrafficPercent uint32 = 0
 	var hasUnscaledRevision bool = false
@@ -45,30 +38,31 @@ func (s *ScalableTargetAdapter) CanRampTo(desiredPercent uint32) bool {
 		if rev.Tag == currentTag {
 			continue
 		}
-		if rev.CurrentPercent > 0 && rev.Scale.Current > 0 {
-			totalPods += int32(rev.Scale.Current)
-			totalTrafficPercent += rev.CurrentPercent
-			// If a revision was at 100% and is now serving less traffic, it either:
-			// 1. Hasn't scaled down yet (pods still sized for 100%)
-			// 2. Has scaled down to Scale.Min and can't go lower
-			// In both cases, use pod count as baseline for 100% capacity
-			if rev.PeakPercent == 100 && rev.CurrentPercent < 100 {
-				hasUnscaledRevision = true
+		if rev.CurrentPercent == 0 || rev.Scale.Current == 0 {
+			continue
+		}
+
+		effectivePods := int32(rev.Scale.Current)
+		totalTrafficPercent += rev.CurrentPercent
+		// If a revision was at 100% and is now serving less, prefer its peak pods as baseline.
+		if rev.PeakPercent == 100 && rev.CurrentPercent < 100 {
+			hasUnscaledRevision = true
+			if rev.Scale.Peak > rev.Scale.Current {
+				effectivePods = int32(rev.Scale.Peak)
 			}
 		}
+		totalPods += effectivePods
 	}
 
-	// Fallback to Scale.Min if no current capacity (e.g., first deployment)
+	// Fallback to Scale.Min if no current capacity (e.g., first deployment).
 	var baseCapacity int32
 	if totalPods == 0 || totalTrafficPercent == 0 {
 		baseCapacity = int32(*target.Scale.Min)
 	} else if hasUnscaledRevision {
-		// Old revision was at 100% and is now serving less traffic but hasn't fully scaled down
-		// (either still scaling down or at Scale.Min). Use pod count as baseline for 100% capacity.
+		// Use pod count as baseline when a revision used to serve 100%.
 		baseCapacity = totalPods
 	} else {
-		// Old revisions have scaled down to match their traffic percentage.
-		// Normalize: if we have X pods serving Y% traffic, then 100% capacity = X / (Y/100)
+		// Normalize: X pods serving Y% traffic => 100% capacity = X / (Y/100).
 		normalizedCapacity := float64(totalPods) / (float64(totalTrafficPercent) / 100.0)
 		baseCapacity = int32(math.Ceil(normalizedCapacity))
 	}
