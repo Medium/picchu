@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	waypointGatewayName       = "waypoint"
-	waypointGatewayClass      = "istio-waypoint"
-	waypointLabelKey          = "istio.io/waypoint-for"
-	waypointLabelValue        = "all"
-	gatewayAPIGroup           = "gateway.networking.k8s.io"
-	gatewayAPIVersion         = "v1"
-	gatewayListenerPort int64 = 15008
-	gatewayListenerProto     = "HBONE"
+	waypointGatewayName        = "waypoint"
+	waypointGatewayClass       = "istio-waypoint"
+	waypointLabelKey           = "istio.io/waypoint-for"
+	waypointLabelValue         = "all"
+	gatewayAPIGroup            = "gateway.networking.k8s.io"
+	gatewayAPIVersion          = "v1"
+	gatewayListenerPort  int64 = 15008
+	gatewayListenerProto       = "HBONE"
 )
 
 var gatewayGVK = schema.GroupVersionKind{
