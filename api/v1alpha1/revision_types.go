@@ -104,6 +104,17 @@ type RevisionTarget struct {
 	// the namespace uses istio.io/dataplane-mode=ambient and a waypoint Gateway
 	// instead of sidecar injection.
 	AmbientMesh bool `json:"ambientMesh,omitempty"`
+
+	// WaypointHPA configures an HPA for the waypoint proxy (min/max replicas, CPU target). When set and AmbientMesh is true,
+	// Picchu creates an HPA targeting the waypoint Deployment. Omit for no HPA (single replica).
+	WaypointHPA *WaypointHPASpec `json:"waypointHPA,omitempty"`
+}
+
+// WaypointHPASpec configures HPA for the ambient waypoint proxy.
+type WaypointHPASpec struct {
+	MinReplicas                    int32 `json:"minReplicas,omitempty"`
+	MaxReplicas                    int32 `json:"maxReplicas,omitempty"`
+	TargetCPUUtilizationPercentage int32 `json:"targetCPUUtilizationPercentage,omitempty"`
 }
 
 type DatadogMonitoring struct {
