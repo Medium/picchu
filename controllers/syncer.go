@@ -129,11 +129,31 @@ func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan
 }
 
 func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
-	return r.applyPlan(ctx, "Ensure Namespace", &rmplan.EnsureNamespace{
-		Name:      r.instance.TargetNamespace(),
-		OwnerName: r.instance.Name,
-		OwnerType: picchuv1alpha1.OwnerReleaseManager,
-	})
+	ambientMesh := r.effectiveAmbientMesh()
+	ns := r.instance.TargetNamespace()
+	if err := r.applyPlan(ctx, "Ensure Namespace", &rmplan.EnsureNamespace{
+		Name:        ns,
+		OwnerName:   r.instance.Name,
+		OwnerType:   picchuv1alpha1.OwnerReleaseManager,
+		AmbientMesh: ambientMesh,
+	}); err != nil {
+		return err
+	}
+	if ambientMesh {
+		return r.applyPlan(ctx, "Ensure Waypoint", &rmplan.EnsureWaypoint{Namespace: ns})
+	}
+	return r.applyPlan(ctx, "Delete Waypoint", &rmplan.DeleteWaypoint{Namespace: ns})
+}
+
+// effectiveAmbientMesh returns true if the latest (newest by GitTimestamp) incarnation's target has AmbientMesh enabled.
+// sorted() returns newest first, so we use the first element.
+func (r *ResourceSyncer) effectiveAmbientMesh() bool {
+	sorted := r.incarnations.sorted()
+	if len(sorted) == 0 {
+		return false
+	}
+	t := sorted[0].target()
+	return t != nil && t.AmbientMesh
 }
 
 func (r *ResourceSyncer) syncServiceAccount(ctx context.Context) error {

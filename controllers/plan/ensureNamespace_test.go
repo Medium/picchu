@@ -75,3 +75,33 @@ func TestUpdatesNamespace(t *testing.T) {
 	assert.NoError(en.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
 	ktest.AssertMatch(ctx, t, cli, namespace)
 }
+
+func TestEnsureNamespaceWithAmbientMesh(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	assert := testify.New(t)
+	log := test.MustNewLogger()
+	scheme := runtime.NewScheme()
+	assert.NoError(core.AddToScheme(scheme))
+	cli := fakeClient()
+
+	en := &EnsureNamespace{
+		Name:        "namespace",
+		OwnerName:   "rm",
+		OwnerType:   picchu.OwnerReleaseManager,
+		AmbientMesh: true,
+	}
+	assert.NoError(en.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
+
+	expected := &core.Namespace{
+		ObjectMeta: meta.ObjectMeta{
+			Name: "namespace",
+			Labels: map[string]string{
+				"istio.io/dataplane-mode": "ambient",
+				picchu.LabelOwnerName:     "rm",
+				picchu.LabelOwnerType:     picchu.OwnerReleaseManager,
+			},
+		},
+	}
+	ktest.AssertMatch(ctx, t, cli, expected)
+}

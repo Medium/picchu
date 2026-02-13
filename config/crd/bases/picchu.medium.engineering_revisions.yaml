@@ -1043,6 +1043,12 @@ spec:
                         - expr
                         type: object
                       type: array
+                    ambientMesh:
+                      description: |-
+                        AmbientMesh enables Istio ambient mesh for this target (namespace). When true,
+                        the namespace uses istio.io/dataplane-mode=ambient and a waypoint Gateway
+                        instead of sidecar injection.
+                      type: boolean
                     aws:
                       properties:
                         iam:

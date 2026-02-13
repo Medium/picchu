@@ -99,6 +99,11 @@ type RevisionTarget struct {
 	Istio                    *Istio                            `json:"istio,omitempty"`
 	PodDisruptionBudget      *policyv1.PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
 	TopologySpreadConstraint *corev1.TopologySpreadConstraint  `json:"topologySpreadConstraint,omitempty"`
+
+	// AmbientMesh enables Istio ambient mesh for this target (namespace). When true,
+	// the namespace uses istio.io/dataplane-mode=ambient and a waypoint Gateway
+	// instead of sidecar injection.
+	AmbientMesh bool `json:"ambientMesh,omitempty"`
 }
 
 type DatadogMonitoring struct {
