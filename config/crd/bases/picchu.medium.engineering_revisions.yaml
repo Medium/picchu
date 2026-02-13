@@ -1043,6 +1043,12 @@ spec:
                         - expr
                         type: object
                       type: array
+                    ambientMesh:
+                      description: |-
+                        AmbientMesh enables Istio ambient mesh for this target (namespace). When true,
+                        the namespace uses istio.io/dataplane-mode=ambient and a waypoint Gateway
+                        instead of sidecar injection.
+                      type: boolean
                     aws:
                       properties:
                         iam:
@@ -8130,6 +8136,21 @@ spec:
                         - name
                         type: object
                       type: array
+                    waypointHPA:
+                      description: |-
+                        WaypointHPA configures an HPA for the waypoint proxy (min/max replicas, CPU target). When set and AmbientMesh is true,
+                        Picchu creates an HPA targeting the waypoint Deployment. Omit for no HPA (single replica).
+                      properties:
+                        maxReplicas:
+                          format: int32
+                          type: integer
+                        minReplicas:
+                          format: int32
+                          type: integer
+                        targetCPUUtilizationPercentage:
+                          format: int32
+                          type: integer
+                      type: object
                   required:
                   - fleet
                   - name
