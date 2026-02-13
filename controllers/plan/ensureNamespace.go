@@ -30,12 +30,22 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, cluster 
 		picchuv1alpha1.LabelOwnerType: p.OwnerType,
 		picchuv1alpha1.LabelOwnerName: p.OwnerName,
 	}
+	istioMode := "sidecar"
 	if p.AmbientMesh {
 		labels[IstioDataplaneModeLabel] = IstioDataplaneModeAmbient
+		istioMode = "ambient"
 		// Do not set istio-injection; ambient mode does not use sidecars.
 	} else {
 		labels[IstioInjectionLabelName] = "enabled"
 	}
+
+	// Log so we can trace which caller is setting namespace labels (e.g. main sync vs SLO path).
+	// owner empty => syncTaggedServiceLevels (ServiceLevelsNamespace); owner set => syncNamespace (ReleaseManager target).
+	log.Info("EnsureNamespace: applying namespace labels",
+		"namespace", p.Name,
+		"istioMode", istioMode,
+		"owner", p.OwnerName+"/"+p.OwnerType,
+	)
 
 	om := metav1.ObjectMeta{
 		Name:   p.Name,
