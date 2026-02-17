@@ -23,6 +23,9 @@ type EnsureNamespace struct {
 	OwnerName   string
 	OwnerType   string
 	AmbientMesh bool
+	// TransitionToSidecar: when moving from ambient to sidecar, set both istio-injection and
+	// dataplane-mode=ambient so new pods get sidecars while the waypoint stays until rollout is complete.
+	TransitionToSidecar bool
 }
 
 func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -35,6 +38,10 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, cluster 
 		// Do not set istio-injection; ambient mode does not use sidecars.
 	} else {
 		labels[IstioInjectionLabelName] = "enabled"
+		if p.TransitionToSidecar {
+			// Keep ambient so waypoint stays; new pods get sidecars. Waypoint removed after rollout.
+			labels[IstioDataplaneModeLabel] = IstioDataplaneModeAmbient
+		}
 	}
 
 	om := metav1.ObjectMeta{
