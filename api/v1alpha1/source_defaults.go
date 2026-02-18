@@ -107,7 +107,11 @@ func SetPortDefaults(port *PortInfo) {
 
 func SetScaleDefaults(scale *ScaleInfo) {
 	if scale.Default == 0 {
-		scale.Default = defaultScaleDefault
+		if scale.Min != nil && *scale.Min > 0 {
+			scale.Default = *scale.Min
+		} else {
+			scale.Default = defaultScaleDefault
+		}
 	}
 	if scale.Max == 0 {
 		scale.Max = defaultScaleMax
