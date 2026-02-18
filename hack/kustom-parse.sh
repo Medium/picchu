@@ -2,7 +2,11 @@
 
 mkdir -p resources
 
-which yq || python3 -m pip install yq
+# Ensure yq is available (pip install puts it in ~/.local/bin which may not be in PATH)
+if ! command -v yq &>/dev/null; then
+  python3 -m pip install --user yq
+  export PATH="${HOME}/.local/bin:${PATH}"
+fi
 
 pushd resources
 kustomize build ../config/crd | csplit - '/^---$/' {4} 
