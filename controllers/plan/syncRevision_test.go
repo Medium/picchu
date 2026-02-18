@@ -450,6 +450,104 @@ func TestSyncRevisionNoChange(t *testing.T) {
 	common.ResourcesEqual(t, defaultExpectedReplicaSet, &rsl.Items[0])
 }
 
+// TestSyncRevisionRampingAnnotation verifies that when Ramping=true, the ReplicaSet
+// gets the ramping annotation so plan/common.go allows Picchu to control replicas.
+func TestSyncRevisionRampingAnnotation(t *testing.T) {
+	ctx := context.TODO()
+	log := test.MustNewLogger()
+	plan := *defaultRevisionPlan
+	plan.Ramping = true
+	cli := fakeClient(defaultServiceAccount)
+
+	rsl := &appsv1.ReplicaSetList{}
+	assert.NoError(t, plan.Apply(ctx, cli, halfCluster, log))
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, 1, len(rsl.Items))
+	assert.Equal(t, "true", rsl.Items[0].Annotations[picchuv1alpha1.AnnotationRamping])
+}
+
+// TestSyncRevisionRampingUpdatesReplicas verifies that when Ramping=true, plan/common.go
+// updates the ReplicaSet replicas even when the existing RS has non-zero replicas (e.g.
+// from a previous HPA scale-up). This is the critical path for Picchu controlling
+// replicas during ramp-up.
+func TestSyncRevisionRampingUpdatesReplicas(t *testing.T) {
+	ctx := context.TODO()
+	log := test.MustNewLogger()
+	existing := defaultExpectedReplicaSet.DeepCopy()
+	var five int32 = 5
+	existing.Spec.Replicas = &five
+	// No ramping annotation - simulates RS that was scaled by HPA before we disabled it
+	delete(existing.Annotations, picchuv1alpha1.AnnotationRamping)
+	cli := fakeClient(existing, defaultServiceAccount)
+
+	plan := *defaultRevisionPlan
+	plan.Ramping = true
+	plan.Replicas = 3
+	// Use cluster with scaling factor 1.0 so desired replicas = 3
+	assert.NoError(t, plan.Apply(ctx, cli, cluster, log))
+
+	rsl := &appsv1.ReplicaSetList{}
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, 1, len(rsl.Items))
+	assert.Equal(t, int32(3), *rsl.Items[0].Spec.Replicas, "Ramping=true should update replicas from 5 to 3")
+	assert.Equal(t, "true", rsl.Items[0].Annotations[picchuv1alpha1.AnnotationRamping])
+}
+
+// TestSyncRevisionRampingUpdatesWPAReplicas verifies that when Ramping=true,
+// plan/common.go updates ReplicaSet replicas even for WPA targets. Jubilee workers
+// use WPA; during ramp we delete the WPA and must control replicas directly.
+func TestSyncRevisionRampingUpdatesWPAReplicas(t *testing.T) {
+	ctx := context.TODO()
+	log := test.MustNewLogger()
+	existing := defaultExpectedReplicaSet.DeepCopy()
+	existing.Annotations[picchuv1alpha1.AnnotationAutoscaler] = picchuv1alpha1.AutoscalerTypeWPA
+	var two int32 = 2
+	existing.Spec.Replicas = &two
+	delete(existing.Annotations, picchuv1alpha1.AnnotationRamping)
+	cli := fakeClient(existing, defaultServiceAccount)
+
+	targetMsgs := int32(8)
+	secsStr := "0.11"
+	plan := *defaultRevisionPlan
+	plan.Worker = &picchuv1alpha1.WorkerScaleInfo{
+		QueueURI:                     "https://sqs.us-east-1.amazonaws.com/123/queue",
+		TargetMessagesPerWorker:      &targetMsgs,
+		SecondsToProcessOneJobString: &secsStr,
+	}
+	plan.Ramping = true
+	plan.Replicas = 6
+	assert.NoError(t, plan.Apply(ctx, cli, cluster, log))
+
+	rsl := &appsv1.ReplicaSetList{}
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, 1, len(rsl.Items))
+	assert.Equal(t, int32(6), *rsl.Items[0].Spec.Replicas,
+		"Ramping=true should update WPA ReplicaSet replicas from 2 to 6 (WPA is deleted during ramp)")
+}
+
+// TestSyncRevisionNotRampingPreservesReplicas verifies that when Ramping=false,
+// plan/common.go does NOT update the ReplicaSet replicas when both existing and
+// desired are non-zero. Released incarnations keep their HPA-controlled replica count.
+func TestSyncRevisionNotRampingPreservesReplicas(t *testing.T) {
+	ctx := context.TODO()
+	log := test.MustNewLogger()
+	existing := defaultExpectedReplicaSet.DeepCopy()
+	var five int32 = 5
+	existing.Spec.Replicas = &five
+	delete(existing.Annotations, picchuv1alpha1.AnnotationRamping)
+	cli := fakeClient(existing, defaultServiceAccount)
+
+	plan := *defaultRevisionPlan
+	plan.Ramping = false
+	plan.Replicas = 3
+	assert.NoError(t, plan.Apply(ctx, cli, cluster, log))
+
+	rsl := &appsv1.ReplicaSetList{}
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, 1, len(rsl.Items))
+	assert.Equal(t, int32(5), *rsl.Items[0].Spec.Replicas, "Ramping=false should preserve existing replicas (HPA controls them)")
+}
+
 func TestSyncRevisionWithChange(t *testing.T) {
 	ctx := context.TODO()
 	log := test.MustNewLogger()
