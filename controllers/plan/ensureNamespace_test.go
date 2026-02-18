@@ -116,11 +116,11 @@ func TestEnsureNamespaceTransitionToSidecar(t *testing.T) {
 	cli := fakeClient()
 
 	en := &EnsureNamespace{
-		Name:                 "namespace",
-		OwnerName:            "rm",
-		OwnerType:            picchu.OwnerReleaseManager,
-		AmbientMesh:          false,
-		TransitionToSidecar:  true,
+		Name:                "namespace",
+		OwnerName:           "rm",
+		OwnerType:           picchu.OwnerReleaseManager,
+		AmbientMesh:         false,
+		TransitionToSidecar: true,
 	}
 	assert.NoError(en.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
 
@@ -128,10 +128,10 @@ func TestEnsureNamespaceTransitionToSidecar(t *testing.T) {
 		ObjectMeta: meta.ObjectMeta{
 			Name: "namespace",
 			Labels: map[string]string{
-				"istio-injection":        "enabled",
+				"istio-injection":         "enabled",
 				"istio.io/dataplane-mode": "ambient",
-				picchu.LabelOwnerName:    "rm",
-				picchu.LabelOwnerType:    picchu.OwnerReleaseManager,
+				picchu.LabelOwnerName:     "rm",
+				picchu.LabelOwnerType:     picchu.OwnerReleaseManager,
 			},
 		},
 	}

@@ -129,25 +129,41 @@ func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan
 }
 
 func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
-	ambientMesh := r.effectiveAmbientMesh()
 	ns := r.instance.TargetNamespace()
-	// When switching to sidecar, keep waypoint until the new revision is deployed (zero-downtime transition).
-	transitionToSidecar := false
-	if !ambientMesh && r.latestIncarnationDeployed() {
-		transitionToSidecar = false // rollout done; safe to remove waypoint
-	} else if !ambientMesh {
-		transitionToSidecar = true // keep waypoint + enable sidecar until rollout completes
+	ambientReplicas := r.hasAmbientReplicas()
+	sidecarReplicas := r.hasSidecarReplicas()
+
+	// Coexist: both labels + waypoint until only one mode has replicas.
+	var ambientMesh, transitionToSidecar bool
+	switch {
+	case ambientReplicas && sidecarReplicas:
+		// Both modes have replicas — keep both labels and waypoint so sidecar pods and waypoint-served pods both work.
+		ambientMesh = false
+		transitionToSidecar = true
+	case ambientReplicas:
+		ambientMesh = true
+		transitionToSidecar = false
+	case sidecarReplicas:
+		ambientMesh = false
+		transitionToSidecar = false
+	default:
+		// No replicas: use newest revision's preference so we don't flip when everything is scaled to zero.
+		ambientMesh = r.effectiveAmbientMesh()
+		transitionToSidecar = false
 	}
+
 	if err := r.applyPlan(ctx, "Ensure Namespace", &rmplan.EnsureNamespace{
-		Name:                 ns,
-		OwnerName:            r.instance.Name,
-		OwnerType:            picchuv1alpha1.OwnerReleaseManager,
-		AmbientMesh:          ambientMesh,
+		Name:                ns,
+		OwnerName:           r.instance.Name,
+		OwnerType:           picchuv1alpha1.OwnerReleaseManager,
+		AmbientMesh:         ambientMesh,
 		TransitionToSidecar: transitionToSidecar,
 	}); err != nil {
 		return err
 	}
-	if ambientMesh {
+
+	needWaypoint := ambientMesh || transitionToSidecar
+	if needWaypoint {
 		if err := r.applyPlan(ctx, "Ensure Waypoint", &rmplan.EnsureWaypoint{Namespace: ns}); err != nil {
 			return err
 		}
@@ -158,16 +174,45 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 		}
 		return nil
 	}
-	// Remove waypoint only after sidecar rollout is complete (latest incarnation deployed).
-	if !transitionToSidecar {
-		if err := r.applyPlan(ctx, "Delete Waypoint", &rmplan.DeleteWaypoint{Namespace: ns}); err != nil {
-			return err
+
+	if err := r.applyPlan(ctx, "Delete Waypoint", &rmplan.DeleteWaypoint{Namespace: ns}); err != nil {
+		return err
+	}
+	return r.applyPlan(ctx, "Delete Waypoint HPA", &rmplan.DeleteWaypointHPA{Namespace: ns})
+}
+
+// hasAmbientReplicas returns true if any revisioned incarnation with AmbientMesh enabled has desired replicas > 0.
+func (r *ResourceSyncer) hasAmbientReplicas() bool {
+	for _, inc := range r.incarnations.sorted() {
+		if !inc.hasRevision() {
+			continue
 		}
-		if err := r.applyPlan(ctx, "Delete Waypoint HPA", &rmplan.DeleteWaypointHPA{Namespace: ns}); err != nil {
-			return err
+		t := inc.target()
+		if t == nil || !t.AmbientMesh {
+			continue
+		}
+		if inc.getStatus() != nil && inc.getStatus().Scale.Desired > 0 {
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+// hasSidecarReplicas returns true if any revisioned incarnation with AmbientMesh disabled has desired replicas > 0.
+func (r *ResourceSyncer) hasSidecarReplicas() bool {
+	for _, inc := range r.incarnations.sorted() {
+		if !inc.hasRevision() {
+			continue
+		}
+		t := inc.target()
+		if t == nil || t.AmbientMesh {
+			continue
+		}
+		if inc.getStatus() != nil && inc.getStatus().Scale.Desired > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // effectiveWaypointHPA returns the waypoint HPA spec from the latest incarnation when set; otherwise nil (no HPA).
@@ -186,17 +231,6 @@ func (r *ResourceSyncer) effectiveWaypointHPA() *picchuv1alpha1.WaypointHPASpec 
 		spec.TargetCPUUtilizationPercentage = 70
 	}
 	return &spec
-}
-
-// latestIncarnationDeployed returns true when the newest revisioned incarnation is fully deployed
-// (scale current >= desired). Used to delay waypoint removal until sidecar rollout is complete.
-func (r *ResourceSyncer) latestIncarnationDeployed() bool {
-	for _, inc := range r.incarnations.sorted() {
-		if inc.hasRevision() {
-			return inc.isDeployed()
-		}
-	}
-	return false
 }
 
 // effectiveAmbientMesh returns true if the latest (newest by GitTimestamp) incarnation's target has AmbientMesh enabled.
