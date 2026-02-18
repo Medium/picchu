@@ -129,11 +129,119 @@ func (r *ResourceSyncer) applyPlan(ctx context.Context, name string, p plan.Plan
 }
 
 func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
-	return r.applyPlan(ctx, "Ensure Namespace", &rmplan.EnsureNamespace{
-		Name:      r.instance.TargetNamespace(),
-		OwnerName: r.instance.Name,
-		OwnerType: picchuv1alpha1.OwnerReleaseManager,
-	})
+	ns := r.instance.TargetNamespace()
+	ambientReplicas := r.hasAmbientReplicas()
+	sidecarReplicas := r.hasSidecarReplicas()
+
+	// Coexist: both labels + waypoint until only one mode has replicas.
+	var ambientMesh, transitionToSidecar bool
+	switch {
+	case ambientReplicas && sidecarReplicas:
+		// Both modes have replicas — keep both labels and waypoint so sidecar pods and waypoint-served pods both work.
+		ambientMesh = false
+		transitionToSidecar = true
+	case ambientReplicas:
+		ambientMesh = true
+		transitionToSidecar = false
+	case sidecarReplicas:
+		ambientMesh = false
+		transitionToSidecar = false
+	default:
+		// No replicas: use newest revision's preference so we don't flip when everything is scaled to zero.
+		ambientMesh = r.effectiveAmbientMesh()
+		transitionToSidecar = false
+	}
+
+	if err := r.applyPlan(ctx, "Ensure Namespace", &rmplan.EnsureNamespace{
+		Name:                ns,
+		OwnerName:           r.instance.Name,
+		OwnerType:           picchuv1alpha1.OwnerReleaseManager,
+		AmbientMesh:         ambientMesh,
+		TransitionToSidecar: transitionToSidecar,
+	}); err != nil {
+		return err
+	}
+
+	needWaypoint := ambientMesh || transitionToSidecar
+	if needWaypoint {
+		if err := r.applyPlan(ctx, "Ensure Waypoint", &rmplan.EnsureWaypoint{Namespace: ns}); err != nil {
+			return err
+		}
+		if hpa := r.effectiveWaypointHPA(); hpa != nil {
+			if err := r.applyPlan(ctx, "Ensure Waypoint HPA", &rmplan.EnsureWaypointHPA{Namespace: ns, HPA: hpa}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if err := r.applyPlan(ctx, "Delete Waypoint", &rmplan.DeleteWaypoint{Namespace: ns}); err != nil {
+		return err
+	}
+	return r.applyPlan(ctx, "Delete Waypoint HPA", &rmplan.DeleteWaypointHPA{Namespace: ns})
+}
+
+// hasAmbientReplicas returns true if any revisioned incarnation with AmbientMesh enabled has desired replicas > 0.
+func (r *ResourceSyncer) hasAmbientReplicas() bool {
+	for _, inc := range r.incarnations.sorted() {
+		if !inc.hasRevision() {
+			continue
+		}
+		t := inc.target()
+		if t == nil || !t.AmbientMesh {
+			continue
+		}
+		if inc.getStatus() != nil && inc.getStatus().Scale.Desired > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// hasSidecarReplicas returns true if any revisioned incarnation with AmbientMesh disabled has desired replicas > 0.
+func (r *ResourceSyncer) hasSidecarReplicas() bool {
+	for _, inc := range r.incarnations.sorted() {
+		if !inc.hasRevision() {
+			continue
+		}
+		t := inc.target()
+		if t == nil || t.AmbientMesh {
+			continue
+		}
+		if inc.getStatus() != nil && inc.getStatus().Scale.Desired > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// effectiveWaypointHPA returns the waypoint HPA spec from the latest incarnation when set; otherwise nil (no HPA).
+// When non-nil, defaults targetCPUUtilizationPercentage to 70 if unset.
+func (r *ResourceSyncer) effectiveWaypointHPA() *picchuv1alpha1.WaypointHPASpec {
+	sorted := r.incarnations.sorted()
+	if len(sorted) == 0 {
+		return nil
+	}
+	t := sorted[0].target()
+	if t == nil || t.WaypointHPA == nil || t.WaypointHPA.MaxReplicas < 1 {
+		return nil
+	}
+	spec := *t.WaypointHPA
+	if spec.TargetCPUUtilizationPercentage < 1 {
+		spec.TargetCPUUtilizationPercentage = 70
+	}
+	return &spec
+}
+
+// effectiveAmbientMesh returns true if the latest (newest by GitTimestamp) incarnation's target has AmbientMesh enabled.
+// sorted() returns newest first, so we use the first element.
+func (r *ResourceSyncer) effectiveAmbientMesh() bool {
+	sorted := r.incarnations.sorted()
+	if len(sorted) == 0 {
+		return false
+	}
+	t := sorted[0].target()
+	return t != nil && t.AmbientMesh
 }
 
 func (r *ResourceSyncer) syncServiceAccount(ctx context.Context) error {

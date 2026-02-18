@@ -46,13 +46,17 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+# setup-envtest downloads envtest binaries (kube-apiserver, etcd). Use Go-based tool; the old v0.8.0 shell script's URLs return HTML and break (gzip: not in gzip format).
+ENVTEST ?= $(GOBIN)/setup-envtest
+ENVTEST_K8S_VERSION ?= 1.28
+
 all: manager
 ci: test
 # Run tests
 test: generate fmt vet manifests
 	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.0/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR);GOTOOLCHAIN=go1.25.0+auto go test ./... -coverprofile cover.out
+	@command -v $(ENVTEST) >/dev/null 2>&1 || GOBIN=$(GOBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.22
+	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" GOTOOLCHAIN=go1.25.0+auto go test ./... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet

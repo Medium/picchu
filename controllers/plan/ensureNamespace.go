@@ -13,23 +13,40 @@ import (
 )
 
 const (
-	IstioInjectionLabelName = "istio-injection"
+	IstioInjectionLabelName   = "istio-injection"
+	IstioDataplaneModeLabel   = "istio.io/dataplane-mode"
+	IstioDataplaneModeAmbient = "ambient"
 )
 
 type EnsureNamespace struct {
-	Name      string
-	OwnerName string
-	OwnerType string
+	Name        string
+	OwnerName   string
+	OwnerType   string
+	AmbientMesh bool
+	// TransitionToSidecar: when moving from ambient to sidecar, set both istio-injection and
+	// dataplane-mode=ambient so new pods get sidecars while the waypoint stays until rollout is complete.
+	TransitionToSidecar bool
 }
 
 func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	labels := map[string]string{
+		picchuv1alpha1.LabelOwnerType: p.OwnerType,
+		picchuv1alpha1.LabelOwnerName: p.OwnerName,
+	}
+	if p.AmbientMesh {
+		labels[IstioDataplaneModeLabel] = IstioDataplaneModeAmbient
+		// Do not set istio-injection; ambient mode does not use sidecars.
+	} else {
+		labels[IstioInjectionLabelName] = "enabled"
+		if p.TransitionToSidecar {
+			// Keep ambient so waypoint stays; new pods get sidecars. Waypoint removed after rollout.
+			labels[IstioDataplaneModeLabel] = IstioDataplaneModeAmbient
+		}
+	}
+
 	om := metav1.ObjectMeta{
-		Name: p.Name,
-		Labels: map[string]string{
-			IstioInjectionLabelName:       "enabled",
-			picchuv1alpha1.LabelOwnerType: p.OwnerType,
-			picchuv1alpha1.LabelOwnerName: p.OwnerName,
-		},
+		Name:   p.Name,
+		Labels: labels,
 	}
 
 	return plan.CreateOrUpdate(ctx, log, cli, &corev1.Namespace{ObjectMeta: om})
