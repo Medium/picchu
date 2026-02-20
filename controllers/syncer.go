@@ -167,7 +167,15 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 		if err := r.applyPlan(ctx, "Ensure Waypoint", &rmplan.EnsureWaypoint{Namespace: ns}); err != nil {
 			return err
 		}
-		if hpa := r.effectiveWaypointHPA(); hpa != nil {
+		hpa := r.effectiveWaypointHPA()
+		minReplicas := int32(0)
+		if hpa != nil && hpa.MinReplicas > 0 {
+			minReplicas = hpa.MinReplicas
+		}
+		if err := r.applyPlan(ctx, "Ensure Waypoint PDB", &rmplan.EnsureWaypointPDB{Namespace: ns, MinReplicas: minReplicas}); err != nil {
+			return err
+		}
+		if hpa != nil {
 			if err := r.applyPlan(ctx, "Ensure Waypoint HPA", &rmplan.EnsureWaypointHPA{Namespace: ns, HPA: hpa}); err != nil {
 				return err
 			}
@@ -176,6 +184,9 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 	}
 
 	if err := r.applyPlan(ctx, "Delete Waypoint", &rmplan.DeleteWaypoint{Namespace: ns}); err != nil {
+		return err
+	}
+	if err := r.applyPlan(ctx, "Delete Waypoint PDB", &rmplan.DeleteWaypointPDB{Namespace: ns}); err != nil {
 		return err
 	}
 	return r.applyPlan(ctx, "Delete Waypoint HPA", &rmplan.DeleteWaypointHPA{Namespace: ns})
