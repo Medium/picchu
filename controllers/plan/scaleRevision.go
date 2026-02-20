@@ -37,9 +37,31 @@ type ScaleRevision struct {
 	KedaWorker         *picchuv1alpha1.KedaScaleInfo
 	EventDriven        bool
 	ServiceAccountName string
+	Ramping            bool // When true, delete autoscaler so Picchu can control ReplicaSet replicas directly
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	if p.Ramping {
+		// Delete autoscalers so Picchu can control ReplicaSet replicas directly during ramp
+		objects := []client.Object{
+			&autoscaling.HorizontalPodAutoscaler{
+				ObjectMeta: metav1.ObjectMeta{Name: p.Tag, Namespace: p.Namespace},
+			},
+			&kedav1.ScaledObject{
+				ObjectMeta: metav1.ObjectMeta{Name: p.Tag, Namespace: p.Namespace},
+			},
+			&wpav1.WorkerPodAutoScaler{
+				ObjectMeta: metav1.ObjectMeta{Name: p.Tag, Namespace: p.Namespace},
+			},
+		}
+		for _, obj := range objects {
+			if err := utils.DeleteIfExists(ctx, cli, obj); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	if p.Min > p.Max {
 		p.Max = p.Min
 	}

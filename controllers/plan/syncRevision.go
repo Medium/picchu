@@ -90,6 +90,7 @@ type SyncRevision struct {
 	TopologySpreadConstraint *corev1.TopologySpreadConstraint
 	ExternalSecrets          []es.ExternalSecret
 	EventDriven              bool
+	Ramping                  bool // When true, Picchu controls ReplicaSet replicas directly (autoscaler disabled)
 }
 
 func (p *SyncRevision) Printable() interface{} {
@@ -379,6 +380,9 @@ func (p *SyncRevision) syncReplicaSet(
 
 	rsAnnotations := map[string]string{
 		picchuv1alpha1.AnnotationAutoscaler: autoScaler,
+	}
+	if p.Ramping {
+		rsAnnotations[picchuv1alpha1.AnnotationRamping] = "true"
 	}
 
 	if p.IAMRole != "" {
