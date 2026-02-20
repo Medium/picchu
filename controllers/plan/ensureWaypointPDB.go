@@ -21,14 +21,20 @@ const (
 )
 
 // EnsureWaypointPDB creates a PDB for the waypoint Deployment so Karpenter (or other disruptors)
-// cannot evict the last waypoint pod (e.g. "Underutilized" consolidation). minAvailable: 1.
+// cannot evict the last waypoint pod (e.g. "Underutilized" consolidation).
+// MinReplicas is the waypoint HPA min (if set); PDB minAvailable uses it, otherwise 1.
 // The waypoint Deployment is created by Istio from the Gateway; we only create the PDB.
 type EnsureWaypointPDB struct {
-	Namespace string
+	Namespace    string
+	MinReplicas int32 // waypoint HPA min; 0 means use 1 for PDB minAvailable
 }
 
 func (p *EnsureWaypointPDB) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	minAvailable := intstr.FromInt(1)
+	minAvail := int32(1)
+	if p.MinReplicas > 0 {
+		minAvail = p.MinReplicas
+	}
+	minAvailable := intstr.FromInt(int(minAvail))
 	pdb := &policyv1.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      waypointPDBName,
