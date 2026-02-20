@@ -391,20 +391,16 @@ func CreateOrUpdate(
 				return nil
 			}
 			if typed.Annotations[picchu.AnnotationAutoscaler] != picchu.AutoscalerTypeWPA { // Allow WorkerPodAutoScaler to manipulate Replicas on its own
-				// When ramping, Picchu controls replicas directly (autoscaler disabled)
-				// Otherwise, only update replicas when changing to/from zero (retiring/deploying)
+				// Only update replicas if we are changing to/from zero, which means the replicaset is being retired/deployed
 				var zero int32 = 0
 				if rs.Spec.Replicas == nil {
 					rs.Spec.Replicas = &zero
 				}
-				ramping := typed.Annotations[picchu.AnnotationRamping] == "true"
-				if ramping || *typed.Spec.Replicas == 0 || *rs.Spec.Replicas == 0 {
+				if *typed.Spec.Replicas == 0 || *rs.Spec.Replicas == 0 {
 					*rs.Spec.Replicas = *typed.Spec.Replicas
 				}
 			}
 			// end replicas logic
-
-			rs.Annotations = typed.Annotations
 
 			if len(rs.Spec.Template.Labels) == 0 {
 				rs.Spec.Template = typed.Spec.Template
