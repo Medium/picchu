@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,7 +28,7 @@ type EnsureWaypointPDB struct {
 }
 
 func (p *EnsureWaypointPDB) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	minAvailable := int32(1)
+	minAvailable := intstr.FromInt(1)
 	pdb := &policyv1.PodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      waypointPDBName,
