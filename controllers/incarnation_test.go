@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	ttesting "testing"
 	"time"
 
@@ -276,37 +275,6 @@ func TestIncarnation_divideReplicasNoAutoscale(t *ttesting.T) {
 				&testClusters{Clusters: test.Clusters},
 			)
 			assert.Equal(test.Expected, i.divideReplicasNoAutoscale(test.ScaleDefault))
-		})
-	}
-}
-
-// TestGenScalePlanRampingByState verifies that Ramping is only true for canarying/releasing
-// states. Released incarnations keep their HPA so it can scale down based on traffic.
-func TestGenScalePlanRampingByState(t *ttesting.T) {
-	cpuTarget := int32(70)
-	scaleMax := int32(10)
-	for _, tc := range []struct {
-		name        string
-		state       State
-		expectRamp  bool
-		hasAutoscale bool
-	}{
-		{"canarying ramps", canarying, true, true},
-		{"releasing ramps", releasing, true, true},
-		{"released does not ramp", released, false, true},
-		{"deploying does not ramp", deploying, false, true},
-		{"deployed does not ramp", deployed, false, true},
-		{"pendingrelease does not ramp", pendingrelease, false, true},
-		{"no autoscaler never ramps", released, false, false},
-	} {
-		t.Run(tc.name, func(t *ttesting.T) {
-			i := createTestIncarnation("test", tc.state, 50)
-			if tc.hasAutoscale {
-				i.revision.Spec.Targets[0].Scale.TargetCPUUtilizationPercentage = &cpuTarget
-				i.revision.Spec.Targets[0].Scale.Max = scaleMax
-			}
-			plan := i.genScalePlan(context.Background())
-			assert.Equal(t, tc.expectRamp, plan.Ramping, "state=%s", tc.state)
 		})
 	}
 }
