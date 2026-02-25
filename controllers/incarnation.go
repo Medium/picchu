@@ -411,6 +411,9 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		EventDriven:              i.isEventDriven(),
 		TopologySpreadConstraint: i.target().TopologySpreadConstraint,
 		PodDisruptionBudget:      i.target().PodDisruptionBudget,
+		// Only disable autoscaler when ramping UP (canarying/releasing). Keep HPA for released
+		// incarnations so they scale down based on traffic as we ramp the new revision.
+		Ramping: i.target().Scale.HasAutoscaler() && (i.status.State.Current == "canarying" || i.status.State.Current == "releasing"),
 	}
 
 	if !i.isRoutable() {
@@ -525,6 +528,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		KedaWorker:         i.target().Scale.KedaWorker,
 		EventDriven:        i.isEventDriven(),
 		ServiceAccountName: i.appName(),
+		Ramping:            i.target().Scale.HasAutoscaler() && (i.status.State.Current == "canarying" || i.status.State.Current == "releasing"),
 	}
 }
 

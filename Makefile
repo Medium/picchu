@@ -53,10 +53,11 @@ ENVTEST_K8S_VERSION ?= 1.28
 all: manager
 ci: test
 # Run tests
+# Uses setup-envtest from controller-runtime (storage.googleapis.com/kubebuilder-tools is deprecated)
+ENVTEST_K8S_VERSION ?= 1.28.0
 test: generate fmt vet manifests
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	@command -v $(ENVTEST) >/dev/null 2>&1 || GOBIN=$(GOBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.22
-	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" GOTOOLCHAIN=go1.25.0+auto go test ./... -coverprofile cover.out
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.22
+	KUBEBUILDER_ASSETS="$$($(GOBIN)/setup-envtest use -p path $(ENVTEST_K8S_VERSION))" GOTOOLCHAIN=go1.25.0+auto go test ./... -coverprofile cover.out
 
 # Build manager binary
 manager: generate fmt vet
