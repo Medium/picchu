@@ -296,42 +296,6 @@ func (i *Incarnation) peakPercent() uint32 {
 	return i.getStatus().PeakPercent
 }
 
-// getBaseCapacityForRamp returns the 100% capacity baseline for replica allocation during ramp.
-// Must match CanRampTo's baseCapacity logic so we allocate enough replicas to pass the ramp check.
-func (i *Incarnation) getBaseCapacityForRamp() int32 {
-	target := i.target()
-	if target == nil || target.Scale.Min == nil {
-		return 0
-	}
-	rm := i.controller.getReleaseManager()
-	if rm == nil {
-		return int32(*target.Scale.Min)
-	}
-	var totalPods int32 = 0
-	var totalTrafficPercent uint32 = 0
-	var hasUnscaledRevision bool = false
-	for _, rev := range rm.Status.Revisions {
-		if rev.Tag == i.tag {
-			continue
-		}
-		if rev.CurrentPercent > 0 && rev.Scale.Current > 0 {
-			totalPods += int32(rev.Scale.Current)
-			totalTrafficPercent += rev.CurrentPercent
-			if rev.PeakPercent == 100 && rev.CurrentPercent < 100 {
-				hasUnscaledRevision = true
-			}
-		}
-	}
-	if totalPods == 0 || totalTrafficPercent == 0 {
-		return int32(*target.Scale.Min)
-	}
-	if hasUnscaledRevision {
-		return totalPods
-	}
-	normalizedCapacity := float64(totalPods) / (float64(totalTrafficPercent) / 100.0)
-	return int32(math.Ceil(normalizedCapacity))
-}
-
 func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
 	target := i.target()
 	if target == nil {
@@ -412,17 +376,10 @@ func (i *Incarnation) sync(ctx context.Context) error {
 
 	var replicas int32
 	if i.target().Scale.HasAutoscaler() {
-		// When ramping, use baseCapacity (from other revisions) so we allocate enough replicas
-		// to pass CanRampTo. Scale.Default is too small when the old revision has scaled up via HPA.
-		capacity := i.target().Scale.Default
-		if i.status.State.Current == "canarying" || i.status.State.Current == "releasing" {
-			if base := i.getBaseCapacityForRamp(); base > 0 {
-				capacity = base
-			}
-		}
-		replicas = i.divideReplicas(capacity)
+		replicas = i.divideReplicas(i.target().Scale.Default)
 	} else {
 		replicas = i.divideReplicasNoAutoscale(i.target().Scale.Default)
+
 	}
 	syncPlan := &rmplan.SyncRevision{
 		App:                      i.appName(),
@@ -454,9 +411,6 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		EventDriven:              i.isEventDriven(),
 		TopologySpreadConstraint: i.target().TopologySpreadConstraint,
 		PodDisruptionBudget:      i.target().PodDisruptionBudget,
-		// Only disable autoscaler when ramping UP (canarying/releasing). Keep HPA for released
-		// incarnations so they scale down based on traffic as we ramp the new revision.
-		Ramping: i.target().Scale.HasAutoscaler() && (i.status.State.Current == "canarying" || i.status.State.Current == "releasing"),
 	}
 
 	if !i.isRoutable() {
@@ -571,7 +525,6 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		KedaWorker:         i.target().Scale.KedaWorker,
 		EventDriven:        i.isEventDriven(),
 		ServiceAccountName: i.appName(),
-		Ramping:            i.target().Scale.HasAutoscaler() && (i.status.State.Current == "canarying" || i.status.State.Current == "releasing"),
 	}
 }
 
