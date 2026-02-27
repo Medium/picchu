@@ -1,0 +1,16 @@
+{
+  "service_name": "picchu",
+  "target_path": "/Users/ebarth/src/picchu",
+  "last_learned": "2026-02-27T12:30:00Z",
+  "last_commit": "e3954cf72b6461f49d1540a8a7286e037d907058",
+  "learning_mode": "full",
+  "agents_run": ["codebase-indexer", "dependency-mapper", "git-history-miner", "edge-failure-mapper", "test-fixtures-miner"],
+  "findings_summary": {
+    "total_files_analyzed": 148,
+    "key_modules": ["api/v1alpha1/", "controllers/", "controllers/plan/", "controllers/observe/", "controllers/scaling/", "controllers/schedule/", "controllers/garbagecollector/", "controllers/utils/", "plan/", "prometheus/", "slack/", "sentry/"],
+    "primary_contributors": ["Bob Corsaro (236, inactive)", "Sofie Gonzalez (194, inactive)", "David Osemwengie (135, active)", "Dan Benson (19, active)", "Eduardo Barth (13, active)"],
+    "risk_areas": ["Production panics (7 sites)", "Remote client cache bug", "Scaling/HPA volatility (6+ reverts)", "Stale holidays", "Untested controllers"],
+    "test_coverage_assessment": "Strong for plan/ and state machine; critical gaps in controller-level integration tests (RevisionReconciler, ReleaseManagerReconciler, ClusterReconciler all untested)"
+  },
+  "history": []
+}
