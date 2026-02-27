@@ -390,17 +390,21 @@ func CreateOrUpdate(
 				log.Info("Resource is ignored", "namespace", rs.Namespace, "name", rs.Name, "kind", kind)
 				return nil
 			}
-			if typed.Annotations[picchu.AnnotationAutoscaler] != picchu.AutoscalerTypeWPA { // Allow WorkerPodAutoScaler to manipulate Replicas on its own
-				// Only update replicas if we are changing to/from zero, which means the replicaset is being retired/deployed
+			// When ramping, Picchu controls replicas (WPA/HPA deleted). Otherwise, WPA controls its own replicas.
+			ramping := typed.Annotations[picchu.AnnotationRamping] == "true"
+			isWPA := typed.Annotations[picchu.AnnotationAutoscaler] == picchu.AutoscalerTypeWPA
+			if !isWPA || ramping {
 				var zero int32 = 0
 				if rs.Spec.Replicas == nil {
 					rs.Spec.Replicas = &zero
 				}
-				if *typed.Spec.Replicas == 0 || *rs.Spec.Replicas == 0 {
+				if ramping || *typed.Spec.Replicas == 0 || *rs.Spec.Replicas == 0 {
 					*rs.Spec.Replicas = *typed.Spec.Replicas
 				}
 			}
 			// end replicas logic
+
+			rs.Annotations = typed.Annotations
 
 			if len(rs.Spec.Template.Labels) == 0 {
 				rs.Spec.Template = typed.Spec.Template
