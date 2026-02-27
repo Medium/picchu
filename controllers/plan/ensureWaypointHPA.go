@@ -29,17 +29,20 @@ type EnsureWaypointHPA struct {
 }
 
 func (p *EnsureWaypointHPA) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	if p.HPA == nil || p.HPA.MaxReplicas < 1 {
+	if p.HPA == nil || p.HPA.MinReplicas < 1 {
 		return nil
 	}
 	minRep := p.HPA.MinReplicas
 	if minRep < 1 {
 		minRep = 1
 	}
-	if p.HPA.MaxReplicas < minRep {
-		minRep = p.HPA.MaxReplicas
-	}
 	maxRep := p.HPA.MaxReplicas
+	if maxRep < 1 {
+		maxRep = waypointDefaultMax
+	}
+	if maxRep < minRep {
+		minRep = maxRep
+	}
 	cpuTarget := p.HPA.TargetCPUUtilizationPercentage
 	if cpuTarget < 1 {
 		cpuTarget = waypointDefaultCPU
