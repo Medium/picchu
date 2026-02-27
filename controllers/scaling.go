@@ -65,7 +65,16 @@ func (s *ScalableTargetAdapter) CanRampTo(desiredPercent uint32) bool {
 	} else if hasUnscaledRevision {
 		// Old revision was at 100% and is now serving less traffic but hasn't fully scaled down
 		// (either still scaling down or at Scale.Min). Use pod count as baseline for 100% capacity.
-		baseCapacity = totalPods
+		// Exception: fixed-scale services (no HPA, min=max) cap each revision at Scale.Min pods.
+		// The "100% capacity" for the service is Scale.Min, not sum of pods across revisions.
+		if !target.Scale.HasAutoscaler() {
+			baseCapacity = int32(*target.Scale.Min)
+			if baseCapacity == 0 {
+				baseCapacity = target.Scale.Max
+			}
+		} else {
+			baseCapacity = totalPods
+		}
 	} else {
 		// Old revisions have scaled down to match their traffic percentage.
 		// Normalize: if we have X pods serving Y% traffic, then 100% capacity = X / (Y/100)
