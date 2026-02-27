@@ -85,3 +85,6 @@ cmd/manager/picchuDebug
 testbin/*
 
 picchu
+
+# Claude Code learning artifacts (machine-specific)
+.claude-learning/
