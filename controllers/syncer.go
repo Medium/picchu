@@ -140,6 +140,11 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 		// Both modes have replicas — keep both labels and waypoint so sidecar pods and waypoint-served pods both work.
 		ambientMesh = false
 		transitionToSidecar = true
+	case ambientReplicas && !r.effectiveAmbientMesh():
+		// Newest revision is sidecar but old ambient revision still has replicas (e.g. revert from ambient).
+		// Enable sidecar injection now so the new revision's pods get sidecars when they spin up, before they have Scale.Desired > 0.
+		ambientMesh = false
+		transitionToSidecar = true
 	case ambientReplicas:
 		ambientMesh = true
 		transitionToSidecar = false
@@ -227,17 +232,21 @@ func (r *ResourceSyncer) hasSidecarReplicas() bool {
 }
 
 // effectiveWaypointHPA returns the waypoint HPA spec from the latest incarnation when set; otherwise nil (no HPA).
-// When non-nil, defaults targetCPUUtilizationPercentage to 70 if unset.
+// Create an HPA when minReplicas is set (>= 1). When non-nil, defaults maxReplicas to 20 and targetCPUUtilizationPercentage to 70 if unset.
 func (r *ResourceSyncer) effectiveWaypointHPA() *picchuv1alpha1.WaypointHPASpec {
+	const waypointDefaultMax = 20
 	sorted := r.incarnations.sorted()
 	if len(sorted) == 0 {
 		return nil
 	}
 	t := sorted[0].target()
-	if t == nil || t.WaypointHPA == nil || t.WaypointHPA.MaxReplicas < 1 {
+	if t == nil || t.WaypointHPA == nil || t.WaypointHPA.MinReplicas < 1 {
 		return nil
 	}
 	spec := *t.WaypointHPA
+	if spec.MaxReplicas < 1 {
+		spec.MaxReplicas = waypointDefaultMax
+	}
 	if spec.TargetCPUUtilizationPercentage < 1 {
 		spec.TargetCPUUtilizationPercentage = 70
 	}

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	waypointPDBName       = "waypoint"
+	waypointPDBName      = "waypoint"
 	waypointGatewayLabel = "gateway.networking.k8s.io/gateway-name" // Istio sets this on waypoint Deployment pods
 	waypointSelectorVal  = "waypoint"
 )
@@ -25,7 +25,7 @@ const (
 // MinReplicas is the waypoint HPA min (if set); PDB minAvailable uses it, otherwise 1.
 // The waypoint Deployment is created by Istio from the Gateway; we only create the PDB.
 type EnsureWaypointPDB struct {
-	Namespace    string
+	Namespace   string
 	MinReplicas int32 // waypoint HPA min; 0 means use 1 for PDB minAvailable
 }
 
