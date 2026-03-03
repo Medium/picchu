@@ -42,9 +42,9 @@ type testClusters struct {
 func (t testClusters) Apply(i *Incarnation, currentPercent int) {
 	if t.Clusters > 0 {
 		var clusters []ClusterInfo
-		for i := 0; i < t.Clusters; i++ {
+		for idx := 0; idx < t.Clusters; idx++ {
 			clusters = append(clusters, ClusterInfo{
-				Name:          fmt.Sprintf("cluster-%d", i),
+				Name:          fmt.Sprintf("cluster-%d", idx),
 				Live:          true,
 				ScalingFactor: 1.0,
 			})
@@ -58,6 +58,17 @@ func (t testClusters) Apply(i *Incarnation, currentPercent int) {
 				},
 			},
 		}
+	}
+}
+
+// withOtherRevisions populates ReleaseManager.Status.Revisions for getBaseCapacityForRamp tests
+type withOtherRevisions struct {
+	Revisions []picchuv1alpha1.ReleaseManagerRevisionStatus
+}
+
+func (w withOtherRevisions) Apply(i *Incarnation, currentPercent int) {
+	if ctrl, ok := i.controller.(*IncarnationController); ok && ctrl.releaseManager != nil {
+		ctrl.releaseManager.Status.Revisions = w.Revisions
 	}
 }
 

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	ttesting "testing"
 	"time"
 
@@ -278,6 +279,121 @@ func TestIncarnation_divideReplicasNoAutoscale(t *ttesting.T) {
 		})
 	}
 }
+
+// TestGetBaseCapacityForRamp verifies getBaseCapacityForRamp returns the correct capacity
+// for replica allocation during ramp, matching CanRampTo's logic.
+func TestGetBaseCapacityForRamp(t *ttesting.T) {
+	scaleMin := int32(16)
+	scaleMinZero := int32(0)
+	for _, tc := range []struct {
+		name     string
+		opts     []testIncarnationOption
+		scaleMin *int32
+		scaleMax int32
+		expected int32
+	}{
+		{
+			name:     "no other revisions uses Scale.Min",
+			opts:     []testIncarnationOption{&testClusters{Clusters: 4}},
+			scaleMin: &scaleMin,
+			scaleMax: 96,
+			expected: 16,
+		},
+		{
+			name:     "old revision at 100% with 120 pods (hasUnscaledRevision) uses totalPods",
+			opts:     []testIncarnationOption{&testClusters{Clusters: 4}, withOtherRevisions{Revisions: []picchu.ReleaseManagerRevisionStatus{{Tag: "old-rev", CurrentPercent: 60, PeakPercent: 100, Scale: picchu.ReleaseManagerRevisionScaleStatus{Current: 120}}}}},
+			scaleMin: &scaleMin,
+			scaleMax: 96,
+			expected: 120,
+		},
+		{
+			name:     "old revision scaled down uses normalized capacity",
+			opts:     []testIncarnationOption{&testClusters{Clusters: 4}, withOtherRevisions{Revisions: []picchu.ReleaseManagerRevisionStatus{{Tag: "old-rev", CurrentPercent: 60, PeakPercent: 60, Scale: picchu.ReleaseManagerRevisionScaleStatus{Current: 60}}}}},
+			scaleMin: &scaleMin,
+			scaleMax: 96,
+			expected: 100, // 60 / 0.6 = 100
+		},
+		{
+			name:     "Scale.Min=0 with no other revisions uses Scale.Max (e.g. jubilee worker)",
+			opts:     []testIncarnationOption{&testClusters{Clusters: 4}},
+			scaleMin: &scaleMinZero,
+			scaleMax: 60,
+			expected: 60, // Scale.Max when Scale.Min=0
+		},
+		{
+			name:     "excludes our own pods to avoid over-allocation feedback loop",
+			opts:     []testIncarnationOption{&testClusters{Clusters: 4}, withOtherRevisions{Revisions: []picchu.ReleaseManagerRevisionStatus{{Tag: "old-rev", CurrentPercent: 15, PeakPercent: 100, Scale: picchu.ReleaseManagerRevisionScaleStatus{Current: 163}}}}},
+			scaleMin: &scaleMin,
+			scaleMax: 320,
+			expected: 163, // other revisions only; our 144 pods must NOT be included
+		},
+	} {
+		t.Run(tc.name, func(t *ttesting.T) {
+			i := createTestIncarnation("new-rev", releasing, 1, tc.opts...)
+			i.revision.Spec.Targets[0].Scale.Min = tc.scaleMin
+			i.revision.Spec.Targets[0].Scale.Max = tc.scaleMax
+			if tc.name == "excludes our own pods to avoid over-allocation feedback loop" {
+				i.status.Scale.Current = 144
+			}
+			assert.Equal(t, tc.expected, i.getBaseCapacityForRamp())
+		})
+	}
+}
+
+// TestGenScalePlanRampingByState verifies that Ramping is only true for canarying/releasing
+// states. Released incarnations keep their HPA so it can scale down based on traffic.
+func TestGenScalePlanRampingByState(t *ttesting.T) {
+	cpuTarget := int32(70)
+	scaleMax := int32(10)
+	for _, tc := range []struct {
+		name        string
+		state       State
+		expectRamp  bool
+		hasAutoscale bool
+	}{
+		{"canarying ramps", canarying, true, true},
+		{"releasing ramps", releasing, true, true},
+		{"released does not ramp", released, false, true},
+		{"deploying does not ramp", deploying, false, true},
+		{"deployed does not ramp", deployed, false, true},
+		{"pendingrelease does not ramp", pendingrelease, false, true},
+		{"no autoscaler never ramps", released, false, false},
+	} {
+		t.Run(tc.name, func(t *ttesting.T) {
+			i := createTestIncarnation("test", tc.state, 50)
+			if tc.hasAutoscale {
+				i.revision.Spec.Targets[0].Scale.TargetCPUUtilizationPercentage = &cpuTarget
+				i.revision.Spec.Targets[0].Scale.Max = scaleMax
+			}
+			plan := i.genScalePlan(context.Background())
+			assert.Equal(t, tc.expectRamp, plan.Ramping, "state=%s", tc.state)
+		})
+	}
+}
+
+// TestGenScalePlanReleasedKeepsHPA verifies that released revisions keep normal HPA
+// min/max (Scale.Min, Scale.Max). HPA downscales based on observed load, not preemptive pinning.
+func TestGenScalePlanReleasedKeepsHPA(t *ttesting.T) {
+	scaleMin := int32(16)
+	scaleMax := int32(320)
+	i := createTestIncarnation("old-rev", released, 15, &testClusters{Clusters: 4},
+		withOtherRevisions{
+			Revisions: []picchu.ReleaseManagerRevisionStatus{
+				{Tag: "new-rev", CurrentPercent: 85, PeakPercent: 85, Scale: picchu.ReleaseManagerRevisionScaleStatus{Current: 144}},
+			},
+		})
+	i.revision.Spec.Targets[0].Scale.Min = &scaleMin
+	i.revision.Spec.Targets[0].Scale.Max = scaleMax
+	i.revision.Spec.Targets[0].Scale.TargetCPUUtilizationPercentage = ptr(int32(70))
+
+	plan := i.genScalePlan(context.Background())
+
+	// Released gets full Scale.Min to Scale.Max; HPA downscales naturally based on CPU load.
+	assert.Equal(t, i.controller.divideReplicas(16, 100), plan.Min, "released keeps full Scale.Min")
+	assert.Equal(t, i.controller.divideReplicas(320, 100), plan.Max, "released keeps full Scale.Max")
+}
+
+func ptr[T any](v T) *T { return &v }
 
 func Test_IsExpired(t *ttesting.T) {
 	for _, test := range []struct {

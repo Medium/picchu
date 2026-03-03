@@ -296,6 +296,46 @@ func (i *Incarnation) peakPercent() uint32 {
 	return i.getStatus().PeakPercent
 }
 
+// getBaseCapacityForRamp returns the 100% capacity baseline for replica allocation during ramp.
+// Must match CanRampTo's baseCapacity logic so we allocate enough replicas to pass the ramp check.
+func (i *Incarnation) getBaseCapacityForRamp() int32 {
+	target := i.target()
+	if target == nil || target.Scale.Min == nil {
+		return 0
+	}
+	rm := i.controller.getReleaseManager()
+	if rm == nil {
+		return int32(*target.Scale.Min)
+	}
+	var totalPods int32 = 0
+	var totalTrafficPercent uint32 = 0
+	var hasUnscaledRevision bool = false
+	for _, rev := range rm.Status.Revisions {
+		if rev.Tag == i.tag {
+			continue
+		}
+		if rev.CurrentPercent > 0 && rev.Scale.Current > 0 {
+			totalPods += int32(rev.Scale.Current)
+			totalTrafficPercent += rev.CurrentPercent
+			if rev.PeakPercent == 100 && rev.CurrentPercent < 100 {
+				hasUnscaledRevision = true
+			}
+		}
+	}
+	if totalPods == 0 || totalTrafficPercent == 0 {
+		if *target.Scale.Min > 0 {
+			return int32(*target.Scale.Min)
+		}
+		// Scale.Min==0 (e.g. worker that can scale to zero): use Scale.Max as conservative baseline
+		return target.Scale.Max
+	}
+	if hasUnscaledRevision {
+		return totalPods
+	}
+	normalizedCapacity := float64(totalPods) / (float64(totalTrafficPercent) / 100.0)
+	return int32(math.Ceil(normalizedCapacity))
+}
+
 func (i *Incarnation) getExternalTestStatus() ExternalTestStatus {
 	target := i.target()
 	if target == nil {
@@ -376,10 +416,20 @@ func (i *Incarnation) sync(ctx context.Context) error {
 
 	var replicas int32
 	if i.target().Scale.HasAutoscaler() {
-		replicas = i.divideReplicas(i.target().Scale.Default)
+		// When ramping, use total capacity (all revisions) so we allocate enough replicas
+		// for our traffic share. E.g. old=163@15%, new=144@85% → total=307 → new needs ~261.
+		// Using only other revisions' pods undercounts when we already have pods.
+		capacity := i.target().Scale.Default
+		if i.status.State.Current == "canarying" || i.status.State.Current == "releasing" {
+			// Use only other revisions' pods (baseCapacity). Including our own pods causes
+			// over-allocation feedback loop (e.g. tutu: 450+383=833 → new gets 752 → total 820).
+			if base := i.getBaseCapacityForRamp(); base > 0 {
+				capacity = base
+			}
+		}
+		replicas = i.divideReplicas(capacity)
 	} else {
 		replicas = i.divideReplicasNoAutoscale(i.target().Scale.Default)
-
 	}
 	syncPlan := &rmplan.SyncRevision{
 		App:                      i.appName(),
@@ -411,6 +461,9 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		EventDriven:              i.isEventDriven(),
 		TopologySpreadConstraint: i.target().TopologySpreadConstraint,
 		PodDisruptionBudget:      i.target().PodDisruptionBudget,
+		// Only disable autoscaler when ramping UP (canarying/releasing). Keep HPA for released
+		// incarnations so they scale down based on traffic as we ramp the new revision.
+		Ramping: i.target().Scale.HasAutoscaler() && (i.status.State.Current == "canarying" || i.status.State.Current == "releasing"),
 	}
 
 	if !i.isRoutable() {
@@ -509,6 +562,10 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		min = max
 	} else if (i.target().Scale.Worker != nil || i.target().Scale.KedaWorker != nil) && *i.target().Scale.Min == 0 {
 		min = 0
+	} else if i.target().Scale.HasAutoscaler() && i.status.State.Current == "released" {
+		// Give HPA full Scale.Min to Scale.Max; it downscales based on observed load.
+		min = i.controller.divideReplicas(*i.target().Scale.Min, 100)
+		max = i.controller.divideReplicas(i.target().Scale.Max, 100)
 	}
 
 	return &rmplan.ScaleRevision{
@@ -525,6 +582,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		KedaWorker:         i.target().Scale.KedaWorker,
 		EventDriven:        i.isEventDriven(),
 		ServiceAccountName: i.appName(),
+		Ramping:            i.target().Scale.HasAutoscaler() && (i.status.State.Current == "canarying" || i.status.State.Current == "releasing"),
 	}
 }
 
