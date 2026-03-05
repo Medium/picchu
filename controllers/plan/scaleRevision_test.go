@@ -217,6 +217,12 @@ func TestScaleRevisionByRequestsRateAmbientMesh(t *testing.T) {
 
 	m.
 		EXPECT().
+		Delete(ctx, mocks.NamespacedName("testnamespace", "testtag")).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
 		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateKEDASpec(keda)).
 		Return(nil).
 		Times(1)
