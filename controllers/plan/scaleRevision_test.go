@@ -172,6 +172,64 @@ func TestScaleRevisionByRequestsRate(t *testing.T) {
 	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
 }
 
+func TestScaleRevisionByRequestsRateAmbientMesh(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	quantity := resource.NewQuantity(5, resource.DecimalSI)
+	plan := &ScaleRevision{
+		Tag:                "testtag",
+		Namespace:          "testnamespace",
+		Min:                4,
+		Max:                10,
+		RequestsRateMetric: "istio_requests_rate_2m",
+		RequestsRateTarget: quantity,
+		AmbientMesh:        true,
+		PrometheusAddress:  "http://prometheus-slo.monitoring-slo.svc.cluster.local:9090",
+		Labels:             map[string]string{},
+	}
+	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	var kedaMaxReplicas int32 = 0
+	keda := &kedav1.ScaledObject{
+		Spec: kedav1.ScaledObjectSpec{
+			MaxReplicaCount: &kedaMaxReplicas,
+		},
+	}
+
+	expected := mocks.Callback(func(x interface{}) bool {
+		switch o := x.(type) {
+		case *kedav1.ScaledObject:
+			return *o.Spec.MaxReplicaCount == 5 &&
+				o.Spec.ScaleTargetRef.Name == "testtag" &&
+				o.Spec.ScaleTargetRef.Kind == "ReplicaSet" &&
+				len(o.Spec.Triggers) == 1 &&
+				o.Spec.Triggers[0].Type == "prometheus" &&
+				o.Spec.Triggers[0].Metadata["threshold"] == "5" &&
+				o.Spec.Triggers[0].Metadata["serverAddress"] == "http://prometheus-slo.monitoring-slo.svc.cluster.local:9090"
+		default:
+			return false
+		}
+	}, "match KEDA ScaledObject with prometheus trigger")
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateKEDASpec(keda)).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Update(ctx, expected).
+		Return(nil).
+		Times(1)
+
+	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
+}
+
 func TestScaleRevisionWithWPA(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)

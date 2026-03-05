@@ -37,6 +37,8 @@ type ScaleRevision struct {
 	KedaWorker         *picchuv1alpha1.KedaScaleInfo
 	EventDriven        bool
 	ServiceAccountName string
+	AmbientMesh        bool
+	PrometheusAddress  string
 }
 
 func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
@@ -77,6 +79,10 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 			return err
 		}
 		return p.applyKeda(ctx, cli, cluster, log, scaledMin, scaledMax)
+	}
+
+	if p.AmbientMesh && p.RequestsRateTarget != nil && p.PrometheusAddress != "" {
+		return p.applyAmbientKeda(ctx, cli, log, scaledMin, scaledMax)
 	}
 
 	return p.applyHPA(ctx, cli, cluster, log, scaledMin, scaledMax)
@@ -161,6 +167,41 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, cluster
 	}
 
 	return plan.CreateOrUpdate(ctx, log, cli, hpa)
+}
+
+func (p *ScaleRevision) applyAmbientKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+	query := fmt.Sprintf(
+		`sum(rate(istio_requests_total{reporter="waypoint", destination_workload="%s", namespace="%s"}[2m]))`,
+		p.Tag, p.Namespace,
+	)
+
+	keda := &kedav1.ScaledObject{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      p.Tag,
+			Namespace: p.Namespace,
+			Labels:    p.Labels,
+		},
+		Spec: kedav1.ScaledObjectSpec{
+			ScaleTargetRef: &kedav1.ScaleTarget{
+				Name:       p.Tag,
+				Kind:       "ReplicaSet",
+				APIVersion: "apps/v1",
+			},
+			MinReplicaCount: &scaledMin,
+			MaxReplicaCount: &scaledMax,
+			Triggers: []kedav1.ScaleTriggers{
+				{
+					Type: "prometheus",
+					Metadata: map[string]string{
+						"serverAddress": p.PrometheusAddress,
+						"query":         query,
+						"threshold":     p.RequestsRateTarget.String(),
+					},
+				},
+			},
+		},
+	}
+	return plan.CreateOrUpdate(ctx, log, cli, keda)
 }
 
 func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
