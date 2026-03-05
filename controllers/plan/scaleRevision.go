@@ -82,6 +82,17 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 	}
 
 	if p.AmbientMesh && p.RequestsRateTarget != nil && p.PrometheusAddress != "" {
+		// Delete any existing HPA before creating KEDA ScaledObject to avoid
+		// admission webhook rejection ("workload is already managed by the hpa").
+		hpa := &autoscaling.HorizontalPodAutoscaler{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      p.Tag,
+				Namespace: p.Namespace,
+			},
+		}
+		if err := utils.DeleteIfExists(ctx, cli, hpa); err != nil {
+			return err
+		}
 		return p.applyAmbientKeda(ctx, cli, log, scaledMin, scaledMax)
 	}
 
