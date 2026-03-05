@@ -98,6 +98,7 @@ func TestEnsureNamespaceWithAmbientMesh(t *testing.T) {
 			Name: "namespace",
 			Labels: map[string]string{
 				"istio.io/dataplane-mode": "ambient",
+				"istio.io/use-waypoint":   "waypoint",
 				picchu.LabelOwnerName:     "rm",
 				picchu.LabelOwnerType:     picchu.OwnerReleaseManager,
 			},

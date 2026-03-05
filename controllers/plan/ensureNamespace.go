@@ -16,6 +16,7 @@ const (
 	IstioInjectionLabelName   = "istio-injection"
 	IstioDataplaneModeLabel   = "istio.io/dataplane-mode"
 	IstioDataplaneModeAmbient = "ambient"
+	IstioUseWaypointLabel     = "istio.io/use-waypoint"
 )
 
 type EnsureNamespace struct {
@@ -35,6 +36,7 @@ func (p *EnsureNamespace) Apply(ctx context.Context, cli client.Client, cluster 
 	}
 	if p.AmbientMesh {
 		labels[IstioDataplaneModeLabel] = IstioDataplaneModeAmbient
+		labels[IstioUseWaypointLabel] = "waypoint"
 		// Do not set istio-injection; ambient mode does not use sidecars.
 	} else {
 		labels[IstioInjectionLabelName] = "enabled"

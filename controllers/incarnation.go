@@ -525,6 +525,8 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		KedaWorker:         i.target().Scale.KedaWorker,
 		EventDriven:        i.isEventDriven(),
 		ServiceAccountName: i.appName(),
+		AmbientMesh:        i.target().AmbientMesh,
+		PrometheusAddress:  i.picchuConfig.PrometheusQueryAddress,
 	}
 }
 
