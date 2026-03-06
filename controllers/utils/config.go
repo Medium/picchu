@@ -16,4 +16,5 @@ type Config struct {
 	DevRoutesServiceHost      string
 	DevRoutesServicePort      int
 	useKedaClusterAuth        bool
+	ClusterPrometheusAddress  string
 }

@@ -83,6 +83,7 @@ func main() {
 	concurrentReleaseManagers := flag.Int("concurrent-release-managers", 50, "How many concurrent release managers to reconcile")
 	devRoutesServiceHost := flag.String("dev-routes-service-host", "", "Configures the dev routes service host, if cluster dev routes are enabled")
 	devRoutesServicePort := flag.Int("dev-routes-service-port", 80, "Configures the dev routes service port, if cluster dev routes are enabled")
+	clusterPrometheusAddress := flag.String("cluster-prometheus-address", "", "The Prometheus address reachable from target clusters, used by KEDA for ambient mesh scaling")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -106,6 +107,7 @@ func main() {
 		ConcurrentReleaseManagers: *concurrentReleaseManagers,
 		DevRoutesServiceHost:      *devRoutesServiceHost,
 		DevRoutesServicePort:      *devRoutesServicePort,
+		ClusterPrometheusAddress:  *clusterPrometheusAddress,
 	}
 
 	var api controllers.PromAPI

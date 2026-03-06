@@ -526,7 +526,7 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 		EventDriven:        i.isEventDriven(),
 		ServiceAccountName: i.appName(),
 		AmbientMesh:        i.target().AmbientMesh,
-		PrometheusAddress:  i.picchuConfig.PrometheusQueryAddress,
+		PrometheusAddress:  i.picchuConfig.ClusterPrometheusAddress,
 	}
 }
 
