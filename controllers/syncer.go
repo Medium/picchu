@@ -169,6 +169,9 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 
 	needWaypoint := ambientMesh || transitionToSidecar
 	if needWaypoint {
+		if err := r.applyPlan(ctx, "Ensure Waypoint Options", &rmplan.EnsureWaypointOptions{Namespace: ns}); err != nil {
+			return err
+		}
 		if err := r.applyPlan(ctx, "Ensure Waypoint", &rmplan.EnsureWaypoint{Namespace: ns}); err != nil {
 			return err
 		}
@@ -193,6 +196,9 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 	}
 
 	if err := r.applyPlan(ctx, "Delete Waypoint", &rmplan.DeleteWaypoint{Namespace: ns}); err != nil {
+		return err
+	}
+	if err := r.applyPlan(ctx, "Delete Waypoint Options", &rmplan.DeleteWaypointOptions{Namespace: ns}); err != nil {
 		return err
 	}
 	if err := r.applyPlan(ctx, "Delete Waypoint PDB", &rmplan.DeleteWaypointPDB{Namespace: ns}); err != nil {
@@ -263,9 +269,9 @@ func (r *ResourceSyncer) effectiveWaypointHPA() *picchuv1alpha1.WaypointHPASpec 
 	}
 	// No HPA or min < 2: use default so waypoint has at least 2 replicas (PDB minAvailable = min-1).
 	return &picchuv1alpha1.WaypointHPASpec{
-		MinReplicas:                       waypointDefaultMin,
-		MaxReplicas:                       waypointDefaultMax,
-		TargetCPUUtilizationPercentage:    waypointDefaultCPU,
+		MinReplicas:                    waypointDefaultMin,
+		MaxReplicas:                    waypointDefaultMax,
+		TargetCPUUtilizationPercentage: waypointDefaultCPU,
 	}
 }
 
