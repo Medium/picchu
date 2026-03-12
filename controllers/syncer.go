@@ -169,13 +169,20 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 
 	needWaypoint := ambientMesh || transitionToSidecar
 	if needWaypoint {
+		if err := r.applyPlan(ctx, "Ensure Waypoint Options", &rmplan.EnsureWaypointOptions{Namespace: ns}); err != nil {
+			return err
+		}
 		if err := r.applyPlan(ctx, "Ensure Waypoint", &rmplan.EnsureWaypoint{Namespace: ns}); err != nil {
 			return err
 		}
 		hpa := r.effectiveWaypointHPA()
-		minReplicas := int32(0)
-		if hpa != nil && hpa.MinReplicas > 0 {
+		minReplicas := int32(2) // waypoint minimum is 2 so PDB minAvailable = min-1 allows one eviction
+		if hpa != nil && hpa.MinReplicas >= 2 {
 			minReplicas = hpa.MinReplicas
+		} else if hpa == nil {
+			// Ensure we always create HPA with min 2 when waypoint exists (effectiveWaypointHPA can return nil if no target).
+			hpa = &picchuv1alpha1.WaypointHPASpec{MinReplicas: 2, MaxReplicas: 20, TargetCPUUtilizationPercentage: 70}
+			minReplicas = 2
 		}
 		if err := r.applyPlan(ctx, "Ensure Waypoint PDB", &rmplan.EnsureWaypointPDB{Namespace: ns, MinReplicas: minReplicas}); err != nil {
 			return err
@@ -189,6 +196,9 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 	}
 
 	if err := r.applyPlan(ctx, "Delete Waypoint", &rmplan.DeleteWaypoint{Namespace: ns}); err != nil {
+		return err
+	}
+	if err := r.applyPlan(ctx, "Delete Waypoint Options", &rmplan.DeleteWaypointOptions{Namespace: ns}); err != nil {
 		return err
 	}
 	if err := r.applyPlan(ctx, "Delete Waypoint PDB", &rmplan.DeleteWaypointPDB{Namespace: ns}); err != nil {
@@ -231,26 +241,38 @@ func (r *ResourceSyncer) hasSidecarReplicas() bool {
 	return false
 }
 
-// effectiveWaypointHPA returns the waypoint HPA spec from the latest incarnation when set; otherwise nil (no HPA).
-// Create an HPA when minReplicas is set (>= 1). When non-nil, defaults maxReplicas to 20 and targetCPUUtilizationPercentage to 70 if unset.
+// effectiveWaypointHPA returns the waypoint HPA spec. When a waypoint is used we always want at least
+// 2 replicas so PDB minAvailable can be min-1 (allowing Karpenter to evict one pod). If the revision
+// sets WaypointHPA with MinReplicas >= 2, use that; otherwise return a default spec (MinReplicas: 2,
+// MaxReplicas: 20, 70% CPU). When non-nil, defaults for maxReplicas and targetCPU are applied if unset.
 func (r *ResourceSyncer) effectiveWaypointHPA() *picchuv1alpha1.WaypointHPASpec {
+	const waypointDefaultMin = 2
 	const waypointDefaultMax = 20
+	const waypointDefaultCPU = 70
 	sorted := r.incarnations.sorted()
 	if len(sorted) == 0 {
 		return nil
 	}
 	t := sorted[0].target()
-	if t == nil || t.WaypointHPA == nil || t.WaypointHPA.MinReplicas < 1 {
+	if t == nil {
 		return nil
 	}
-	spec := *t.WaypointHPA
-	if spec.MaxReplicas < 1 {
-		spec.MaxReplicas = waypointDefaultMax
+	if t.WaypointHPA != nil && t.WaypointHPA.MinReplicas >= waypointDefaultMin {
+		spec := *t.WaypointHPA
+		if spec.MaxReplicas < 1 {
+			spec.MaxReplicas = waypointDefaultMax
+		}
+		if spec.TargetCPUUtilizationPercentage < 1 {
+			spec.TargetCPUUtilizationPercentage = waypointDefaultCPU
+		}
+		return &spec
 	}
-	if spec.TargetCPUUtilizationPercentage < 1 {
-		spec.TargetCPUUtilizationPercentage = 70
+	// No HPA or min < 2: use default so waypoint has at least 2 replicas (PDB minAvailable = min-1).
+	return &picchuv1alpha1.WaypointHPASpec{
+		MinReplicas:                    waypointDefaultMin,
+		MaxReplicas:                    waypointDefaultMax,
+		TargetCPUUtilizationPercentage: waypointDefaultCPU,
 	}
-	return &spec
 }
 
 // effectiveAmbientMesh returns true if the latest (newest by GitTimestamp) incarnation's target has AmbientMesh enabled.

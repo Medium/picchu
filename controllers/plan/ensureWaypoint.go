@@ -4,29 +4,88 @@ import (
 	"context"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
+	"go.medium.engineering/picchu/plan"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	waypointGatewayName        = "waypoint"
-	waypointGatewayClass       = "istio-waypoint"
-	waypointLabelKey           = "istio.io/waypoint-for"
-	waypointLabelValue         = "all"
-	gatewayAPIGroup            = "gateway.networking.k8s.io"
-	gatewayAPIVersion          = "v1"
-	gatewayListenerPort  int64 = 15008
-	gatewayListenerProto       = "HBONE"
+	waypointGatewayName            = "waypoint"
+	waypointGatewayClass           = "istio-waypoint"
+	waypointLabelKey               = "istio.io/waypoint-for"
+	waypointLabelValue             = "all"
+	waypointOptionsConfigMap       = "waypoint-options"
+	gatewayAPIGroup                = "gateway.networking.k8s.io"
+	gatewayAPIVersion              = "v1"
+	gatewayListenerPort      int64 = 15008
+	gatewayListenerProto           = "HBONE"
 )
+
+// waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: soft pod anti-affinity
+// so waypoint pods prefer to run on different hosts (Karpenter can still consolidate when needed).
+const waypointDeploymentOverlay = `spec:
+  template:
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  gateway.networking.k8s.io/gateway-name: waypoint
+              topologyKey: kubernetes.io/hostname
+`
 
 var gatewayGVK = schema.GroupVersionKind{
 	Group:   gatewayAPIGroup,
 	Version: gatewayAPIVersion,
 	Kind:    "Gateway",
+}
+
+// EnsureWaypointOptions creates or updates the ConfigMap referenced by the waypoint Gateway's
+// spec.infrastructure.parametersRef. It contains the "deployment" overlay with soft pod anti-affinity
+// so waypoint pods prefer different hosts.
+type EnsureWaypointOptions struct {
+	Namespace string
+}
+
+func (p *EnsureWaypointOptions) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      waypointOptionsConfigMap,
+			Namespace: p.Namespace,
+		},
+		Data: map[string]string{
+			"deployment": waypointDeploymentOverlay,
+		},
+	}
+	return plan.CreateOrUpdate(ctx, log, cli, cm)
+}
+
+// DeleteWaypointOptions removes the waypoint options ConfigMap when the waypoint is removed.
+type DeleteWaypointOptions struct {
+	Namespace string
+}
+
+func (p *DeleteWaypointOptions) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      waypointOptionsConfigMap,
+			Namespace: p.Namespace,
+		},
+	}
+	err := cli.Delete(ctx, cm)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }
 
 // EnsureWaypoint creates or updates the Istio ambient waypoint Gateway in the namespace.
@@ -49,6 +108,13 @@ func (p *EnsureWaypoint) Apply(ctx context.Context, cli client.Client, cluster *
 				"name":     "mesh",
 				"port":     gatewayListenerPort,
 				"protocol": gatewayListenerProto,
+			},
+		},
+		"infrastructure": map[string]interface{}{
+			"parametersRef": map[string]interface{}{
+				"group": "",
+				"kind":  "ConfigMap",
+				"name":  waypointOptionsConfigMap,
 			},
 		},
 	}
@@ -88,7 +154,7 @@ func (p *EnsureWaypoint) Apply(ctx context.Context, cli client.Client, cluster *
 	return nil
 }
 
-// specMapsEqual compares gateway spec maps (handles listeners as []interface{}).
+// specMapsEqual compares gateway spec maps (handles listeners and infrastructure).
 func specMapsEqual(a, b map[string]interface{}) bool {
 	if a == nil && b == nil {
 		return true
@@ -97,6 +163,9 @@ func specMapsEqual(a, b map[string]interface{}) bool {
 		return false
 	}
 	if a["gatewayClassName"] != b["gatewayClassName"] {
+		return false
+	}
+	if !infrastructureEqual(a["infrastructure"], b["infrastructure"]) {
 		return false
 	}
 	al, okA := a["listeners"].([]interface{})
@@ -116,6 +185,26 @@ func specMapsEqual(a, b map[string]interface{}) bool {
 		}
 	}
 	return true
+}
+
+func infrastructureEqual(a, b interface{}) bool {
+	am, okA := a.(map[string]interface{})
+	bm, okB := b.(map[string]interface{})
+	if !okA && !okB {
+		return true
+	}
+	if !okA || !okB {
+		return false
+	}
+	prA, _ := am["parametersRef"].(map[string]interface{})
+	prB, _ := bm["parametersRef"].(map[string]interface{})
+	if prA == nil && prB == nil {
+		return true
+	}
+	if prA == nil || prB == nil {
+		return false
+	}
+	return prA["group"] == prB["group"] && prA["kind"] == prB["kind"] && prA["name"] == prB["name"]
 }
 
 func portEqual(a, b interface{}) bool {

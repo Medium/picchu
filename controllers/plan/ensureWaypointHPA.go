@@ -29,12 +29,12 @@ type EnsureWaypointHPA struct {
 }
 
 func (p *EnsureWaypointHPA) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	if p.HPA == nil || p.HPA.MinReplicas < 1 {
+	if p.HPA == nil {
 		return nil
 	}
 	minRep := p.HPA.MinReplicas
-	if minRep < 1 {
-		minRep = 1
+	if minRep < waypointDefaultMin {
+		minRep = waypointDefaultMin
 	}
 	maxRep := p.HPA.MaxReplicas
 	if maxRep < 1 {
