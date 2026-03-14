@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -76,6 +77,10 @@ var (
 // +kubebuilder:rbac:groups=picchu.medium.engineering,resources=revisions/status,verbs=get;update;patch
 
 func (r *RevisionReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	metrics.Registry.MustRegister(
+		revisionFailedGauge,
+		mirrorFailureCounter,
+	)
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.ConcurrentRevisions}).
 		For(&picchuv1alpha1.Revision{}).
