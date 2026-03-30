@@ -206,7 +206,7 @@ func (p *ScaleRevision) applyAmbientKeda(ctx context.Context, cli client.Client,
 					Metadata: map[string]string{
 						"serverAddress": p.PrometheusAddress,
 						"query":         query,
-						"threshold":     p.RequestsRateTarget.String(),
+						"threshold":     strconv.FormatFloat(float64(p.RequestsRateTarget.MilliValue())/1000.0, 'f', -1, 64),
 					},
 				},
 			},
