@@ -13,7 +13,7 @@ type ScalableTargetAdapter struct {
 	Incarnation
 }
 
-const Threshold = 0.95
+const Threshold = 0.90
 
 // CanRampTo returns true if the target is considered ready to be scaled to the next increment.
 func (s *ScalableTargetAdapter) CanRampTo(desiredPercent uint32) bool {
