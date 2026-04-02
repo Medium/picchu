@@ -182,7 +182,7 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, cluster
 
 func (p *ScaleRevision) applyAmbientKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
 	query := fmt.Sprintf(
-		`sum(rate(istio_requests_total{reporter="waypoint", destination_workload="%s", namespace="%s"}[2m]))`,
+		`sum(rate(istio_requests_total{destination_workload="%s", namespace="%s"}[2m]))`,
 		p.Tag, p.Namespace,
 	)
 
