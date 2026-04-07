@@ -481,6 +481,43 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 	return nil
 }
 
+// proactiveRampMinReplicas returns a per-cluster minimum so the fleet can reach the replica total
+// required by CanRampTo for the next traffic increment. Without this, load-based autoscalers can
+// stay at Scale.Min while the ramp gate waits for more pods.
+func (i *Incarnation) proactiveRampMinReplicas() int32 {
+	if !i.isRamping {
+		return 0
+	}
+	if i.status == nil || i.status.CurrentPercent == 0 {
+		return 0
+	}
+	tgt := i.target()
+	if tgt == nil || tgt.Scale.Min == nil {
+		return 0
+	}
+	if tgt.Scale.Worker != nil || tgt.Scale.KedaWorker != nil {
+		return 0
+	}
+	if !tgt.Scale.HasAutoscaler() {
+		return 0
+	}
+	nextPct := NextIncrement(*i, tgt.Release.Max)
+	if nextPct <= i.currentPercent() {
+		return 0
+	}
+	sta := ScalableTargetAdapter{Incarnation: *i}
+	c, ok := sta.computeFleetReplicasRequiredForRamp(nextPct)
+	if !ok {
+		return 0
+	}
+	perCluster := i.controller.divideReplicas(c.expectedReplicas, 100)
+	perClusterMax := i.controller.divideReplicas(tgt.Scale.Max, 100)
+	if perCluster > perClusterMax {
+		perCluster = perClusterMax
+	}
+	return perCluster
+}
+
 func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 	requestsRateTarget, err := i.target().Scale.TargetRequestsRateQuantity()
 	if err != nil {
@@ -502,6 +539,10 @@ func (i *Incarnation) genScalePlan(ctx context.Context) *rmplan.ScaleRevision {
 
 	min := i.divideReplicas(*i.target().Scale.Min)
 	max := i.divideReplicas(i.target().Scale.Max)
+	if prm := i.proactiveRampMinReplicas(); prm > min {
+		i.log.Info("Raising min replicas for ramp readiness", "from", min, "to", prm, "tag", i.tag)
+		min = prm
+	}
 	if (i.target().Scale.Worker != nil || i.target().Scale.KedaWorker != nil) && !i.isRoutable() {
 		min = 0
 		max = 0
