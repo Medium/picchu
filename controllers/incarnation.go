@@ -491,6 +491,12 @@ func (i *Incarnation) proactiveRampMinReplicas() int32 {
 	if i.status == nil || i.status.CurrentPercent == 0 {
 		return 0
 	}
+	// isRamping is assigned to the first non-canary incarnation in releasable order; when a newer
+	// revision is canarying, that can be a released revision. Proactive min is only for traffic
+	// ramp (releasing), not for the old revision still draining traffic.
+	if State(i.status.State.Current) != releasing {
+		return 0
+	}
 	tgt := i.target()
 	if tgt == nil || tgt.Scale.Min == nil {
 		return 0

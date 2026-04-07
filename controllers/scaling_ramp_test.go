@@ -182,6 +182,26 @@ func TestProactiveRampMinReplicas_skipsWorker(t *ttesting.T) {
 	assert.EqualValues(t, 0, i.proactiveRampMinReplicas())
 }
 
+func TestProactiveRampMinReplicas_skipsWhenReleasedEvenIfIsRamping(t *ttesting.T) {
+	// Simulates newIncarnationCollection marking isRamping on the old released revision when a
+	// newer revision is canarying (first non-canary in releasable order).
+	i := createTestIncarnation(
+		"old",
+		released,
+		99,
+		testClusters{Clusters: 4},
+		testTargetRequestsRate{Rate: "12"},
+		testReleaseManagerStatus{
+			Revisions: []picchuv1alpha1.ReleaseManagerRevisionStatus{
+				{Tag: "new", CurrentPercent: 1, PeakPercent: 1, Scale: picchuv1alpha1.ReleaseManagerRevisionScaleStatus{Current: 4}},
+			},
+		},
+	)
+	i.isRamping = true
+
+	assert.EqualValues(t, 0, i.proactiveRampMinReplicas())
+}
+
 func TestProactiveRampMinReplicas_skipsWithoutAutoscaler(t *ttesting.T) {
 	i := createTestIncarnation(
 		"new",
