@@ -75,6 +75,13 @@ func (s *ScalableTargetAdapter) computeFleetReplicasRequiredForRamp(desiredPerce
 
 	totalReplicas := float64(controller.expectedTotalReplicas(baseCapacity, int32(desiredPercent)))
 	expectedReplicas := int32(math.Ceil(totalReplicas * Threshold))
+	// Never require more fleet replicas than Scale.Max can produce (normalized baseCapacity can exceed Max).
+	if target.Scale.Max > 0 {
+		maxFleet := controller.expectedTotalReplicas(target.Scale.Max, 100)
+		if expectedReplicas > maxFleet {
+			expectedReplicas = maxFleet
+		}
+	}
 
 	return &rampReplicaComputation{
 		expectedReplicas:    expectedReplicas,
