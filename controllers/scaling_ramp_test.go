@@ -26,6 +26,29 @@ func (s testTargetRequestsRate) Apply(i *Incarnation, currentPercent int) {
 	i.revision.Spec.Targets[0].Scale.TargetRequestsRate = &s.Rate
 }
 
+func TestComputeFleetReplicasRequiredForRamp_capsExpectedReplicasAtScaleMax(t *ttesting.T) {
+	// Same normalization as TestComputeFleetReplicasRequiredForRamp_normalizedOtherRevisions (baseCapacity 40).
+	// At desiredPercent 100: uncapped ceil(0.9 * expectedTotalReplicas(40,100)) would exceed Scale.Max=20.
+	i := createTestIncarnation(
+		"new",
+		releasing,
+		10,
+		testClusters{Clusters: 4},
+		testReleaseManagerStatus{
+			Revisions: []picchuv1alpha1.ReleaseManagerRevisionStatus{
+				{Tag: "old", CurrentPercent: 90, PeakPercent: 90, Scale: picchuv1alpha1.ReleaseManagerRevisionScaleStatus{Current: 36}},
+			},
+		},
+	)
+	i.revision.Spec.Targets[0].Scale.Max = 20
+
+	sta := ScalableTargetAdapter{Incarnation: *i}
+	c, ok := sta.computeFleetReplicasRequiredForRamp(100)
+	assert.True(t, ok)
+	assert.NotNil(t, c)
+	assert.EqualValues(t, 20, c.expectedReplicas)
+}
+
 func TestComputeFleetReplicasRequiredForRamp_normalizedOtherRevisions(t *ttesting.T) {
 	// 4 live clusters @ 1.0 scaling; other revision at 90% / 36 fleet pods => baseCapacity 40.
 	// PeakPercent < 100 so we use normalized capacity (not the "unscaled from 100%" branch).
