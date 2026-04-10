@@ -114,6 +114,7 @@ func TestScaleInfo_HasAutoscaler(t *testing.T) {
 		TargetMemoryUtilizationPercentage *int32
 		TargetRequestsRate                *string
 		Worker                            *WorkerScaleInfo
+		KedaWorker                        *KedaScaleInfo
 		Expected                          bool
 	}{
 		{
@@ -140,6 +141,11 @@ func TestScaleInfo_HasAutoscaler(t *testing.T) {
 			Worker:   &WorkerScaleInfo{},
 			Expected: true,
 		},
+		{
+			Name:       "KedaWorker Defined",
+			KedaWorker: &KedaScaleInfo{},
+			Expected:   true,
+		},
 	} {
 		t.Run(test.Name, func(t *testing.T) {
 			assert := assert.New(t)
@@ -148,6 +154,7 @@ func TestScaleInfo_HasAutoscaler(t *testing.T) {
 				TargetMemoryUtilizationPercentage: test.TargetMemoryUtilizationPercentage,
 				TargetRequestsRate:                test.TargetRequestsRate,
 				Worker:                            test.Worker,
+				KedaWorker:                        test.KedaWorker,
 			}
 			assert.Equal(test.Expected, s.HasAutoscaler())
 		})
