@@ -179,7 +179,8 @@ func (s *ScaleInfo) HasAutoscaler() bool {
 	return s.TargetCPUUtilizationPercentage != nil ||
 		s.TargetRequestsRate != nil ||
 		s.TargetMemoryUtilizationPercentage != nil ||
-		s.Worker != nil
+		s.Worker != nil ||
+		s.KedaWorker != nil
 }
 
 type ReleaseInfo struct {
