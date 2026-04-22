@@ -31,6 +31,9 @@ const (
 // so waypoint pods prefer to run on different hosts (Karpenter can still consolidate when needed).
 const waypointDeploymentOverlay = `spec:
   template:
+    metadata:
+      annotations:
+        ad.datadoghq.com/istio-proxy.checks: '{"istio":{"init_config":{},"instances":[{"use_openmetrics":true,"istio_mode":"ambient","waypoint_endpoint":"http://%%host%%:15020/stats/prometheus","collect_histogram_buckets":true}]}}'
     spec:
       affinity:
         podAntiAffinity:
