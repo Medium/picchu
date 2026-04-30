@@ -442,22 +442,30 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 	if i.picchuConfig.ServiceLevelsNamespace != "" {
 		// Account for a fleet other than Delivery (old way of configuring SLOs) and Production (the only other place we ideally want SLOs to go)
-		err := i.controller.applyPlan(
+		if err := i.controller.applyPlan(
 			ctx,
 			"Ensure Service Levels Namespace",
 			&rmplan.EnsureNamespace{Name: i.picchuConfig.ServiceLevelsNamespace},
-		)
-		if err != nil {
+		); err != nil {
 			return err
 		}
-		return i.controller.applyPlan(ctx, "Sync Tagged Service Levels", &rmplan.SyncTaggedServiceLevels{
+		// Sync a single tag-agnostic PSL so burn rate windows are continuous across deploys.
+		if err := i.controller.applyPlan(ctx, "Sync Service Levels", &rmplan.SyncServiceLevels{
 			App:                         i.appName(),
 			Target:                      i.targetName(),
 			Namespace:                   i.picchuConfig.ServiceLevelsNamespace,
-			Tag:                         i.tag,
-			Labels:                      i.defaultLabels(),
+			Labels:                      i.serviceLevelLabels(),
 			ServiceLevelObjectiveLabels: i.target().ServiceLevelObjectiveLabels,
 			ServiceLevelObjectives:      i.target().SlothServiceLevelObjectives,
+		}); err != nil {
+			return err
+		}
+		// Clean up any legacy per-tag PSL that may exist for this revision.
+		return i.controller.applyPlan(ctx, "Delete Tagged Service Levels", &rmplan.DeleteTaggedServiceLevels{
+			App:       i.appName(),
+			Target:    i.targetName(),
+			Namespace: i.picchuConfig.ServiceLevelsNamespace,
+			Tag:       i.tag,
 		})
 	}
 	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncTaggedServiceLevels")
@@ -736,6 +744,15 @@ func (i *Incarnation) defaultLabels() map[string]string {
 		picchuv1alpha1.LabelK8sVersion:   i.tag,
 		picchuv1alpha1.LabelIstioApp:     i.appName(),
 		picchuv1alpha1.LabelIstioVersion: i.tag,
+	}
+}
+
+// serviceLevelLabels returns labels for the shared (tag-agnostic) PrometheusServiceLevel.
+// Omits tag/version labels so the PSL is stable across deployments.
+func (i *Incarnation) serviceLevelLabels() map[string]string {
+	return map[string]string{
+		picchuv1alpha1.LabelApp:    i.appName(),
+		picchuv1alpha1.LabelTarget: i.targetName(),
 	}
 }
 
