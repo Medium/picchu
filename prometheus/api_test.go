@@ -59,6 +59,65 @@ func testAlertCache(t *testing.T, template template.Template, canariesOnly bool)
 	assert.Equal(t, map[string][]string{}, r, "Should get no firing alerts")
 }
 
+func TestIsRevisionTriggered(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	makeAPI := func(samples model.Vector) *API {
+		m := mocks.NewMockPromAPI(ctrl)
+		m.EXPECT().
+			Query(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(samples, nil, nil).
+			AnyTimes()
+		return InjectAPI(m, time.Duration(0))
+	}
+
+	aq := NewAlertQuery("tutu", "v1")
+
+	// canariesOnly=false, shared PSL fires with no tag label → rollback triggered via tags[""] fallback
+	t.Run("SLO_untagged_alert_triggers_rollback", func(t *testing.T) {
+		api := makeAPI(model.Vector{
+			&model.Sample{Metric: model.Metric{"app": "tutu", "alertname": "SLOBurnRateHigh"}},
+		})
+		triggered, alerts, err := api.IsRevisionTriggered(context.TODO(), aq.App, aq.Tag, false)
+		assert.NoError(t, err)
+		assert.True(t, triggered)
+		assert.Equal(t, []string{"SLOBurnRateHigh"}, alerts)
+	})
+
+	// canariesOnly=true, untagged alert must not trigger rollback
+	t.Run("canary_mode_untagged_alert_ignored", func(t *testing.T) {
+		api := makeAPI(model.Vector{
+			&model.Sample{Metric: model.Metric{"app": "tutu", "alertname": "SLOBurnRateHigh"}},
+		})
+		triggered, alerts, err := api.IsRevisionTriggered(context.TODO(), aq.App, aq.Tag, true)
+		assert.NoError(t, err)
+		assert.False(t, triggered)
+		assert.Nil(t, alerts)
+	})
+
+	// canariesOnly=false, tagged canary alert takes priority over untagged SLO alert
+	t.Run("tagged_alert_takes_priority_over_untagged", func(t *testing.T) {
+		api := makeAPI(model.Vector{
+			&model.Sample{Metric: model.Metric{"app": "tutu", "tag": "v1", "alertname": "CanaryError", "canary": "true"}},
+			&model.Sample{Metric: model.Metric{"app": "tutu", "alertname": "SLOBurnRateHigh"}},
+		})
+		triggered, alerts, err := api.IsRevisionTriggered(context.TODO(), aq.App, aq.Tag, false)
+		assert.NoError(t, err)
+		assert.True(t, triggered)
+		assert.Equal(t, []string{"CanaryError"}, alerts)
+	})
+
+	// canariesOnly=false, no alerts firing → no rollback
+	t.Run("no_alerts_no_rollback", func(t *testing.T) {
+		api := makeAPI(model.Vector{})
+		triggered, alerts, err := api.IsRevisionTriggered(context.TODO(), aq.App, aq.Tag, false)
+		assert.NoError(t, err)
+		assert.False(t, triggered)
+		assert.Nil(t, alerts)
+	})
+}
+
 func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 	ctrl := gomock.NewController(t)
 
