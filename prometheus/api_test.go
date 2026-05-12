@@ -80,6 +80,7 @@ func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 				"alertname": "test",
 			},
 		},
+		// No tag label: excluded in canary mode; included in SLO mode (shared tag-agnostic PSL).
 		&model.Sample{
 			Metric: map[model.LabelName]model.LabelValue{
 				"app":       "tutu",
@@ -111,5 +112,12 @@ func testAlert(t *testing.T, template template.Template, canariesOnly bool) {
 
 	r, err := api.TaggedAlerts(context.TODO(), aq, time.Now(), canariesOnly)
 	assert.Nil(t, err, "Should succeed in querying alerts")
-	assert.Equal(t, map[string][]string{"v1": {"test"}}, r, "Should get 1 firing alerts (v1)")
+
+	if canariesOnly {
+		// Canary mode requires a tag label; empty-tag samples are excluded.
+		assert.Equal(t, map[string][]string{"v1": {"test"}}, r, "Should get 1 firing alert (v1)")
+	} else {
+		// SLO mode includes empty-tag samples (shared tag-agnostic PSL has no tag label).
+		assert.Equal(t, map[string][]string{"v1": {"test"}, "": {"test"}}, r, "Should get alerts for v1 and empty-tag SLO")
+	}
 }

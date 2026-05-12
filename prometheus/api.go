@@ -138,7 +138,7 @@ func (a API) TaggedAlerts(ctx context.Context, query AlertQuery, t time.Time, ca
 	case model.Vector:
 		for _, sample := range v {
 			metricTag := string(sample.Metric["tag"])
-			if string(sample.Metric["app"]) == query.App && metricTag != "" {
+			if string(sample.Metric["app"]) == query.App && (!canariesOnly || metricTag != "") {
 				if tagset[metricTag] == nil {
 					tagset[metricTag] = []string{}
 				}
@@ -163,6 +163,14 @@ func (a API) IsRevisionTriggered(ctx context.Context, app, tag string, canariesO
 
 	if alerts, ok := tags[tag]; ok && len(alerts) > 0 {
 		return true, alerts, nil
+	}
+
+	// In SLO mode, the shared tag-agnostic PSL produces alerts with no tag label.
+	// Any app-level SLO alert is sufficient to trigger rollback.
+	if !canariesOnly {
+		if alerts, ok := tags[""]; ok && len(alerts) > 0 {
+			return true, alerts, nil
+		}
 	}
 
 	return false, nil, nil

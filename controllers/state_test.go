@@ -419,8 +419,8 @@ func TestCanarying(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, false)))))
-	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, true)))))
+	testcase(canaried, expectSync(expectSyncServiceLevels(expectSyncCanaryRules(m(true, false, false)))))
+	testcase(canarying, expectSync(expectSyncServiceLevels(expectSyncCanaryRules(m(true, false, true)))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -658,7 +658,7 @@ func TestDeleting(t *tt.T) {
 
 	testcase(deleting, m(false, 100))
 	testcase(deleting, m(false, 1))
-	testcase(deleted, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDelete(m(false, 0)))))
+	testcase(deleted, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteServiceLevels(expectDelete(m(false, 0))))))
 	testcase(deploying, m(true, 0))
 	testcase(deleting, m(true, 100))
 	testcase(deleting, m(true, 1))
@@ -715,10 +715,10 @@ func TestFailing(t *tt.T) {
 	testcase(deploying, m(true, false, ExternalTestSucceeded, 0))
 	testcase(failing, m(true, false, ExternalTestSucceeded, 100))
 
-	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectRetire(m(true, true, ExternalTestDisabled, 0)))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteServiceLevels(expectRetire(m(true, true, ExternalTestDisabled, 0))))))
 	testcase(failing, m(true, true, ExternalTestDisabled, 1))
 	testcase(failing, m(true, true, ExternalTestDisabled, 100))
-	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectRetire(m(true, false, ExternalTestFailed, 0)))))
+	testcase(failed, expectDeleteCanaryRules(expectDeleteTaggedServiceLevels(expectDeleteServiceLevels(expectRetire(m(true, false, ExternalTestFailed, 0))))))
 	testcase(failing, m(true, false, ExternalTestFailed, 1))
 	testcase(failing, m(true, false, ExternalTestFailed, 100))
 }
@@ -792,8 +792,9 @@ type responses struct {
 	peakPercent               uint32
 	syncCanaryRules           error
 	deleteCanaryRules         error
-	syncTaggedServiceLevels   error
+	syncServiceLevels   error
 	deleteTaggedServiceLevels error
+	deleteServiceLevels       error
 	isTimingOut               bool
 	isExpired                 bool
 }
@@ -910,10 +911,10 @@ func expectDeleteCanaryRules(mock *MockDeployment) *MockDeployment {
 	return mock
 }
 
-func expectSyncTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
+func expectSyncServiceLevels(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
-		syncTaggedServiceLevels(gomock.Any()).
+		syncServiceLevels(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock
@@ -923,6 +924,15 @@ func expectDeleteTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
 		deleteTaggedServiceLevels(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
+}
+
+func expectDeleteServiceLevels(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		deleteServiceLevels(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock

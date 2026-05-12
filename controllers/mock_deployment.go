@@ -83,6 +83,20 @@ func (mr *MockDeploymentMockRecorder) deleteCanaryRules(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteCanaryRules", reflect.TypeOf((*MockDeployment)(nil).deleteCanaryRules), arg0)
 }
 
+// deleteServiceLevels mocks base method.
+func (m *MockDeployment) deleteServiceLevels(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deleteServiceLevels", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// deleteServiceLevels indicates an expected call of deleteServiceLevels.
+func (mr *MockDeploymentMockRecorder) deleteServiceLevels(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteServiceLevels", reflect.TypeOf((*MockDeployment)(nil).deleteServiceLevels), arg0)
+}
+
 // deleteTaggedServiceLevels mocks base method.
 func (m *MockDeployment) deleteTaggedServiceLevels(arg0 context.Context) error {
 	m.ctrl.T.Helper()
@@ -319,16 +333,16 @@ func (mr *MockDeploymentMockRecorder) syncCanaryRules(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncCanaryRules", reflect.TypeOf((*MockDeployment)(nil).syncCanaryRules), arg0)
 }
 
-// syncTaggedServiceLevels mocks base method.
-func (m *MockDeployment) syncTaggedServiceLevels(arg0 context.Context) error {
+// syncServiceLevels mocks base method.
+func (m *MockDeployment) syncServiceLevels(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "syncTaggedServiceLevels", arg0)
+	ret := m.ctrl.Call(m, "syncServiceLevels", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// syncTaggedServiceLevels indicates an expected call of syncTaggedServiceLevels.
-func (mr *MockDeploymentMockRecorder) syncTaggedServiceLevels(arg0 any) *gomock.Call {
+// syncServiceLevels indicates an expected call of syncServiceLevels.
+func (mr *MockDeploymentMockRecorder) syncServiceLevels(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncTaggedServiceLevels", reflect.TypeOf((*MockDeployment)(nil).syncTaggedServiceLevels), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncServiceLevels", reflect.TypeOf((*MockDeployment)(nil).syncServiceLevels), arg0)
 }

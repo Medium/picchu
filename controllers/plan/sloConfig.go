@@ -14,7 +14,7 @@ type SLOConfig struct {
 	SLO    *picchuv1alpha1.SlothServiceLevelObjective
 	App    string
 	Name   string
-	Tag    string
+	Tag    string // used by canary rules only; leave empty for tag-agnostic PSL generation
 	Labels picchuv1alpha1.ServiceLevelObjectiveLabels
 }
 
@@ -70,38 +70,6 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 		slo.Alerting = alerting
 	}
 	return slo
-}
-
-func (s *SLOConfig) taggedSLISource() *slov1alpha1.SLIEvents {
-	source := &slov1alpha1.SLIEvents{
-		ErrorQuery: s.serviceLevelTaggedErrorQuery(),
-		TotalQuery: s.serviceLevelTaggedTotalQuery(),
-	}
-	return source
-}
-
-func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
-}
-
-func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
-}
-
-func (s *SLOConfig) taggedSLISourceGRPC() *slov1alpha1.SLIEvents {
-	source := &slov1alpha1.SLIEvents{
-		ErrorQuery: s.serviceLevelTaggedErrorQueryGRPC(),
-		TotalQuery: s.serviceLevelTaggedTotalQueryGRPC(),
-	}
-	return source
-}
-
-func (s *SLOConfig) serviceLevelTaggedTotalQueryGRPC() string {
-	return fmt.Sprintf("sum by (grpc_method) (rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
-}
-
-func (s *SLOConfig) serviceLevelTaggedErrorQueryGRPC() string {
-	return fmt.Sprintf("sum by (grpc_method) (rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
 
 // sliSource returns SLI queries that aggregate across all tags (no per-revision scoping).

@@ -439,7 +439,7 @@ func (i *Incarnation) deleteCanaryRules(ctx context.Context) error {
 	})
 }
 
-func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
+func (i *Incarnation) syncServiceLevels(ctx context.Context) error {
 	if i.picchuConfig.ServiceLevelsNamespace != "" {
 		// Account for a fleet other than Delivery (old way of configuring SLOs) and Production (the only other place we ideally want SLOs to go)
 		if err := i.controller.applyPlan(
@@ -468,7 +468,7 @@ func (i *Incarnation) syncTaggedServiceLevels(ctx context.Context) error {
 			Tag:       i.tag,
 		})
 	}
-	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncTaggedServiceLevels")
+	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping SyncServiceLevels")
 	return nil
 }
 
@@ -486,6 +486,21 @@ func (i *Incarnation) deleteTaggedServiceLevels(ctx context.Context) error {
 		)
 	}
 	i.log.Info("service-levels-fleet and service-levels-namespace not set, skipping DeleteTaggedServiceLevels")
+	return nil
+}
+
+func (i *Incarnation) deleteServiceLevels(ctx context.Context) error {
+	if i.picchuConfig.ServiceLevelsNamespace != "" {
+		return i.controller.applyPlan(
+			ctx,
+			"Delete Service Levels",
+			&rmplan.DeleteServiceLevels{
+				App:       i.appName(),
+				Target:    i.targetName(),
+				Namespace: i.picchuConfig.ServiceLevelsNamespace,
+			},
+		)
+	}
 	return nil
 }
 

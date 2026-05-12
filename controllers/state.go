@@ -72,8 +72,9 @@ type Deployment interface {
 	del(context.Context) error
 	syncCanaryRules(context.Context) error
 	deleteCanaryRules(context.Context) error
-	syncTaggedServiceLevels(context.Context) error
+	syncServiceLevels(context.Context) error
 	deleteTaggedServiceLevels(context.Context) error
+	deleteServiceLevels(context.Context) error
 	hasRevision() bool
 	schedulePermitsRelease() bool
 	markedAsFailed() bool
@@ -348,7 +349,7 @@ func Releasing(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	if err := deployment.sync(ctx); err != nil {
 		return releasing, err
 	}
-	if err := deployment.syncTaggedServiceLevels(ctx); err != nil {
+	if err := deployment.syncServiceLevels(ctx); err != nil {
 		return releasing, err
 	}
 	if deployment.peakPercent() >= 100 {
@@ -412,6 +413,10 @@ func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return deleting, err
 	}
 
+	if err := deployment.deleteServiceLevels(ctx); err != nil {
+		return deleting, err
+	}
+
 	if deployment.currentPercent() <= 0 {
 		return deleted, deployment.del(ctx)
 	}
@@ -445,6 +450,9 @@ func Failing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 	if err := deployment.deleteTaggedServiceLevels(ctx); err != nil {
 		return failing, err
 	}
+	if err := deployment.deleteServiceLevels(ctx); err != nil {
+		return failing, err
+	}
 	if deployment.currentPercent() <= 0 {
 		return failed, deployment.retire(ctx)
 	}
@@ -471,7 +479,7 @@ func Canarying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	if err := deployment.syncCanaryRules(ctx); err != nil {
 		return canarying, err
 	}
-	if err := deployment.syncTaggedServiceLevels(ctx); err != nil {
+	if err := deployment.syncServiceLevels(ctx); err != nil {
 		return canarying, err
 	}
 
