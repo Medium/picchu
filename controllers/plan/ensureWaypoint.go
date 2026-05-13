@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"fmt"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
@@ -27,9 +28,11 @@ const (
 	gatewayListenerProto           = "HBONE"
 )
 
-// waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: soft pod anti-affinity
-// so waypoint pods prefer to run on different hosts (Karpenter can still consolidate when needed).
-const waypointDeploymentOverlay = `spec:
+// buildWaypointDeploymentOverlay returns the Istio parametersRef "deployment" overlay. It always
+// sets soft pod anti-affinity so waypoint pods prefer different hosts. When resources is non-nil,
+// it also injects explicit CPU/memory requests so the overlay controls scheduling costs.
+func buildWaypointDeploymentOverlay(resources *corev1.ResourceRequirements) string {
+	base := `spec:
   template:
     metadata:
       annotations:
@@ -45,6 +48,31 @@ const waypointDeploymentOverlay = `spec:
                   gateway.networking.k8s.io/gateway-name: waypoint
               topologyKey: kubernetes.io/hostname
 `
+	if resources == nil {
+		return base
+	}
+
+	resourceBlock := "      containers:\n      - name: istio-proxy\n        resources:\n"
+	if len(resources.Requests) > 0 {
+		resourceBlock += "          requests:\n"
+		if cpu, ok := resources.Requests[corev1.ResourceCPU]; ok {
+			resourceBlock += fmt.Sprintf("            cpu: %s\n", cpu.String())
+		}
+		if mem, ok := resources.Requests[corev1.ResourceMemory]; ok {
+			resourceBlock += fmt.Sprintf("            memory: %s\n", mem.String())
+		}
+	}
+	if len(resources.Limits) > 0 {
+		resourceBlock += "          limits:\n"
+		if cpu, ok := resources.Limits[corev1.ResourceCPU]; ok {
+			resourceBlock += fmt.Sprintf("            cpu: %s\n", cpu.String())
+		}
+		if mem, ok := resources.Limits[corev1.ResourceMemory]; ok {
+			resourceBlock += fmt.Sprintf("            memory: %s\n", mem.String())
+		}
+	}
+	return base + resourceBlock
+}
 
 var gatewayGVK = schema.GroupVersionKind{
 	Group:   gatewayAPIGroup,
@@ -66,7 +94,7 @@ func (p *EnsureWaypointOptions) Apply(ctx context.Context, cli client.Client, cl
 			Namespace: p.Namespace,
 		},
 		Data: map[string]string{
-			"deployment": waypointDeploymentOverlay,
+			"deployment": buildWaypointDeploymentOverlay(cluster.Spec.WaypointResources),
 		},
 	}
 	return plan.CreateOrUpdate(ctx, log, cli, cm)
