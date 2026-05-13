@@ -32,14 +32,15 @@ import (
 
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
-	Enabled             bool             `json:"enabled"`
-	HotStandby          bool             `json:"hotStandby,omitempty"`
-	Config              *ClusterConfig   `json:"config,omitempty"`
-	ScalingFactorString *string          `json:"scalingFactorString,omitempty"`
-	Ingresses           ClusterIngresses `json:"ingresses"`
-	EnableDevRoutes     bool             `json:"enableDevRoutes,omitempty"`
-	DevRouteTagTemplate string           `json:"devRouteTagTemplate,omitempty"`
-	DisableEventDriven  bool             `json:"disableEventDriven,omitempty"`
+	Enabled             bool                        `json:"enabled"`
+	HotStandby          bool                        `json:"hotStandby,omitempty"`
+	Config              *ClusterConfig              `json:"config,omitempty"`
+	ScalingFactorString *string                     `json:"scalingFactorString,omitempty"`
+	Ingresses           ClusterIngresses            `json:"ingresses"`
+	EnableDevRoutes     bool                        `json:"enableDevRoutes,omitempty"`
+	DevRouteTagTemplate string                      `json:"devRouteTagTemplate,omitempty"`
+	DisableEventDriven  bool                        `json:"disableEventDriven,omitempty"`
+	WaypointResources   *corev1.ResourceRequirements `json:"waypointResources,omitempty"`
 }
 
 type ClusterConfig struct {
