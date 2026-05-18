@@ -27,8 +27,9 @@ const (
 	gatewayListenerProto           = "HBONE"
 )
 
-// waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: soft pod anti-affinity
-// so waypoint pods prefer to run on different hosts (Karpenter can still consolidate when needed).
+// waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: soft node affinity
+// preferring the dedicated waypoint nodepool. The preference is non-binding so pods still schedule
+// elsewhere if no waypoint-labeled nodes exist (e.g. clusters that haven't rolled out the nodepool).
 const waypointDeploymentOverlay = `spec:
   template:
     metadata:
@@ -36,8 +37,8 @@ const waypointDeploymentOverlay = `spec:
         ad.datadoghq.com/istio-proxy.checks: '{"istio":{"init_config":{},"instances":[{"use_openmetrics":true,"istio_mode":"ambient","waypoint_endpoint":"http://%%host%%:15020/stats/prometheus","collect_histogram_buckets":true}]}}'
     spec:
       affinity:
-	  	nodeAffinity:
-      	  preferredDuringSchedulingIgnoredDuringExecution:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
               preference:
                 matchExpressions:
