@@ -45,6 +45,7 @@ const waypointDeploymentOverlay = `spec:
                     operator: In
                     values:
                       - waypoint
+`
 
 var gatewayGVK = schema.GroupVersionKind{
 	Group:   gatewayAPIGroup,
