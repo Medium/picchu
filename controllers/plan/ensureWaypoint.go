@@ -27,15 +27,20 @@ const (
 	gatewayListenerProto           = "HBONE"
 )
 
-// waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: soft node affinity
-// preferring the dedicated waypoint nodepool. The preference is non-binding so pods still schedule
-// elsewhere if no waypoint-labeled nodes exist (e.g. clusters that haven't rolled out the nodepool).
+// waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: a toleration for the
+// dedicated waypoint nodepool taint plus soft node affinity preferring waypoint-labeled nodes.
+// The affinity is non-binding so pods still schedule elsewhere if no waypoint nodes are available
+// (e.g. clusters that haven't rolled out the nodepool yet).
 const waypointDeploymentOverlay = `spec:
   template:
     metadata:
       annotations:
         ad.datadoghq.com/istio-proxy.checks: '{"istio":{"init_config":{},"instances":[{"use_openmetrics":true,"istio_mode":"ambient","waypoint_endpoint":"http://%%host%%:15020/stats/prometheus","collect_histogram_buckets":true}]}}'
     spec:
+      tolerations:
+        - key: waypoint
+          operator: Exists
+          effect: NoSchedule
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
