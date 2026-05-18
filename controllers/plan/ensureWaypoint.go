@@ -36,15 +36,15 @@ const waypointDeploymentOverlay = `spec:
         ad.datadoghq.com/istio-proxy.checks: '{"istio":{"init_config":{},"instances":[{"use_openmetrics":true,"istio_mode":"ambient","waypoint_endpoint":"http://%%host%%:15020/stats/prometheus","collect_histogram_buckets":true}]}}'
     spec:
       affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  gateway.networking.k8s.io/gateway-name: waypoint
-              topologyKey: kubernetes.io/hostname
-`
+	  	nodeAffinity:
+      	  preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: node.medium.engineering/role
+                    operator: In
+                    values:
+                      - waypoint
 
 var gatewayGVK = schema.GroupVersionKind{
 	Group:   gatewayAPIGroup,
