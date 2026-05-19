@@ -77,6 +77,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 	if err = r.syncSLORules(ctx); err != nil {
 		return
 	}
+	if err = r.syncServiceLevels(ctx); err != nil {
+		return
+	}
 
 	if err = r.garbageCollection(ctx); err != nil {
 		return
@@ -504,6 +507,32 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
+	if r.picchuConfig.ServiceLevelsNamespace == "" {
+		return nil
+	}
+	slos, labels := r.prepareServiceLevelObjectives()
+	if len(slos) == 0 {
+		return nil
+	}
+	if err := r.applyPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+		Name: r.picchuConfig.ServiceLevelsNamespace,
+	}); err != nil {
+		return err
+	}
+	return r.applyPlan(ctx, "Sync Service Levels", &rmplan.SyncServiceLevels{
+		App:       r.instance.Spec.App,
+		Target:    r.instance.Spec.Target,
+		Namespace: r.picchuConfig.ServiceLevelsNamespace,
+		Labels: map[string]string{
+			picchuv1alpha1.LabelApp:    r.instance.Spec.App,
+			picchuv1alpha1.LabelTarget: r.instance.Spec.Target,
+		},
+		ServiceLevelObjectiveLabels: labels,
+		ServiceLevelObjectives:      slos,
+	})
 }
 
 func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {

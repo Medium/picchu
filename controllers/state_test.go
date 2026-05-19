@@ -794,6 +794,8 @@ type responses struct {
 	deleteCanaryRules         error
 	syncTaggedServiceLevels   error
 	deleteTaggedServiceLevels error
+	cleanupLegacyServiceLevels error
+	deleteServiceLevels       error
 	isTimingOut               bool
 	isExpired                 bool
 }
@@ -862,6 +864,16 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		isExpired().
 		Return(r.isExpired).
 		AnyTimes()
+	m.
+		EXPECT().
+		cleanupLegacyServiceLevels(gomock.Any()).
+		Return(r.cleanupLegacyServiceLevels).
+		AnyTimes()
+	m.
+		EXPECT().
+		deleteServiceLevels(gomock.Any()).
+		Return(r.deleteServiceLevels).
+		AnyTimes()
 	return m
 }
 
@@ -923,6 +935,24 @@ func expectDeleteTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
 		deleteTaggedServiceLevels(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
+}
+
+func expectCleanupLegacyServiceLevels(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		cleanupLegacyServiceLevels(gomock.Any()).
+		Return(nil).
+		Times(1)
+	return mock
+}
+
+func expectDeleteServiceLevels(mock *MockDeployment) *MockDeployment {
+	mock.
+		EXPECT().
+		deleteServiceLevels(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock

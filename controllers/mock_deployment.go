@@ -41,6 +41,20 @@ func (m *MockDeployment) EXPECT() *MockDeploymentMockRecorder {
 	return m.recorder
 }
 
+// cleanupLegacyServiceLevels mocks base method.
+func (m *MockDeployment) cleanupLegacyServiceLevels(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "cleanupLegacyServiceLevels", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// cleanupLegacyServiceLevels indicates an expected call of cleanupLegacyServiceLevels.
+func (mr *MockDeploymentMockRecorder) cleanupLegacyServiceLevels(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "cleanupLegacyServiceLevels", reflect.TypeOf((*MockDeployment)(nil).cleanupLegacyServiceLevels), arg0)
+}
+
 // currentPercent mocks base method.
 func (m *MockDeployment) currentPercent() uint32 {
 	m.ctrl.T.Helper()
@@ -81,6 +95,20 @@ func (m *MockDeployment) deleteCanaryRules(arg0 context.Context) error {
 func (mr *MockDeploymentMockRecorder) deleteCanaryRules(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteCanaryRules", reflect.TypeOf((*MockDeployment)(nil).deleteCanaryRules), arg0)
+}
+
+// deleteServiceLevels mocks base method.
+func (m *MockDeployment) deleteServiceLevels(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deleteServiceLevels", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// deleteServiceLevels indicates an expected call of deleteServiceLevels.
+func (mr *MockDeploymentMockRecorder) deleteServiceLevels(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deleteServiceLevels", reflect.TypeOf((*MockDeployment)(nil).deleteServiceLevels), arg0)
 }
 
 // deleteTaggedServiceLevels mocks base method.
