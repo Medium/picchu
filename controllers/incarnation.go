@@ -897,6 +897,35 @@ func (i *Incarnation) isEventDriven() bool {
 	return i.revision.Spec.EventDriven
 }
 
+// cleanupLegacyServiceLevels removes any legacy per-tag PSL that may exist for this
+// revision. Self-limiting: once the legacy PSL is gone, the selector list returns
+// zero items and this is a single cheap List call. Safe to leave in the state
+// machine indefinitely — the selector requires LabelTag so it cannot match the
+// shared PSL maintained by ResourceSyncer.syncServiceLevels.
+func (i *Incarnation) cleanupLegacyServiceLevels(ctx context.Context) error {
+	if i.picchuConfig.ServiceLevelsNamespace == "" {
+		return nil
+	}
+	return i.controller.applyPlan(ctx, "Cleanup Legacy Service Levels", &rmplan.DeleteTaggedServiceLevels{
+		App:       i.appName(),
+		Target:    i.targetName(),
+		Namespace: i.picchuConfig.ServiceLevelsNamespace,
+		Tag:       i.tag,
+	})
+}
+
+// deleteServiceLevels removes the shared PSL for this app/target when retiring.
+func (i *Incarnation) deleteServiceLevels(ctx context.Context) error {
+	if i.picchuConfig.ServiceLevelsNamespace == "" {
+		return nil
+	}
+	return i.controller.applyPlan(ctx, "Delete Service Levels", &rmplan.DeleteServiceLevels{
+		App:       i.appName(),
+		Target:    i.targetName(),
+		Namespace: i.picchuConfig.ServiceLevelsNamespace,
+	})
+}
+
 // IncarnationCollection helps us collect and select appropriate incarnations
 type IncarnationCollection struct {
 	// Incarnations key'd on revision.spec.app.tag

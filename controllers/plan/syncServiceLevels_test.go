@@ -1,0 +1,167 @@
+package plan
+
+import (
+	"context"
+	"testing"
+
+	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
+	"go.medium.engineering/picchu/mocks"
+	common "go.medium.engineering/picchu/plan/test"
+	"go.medium.engineering/picchu/test"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	slov1alpha1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
+var (
+	slsharedplan = &SyncServiceLevels{
+		App:       "test-app",
+		Target:    "production",
+		Namespace: "testnamespace",
+		Labels: map[string]string{
+			picchuv1alpha1.LabelApp:    "test-app",
+			picchuv1alpha1.LabelTarget: "production",
+		},
+		ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+			ServiceLevelLabels: map[string]string{
+				"severity": "test",
+			},
+		},
+		ServiceLevelObjectives: []*picchuv1alpha1.SlothServiceLevelObjective{
+			{
+				Enabled:     true,
+				Name:        "test-app-availability",
+				Description: "test desc",
+				Objective:   "99.999",
+				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+					Canary: picchuv1alpha1.SLICanaryConfig{
+						Enabled:          true,
+						AllowancePercent: 1,
+						FailAfter:        "1m",
+					},
+					TagKey:     "tag",
+					AlertAfter: "1m",
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (tag)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (tag)",
+				},
+				ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+					ServiceLevelLabels: map[string]string{
+						"team": "test",
+					},
+				},
+			},
+			{
+				Enabled:     true,
+				Name:        "test-app-availability-GRPC",
+				Description: "test desc",
+				Objective:   "99.999",
+				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+					Canary: picchuv1alpha1.SLICanaryConfig{
+						Enabled:          true,
+						AllowancePercent: 1,
+						FailAfter:        "1m",
+					},
+					TagKey:     "tag",
+					AlertAfter: "1m",
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (tag)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (tag)",
+				},
+				ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+					ServiceLevelLabels: map[string]string{
+						"team":    "test",
+						"is_grpc": "true",
+					},
+				},
+			},
+		},
+	}
+
+	slsharedexpected = &slov1alpha1.PrometheusServiceLevelList{
+		Items: []slov1alpha1.PrometheusServiceLevel{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-app-production-servicelevels",
+					Namespace: "testnamespace",
+					Labels: map[string]string{
+						picchuv1alpha1.LabelApp:    "test-app",
+						picchuv1alpha1.LabelTarget: "production",
+					},
+				},
+				Spec: slov1alpha1.PrometheusServiceLevelSpec{
+					Service: "test-app",
+					SLOs: []slov1alpha1.SLO{
+						{
+							Name:        "test_app_availability",
+							Objective:   99.999,
+							Description: "test desc",
+							Labels: map[string]string{
+								"severity": "test",
+								"team":     "test",
+							},
+							SLI: slov1alpha1.SLI{
+								Events: &slov1alpha1.SLIEvents{
+									ErrorQuery: "sum by (tag) (rate(test_app:test_app_availability:errors[{{.window}}]))",
+									TotalQuery: "sum by (tag) (rate(test_app:test_app_availability:total[{{.window}}]))",
+								},
+							},
+						},
+						{
+							Name:        "test_app_availability_grpc",
+							Objective:   99.999,
+							Description: "test desc",
+							Labels: map[string]string{
+								"severity": "test",
+								"team":     "test",
+								"is_grpc":  "true",
+							},
+							SLI: slov1alpha1.SLI{
+								Events: &slov1alpha1.SLIEvents{
+									ErrorQuery: "sum by (tag, grpc_method) (rate(test_app:test_app_availability_grpc:errors[{{.window}}]))",
+									TotalQuery: "sum by (tag, grpc_method) (rate(test_app:test_app_availability_grpc:total[{{.window}}]))",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+)
+
+func TestSharedServiceLevels(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	tests := []client.ObjectKey{
+		{Name: "test-app-production-servicelevels", Namespace: "testnamespace"},
+	}
+	ctx := context.TODO()
+
+	for i := range tests {
+		m.
+			EXPECT().
+			Get(ctx, mocks.ObjectKey(tests[i]), gomock.Any()).
+			Return(common.NotFoundError).
+			Times(1)
+	}
+
+	for i := range slsharedexpected.Items {
+		for _, obj := range []runtime.Object{
+			&slsharedexpected.Items[i],
+		} {
+			m.
+				EXPECT().
+				Create(ctx, common.K8sEqual(obj)).
+				Return(nil).
+				AnyTimes()
+		}
+	}
+
+	assert.NoError(t, slsharedplan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+}

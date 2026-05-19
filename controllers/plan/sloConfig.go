@@ -108,3 +108,22 @@ func (s *SLOConfig) serviceLevelTaggedTotalQueryGRPC() string {
 func (s *SLOConfig) serviceLevelTaggedErrorQueryGRPC() string {
 	return fmt.Sprintf("sum by (grpc_method) (rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }
+
+// sliSource returns SLI queries that preserve the tag dimension via `sum by (tag)`.
+// Sloth wraps these as (error)/(total) with no additional aggregation, so the
+// resulting recording rule retains `tag`. Sloth's `max(...) without (sloth_window)`
+// burn-rate alert template preserves `tag` through to the alert series, allowing
+// picchu's IsRevisionTriggered to match by sample.Metric["tag"].
+func (s *SLOConfig) sliSource() *slov1alpha1.SLIEvents {
+	return &slov1alpha1.SLIEvents{
+		ErrorQuery: fmt.Sprintf("sum by (tag) (rate(%s[{{.window}}]))", s.errorQuery()),
+		TotalQuery: fmt.Sprintf("sum by (tag) (rate(%s[{{.window}}]))", s.totalQuery()),
+	}
+}
+
+func (s *SLOConfig) sliSourceGRPC() *slov1alpha1.SLIEvents {
+	return &slov1alpha1.SLIEvents{
+		ErrorQuery: fmt.Sprintf("sum by (tag, grpc_method) (rate(%s[{{.window}}]))", s.errorQuery()),
+		TotalQuery: fmt.Sprintf("sum by (tag, grpc_method) (rate(%s[{{.window}}]))", s.totalQuery()),
+	}
+}
