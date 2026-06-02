@@ -42,11 +42,12 @@ const waypointDeploymentOverlay = `spec:
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-            - matchExpressions:
-                - key: node.medium.engineering/role
-                  operator: In
-                  values:
-                    - waypoint
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.medium.engineering/role
+                    operator: In
+                    values:
+                      - waypoint
 `
 
 var gatewayGVK = schema.GroupVersionKind{
