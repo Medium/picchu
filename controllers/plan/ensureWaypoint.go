@@ -28,9 +28,7 @@ const (
 )
 
 // waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: a toleration for the
-// dedicated waypoint nodepool taint plus soft node affinity preferring waypoint-labeled nodes.
-// The affinity is non-binding so pods still schedule elsewhere if no waypoint nodes are available
-// (e.g. clusters that haven't rolled out the nodepool yet).
+// dedicated waypoint nodepool taint plus required node affinity for waypoint-labeled nodes.
 const waypointDeploymentOverlay = `spec:
   template:
     metadata:
@@ -43,14 +41,12 @@ const waypointDeploymentOverlay = `spec:
           effect: NoSchedule
       affinity:
         nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: node.medium.engineering/role
-                    operator: In
-                    values:
-                      - waypoint
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - matchExpressions:
+                - key: node.medium.engineering/role
+                  operator: In
+                  values:
+                    - waypoint
 `
 
 var gatewayGVK = schema.GroupVersionKind{
@@ -60,8 +56,7 @@ var gatewayGVK = schema.GroupVersionKind{
 }
 
 // EnsureWaypointOptions creates or updates the ConfigMap referenced by the waypoint Gateway's
-// spec.infrastructure.parametersRef. It contains the "deployment" overlay with soft pod anti-affinity
-// so waypoint pods prefer different hosts.
+// spec.infrastructure.parametersRef. It contains the "deployment" overlay for waypoint scheduling.
 type EnsureWaypointOptions struct {
 	Namespace string
 }
