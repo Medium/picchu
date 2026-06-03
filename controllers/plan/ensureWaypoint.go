@@ -2,6 +2,9 @@ package plan
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
@@ -27,9 +30,9 @@ const (
 	gatewayListenerProto           = "HBONE"
 )
 
-// waypointDeploymentOverlay is the Istio parametersRef "deployment" overlay: a toleration for the
+// waypointDeploymentOverlayBase is the Istio parametersRef "deployment" overlay: a toleration for the
 // dedicated waypoint nodepool taint plus required node affinity for waypoint-labeled nodes.
-const waypointDeploymentOverlay = `spec:
+const waypointDeploymentOverlayBase = `spec:
   template:
     metadata:
       annotations:
@@ -50,6 +53,61 @@ const waypointDeploymentOverlay = `spec:
                       - waypoint
 `
 
+func buildWaypointDeploymentOverlay(resources *corev1.ResourceRequirements) (string, error) {
+	if resources == nil || waypointResourcesEmpty(*resources) {
+		return waypointDeploymentOverlayBase, nil
+	}
+	resourcesYAML, err := buildWaypointResourcesOverlay(*resources)
+	if err != nil {
+		return "", err
+	}
+	return waypointDeploymentOverlayBase + resourcesYAML, nil
+}
+
+func waypointResourcesEmpty(r corev1.ResourceRequirements) bool {
+	return len(r.Requests) == 0 && len(r.Limits) == 0
+}
+
+func buildWaypointResourcesOverlay(r corev1.ResourceRequirements) (string, error) {
+	var b strings.Builder
+	b.WriteString("      containers:\n")
+	b.WriteString("      - name: istio-proxy\n")
+	b.WriteString("        resources:\n")
+	if len(r.Requests) > 0 {
+		b.WriteString("          requests:\n")
+		if err := writeResourceList(&b, "            ", r.Requests); err != nil {
+			return "", err
+		}
+	}
+	if len(r.Limits) > 0 {
+		b.WriteString("          limits:\n")
+		if err := writeResourceList(&b, "            ", r.Limits); err != nil {
+			return "", err
+		}
+	}
+	return b.String(), nil
+}
+
+func writeResourceList(b *strings.Builder, indent string, rl corev1.ResourceList) error {
+	names := make([]corev1.ResourceName, 0, len(rl))
+	for name := range rl {
+		names = append(names, name)
+	}
+	sort.Slice(names, func(i, j int) bool {
+		return names[i] < names[j]
+	})
+	for _, name := range names {
+		qty := rl[name]
+		if qty.IsZero() {
+			continue
+		}
+		if _, err := fmt.Fprintf(b, "%s%s: %s\n", indent, name, qty.String()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 var gatewayGVK = schema.GroupVersionKind{
 	Group:   gatewayAPIGroup,
 	Version: gatewayAPIVersion,
@@ -60,16 +118,21 @@ var gatewayGVK = schema.GroupVersionKind{
 // spec.infrastructure.parametersRef. It contains the "deployment" overlay for waypoint scheduling.
 type EnsureWaypointOptions struct {
 	Namespace string
+	Resources *corev1.ResourceRequirements
 }
 
 func (p *EnsureWaypointOptions) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	overlay, err := buildWaypointDeploymentOverlay(p.Resources)
+	if err != nil {
+		return err
+	}
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      waypointOptionsConfigMap,
 			Namespace: p.Namespace,
 		},
 		Data: map[string]string{
-			"deployment": waypointDeploymentOverlay,
+			"deployment": overlay,
 		},
 	}
 	return plan.CreateOrUpdate(ctx, log, cli, cm)

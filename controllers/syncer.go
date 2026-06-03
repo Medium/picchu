@@ -14,6 +14,7 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	istio "istio.io/api/networking/v1alpha3"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -169,7 +170,10 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 
 	needWaypoint := ambientMesh || transitionToSidecar
 	if needWaypoint {
-		if err := r.applyPlan(ctx, "Ensure Waypoint Options", &rmplan.EnsureWaypointOptions{Namespace: ns}); err != nil {
+		if err := r.applyPlan(ctx, "Ensure Waypoint Options", &rmplan.EnsureWaypointOptions{
+			Namespace: ns,
+			Resources: r.effectiveWaypointResources(),
+		}); err != nil {
 			return err
 		}
 		if err := r.applyPlan(ctx, "Ensure Waypoint", &rmplan.EnsureWaypoint{Namespace: ns}); err != nil {
@@ -239,6 +243,21 @@ func (r *ResourceSyncer) hasSidecarReplicas() bool {
 		}
 	}
 	return false
+}
+
+// effectiveWaypointResources returns CPU/memory requests and limits for the waypoint istio-proxy
+// container from the newest incarnation's target. Returns nil when unset.
+func (r *ResourceSyncer) effectiveWaypointResources() *corev1.ResourceRequirements {
+	sorted := r.incarnations.sorted()
+	if len(sorted) == 0 {
+		return nil
+	}
+	t := sorted[0].target()
+	if t == nil || (len(t.WaypointResources.Requests) == 0 && len(t.WaypointResources.Limits) == 0) {
+		return nil
+	}
+	resources := t.WaypointResources
+	return &resources
 }
 
 // effectiveWaypointHPA returns the waypoint HPA spec. When a waypoint is used we always want at least
