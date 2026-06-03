@@ -108,6 +108,10 @@ type RevisionTarget struct {
 	// WaypointHPA configures an HPA for the waypoint proxy (min/max replicas, CPU target). When set and AmbientMesh is true,
 	// Picchu creates an HPA targeting the waypoint Deployment. Omit for no HPA (single replica).
 	WaypointHPA *WaypointHPASpec `json:"waypointHPA,omitempty"`
+
+	// WaypointResources sets CPU and/or memory requests and limits on the istio-proxy container in the ambient
+	// waypoint Deployment. Applied via the waypoint Gateway deployment overlay ConfigMap.
+	WaypointResources corev1.ResourceRequirements `json:"waypointResources,omitempty"`
 }
 
 // WaypointHPASpec configures HPA for the ambient waypoint proxy.
