@@ -26,12 +26,13 @@ func TestDeleteServiceLevels(t *testing.T) {
 	}
 	sl := &slo.PrometheusServiceLevel{
 		ObjectMeta: meta.ObjectMeta{
-			Name:      "test",
+			// Must match the deterministic name produced by SyncServiceLevels:
+			// {app}-{target}-servicelevels.
+			Name:      "testapp-target-servicelevels",
 			Namespace: "testnamespace",
 			Labels: map[string]string{
 				picchu.LabelApp:    deleteServiceLevels.App,
 				picchu.LabelTarget: deleteServiceLevels.Target,
-				picchu.LabelTag:    "",
 			},
 		},
 	}

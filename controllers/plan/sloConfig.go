@@ -77,34 +77,21 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 	return slo
 }
 
-func (s *SLOConfig) taggedSLISource() *slov1alpha1.SLIEvents {
-	source := &slov1alpha1.SLIEvents{
-		ErrorQuery: s.serviceLevelTaggedErrorQuery(),
-		TotalQuery: s.serviceLevelTaggedTotalQuery(),
+// sliSource returns SLI queries that preserve the tag dimension via `sum by (tag)`.
+// Sloth wraps these as (error)/(total) with no additional aggregation, so the
+// resulting recording rule retains `tag`. Sloth's `max(...) without (sloth_window)`
+// burn-rate alert template preserves `tag` through to the alert series, allowing
+// picchu's IsRevisionTriggered to match by sample.Metric["tag"].
+func (s *SLOConfig) sliSource() *slov1alpha1.SLIEvents {
+	return &slov1alpha1.SLIEvents{
+		ErrorQuery: fmt.Sprintf("sum by (tag) (rate(%s[{{.window}}]))", s.errorQuery()),
+		TotalQuery: fmt.Sprintf("sum by (tag) (rate(%s[{{.window}}]))", s.totalQuery()),
 	}
-	return source
 }
 
-func (s *SLOConfig) serviceLevelTaggedTotalQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
-}
-
-func (s *SLOConfig) serviceLevelTaggedErrorQuery() string {
-	return fmt.Sprintf("sum(rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
-}
-
-func (s *SLOConfig) taggedSLISourceGRPC() *slov1alpha1.SLIEvents {
-	source := &slov1alpha1.SLIEvents{
-		ErrorQuery: s.serviceLevelTaggedErrorQueryGRPC(),
-		TotalQuery: s.serviceLevelTaggedTotalQueryGRPC(),
+func (s *SLOConfig) sliSourceGRPC() *slov1alpha1.SLIEvents {
+	return &slov1alpha1.SLIEvents{
+		ErrorQuery: fmt.Sprintf("sum by (tag, grpc_method) (rate(%s[{{.window}}]))", s.errorQuery()),
+		TotalQuery: fmt.Sprintf("sum by (tag, grpc_method) (rate(%s[{{.window}}]))", s.totalQuery()),
 	}
-	return source
-}
-
-func (s *SLOConfig) serviceLevelTaggedTotalQueryGRPC() string {
-	return fmt.Sprintf("sum by (grpc_method) (rate(%s{%s=\"%s\"}[{{.window}}]))", s.totalQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
-}
-
-func (s *SLOConfig) serviceLevelTaggedErrorQueryGRPC() string {
-	return fmt.Sprintf("sum by (grpc_method) (rate(%s{%s=\"%s\"}[{{.window}}]))", s.errorQuery(), s.SLO.ServiceLevelIndicator.TagKey, s.Tag)
 }

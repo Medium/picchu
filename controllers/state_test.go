@@ -419,8 +419,8 @@ func TestCanarying(t *tt.T) {
 	testcase(deleting, m(false, false, true))
 	testcase(deleting, m(false, true, false))
 	testcase(deleting, m(false, true, true))
-	testcase(canaried, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, false)))))
-	testcase(canarying, expectSync(expectSyncTaggedServiceLevels(expectSyncCanaryRules(m(true, false, true)))))
+	testcase(canaried, expectSync(expectDeleteTaggedServiceLevels(expectSyncCanaryRules(m(true, false, false)))))
+	testcase(canarying, expectSync(expectDeleteTaggedServiceLevels(expectSyncCanaryRules(m(true, false, true)))))
 	testcase(failing, m(true, true, false))
 	testcase(failing, m(true, true, true))
 }
@@ -792,7 +792,6 @@ type responses struct {
 	peakPercent               uint32
 	syncCanaryRules           error
 	deleteCanaryRules         error
-	syncTaggedServiceLevels   error
 	deleteTaggedServiceLevels error
 	isTimingOut               bool
 	isExpired                 bool
@@ -905,15 +904,6 @@ func expectDeleteCanaryRules(mock *MockDeployment) *MockDeployment {
 	mock.
 		EXPECT().
 		deleteCanaryRules(gomock.Any()).
-		Return(nil).
-		Times(1)
-	return mock
-}
-
-func expectSyncTaggedServiceLevels(mock *MockDeployment) *MockDeployment {
-	mock.
-		EXPECT().
-		syncTaggedServiceLevels(gomock.Any()).
 		Return(nil).
 		Times(1)
 	return mock

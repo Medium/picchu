@@ -47,6 +47,16 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 	// No more incarnations, delete myself
 	if len(r.incarnations.revisioned()) == 0 {
 		r.log.Info("No revisions found for releasemanager, deleting")
+		// Most service-wide objects (SLO rules, ServiceMonitors, the Service)
+		// live in the target namespace and are cleaned up with it when the
+		// ReleaseManager goes away. The shared PrometheusServiceLevel is the
+		// exception: it lives in the cross-app service-levels namespace, where
+		// no namespace cascade reaches it and a cross-namespace OwnerReference
+		// isn't allowed. This is the last reconcile that will ever look at this
+		// app/target, so it must be deleted explicitly before we self-delete.
+		if err = r.syncServiceLevels(ctx); err != nil {
+			return
+		}
 		return rs, r.deliveryClient.Delete(ctx, r.instance)
 	}
 
@@ -76,6 +86,9 @@ func (r *ResourceSyncer) sync(ctx context.Context) (rs []picchuv1alpha1.ReleaseM
 		return
 	}
 	if err = r.syncSLORules(ctx); err != nil {
+		return
+	}
+	if err = r.syncServiceLevels(ctx); err != nil {
 		return
 	}
 
@@ -525,6 +538,42 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 	return nil
 }
 
+func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
+	if r.picchuConfig.ServiceLevelsNamespace == "" {
+		return nil
+	}
+	slos, labels := r.prepareServiceLevelObjectives()
+	if len(slos) > 0 {
+		if err := r.applyPlan(ctx, "Ensure Service Levels Namespace", &rmplan.EnsureNamespace{
+			Name: r.picchuConfig.ServiceLevelsNamespace,
+		}); err != nil {
+			return err
+		}
+		if err := r.applyPlan(ctx, "Sync Service Levels", &rmplan.SyncServiceLevels{
+			App:       r.instance.Spec.App,
+			Target:    r.instance.Spec.Target,
+			Namespace: r.picchuConfig.ServiceLevelsNamespace,
+			Labels: map[string]string{
+				picchuv1alpha1.LabelApp:    r.instance.Spec.App,
+				picchuv1alpha1.LabelTarget: r.instance.Spec.Target,
+			},
+			ServiceLevelObjectiveLabels: labels,
+			ServiceLevelObjectives:      slos,
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := r.applyPlan(ctx, "Delete Service Levels", &rmplan.DeleteServiceLevels{
+			App:       r.instance.Spec.App,
+			Target:    r.instance.Spec.Target,
+			Namespace: r.picchuConfig.ServiceLevelsNamespace,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *ResourceSyncer) garbageCollection(ctx context.Context) error {
 	return markGarbage(ctx, r.log, r.deliveryClient, r.incarnations.sorted())
 }
@@ -563,7 +612,11 @@ func (r *ResourceSyncer) prepareServiceMonitors() []*picchuv1alpha1.ServiceMonit
 	return sm
 }
 
-// returns the PrometheusRules to support SLOs from the latest released revision
+// returns the enabled SLOs from the latest releasable revision's target. Disabled SLOs
+// (Enabled: false) are filtered out at the source so every downstream consumer
+// (syncSLORules, syncServiceMonitors, syncServiceLevels) treats them uniformly as
+// "do not observe" rather than the prior inconsistent behavior where the PSL filtered
+// but SLO recording rules and ServiceMonitors did not.
 func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.SlothServiceLevelObjective, picchuv1alpha1.ServiceLevelObjectiveLabels) {
 	var slos []*picchuv1alpha1.SlothServiceLevelObjective
 
@@ -571,7 +624,12 @@ func (r *ResourceSyncer) prepareServiceLevelObjectives() ([]*picchuv1alpha1.Slot
 		releasable := r.incarnations.releasable()
 		for _, i := range releasable {
 			if i.target() != nil {
-				return i.target().SlothServiceLevelObjectives, i.target().ServiceLevelObjectiveLabels
+				for _, slo := range i.target().SlothServiceLevelObjectives {
+					if slo.Enabled {
+						slos = append(slos, slo)
+					}
+				}
+				return slos, i.target().ServiceLevelObjectiveLabels
 			}
 		}
 	}

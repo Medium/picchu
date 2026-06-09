@@ -22,6 +22,7 @@ import (
 type MockDeployment struct {
 	ctrl     *gomock.Controller
 	recorder *MockDeploymentMockRecorder
+	isgomock struct{}
 }
 
 // MockDeploymentMockRecorder is the mock recorder for MockDeployment.
@@ -280,15 +281,15 @@ func (mr *MockDeploymentMockRecorder) schedulePermitsRelease() *gomock.Call {
 }
 
 // setState mocks base method.
-func (m *MockDeployment) setState(arg0 string) {
+func (m *MockDeployment) setState(target string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "setState", arg0)
+	m.ctrl.Call(m, "setState", target)
 }
 
 // setState indicates an expected call of setState.
-func (mr *MockDeploymentMockRecorder) setState(arg0 any) *gomock.Call {
+func (mr *MockDeploymentMockRecorder) setState(target any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setState", reflect.TypeOf((*MockDeployment)(nil).setState), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "setState", reflect.TypeOf((*MockDeployment)(nil).setState), target)
 }
 
 // sync mocks base method.
@@ -317,18 +318,4 @@ func (m *MockDeployment) syncCanaryRules(arg0 context.Context) error {
 func (mr *MockDeploymentMockRecorder) syncCanaryRules(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncCanaryRules", reflect.TypeOf((*MockDeployment)(nil).syncCanaryRules), arg0)
-}
-
-// syncTaggedServiceLevels mocks base method.
-func (m *MockDeployment) syncTaggedServiceLevels(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "syncTaggedServiceLevels", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// syncTaggedServiceLevels indicates an expected call of syncTaggedServiceLevels.
-func (mr *MockDeploymentMockRecorder) syncTaggedServiceLevels(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "syncTaggedServiceLevels", reflect.TypeOf((*MockDeployment)(nil).syncTaggedServiceLevels), arg0)
 }
