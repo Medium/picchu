@@ -256,6 +256,46 @@ func (s *Deployment) tickDeploying() (State, error) {
 }
 ```
 
+## Scope Boundaries & Invariants
+
+Picchu has three critical resource scopes. **Violating scope boundaries causes resource lifecycle bugs** (e.g., PLT-2119: one incarnation deleted shared PSL while others depended on it).
+
+### Scope Hierarchy
+
+| Scope | Owner | Lifecycle | State Machine | Examples |
+|-------|-------|-----------|---------------|----------|
+| **Revision** | User (kbfd) | User-controlled | None | Container specs, target release settings |
+| **Incarnation** | ReleaseManager | Exists while Revision targets this app/target | **YES** (18 states) | ReplicaSet, per-revision traffic %, per-tag canary rules, per-revision PSL cleanup |
+| **App/Target** | ReleaseManager | Exists while ANY Incarnation exists | No | Shared PrometheusServiceLevel, shared HPA, shared monitoring rules |
+
+### Critical Invariants
+
+**PICCHU-INV-SCOPE-1** — State handlers (Deleting, Failing, etc.) in `controllers/state.go` can only manipulate incarnation-scoped resources or call incarnation methods. State handlers MUST NOT:
+  - Delete or modify app/target-scoped resources
+  - Make assumptions about other incarnations existing
+  - Call ReleaseManager-level operations
+
+**Why:** State machine ticks per-incarnation, but app/target resources survive individual incarnation lifecycle. One incarnation's state transition cannot decide the fate of shared resources.
+
+**PICCHU-INV-SCOPE-2** — Cleanup of app/target-shared resources must be decided at ReleaseManager/ResourceSyncer level with visibility of the full incarnation collection, NOT in incarnation state handlers. (Today: `ResourceSyncer.syncServiceLevels` at `controllers/syncer.go:531` syncs or deletes the shared PSL based on `prepareServiceLevelObjectives` over the whole collection.)
+
+**Why:** Shared resource cleanup must see the full incarnation collection. Deleting from a state handler creates a race: one incarnation can delete shared state while others still depend on it.
+
+**PICCHU-INV-SCOPE-3** — If a resource satisfies "must exist while ANY incarnation is active", it is app/target-scoped and belongs in ResourceSyncer.sync(), not incarnation.sync().
+
+**Detection:** Grep for new `deleteX()` calls in `Deleting` or `Failing` handlers. If the resource isn't created per-incarnation (no tag in its name), it's app/target-scoped and the deletion belongs in ReleaseManager.
+
+### Example: PrometheusServiceLevel (PLT-2119)
+
+**Mistake:** Called `deleteServiceLevels()` from `Deleting`/`Failing` state handlers.
+- Each incarnation's state handler deleted the shared app/target-level PSL
+- Other concurrent incarnations lost observability when first one failed
+
+**Fix:** Centralized the lifecycle in `ResourceSyncer.syncServiceLevels` (`controllers/syncer.go:531`): if any releasable incarnation has enabled SLOs the shared PSL is synced; otherwise it is deleted by its deterministic name.
+- The syncer sees all incarnations, so it can correctly decide when the shared resource dies
+- Resource survives as long as ANY incarnation needs it
+- (An intermediate fix used `ReleaseManagerReconciler.deleteSharedServiceLevels()` guarded by `incarnations.sorted().isEmpty()`; superseded by 97d6e64)
+
 ## Controller-Runtime Configuration
 
 ### Registered Controllers
