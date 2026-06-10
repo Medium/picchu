@@ -55,6 +55,31 @@ var (
 				},
 			},
 			{
+				// Some services expose the revision under a label other than
+				// "tag" via serviceLevelIndicator.tagKey; the SLI source must
+				// re-present it as "tag" for the rollback pipeline.
+				Enabled:     true,
+				Name:        "test-app-availability-custom-tagkey",
+				Description: "test desc",
+				Objective:   "99.999",
+				ServiceLevelIndicator: picchuv1alpha1.ServiceLevelIndicator{
+					Canary: picchuv1alpha1.SLICanaryConfig{
+						Enabled:          true,
+						AllowancePercent: 1,
+						FailAfter:        "1m",
+					},
+					TagKey:     "destination_workload",
+					AlertAfter: "1m",
+					ErrorQuery: "sum(rate(test_metric{job=\"test\"}[2m])) by (destination_workload)",
+					TotalQuery: "sum(rate(test_metric2{job=\"test\"}[2m])) by (destination_workload)",
+				},
+				ServiceLevelObjectiveLabels: picchuv1alpha1.ServiceLevelObjectiveLabels{
+					ServiceLevelLabels: map[string]string{
+						"team": "test",
+					},
+				},
+			},
+			{
 				Enabled:     true,
 				Name:        "test-app-availability-GRPC",
 				Description: "test desc",
@@ -106,6 +131,21 @@ var (
 								Events: &slov1alpha1.SLIEvents{
 									ErrorQuery: "sum by (tag) (rate(test_app:test_app_availability:errors[{{.window}}]))",
 									TotalQuery: "sum by (tag) (rate(test_app:test_app_availability:total[{{.window}}]))",
+								},
+							},
+						},
+						{
+							Name:        "test_app_availability_custom_tagkey",
+							Objective:   99.999,
+							Description: "test desc",
+							Labels: map[string]string{
+								"severity": "test",
+								"team":     "test",
+							},
+							SLI: slov1alpha1.SLI{
+								Events: &slov1alpha1.SLIEvents{
+									ErrorQuery: "sum by (tag) (label_replace(rate(test_app:test_app_availability_custom_tagkey:errors[{{.window}}]), \"tag\", \"$1\", \"destination_workload\", \"(.*)\"))",
+									TotalQuery: "sum by (tag) (label_replace(rate(test_app:test_app_availability_custom_tagkey:total[{{.window}}]), \"tag\", \"$1\", \"destination_workload\", \"(.*)\"))",
 								},
 							},
 						},

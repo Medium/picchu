@@ -540,6 +540,7 @@ func (r *ResourceSyncer) syncSLORules(ctx context.Context) error {
 
 func (r *ResourceSyncer) syncServiceLevels(ctx context.Context) error {
 	if r.picchuConfig.ServiceLevelsNamespace == "" {
+		r.log.Info("service-levels-namespace not set, skipping syncServiceLevels")
 		return nil
 	}
 	slos, labels := r.prepareServiceLevelObjectives()

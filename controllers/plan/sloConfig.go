@@ -77,6 +77,29 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 	return slo
 }
 
+// tagKey returns the label that carries the revision tag on this SLO's source
+// metrics. kbfd defaults serviceLevelIndicator.tagKey to "tag"; services may
+// override it when their metrics expose the revision under another label
+// (e.g. destination_workload).
+func (s *SLOConfig) tagKey() string {
+	if k := s.SLO.ServiceLevelIndicator.TagKey; k != "" {
+		return k
+	}
+	return prometheus.TagLabel
+}
+
+// sliRate wraps a recording rule in rate() and, when the SLO uses a custom
+// tagKey, re-presents that label under the canonical "tag" label so Sloth
+// recording rules and burn-rate alerts keep the label the rollback pipeline
+// (prometheus/api.go) matches on.
+func (s *SLOConfig) sliRate(query string) string {
+	rate := fmt.Sprintf("rate(%s[{{.window}}])", query)
+	if k := s.tagKey(); k != prometheus.TagLabel {
+		rate = fmt.Sprintf("label_replace(%s, %q, \"$1\", %q, \"(.*)\")", rate, prometheus.TagLabel, k)
+	}
+	return rate
+}
+
 // sliSource returns SLI queries that preserve the tag dimension via `sum by (tag)`.
 // Sloth wraps these as (error)/(total) with no additional aggregation, so the
 // resulting recording rule retains `tag`. Sloth's `max(...) without (sloth_window)`
@@ -84,14 +107,14 @@ func (s *SLOConfig) serviceLevelObjective(log logr.Logger) *slov1alpha1.SLO {
 // picchu's IsRevisionTriggered to match by sample.Metric["tag"].
 func (s *SLOConfig) sliSource() *slov1alpha1.SLIEvents {
 	return &slov1alpha1.SLIEvents{
-		ErrorQuery: fmt.Sprintf("sum by (tag) (rate(%s[{{.window}}]))", s.errorQuery()),
-		TotalQuery: fmt.Sprintf("sum by (tag) (rate(%s[{{.window}}]))", s.totalQuery()),
+		ErrorQuery: fmt.Sprintf("sum by (%s) (%s)", prometheus.TagLabel, s.sliRate(s.errorQuery())),
+		TotalQuery: fmt.Sprintf("sum by (%s) (%s)", prometheus.TagLabel, s.sliRate(s.totalQuery())),
 	}
 }
 
 func (s *SLOConfig) sliSourceGRPC() *slov1alpha1.SLIEvents {
 	return &slov1alpha1.SLIEvents{
-		ErrorQuery: fmt.Sprintf("sum by (tag, grpc_method) (rate(%s[{{.window}}]))", s.errorQuery()),
-		TotalQuery: fmt.Sprintf("sum by (tag, grpc_method) (rate(%s[{{.window}}]))", s.totalQuery()),
+		ErrorQuery: fmt.Sprintf("sum by (%s, grpc_method) (%s)", prometheus.TagLabel, s.sliRate(s.errorQuery())),
+		TotalQuery: fmt.Sprintf("sum by (%s, grpc_method) (%s)", prometheus.TagLabel, s.sliRate(s.totalQuery())),
 	}
 }
