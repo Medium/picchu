@@ -6,8 +6,9 @@ import (
 	"github.com/go-logr/logr"
 	slov1 "github.com/slok/sloth/pkg/kubernetes/api/sloth/v1"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
+	"go.medium.engineering/picchu/plan"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,23 +20,35 @@ type DeleteServiceLevels struct {
 
 func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	log = log.WithValues("Applier", "DeleteServiceLevels")
+	sllist := &slov1.PrometheusServiceLevelList{}
 
-	// Delete by deterministic name. A label-selector list would risk matching
-	// legacy per-tag PSLs that share the same {app, target} labels.
-	name := sharedServiceLevelName(p.App, p.Target)
-	sl := &slov1.PrometheusServiceLevel{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: p.Namespace,
-		},
+	// The selector must not include LabelTag: "" — equality selectors never
+	// match objects that lack the label, so that filter silently matched
+	// nothing. Selecting on {app, target} matches the shared PSL and also
+	// sweeps any lingering legacy per-tag PSLs once observation is off.
+	opts := &client.ListOptions{
+		Namespace: p.Namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			picchuv1alpha1.LabelApp:    p.App,
+			picchuv1alpha1.LabelTarget: p.Target,
+		}),
 	}
-	if err := cli.Delete(ctx, sl); err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		log.Error(err, "Failed to delete shared service level", "name", name, "namespace", p.Namespace)
+
+	if err := cli.List(ctx, sllist, opts); err != nil {
+		log.Error(err, "Failed to delete Service Levels")
 		return err
 	}
-	log.Info("Deleted shared service level", "name", name, "namespace", p.Namespace)
+
+	for _, sl := range sllist.Items {
+		err := cli.Delete(ctx, &sl)
+		if err != nil && !errors.IsNotFound(err) {
+			plan.LogSync(log, "deleted", err, &sl)
+			return err
+		}
+		if err == nil {
+			plan.LogSync(log, "deleted", err, &sl)
+		}
+	}
+
 	return nil
 }

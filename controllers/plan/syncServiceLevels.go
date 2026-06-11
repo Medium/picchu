@@ -26,47 +26,66 @@ type SyncServiceLevels struct {
 
 func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
 	log = log.WithValues("Applier", "SyncServiceLevels")
-	if len(p.ServiceLevelObjectives) == 0 {
-		return nil
+	serviceLevels, err := p.serviceLevels(log)
+	if err != nil {
+		return err
 	}
-	return plan.CreateOrUpdate(ctx, log, cli, p.serviceLevel(log))
+	if len(serviceLevels.Items) > 0 {
+		for i := range serviceLevels.Items {
+			if err := plan.CreateOrUpdate(ctx, log, cli, &serviceLevels.Items[i]); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
-// Enabled filtering happens at the source (ResourceSyncer.prepareServiceLevelObjectives);
-// every SLO passed in is rendered.
-func (p *SyncServiceLevels) serviceLevel(log logr.Logger) *slov1alpha1.PrometheusServiceLevel {
+func (p *SyncServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.PrometheusServiceLevelList, error) {
+	sll := &slov1alpha1.PrometheusServiceLevelList{}
+	var sl []slov1alpha1.PrometheusServiceLevel
 	var slos []slov1alpha1.SLO
+
 	for i := range p.ServiceLevelObjectives {
-		config := SLOConfig{
-			SLO:    p.ServiceLevelObjectives[i],
-			App:    p.App,
-			Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
-			Labels: p.ServiceLevelObjectiveLabels,
+		if p.ServiceLevelObjectives[i].Enabled {
+			config := SLOConfig{
+				SLO:    p.ServiceLevelObjectives[i],
+				App:    p.App,
+				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
+				Labels: p.ServiceLevelObjectiveLabels,
+			}
+			serviceLevelObjective := config.serviceLevelObjective(log)
+
+			// if a grpc slo
+			if _, ok := p.ServiceLevelObjectives[i].ServiceLevelObjectiveLabels.ServiceLevelLabels["is_grpc"]; ok {
+				serviceLevelObjective.SLI.Events = config.sliSourceGRPC()
+			} else {
+				serviceLevelObjective.SLI.Events = config.sliSource()
+			}
+
+			slos = append(slos, *serviceLevelObjective)
 		}
-		slo := config.serviceLevelObjective(log)
-		if _, ok := p.ServiceLevelObjectives[i].ServiceLevelObjectiveLabels.ServiceLevelLabels["is_grpc"]; ok {
-			slo.SLI.Events = config.sliSourceGRPC()
-		} else {
-			slo.SLI.Events = config.sliSource()
+	}
+
+	if len(slos) > 0 {
+		serviceLevel := &slov1alpha1.PrometheusServiceLevel{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      p.serviceLevelName(),
+				Namespace: p.Namespace,
+				Labels:    p.Labels,
+			},
+			Spec: slov1alpha1.PrometheusServiceLevelSpec{
+				Service: p.App,
+				SLOs:    slos,
+			},
 		}
-		slos = append(slos, *slo)
+		sl = append(sl, *serviceLevel)
 	}
-	return &slov1alpha1.PrometheusServiceLevel{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      sharedServiceLevelName(p.App, p.Target),
-			Namespace: p.Namespace,
-			Labels:    p.Labels,
-		},
-		Spec: slov1alpha1.PrometheusServiceLevelSpec{
-			Service: p.App,
-			SLOs:    slos,
-		},
-	}
+
+	sll.Items = sl
+	return sll, nil
 }
 
-// sharedServiceLevelName returns the deterministic name of the app/target-shared
-// PrometheusServiceLevel. SyncServiceLevels and DeleteServiceLevels must agree on
-// this name — a mismatch turns the delete path into a silent no-op.
-func sharedServiceLevelName(app, target string) string {
-	return fmt.Sprintf("%s-%s-servicelevels", app, target)
+func (p *SyncServiceLevels) serviceLevelName() string {
+	return fmt.Sprintf("%s-%s-servicelevels", p.App, p.Target)
 }

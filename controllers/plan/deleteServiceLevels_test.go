@@ -12,6 +12,7 @@ import (
 	picchu "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/test"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestDeleteServiceLevels(t *testing.T) {
@@ -24,10 +25,8 @@ func TestDeleteServiceLevels(t *testing.T) {
 		Namespace: "testnamespace",
 		Target:    "target",
 	}
-	sl := &slo.PrometheusServiceLevel{
+	shared := &slo.PrometheusServiceLevel{
 		ObjectMeta: meta.ObjectMeta{
-			// Must match the deterministic name produced by SyncServiceLevels:
-			// {app}-{target}-servicelevels.
 			Name:      "testapp-target-servicelevels",
 			Namespace: "testnamespace",
 			Labels: map[string]string{
@@ -36,8 +35,32 @@ func TestDeleteServiceLevels(t *testing.T) {
 			},
 		},
 	}
-	cli := fakeClient(sl)
+	// Legacy per-tag PSLs share the {app, target} labels and are swept too.
+	legacy := &slo.PrometheusServiceLevel{
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "testapp-target-v123-servicelevels",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				picchu.LabelApp:    deleteServiceLevels.App,
+				picchu.LabelTarget: deleteServiceLevels.Target,
+				picchu.LabelTag:    "v123",
+			},
+		},
+	}
+	otherApp := &slo.PrometheusServiceLevel{
+		ObjectMeta: meta.ObjectMeta{
+			Name:      "otherapp-target-servicelevels",
+			Namespace: "testnamespace",
+			Labels: map[string]string{
+				picchu.LabelApp:    "otherapp",
+				picchu.LabelTarget: deleteServiceLevels.Target,
+			},
+		},
+	}
+	cli := fakeClient(shared, legacy, otherApp)
 
 	assert.NoError(deleteServiceLevels.Apply(ctx, cli, cluster, log), "Shouldn't return error.")
-	ktest.AssertNotFound(ctx, t, cli, sl)
+	ktest.AssertNotFound(ctx, t, cli, shared)
+	ktest.AssertNotFound(ctx, t, cli, legacy)
+	assert.NoError(cli.Get(ctx, types.NamespacedName{Name: otherApp.Name, Namespace: otherApp.Namespace}, &slo.PrometheusServiceLevel{}), "Other app's PSL should survive.")
 }
