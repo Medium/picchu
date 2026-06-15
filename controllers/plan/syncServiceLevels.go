@@ -9,21 +9,23 @@ import (
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 	"go.medium.engineering/picchu/plan"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type SyncTaggedServiceLevels struct {
+// SyncServiceLevels creates a single tag-agnostic PrometheusServiceLevel per app/target.
+// SLI queries aggregate by tag so Sloth recording rules and burn-rate alerts preserve
+// per-revision granularity without per-deploy PSL churn.
+type SyncServiceLevels struct {
 	App                         string
 	Target                      string
 	Namespace                   string
-	Tag                         string
 	Labels                      map[string]string
 	ServiceLevelObjectiveLabels picchuv1alpha1.ServiceLevelObjectiveLabels
 	ServiceLevelObjectives      []*picchuv1alpha1.SlothServiceLevelObjective
 }
 
-func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+func (p *SyncServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	log = log.WithValues("Applier", "SyncServiceLevels")
 	serviceLevels, err := p.serviceLevels(log)
 	if err != nil {
 		return err
@@ -39,7 +41,7 @@ func (p *SyncTaggedServiceLevels) Apply(ctx context.Context, cli client.Client, 
 	return nil
 }
 
-func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.PrometheusServiceLevelList, error) {
+func (p *SyncServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.PrometheusServiceLevelList, error) {
 	sll := &slov1alpha1.PrometheusServiceLevelList{}
 	var sl []slov1alpha1.PrometheusServiceLevel
 	var slos []slov1alpha1.SLO
@@ -50,16 +52,15 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.P
 				SLO:    p.ServiceLevelObjectives[i],
 				App:    p.App,
 				Name:   sanitizeName(p.ServiceLevelObjectives[i].Name),
-				Tag:    p.Tag,
 				Labels: p.ServiceLevelObjectiveLabels,
 			}
 			serviceLevelObjective := config.serviceLevelObjective(log)
 
 			// if a grpc slo
 			if _, ok := p.ServiceLevelObjectives[i].ServiceLevelObjectiveLabels.ServiceLevelLabels["is_grpc"]; ok {
-				serviceLevelObjective.SLI.Events = config.taggedSLISourceGRPC()
+				serviceLevelObjective.SLI.Events = config.sliSourceGRPC()
 			} else {
-				serviceLevelObjective.SLI.Events = config.taggedSLISource()
+				serviceLevelObjective.SLI.Events = config.sliSource()
 			}
 
 			slos = append(slos, *serviceLevelObjective)
@@ -69,7 +70,7 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.P
 	if len(slos) > 0 {
 		serviceLevel := &slov1alpha1.PrometheusServiceLevel{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      p.taggedServiceLevelName(),
+				Name:      p.serviceLevelName(),
 				Namespace: p.Namespace,
 				Labels:    p.Labels,
 			},
@@ -85,6 +86,6 @@ func (p *SyncTaggedServiceLevels) serviceLevels(log logr.Logger) (*slov1alpha1.P
 	return sll, nil
 }
 
-func (p *SyncTaggedServiceLevels) taggedServiceLevelName() string {
-	return fmt.Sprintf("%s-%s-%s-servicelevels", p.App, p.Target, p.Tag)
+func (p *SyncServiceLevels) serviceLevelName() string {
+	return fmt.Sprintf("%s-%s-servicelevels", p.App, p.Target)
 }

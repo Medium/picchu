@@ -19,14 +19,18 @@ type DeleteServiceLevels struct {
 }
 
 func (p *DeleteServiceLevels) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
+	log = log.WithValues("Applier", "DeleteServiceLevels")
 	sllist := &slov1.PrometheusServiceLevelList{}
 
+	// The selector must not include LabelTag: "" — equality selectors never
+	// match objects that lack the label, so that filter silently matched
+	// nothing. Selecting on {app, target} matches the shared PSL and also
+	// sweeps any lingering legacy per-tag PSLs once observation is off.
 	opts := &client.ListOptions{
 		Namespace: p.Namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{
 			picchuv1alpha1.LabelApp:    p.App,
 			picchuv1alpha1.LabelTarget: p.Target,
-			picchuv1alpha1.LabelTag:    "",
 		}),
 	}
 
