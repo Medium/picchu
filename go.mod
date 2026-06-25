@@ -1,12 +1,12 @@
 module go.medium.engineering/picchu
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/DataDog/datadog-api-client-go/v2 v2.42.0
 	github.com/DataDog/datadog-operator/api v0.0.0-20251110224013-76f698af3867
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
-	github.com/external-secrets/external-secrets v0.16.2
+	github.com/external-secrets/external-secrets/apis v0.0.0-20260203074332-a2ec42276c5e
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr v1.3.0
 	github.com/gogo/protobuf v1.3.2
@@ -32,7 +32,7 @@ require (
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
-	sigs.k8s.io/controller-runtime v0.22.0
+	sigs.k8s.io/controller-runtime v0.22.3
 )
 
 require github.com/kedacore/keda/v2 v2.18.3
