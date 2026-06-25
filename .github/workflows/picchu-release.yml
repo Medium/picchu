@@ -1,0 +1,14 @@
+name: Picchu Release
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  docs:
+    uses: Medium/github-workflow-templates/.github/workflows/go-release.yml@margeaux/PLT-2645
+    inputs:
+      include-component-in-tag: false
+    secrets:
+      repo_token: ${{ secrets.REPO_ACCESS_GITHUB_TOKEN }}
+      slack_token: ${{ secrets.GHA_SLACK_BOT_TOKEN }}
