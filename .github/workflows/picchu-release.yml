@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: gha-runner-scale-set-dind-org
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
