@@ -1,14 +1,28 @@
-name: Picchu Release
+name: picchu-release
 on:
-  pull_request:
+  push:
     branches:
       - main
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  docs:
-    uses: Medium/github-workflow-templates/.github/workflows/go-release.yml@margeaux/PLT-2645
-    with:
-      include-component-in-tag: false
-    secrets:
-      repo_token: ${{ secrets.REPO_ACCESS_GITHUB_TOKEN }}
-      slack_token: ${{ secrets.GHA_SLACK_BOT_TOKEN }}
+  release:
+    runs-on: gha-runner-scale-set-dind-org
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 
+
+      - uses: googleapis/release-please-action@v5
+        id: release
+        timeout-minutes: 3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          include-component-in-tag: false
+          skip-github-pull-request: false
+          config-file: .github/release-please-config.json
+          manifest-file: .release-please-manifest.json
