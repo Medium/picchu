@@ -1,0 +1,28 @@
+name: picchu-release
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 
+
+      - uses: googleapis/release-please-action@v5
+        id: release
+        timeout-minutes: 3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          include-component-in-tag: false
+          skip-github-pull-request: false
+          config-file: .github/release-please-config.json
+          manifest-file: .release-please-manifest.json
