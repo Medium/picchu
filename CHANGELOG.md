@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/Medium/picchu/compare/v1.3.0...v1.4.0) (2026-07-06)
+
+
+### Features
+
+* add support for karpenter do not disrupt annotation ([#633](https://github.com/Medium/picchu/issues/633)) ([1c84526](https://github.com/Medium/picchu/commit/1c845269e6c8c618bf6e90c7996203b3e8acfe42))
+
 ## [1.3.0](https://github.com/Medium/picchu/compare/v1.2.0...v1.3.0) (2026-06-25)
 
 
