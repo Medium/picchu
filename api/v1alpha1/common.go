@@ -69,6 +69,7 @@ const (
 	AnnotationRepo                   = "picchu.medium.engineering/repo"
 	AnnotationCanaryStartedTimestamp = "picchu.medium.engineering/canaryStartedTimestamp"
 	AnnotationAutoscaler             = "picchu.medium.engineering/autoscaler"
+	AnnotationKarpenterDoNotDisrupt  = "karpenter.sh/do-not-disrupt"
 
 	AutoscalerTypeHPA  = "hpa"
 	AutoscalerTypeWPA  = "wpa"

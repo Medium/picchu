@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"time"
 
 	istio "istio.io/api/networking/v1alpha3"
@@ -78,8 +79,11 @@ type RevisionTarget struct {
 	VolumeMounts                []corev1.VolumeMount          `json:"volumeMounts,omitempty"`
 	Volumes                     []corev1.Volume               `json:"volumes,omitempty"`
 
-	PodAnnotations     map[string]string `json:"podAnnotations,omitempty"`
-	ServiceAccountName string            `json:"serviceAccountName,omitempty"`
+	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
+	// KarpenterDoNotDisrupt sets karpenter.sh/do-not-disrupt on the ReplicaSet pod template.
+	// Use a Go duration (e.g. "30m") for time-limited protection after pod start, or "true" for permanent protection.
+	KarpenterDoNotDisrupt string `json:"karpenterDoNotDisrupt,omitempty"`
+	ServiceAccountName    string `json:"serviceAccountName,omitempty"`
 
 	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
 	LivenessProbe  *corev1.Probe               `json:"livenessProbe,omitempty"`
@@ -333,6 +337,17 @@ func (r *RevisionTarget) IsCanaryPending(startTime *metav1.Time) bool {
 
 	// add 15 min to the canary start time - then verify if the canary start time is after now - if true then its pending
 	return startTime.Time.Add(time.Duration(r.Canary.TTL) * time.Second).After(time.Now())
+}
+
+// ValidateKarpenterDoNotDisrupt checks that value is empty, "true", or a valid Go duration.
+func ValidateKarpenterDoNotDisrupt(value string) error {
+	if value == "" || value == "true" {
+		return nil
+	}
+	if _, err := time.ParseDuration(value); err != nil {
+		return fmt.Errorf(`must be "true" or a valid Go duration (e.g. "30m")`)
+	}
+	return nil
 }
 
 func init() {

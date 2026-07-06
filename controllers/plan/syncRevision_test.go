@@ -81,7 +81,7 @@ var (
 				Effect: corev1.TaintEffectNoExecute,
 			},
 		},
-		IAMRole: "testrole",
+		IAMRole:            "testrole",
 		PodAnnotations: map[string]string{
 			"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
 		},
@@ -495,6 +495,63 @@ func TestSyncRevisionRetirement(t *testing.T) {
 
 	rsl := &appsv1.ReplicaSetList{}
 	assert.NoError(t, retiredRevisionPlan.Apply(ctx, cli, halfCluster, log), "Shouldn't return error.")
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, 1, len(rsl.Items))
+	common.ResourcesEqual(t, expected, &rsl.Items[0])
+}
+
+func TestSyncRevisionKarpenterDoNotDisrupt(t *testing.T) {
+	log := test.MustNewLogger()
+	ctx := context.TODO()
+
+	for _, tc := range []struct {
+		name  string
+		value string
+	}{
+		{name: "duration", value: "30m"},
+		{name: "permanent", value: "true"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			plan := *defaultRevisionPlan
+			plan.KarpenterDoNotDisrupt = tc.value
+
+			expected := defaultExpectedReplicaSet.DeepCopy()
+			expected.ObjectMeta.ResourceVersion = "1"
+			expected.TypeMeta = metav1.TypeMeta{}
+			expected.Spec.Template.Annotations[picchuv1alpha1.AnnotationKarpenterDoNotDisrupt] = tc.value
+
+			cli := fakeClient(defaultServiceAccount)
+			assert.NoError(t, plan.Apply(ctx, cli, halfCluster, log))
+
+			rsl := &appsv1.ReplicaSetList{}
+			assert.NoError(t, cli.List(ctx, rsl))
+			assert.Equal(t, 1, len(rsl.Items))
+			common.ResourcesEqual(t, expected, &rsl.Items[0])
+		})
+	}
+}
+
+func TestSyncRevisionKarpenterDoNotDisruptOverridesPodAnnotation(t *testing.T) {
+	log := test.MustNewLogger()
+	ctx := context.TODO()
+
+	plan := *defaultRevisionPlan
+	plan.PodAnnotations = map[string]string{}
+	for k, v := range defaultRevisionPlan.PodAnnotations {
+		plan.PodAnnotations[k] = v
+	}
+	plan.KarpenterDoNotDisrupt = "30m"
+	plan.PodAnnotations[picchuv1alpha1.AnnotationKarpenterDoNotDisrupt] = "15m"
+
+	expected := defaultExpectedReplicaSet.DeepCopy()
+	expected.ObjectMeta.ResourceVersion = "1"
+	expected.TypeMeta = metav1.TypeMeta{}
+	expected.Spec.Template.Annotations[picchuv1alpha1.AnnotationKarpenterDoNotDisrupt] = "30m"
+
+	cli := fakeClient(defaultServiceAccount)
+	assert.NoError(t, plan.Apply(ctx, cli, halfCluster, log))
+
+	rsl := &appsv1.ReplicaSetList{}
 	assert.NoError(t, cli.List(ctx, rsl))
 	assert.Equal(t, 1, len(rsl.Items))
 	common.ResourcesEqual(t, expected, &rsl.Items[0])

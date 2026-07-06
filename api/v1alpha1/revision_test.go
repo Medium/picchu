@@ -65,6 +65,28 @@ func TestCanaryTestPending(t *testing.T) {
 	assert.False(t, target.IsCanaryPending(&lastSecond))
 }
 
+func TestValidateKarpenterDoNotDisrupt(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		{name: "empty", value: ""},
+		{name: "true", value: "true"},
+		{name: "duration", value: "30m"},
+		{name: "invalid", value: "not-a-duration", wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateKarpenterDoNotDisrupt(tc.value)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestTrafficPolicyDeepCopy(t *testing.T) {
 	assert := assert.New(t)
 	r := &Revision{
