@@ -190,6 +190,22 @@ func (r *Revision) validate() error {
 			}
 		}
 
+		if target.KarpenterDoNotDisrupt != "" {
+			if err := ValidateKarpenterDoNotDisrupt(target.KarpenterDoNotDisrupt); err != nil {
+				allErrors = append(allErrors, field.Invalid(
+					targetPath.Child("karpenterDoNotDisrupt"),
+					target.KarpenterDoNotDisrupt,
+					err.Error(),
+				))
+			}
+			if _, ok := target.PodAnnotations[AnnotationKarpenterDoNotDisrupt]; ok {
+				allErrors = append(allErrors, field.Forbidden(
+					targetPath.Child("podAnnotations").Key(AnnotationKarpenterDoNotDisrupt),
+					fmt.Sprintf("use karpenterDoNotDisrupt instead of podAnnotations[%q]", AnnotationKarpenterDoNotDisrupt),
+				))
+			}
+		}
+
 		found := target.Release.ScalingStrategy == ""
 		for _, s := range ScalingStrategies {
 			if target.Release.ScalingStrategy == s {
