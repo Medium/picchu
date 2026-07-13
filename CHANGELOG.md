@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/Medium/picchu/compare/v1.5.0...v1.5.1) (2026-07-13)
+
+
+### Bug Fixes
+
+* [PLT-1525] update dockerfile to use go 1.26.x ([#637](https://github.com/Medium/picchu/issues/637)) ([d1c5725](https://github.com/Medium/picchu/commit/d1c5725e231fbef2056932f18d2e162ab82e24b3))
+
 ## [1.5.0](https://github.com/Medium/picchu/compare/v1.4.0...v1.5.0) (2026-07-06)
 
 
