@@ -8217,6 +8217,11 @@ spec:
                             More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                           type: object
                       type: object
+                    schedulerName:
+                      description: |-
+                        SchedulerName specifies the Kubernetes scheduler to use for pods in this target.
+                        When empty, the default Kubernetes scheduler is used.
+                      type: string
                   required:
                   - fleet
                   - name

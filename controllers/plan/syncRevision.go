@@ -70,11 +70,11 @@ type SyncRevision struct {
 	Replicas                 int32
 	Image                    string
 	Resources                corev1.ResourceRequirements
-	IAMRole               string            // AWS iam role
-	PodAnnotations        map[string]string // metadata.annotations in the Pod template
-	KarpenterDoNotDisrupt string            // karpenter.sh/do-not-disrupt on the pod template
-	ServiceAccountName    string            // k8s ServiceAccount
-	LivenessProbe         *corev1.Probe
+	IAMRole                  string            // AWS iam role
+	PodAnnotations           map[string]string // metadata.annotations in the Pod template
+	KarpenterDoNotDisrupt    string            // karpenter.sh/do-not-disrupt on the pod template
+	ServiceAccountName       string            // k8s ServiceAccount
+	LivenessProbe            *corev1.Probe
 	ReadinessProbe           *corev1.Probe
 	MinReadySeconds          int32
 	Worker                   *picchuv1alpha1.WorkerScaleInfo
@@ -90,6 +90,7 @@ type SyncRevision struct {
 	PodDisruptionBudget      *policyv1.PodDisruptionBudgetSpec
 	TopologySpreadConstraint *corev1.TopologySpreadConstraint
 	ExternalSecrets          []es.ExternalSecret
+	SchedulerName            string
 	EventDriven              bool
 }
 
@@ -110,8 +111,9 @@ func (p *SyncRevision) Printable() interface{} {
 		ReadinessProbe     *corev1.Probe
 		MinReadySeconds    int32
 		Lifecycle          *corev1.Lifecycle
-		Affinity           *corev1.Affinity
 		PriorityClassName  string
+		Affinity           *corev1.Affinity
+		SchedulerName      string
 		EventDriven        bool
 	}{
 
@@ -132,6 +134,7 @@ func (p *SyncRevision) Printable() interface{} {
 		Lifecycle:          p.Lifecycle,
 		Affinity:           p.Affinity,
 		PriorityClassName:  p.PriorityClassName,
+		SchedulerName:      p.SchedulerName,
 		EventDriven:        p.EventDriven,
 	}
 }
@@ -342,6 +345,7 @@ func (p *SyncRevision) syncReplicaSet(
 			PriorityClassName:  p.PriorityClassName,
 			Tolerations:        p.Tolerations,
 			Volumes:            p.Volumes,
+			SchedulerName:      p.SchedulerName,
 		},
 	}
 
