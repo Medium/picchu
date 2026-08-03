@@ -393,9 +393,9 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Sidecars:                 i.target().Sidecars,
 		Resources:                i.target().Resources,
 		IAMRole:                  i.target().AWS.IAM.RoleARN,
-		PodAnnotations:        i.target().PodAnnotations,
-		KarpenterDoNotDisrupt: i.target().KarpenterDoNotDisrupt,
-		ServiceAccountName:    i.target().ServiceAccountName,
+		PodAnnotations:           i.target().PodAnnotations,
+		KarpenterDoNotDisrupt:    i.target().KarpenterDoNotDisrupt,
+		ServiceAccountName:       i.target().ServiceAccountName,
 		ReadinessProbe:           i.target().ReadinessProbe,
 		LivenessProbe:            i.target().LivenessProbe,
 		MinReadySeconds:          i.target().Scale.MinReadySeconds,
@@ -412,6 +412,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		EventDriven:              i.isEventDriven(),
 		TopologySpreadConstraint: i.target().TopologySpreadConstraint,
 		PodDisruptionBudget:      i.target().PodDisruptionBudget,
+		SchedulerName:            i.target().SchedulerName,
 	}
 
 	if !i.isRoutable() {

@@ -131,6 +131,7 @@ var (
 			MaxSkew:           3,
 			WhenUnsatisfiable: "ScheduleAnyway",
 		},
+		SchedulerName:      "my-scheduler",
 	}
 
 	retiredRevisionPlan = &SyncRevision{
@@ -321,6 +322,7 @@ var (
 							},
 						},
 					},
+					SchedulerName:       "my-scheduler",
 					PriorityClassName: "default",
 					Tolerations: []corev1.Toleration{
 						{
@@ -547,6 +549,26 @@ func TestSyncRevisionKarpenterDoNotDisruptOverridesPodAnnotation(t *testing.T) {
 	expected.ObjectMeta.ResourceVersion = "1"
 	expected.TypeMeta = metav1.TypeMeta{}
 	expected.Spec.Template.Annotations[picchuv1alpha1.AnnotationKarpenterDoNotDisrupt] = "30m"
+
+	cli := fakeClient(defaultServiceAccount)
+	assert.NoError(t, plan.Apply(ctx, cli, halfCluster, log))
+
+	rsl := &appsv1.ReplicaSetList{}
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, 1, len(rsl.Items))
+	common.ResourcesEqual(t, expected, &rsl.Items[0])
+}
+func TestSyncRevisionSchedulerName(t *testing.T) {
+	log := test.MustNewLogger()
+	ctx := context.TODO()
+
+	plan := *defaultRevisionPlan
+	plan.SchedulerName = "custom-scheduler"
+
+	expected := defaultExpectedReplicaSet.DeepCopy()
+	expected.ObjectMeta.ResourceVersion = "1"
+	expected.TypeMeta = metav1.TypeMeta{}
+	expected.Spec.Template.Spec.SchedulerName = "custom-scheduler"
 
 	cli := fakeClient(defaultServiceAccount)
 	assert.NoError(t, plan.Apply(ctx, cli, halfCluster, log))
