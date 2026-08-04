@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/Medium/picchu/compare/v1.5.0...v1.6.0) (2026-08-03)
+
+
+### Features
+
+* add SchedulerName field for custom scheduler support ([#639](https://github.com/Medium/picchu/issues/639)) ([331493c](https://github.com/Medium/picchu/commit/331493c560bea88df1fd765f32fe307afc5367dc))
+
+
+### Bug Fixes
+
+* [PLT-1525] update dockerfile to use go 1.26.x ([#637](https://github.com/Medium/picchu/issues/637)) ([d1c5725](https://github.com/Medium/picchu/commit/d1c5725e231fbef2056932f18d2e162ab82e24b3))
+
 ## [1.5.0](https://github.com/Medium/picchu/compare/v1.4.0...v1.5.0) (2026-07-06)
 
 
