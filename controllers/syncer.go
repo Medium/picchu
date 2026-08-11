@@ -185,6 +185,8 @@ func (r *ResourceSyncer) syncNamespace(ctx context.Context) error {
 	if needWaypoint {
 		if err := r.applyPlan(ctx, "Ensure Waypoint Options", &rmplan.EnsureWaypointOptions{
 			Namespace: ns,
+			App:       r.instance.Spec.App,
+			Env:       r.instance.Spec.Target,
 			Resources: r.effectiveWaypointResources(),
 		}); err != nil {
 			return err

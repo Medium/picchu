@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -30,13 +31,22 @@ const (
 	gatewayListenerProto           = "HBONE"
 )
 
-// waypointDeploymentOverlayBase is the Istio parametersRef "deployment" overlay: a toleration for the
-// dedicated waypoint nodepool taint plus required node affinity for waypoint-labeled nodes.
-const waypointDeploymentOverlayBase = `spec:
+// ddUnifiedServiceTagsPlaceholder is replaced in waypointDeploymentOverlayTemplate with the
+// JSON-encoded Datadog unified service tags for the app the waypoint fronts. A placeholder is used
+// (rather than fmt.Sprintf) so the '%%host%%' Datadog autodiscovery variable is left untouched.
+const ddUnifiedServiceTagsPlaceholder = "__DD_UNIFIED_SERVICE_TAGS__"
+
+// waypointDeploymentOverlayTemplate is the Istio parametersRef "deployment" overlay: Datadog pod
+// annotations (the istio-proxy autodiscovery check plus the unified service tags, so waypoint pods
+// are attributable to their app for cost allocation — PLT-3301), a toleration for the dedicated
+// waypoint nodepool taint, and required node affinity for waypoint-labeled nodes.
+// buildWaypointDeploymentOverlay renders ddUnifiedServiceTagsPlaceholder before use.
+const waypointDeploymentOverlayTemplate = `spec:
   template:
     metadata:
       annotations:
         ad.datadoghq.com/istio-proxy.checks: '{"istio":{"init_config":{},"instances":[{"use_openmetrics":true,"istio_mode":"ambient","waypoint_endpoint":"http://%%host%%:15020/stats/prometheus","collect_histogram_buckets":true}]}}'
+        ad.datadoghq.com/tags: '__DD_UNIFIED_SERVICE_TAGS__'
     spec:
       tolerations:
         - key: waypoint
@@ -53,15 +63,23 @@ const waypointDeploymentOverlayBase = `spec:
                       - waypoint
 `
 
-func buildWaypointDeploymentOverlay(resources *corev1.ResourceRequirements) (string, error) {
+// buildWaypointDeploymentOverlay renders the parametersRef "deployment" overlay for a waypoint,
+// stamping the Datadog unified service tags (service=app, env) so the waypoint pods are attributed
+// to their app. The waypoint fronts every revision in the namespace, so no version tag is set.
+func buildWaypointDeploymentOverlay(app, env string, resources *corev1.ResourceRequirements) (string, error) {
+	tags, err := json.Marshal(map[string]string{"env": env, "service": app})
+	if err != nil {
+		return "", err
+	}
+	base := strings.Replace(waypointDeploymentOverlayTemplate, ddUnifiedServiceTagsPlaceholder, string(tags), 1)
 	if resources == nil || waypointResourcesEmpty(*resources) {
-		return waypointDeploymentOverlayBase, nil
+		return base, nil
 	}
 	resourcesYAML, err := buildWaypointResourcesOverlay(*resources)
 	if err != nil {
 		return "", err
 	}
-	return waypointDeploymentOverlayBase + resourcesYAML, nil
+	return base + resourcesYAML, nil
 }
 
 func waypointResourcesEmpty(r corev1.ResourceRequirements) bool {
@@ -118,11 +136,13 @@ var gatewayGVK = schema.GroupVersionKind{
 // spec.infrastructure.parametersRef. It contains the "deployment" overlay for waypoint scheduling.
 type EnsureWaypointOptions struct {
 	Namespace string
+	App       string
+	Env       string
 	Resources *corev1.ResourceRequirements
 }
 
 func (p *EnsureWaypointOptions) Apply(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger) error {
-	overlay, err := buildWaypointDeploymentOverlay(p.Resources)
+	overlay, err := buildWaypointDeploymentOverlay(p.App, p.Env, p.Resources)
 	if err != nil {
 		return err
 	}
