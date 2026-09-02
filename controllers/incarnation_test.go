@@ -279,6 +279,27 @@ func TestIncarnation_divideReplicasNoAutoscale(t *ttesting.T) {
 	}
 }
 
+func TestIncarnation_karpenterDoNotDisrupt(t *ttesting.T) {
+	const configured = "30m"
+
+	for _, test := range []struct {
+		Name  string
+		State State
+		Want  string
+	}{
+		{Name: "created", State: created, Want: configured},
+		{Name: "deploying", State: deploying, Want: configured},
+		{Name: "deployed", State: deployed, Want: ""},
+		{Name: "releasing", State: releasing, Want: ""},
+	} {
+		t.Run(test.Name, func(t *ttesting.T) {
+			i := createTestIncarnation("test", test.State, 0)
+			i.revision.Spec.Targets[0].KarpenterDoNotDisrupt = configured
+			assert.Equal(t, test.Want, i.karpenterDoNotDisrupt())
+		})
+	}
+}
+
 func Test_IsExpired(t *ttesting.T) {
 	for _, test := range []struct {
 		Name              string

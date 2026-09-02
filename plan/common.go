@@ -404,6 +404,15 @@ func CreateOrUpdate(
 
 			if len(rs.Spec.Template.Labels) == 0 {
 				rs.Spec.Template = typed.Spec.Template
+			} else if rs.Spec.Template.Annotations != nil {
+				// The pod template is otherwise frozen after creation, but this
+				// annotation must be removable once an incarnation is done deploying,
+				// so it's kept in sync independent of the rest of the template.
+				if v, ok := typed.Spec.Template.Annotations[picchu.AnnotationKarpenterDoNotDisrupt]; ok && v != "" {
+					rs.Spec.Template.Annotations[picchu.AnnotationKarpenterDoNotDisrupt] = v
+				} else {
+					delete(rs.Spec.Template.Annotations, picchu.AnnotationKarpenterDoNotDisrupt)
+				}
 			}
 			rs.Spec.Selector = typed.Spec.Selector
 			rs.Labels = typed.Labels

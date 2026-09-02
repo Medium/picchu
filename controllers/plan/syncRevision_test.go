@@ -558,6 +558,30 @@ func TestSyncRevisionKarpenterDoNotDisruptOverridesPodAnnotation(t *testing.T) {
 	assert.Equal(t, 1, len(rsl.Items))
 	common.ResourcesEqual(t, expected, &rsl.Items[0])
 }
+
+func TestSyncRevisionKarpenterDoNotDisruptRemovedAfterDeploy(t *testing.T) {
+	log := test.MustNewLogger()
+	ctx := context.TODO()
+
+	plan := *defaultRevisionPlan
+	plan.KarpenterDoNotDisrupt = "30m"
+
+	cli := fakeClient(defaultExpectedReplicaSet, defaultServiceAccount)
+	assert.NoError(t, plan.Apply(ctx, cli, halfCluster, log))
+
+	rsl := &appsv1.ReplicaSetList{}
+	assert.NoError(t, cli.List(ctx, rsl))
+	assert.Equal(t, "30m", rsl.Items[0].Spec.Template.Annotations[picchuv1alpha1.AnnotationKarpenterDoNotDisrupt])
+
+	plan.KarpenterDoNotDisrupt = ""
+	assert.NoError(t, plan.Apply(ctx, cli, halfCluster, log))
+
+	assert.NoError(t, cli.List(ctx, rsl))
+	_, ok := rsl.Items[0].Spec.Template.Annotations[picchuv1alpha1.AnnotationKarpenterDoNotDisrupt]
+	assert.False(t, ok)
+	assert.Equal(t, defaultExpectedReplicaSet.Spec.Template.Spec.Containers[0].Image, rsl.Items[0].Spec.Template.Spec.Containers[0].Image)
+}
+
 func TestSyncRevisionSchedulerName(t *testing.T) {
 	log := test.MustNewLogger()
 	ctx := context.TODO()
