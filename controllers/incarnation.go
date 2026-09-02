@@ -343,6 +343,18 @@ func (i *Incarnation) isTimingOut() bool {
 	return lastUpdated.Add(timeout).Before(time.Now())
 }
 
+// karpenterDoNotDisrupt returns the configured karpenter.sh/do-not-disrupt
+// value while the incarnation is still deploying, and clears it once the
+// deploying state is complete so Karpenter can disrupt the node again.
+func (i *Incarnation) karpenterDoNotDisrupt() string {
+	switch State(i.status.State.Current) {
+	case created, deploying:
+		return i.target().KarpenterDoNotDisrupt
+	default:
+		return ""
+	}
+}
+
 // Remotely sync the incarnation for it's current state
 func (i *Incarnation) sync(ctx context.Context) error {
 	// Revision deleted
@@ -394,7 +406,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Resources:                i.target().Resources,
 		IAMRole:                  i.target().AWS.IAM.RoleARN,
 		PodAnnotations:           i.target().PodAnnotations,
-		KarpenterDoNotDisrupt:    i.target().KarpenterDoNotDisrupt,
+		KarpenterDoNotDisrupt:    i.karpenterDoNotDisrupt(),
 		ServiceAccountName:       i.target().ServiceAccountName,
 		ReadinessProbe:           i.target().ReadinessProbe,
 		LivenessProbe:            i.target().LivenessProbe,
