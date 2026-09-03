@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 
@@ -86,7 +87,7 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		// admission webhook rejection ("workload is already managed by the hpa").
 		hpa := &autoscaling.HorizontalPodAutoscaler{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      p.Tag,
+				Name:      p.hpaName(),
 				Namespace: p.Namespace,
 			},
 		}
@@ -97,6 +98,15 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 	}
 
 	return p.applyHPA(ctx, cli, cluster, log, scaledMin, scaledMax)
+}
+
+// if tag name is greater than 54 it will not accomodate the prefix that will be added "keda-hpa-"
+// trim the front of the tag to allow for the prefix and so that we dont go over the 63char limit
+func (p *ScaleRevision) hpaName() string {
+	if len(p.Tag) <= 54 {
+		return p.Tag
+	}
+	return strings.TrimLeft(p.Tag[len(p.Tag)-54:], "-")
 }
 
 func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger, scaledMin int32, scaledMax int32) error {
@@ -149,7 +159,7 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, cluster
 	if len(metrics) <= 0 {
 		hpa := &autoscaling.HorizontalPodAutoscaler{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      p.Tag,
+				Name:      p.hpaName(),
 				Namespace: p.Namespace,
 			},
 		}
@@ -161,7 +171,7 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, cluster
 
 	hpa := &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.Tag,
+			Name:      p.hpaName(),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
@@ -188,7 +198,7 @@ func (p *ScaleRevision) applyAmbientKeda(ctx context.Context, cli client.Client,
 
 	keda := &kedav1.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.Tag,
+			Name:      p.hpaName(),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
@@ -262,7 +272,7 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, cluste
 	}
 	keda := &kedav1.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.Tag,
+			Name:      p.hpaName(),
 			Namespace: p.Namespace,
 			Labels:    p.Labels,
 		},
