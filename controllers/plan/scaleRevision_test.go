@@ -2,6 +2,7 @@ package plan
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
@@ -358,4 +359,152 @@ func TestDontScaleRevision(t *testing.T) {
 		Times(1)
 
 	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
+}
+
+// TestScaleRevisionHPANameTruncatedOverLimit verifies that when Tag is longer than the
+// HPA name limit, applyHPA truncates the HPA's own name (keeping the trailing portion,
+// since that's what carries the date-time-commit info that needs to stay unique) while
+// Spec.ScaleTargetRef.Name keeps the full, untruncated Tag so it still matches the real
+// ReplicaSet name (created elsewhere with the untruncated Tag).
+func TestScaleRevisionHPANameTruncatedOverLimit(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	longTag := "auto-109151-add-design-system-typescript-support-20260903-075707-40a3c27da1"
+	assert.Greater(t, len(longTag), 54, "sanity check: fixture tag should be over the HPA name limit")
+
+	expectedHPAName := longTag[len(longTag)-54:]
+
+	var thirty int32 = 30
+	plan := &ScaleRevision{
+		Tag:       longTag,
+		Namespace: "testnamespace",
+		Min:       4,
+		Max:       10,
+		CPUTarget: &thirty,
+		Labels:    map[string]string{},
+	}
+	ok := client.ObjectKey{Name: expectedHPAName, Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	hpa := &autoscaling.HorizontalPodAutoscaler{
+		Spec: autoscaling.HorizontalPodAutoscalerSpec{
+			MaxReplicas: 0,
+		},
+	}
+
+	expected := mocks.Callback(func(x interface{}) bool {
+		switch o := x.(type) {
+		case *autoscaling.HorizontalPodAutoscaler:
+			return o.ObjectMeta.Name == expectedHPAName &&
+				o.Spec.ScaleTargetRef.Name == longTag &&
+				o.Spec.MaxReplicas == 5 &&
+				*o.Spec.Metrics[0].Resource.Target.AverageUtilization == 30
+		default:
+			return false
+		}
+	}, "match truncated hpa name with untruncated ScaleTargetRef")
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateHPASpec(hpa)).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Update(ctx, expected).
+		Return(nil).
+		Times(1)
+
+	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
+}
+
+// TestScaleRevisionWithKEDANameTruncatedOverLimit verifies that applyKeda truncates the
+// ScaledObject's own name (via hpaName) when Tag is over the limit, since KEDA's operator
+// prepends "keda-hpa-" to it when generating the underlying HPA. ScaleTargetRef.Name must
+// stay the full, untruncated Tag to match the real ReplicaSet name.
+func TestScaleRevisionWithKEDANameTruncatedOverLimit(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	longTag := "auto-109151-add-design-system-typescript-support-20260903-075707-40a3c27da1"
+	assert.Greater(t, len(longTag), 54, "sanity check: fixture tag should be over the HPA name limit")
+
+	expectedScaledObjectName := longTag[len(longTag)-54:]
+
+	plan := &ScaleRevision{
+		Tag:        longTag,
+		Namespace:  "testnamespace",
+		Min:        4,
+		Max:        10,
+		KedaWorker: &picchuv1alpha1.KedaScaleInfo{},
+		Labels:     map[string]string{},
+	}
+	// TriggerAuthentication keeps the full, untruncated Tag as its name (it's
+	// not the object KEDA prepends "keda-hpa-" to), while the ScaledObject's
+	// own name is truncated via hpaName - so each Get uses a different key.
+	triggerAuthKey := client.ObjectKey{Name: longTag, Namespace: "testnamespace"}
+	scaledObjectKey := client.ObjectKey{Name: expectedScaledObjectName, Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	var kedaMaxReplicas int32 = 0
+	keda := &kedav1.ScaledObject{
+		Spec: kedav1.ScaledObjectSpec{
+			MaxReplicaCount: &kedaMaxReplicas,
+		},
+	}
+
+	expected := mocks.Callback(func(x interface{}) bool {
+		switch o := x.(type) {
+		case *kedav1.ScaledObject:
+			return o.ObjectMeta.Name == expectedScaledObjectName &&
+				o.Spec.ScaleTargetRef.Name == longTag &&
+				*o.Spec.MaxReplicaCount == 5
+		case *kedav1.TriggerAuthentication:
+			return true
+		default:
+			return false
+		}
+	}, "match truncated ScaledObject name with untruncated ScaleTargetRef")
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(triggerAuthKey), mocks.UpdateKEDASpec(keda)).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(scaledObjectKey), mocks.UpdateKEDASpec(keda)).
+		Return(nil).
+		Times(1)
+
+	m.
+		EXPECT().
+		Update(ctx, expected).
+		Return(nil).
+		Times(2)
+
+	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
+}
+
+// TestHpaNameTrimsLeadingDash verifies hpaName trims a leading "-" left behind when the
+// 54-char cut happens to land right at a separator, since a k8s object name can't start
+// with "-".
+func TestHpaNameTrimsLeadingDash(t *testing.T) {
+	// Constructed so the last 54 characters begin exactly on a "-": a 10-char prefix,
+	// then "-", then 53 more characters (10 + 1 + 53 = 64 total, so len-54 == 10, which
+	// is exactly where the "-" sits).
+	tag := "auto123456" + "-" + strings.Repeat("y", 53)
+	plan := &ScaleRevision{Tag: tag}
+
+	name := plan.hpaName()
+
+	assert.False(t, strings.HasPrefix(name, "-"), "hpaName should never start with a separator")
+	assert.Equal(t, strings.Repeat("y", 53), name)
 }
