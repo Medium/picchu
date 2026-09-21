@@ -603,21 +603,27 @@ func TestSyncRevisionSchedulerName(t *testing.T) {
 	common.ResourcesEqual(t, expected, &rsl.Items[0])
 }
 
-func TestSyncRevisionPodLabels(t *testing.T) {
+func TestSyncRevisionPodTTLSecondsAnnotationPromotedToLabel(t *testing.T) {
 	log := test.MustNewLogger()
 	ctx := context.TODO()
 
 	plan := *defaultRevisionPlan
-	plan.PodLabels = map[string]string{
-		"medium.engineering/pod-ttl-seconds": "3600",
+	// A fresh map, not a mutation of defaultRevisionPlan.PodAnnotations --
+	// that map is shared across every test using this fixture.
+	plan.PodAnnotations = map[string]string{}
+	for k, v := range defaultRevisionPlan.PodAnnotations {
+		plan.PodAnnotations[k] = v
 	}
+	plan.PodAnnotations["medium.engineering/pod-ttl-seconds"] = "3600"
 
-	// PodLabels must land on the pod template only -- the ReplicaSet's own
-	// top-level Labels and its (immutable) Selector are untouched, exactly
-	// like PodAnnotations never affects either of those.
+	// The promoted label must land on the pod template only -- the
+	// ReplicaSet's own top-level Labels and its (immutable) Selector are
+	// untouched, exactly like every other PodAnnotations entry never
+	// affects either of those.
 	expected := defaultExpectedReplicaSet.DeepCopy()
 	expected.ObjectMeta.ResourceVersion = "1"
 	expected.TypeMeta = metav1.TypeMeta{}
+	expected.Spec.Template.ObjectMeta.Annotations["medium.engineering/pod-ttl-seconds"] = "3600"
 	expected.Spec.Template.ObjectMeta.Labels["medium.engineering/pod-ttl-seconds"] = "3600"
 
 	cli := fakeClient(defaultServiceAccount)

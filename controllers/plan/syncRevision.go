@@ -72,7 +72,6 @@ type SyncRevision struct {
 	Resources                corev1.ResourceRequirements
 	IAMRole                  string            // AWS iam role
 	PodAnnotations           map[string]string // metadata.annotations in the Pod template
-	PodLabels                map[string]string // caller-controlled metadata.labels in the Pod template only (never the ReplicaSet selector)
 	KarpenterDoNotDisrupt    string            // karpenter.sh/do-not-disrupt on the pod template
 	ServiceAccountName       string            // k8s ServiceAccount
 	LivenessProbe            *corev1.Probe
@@ -332,15 +331,12 @@ func (p *SyncRevision) syncReplicaSet(
 	}
 
 	// templateLabels must be a distinct map from podLabels, not an alias of
-	// it (Go maps are reference types -- `Labels: podLabels` would let a
-	// later mutation for PodLabels leak into podLabels itself, which
-	// tempSelector below also reads from to build the ReplicaSet's
-	// immutable selector).
-	templateLabels := make(map[string]string, len(podLabels)+len(p.PodLabels))
+	// it (Go maps are reference types -- `Labels: podLabels` would let the
+	// medium.engineering/pod-ttl-seconds promotion below leak into
+	// podLabels itself, which tempSelector below also reads from to build
+	// the ReplicaSet's immutable selector).
+	templateLabels := make(map[string]string, len(podLabels)+1)
 	for k, v := range podLabels {
-		templateLabels[k] = v
-	}
-	for k, v := range p.PodLabels {
 		templateLabels[k] = v
 	}
 
@@ -383,6 +379,16 @@ func (p *SyncRevision) syncReplicaSet(
 			termGraceInt64 := int64(terminationGracePeriodSeconds)
 			template.Spec.TerminationGracePeriodSeconds = &termGraceInt64
 		}
+	}
+
+	// Promote this one annotation to a label -- a labelSelector-based
+	// consumer (e.g. descheduler's PodLifeTime plugin) needs it as a
+	// label, and this is a plain string copy (the value is already a
+	// clean integer-seconds string by the time it reaches here, unlike
+	// medium.engineering/pod-ttl which can carry a fractional value).
+	// template.Labels, not templateLabels/podLabels -- see comment above.
+	if podTTLSeconds := p.PodAnnotations["medium.engineering/pod-ttl-seconds"]; podTTLSeconds != "" {
+		template.Labels["medium.engineering/pod-ttl-seconds"] = podTTLSeconds
 	}
 
 	for ann, value := range p.PodAnnotations {

@@ -80,13 +80,6 @@ type RevisionTarget struct {
 	Volumes                     []corev1.Volume               `json:"volumes,omitempty"`
 
 	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
-	// PodLabels are applied to the pod template in addition to Picchu's own
-	// system-managed labels (fleet, tag, istio version, etc). Unlike those,
-	// these are caller-controlled and pass through unmodified -- mirrors
-	// PodAnnotations above, but for labels, which some consumers (e.g. a
-	// LabelSelector-based Kubernetes controller) require instead of an
-	// annotation.
-	PodLabels map[string]string `json:"podLabels,omitempty"`
 	// KarpenterDoNotDisrupt sets karpenter.sh/do-not-disrupt on the ReplicaSet pod template.
 	// Use a Go duration (e.g. "30m") for time-limited protection after pod start, or "true" for permanent protection.
 	KarpenterDoNotDisrupt string `json:"karpenterDoNotDisrupt,omitempty"`

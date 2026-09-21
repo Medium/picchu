@@ -2925,17 +2925,6 @@ spec:
                             if they encounter an unrecognized policy in this field.
                           type: string
                       type: object
-                    podLabels:
-                      additionalProperties:
-                        type: string
-                      description: |-
-                        PodLabels are applied to the pod template in addition to Picchu's own
-                        system-managed labels (fleet, tag, istio version, etc). Unlike those,
-                        these are caller-controlled and pass through unmodified -- mirrors
-                        PodAnnotations above, but for labels, which some consumers (e.g. a
-                        LabelSelector-based Kubernetes controller) require instead of an
-                        annotation.
-                      type: object
                     ports:
                       items:
                         properties:

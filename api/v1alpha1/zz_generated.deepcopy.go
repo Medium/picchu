@@ -1456,13 +1456,6 @@ func (in *RevisionTarget) DeepCopyInto(out *RevisionTarget) {
 			(*out)[key] = val
 		}
 	}
-	if in.PodLabels != nil {
-		in, out := &in.PodLabels, &out.PodLabels
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
 	in.Resources.DeepCopyInto(&out.Resources)
 	if in.LivenessProbe != nil {
 		in, out := &in.LivenessProbe, &out.LivenessProbe
