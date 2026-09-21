@@ -72,6 +72,7 @@ type SyncRevision struct {
 	Resources                corev1.ResourceRequirements
 	IAMRole                  string            // AWS iam role
 	PodAnnotations           map[string]string // metadata.annotations in the Pod template
+	PodLabels                map[string]string // caller-controlled metadata.labels in the Pod template only (never the ReplicaSet selector)
 	KarpenterDoNotDisrupt    string            // karpenter.sh/do-not-disrupt on the pod template
 	ServiceAccountName       string            // k8s ServiceAccount
 	LivenessProbe            *corev1.Probe
@@ -330,11 +331,24 @@ func (p *SyncRevision) syncReplicaSet(
 		containers[i].VolumeMounts = p.VolumeMounts
 	}
 
+	// templateLabels must be a distinct map from podLabels, not an alias of
+	// it (Go maps are reference types -- `Labels: podLabels` would let a
+	// later mutation for PodLabels leak into podLabels itself, which
+	// tempSelector below also reads from to build the ReplicaSet's
+	// immutable selector).
+	templateLabels := make(map[string]string, len(podLabels)+len(p.PodLabels))
+	for k, v := range podLabels {
+		templateLabels[k] = v
+	}
+	for k, v := range p.PodLabels {
+		templateLabels[k] = v
+	}
+
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        p.Tag,
 			Namespace:   p.Namespace,
-			Labels:      podLabels,
+			Labels:      templateLabels,
 			Annotations: map[string]string{},
 		},
 		Spec: corev1.PodSpec{

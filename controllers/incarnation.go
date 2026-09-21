@@ -406,6 +406,7 @@ func (i *Incarnation) sync(ctx context.Context) error {
 		Resources:                i.target().Resources,
 		IAMRole:                  i.target().AWS.IAM.RoleARN,
 		PodAnnotations:           i.target().PodAnnotations,
+		PodLabels:                i.target().PodLabels,
 		KarpenterDoNotDisrupt:    i.karpenterDoNotDisrupt(),
 		ServiceAccountName:       i.target().ServiceAccountName,
 		ReadinessProbe:           i.target().ReadinessProbe,
