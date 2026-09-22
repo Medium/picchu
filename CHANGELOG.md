@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.1](https://github.com/Medium/picchu/compare/v1.6.0...v1.6.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* damp waypoint HPA scale-down (PICCHU-INV-MESH-9) ([#645](https://github.com/Medium/picchu/issues/645)) ([6e8d4e5](https://github.com/Medium/picchu/commit/6e8d4e51208d70b5adec1a39b97faf8df8793e35))
+* pin waypoint HPA ScaleUp to avoid a permanent reconcile loop ([#649](https://github.com/Medium/picchu/issues/649)) ([1a99894](https://github.com/Medium/picchu/commit/1a998947c743f58854a551c6f0a58558544ec36d))
+* **waypoint:** stamp Datadog unified service tags on waypoint pods ([#641](https://github.com/Medium/picchu/issues/641)) ([c29bae7](https://github.com/Medium/picchu/commit/c29bae774c1e9a534aeb11adb24a91b48f8a9fea))
+
 ## [1.6.0](https://github.com/Medium/picchu/compare/v1.5.0...v1.6.0) (2026-08-03)
 
 
