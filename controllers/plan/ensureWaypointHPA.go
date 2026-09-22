@@ -31,6 +31,22 @@ const (
 	waypointScaleDownPeriodSeconds        = 60
 	waypointScaleDownPercent              = 25
 	waypointScaleDownPods                 = 1
+
+	// Kubernetes' own defaults for the side of Behavior we don't otherwise set.
+	// Setting ScaleUp to these literal values -- rather than leaving the field
+	// nil and letting the API server default it on write -- keeps the object
+	// picchu constructs equal to the object actually persisted. Leaving it nil
+	// made CreateOrUpdate's equality.Semantic.DeepEqual(existing, desired) fail
+	// on every single reconcile forever: the API server defaults the stored
+	// object's ScaleUp to these values on write, but picchu's freshly-built
+	// object always has ScaleUp back at nil, so the two objects were never
+	// equal and picchu re-issued an Update on every ~15s sync-period tick,
+	// fleet-wide, racing the live HPA controller's own concurrent status
+	// writes on the same object ("the object has been modified..." conflicts).
+	waypointScaleUpStabilizationSeconds = 0
+	waypointScaleUpPeriodSeconds        = 15
+	waypointScaleUpPercent              = 100
+	waypointScaleUpPods                 = 4
 )
 
 // EnsureWaypointHPA creates or updates an HPA for the waypoint Deployment (min 2, max 20, 70% CPU).
@@ -82,6 +98,29 @@ func (p *EnsureWaypointHPA) Apply(ctx context.Context, cli client.Client, cluste
 		},
 	}
 
+	scaleUpStabilization := int32(waypointScaleUpStabilizationSeconds)
+	// Pinned to the literal Kubernetes defaults, not left nil. Scaling up
+	// terminates no connections, so there's no reason to damp it -- but the
+	// value has to be explicit, or the API server's own defaulting introduces
+	// a permanent mismatch against what picchu constructs on every reconcile.
+	// See the comment on the waypointScaleUp* constants above.
+	scaleUp := &autoscaling.HPAScalingRules{
+		StabilizationWindowSeconds: &scaleUpStabilization,
+		SelectPolicy:               ptr.To(autoscaling.MaxChangePolicySelect),
+		Policies: []autoscaling.HPAScalingPolicy{
+			{
+				Type:          autoscaling.PodsScalingPolicy,
+				Value:         waypointScaleUpPods,
+				PeriodSeconds: waypointScaleUpPeriodSeconds,
+			},
+			{
+				Type:          autoscaling.PercentScalingPolicy,
+				Value:         waypointScaleUpPercent,
+				PeriodSeconds: waypointScaleUpPeriodSeconds,
+			},
+		},
+	}
+
 	hpa := &autoscaling.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      waypointHPAName,
@@ -95,10 +134,8 @@ func (p *EnsureWaypointHPA) Apply(ctx context.Context, cli client.Client, cluste
 			},
 			MinReplicas: &minRep,
 			MaxReplicas: maxRep,
-			// ScaleUp is deliberately left to the Kubernetes defaults. Scaling
-			// up does not terminate connections, and damping it would only slow
-			// the waypoint's response to a traffic spike.
 			Behavior: &autoscaling.HorizontalPodAutoscalerBehavior{
+				ScaleUp:   scaleUp,
 				ScaleDown: scaleDown,
 			},
 			Metrics: []autoscaling.MetricSpec{
