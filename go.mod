@@ -32,7 +32,7 @@ require (
 	k8s.io/apimachinery v0.36.0
 	k8s.io/client-go v0.36.0
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
-	sigs.k8s.io/controller-runtime v0.23.3
+	sigs.k8s.io/controller-runtime v0.24.0
 )
 
 require (
@@ -66,7 +66,6 @@ require (
 	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
-	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
@@ -108,19 +107,12 @@ require (
 )
 
 replace (
-	// copied from keda, remaove when it supports k8s.io/* 0.36.x
 	github.com/google/cel-go => github.com/google/cel-go v0.26.0
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model => github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common => github.com/prometheus/common v0.66.1
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.304.2
-	k8s.io/api => k8s.io/api v0.35.5
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.35.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.35.5
-	k8s.io/apiserver => k8s.io/apiserver v0.35.5
-	k8s.io/client-go => k8s.io/client-go v0.35.5
 	k8s.io/gengo/v2 => k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
-	k8s.io/metrics => k8s.io/metrics v0.35.5
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.23.3
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.24.0
 )
