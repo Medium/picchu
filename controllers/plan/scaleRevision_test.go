@@ -337,6 +337,59 @@ func TestScaleRevisionWithKEDA(t *testing.T) {
 	assert.NoError(t, plan.Apply(ctx, m, halfCluster, log), "Shouldn't return error.")
 }
 
+func TestScaleRevisionEventDrivenDisabledPausesKEDA(t *testing.T) {
+	log := test.MustNewLogger()
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockClient(ctrl)
+	defer ctrl.Finish()
+
+	plan := &ScaleRevision{
+		Tag:         "testtag",
+		Namespace:   "testnamespace",
+		Min:         4,
+		Max:         10,
+		KedaWorker:  &picchuv1alpha1.KedaScaleInfo{},
+		EventDriven: true,
+		Labels:      map[string]string{},
+	}
+	cluster := &picchuv1alpha1.Cluster{Spec: picchuv1alpha1.ClusterSpec{
+		ScalingFactorString: &halfScalingFactor,
+		DisableEventDriven:  true,
+	}}
+	ok := client.ObjectKey{Name: "testtag", Namespace: "testnamespace"}
+	ctx := context.TODO()
+
+	keda := &kedav1.ScaledObject{}
+
+	// The ScaledObject keeps its scaled max (10 * 0.5) and is paused at 0 with min 0.
+	expected := mocks.Callback(func(x interface{}) bool {
+		switch o := x.(type) {
+		case *kedav1.ScaledObject:
+			return *o.Spec.MinReplicaCount == 0 &&
+				*o.Spec.MaxReplicaCount == 5 &&
+				o.Annotations[kedaPausedReplicasAnnotation] == "0"
+		case *kedav1.TriggerAuthentication:
+			return true
+		default:
+			return false
+		}
+	}, "paused ScaledObject with min 0, max 5")
+
+	m.
+		EXPECT().
+		Get(ctx, mocks.ObjectKey(ok), mocks.UpdateKEDASpec(keda)).
+		Return(nil).
+		Times(2)
+
+	m.
+		EXPECT().
+		Update(ctx, expected).
+		Return(nil).
+		Times(2)
+
+	assert.NoError(t, plan.Apply(ctx, m, cluster, log), "Shouldn't return error.")
+}
+
 func TestDontScaleRevision(t *testing.T) {
 	log := test.MustNewLogger()
 	ctrl := gomock.NewController(t)
