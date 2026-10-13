@@ -76,6 +76,33 @@ func TestComputeFleetReplicasRequiredForRamp_normalizedOtherRevisions(t *ttestin
 	assert.EqualValues(t, 40, c.baseCapacity)
 }
 
+func TestComputeFleetReplicasRequiredForRamp_decliningRevisionUsesSafePath(t *ttesting.T) {
+	// Reproduces the 2026-09-16 incident: a revision superseded mid-ramp never reaches
+	// PeakPercent 100 (here it peaked at 30% before being superseded and is now draining
+	// down to 10%), so it must still be treated as "unscaled" and use the safe
+	// baseCapacity = totalPods path. Before the fix, this fell through to the normalized
+	// path: 40 pods / 10% = baseCapacity 400, a 10x overestimate.
+	i := createTestIncarnation(
+		"new",
+		releasing,
+		10,
+		testClusters{Clusters: 4},
+		testTargetRequestsRate{Rate: "12"},
+		testReleaseManagerStatus{
+			Revisions: []picchuv1alpha1.ReleaseManagerRevisionStatus{
+				{Tag: "old", CurrentPercent: 10, PeakPercent: 30, Scale: picchuv1alpha1.ReleaseManagerRevisionScaleStatus{Current: 40}},
+			},
+		},
+	)
+
+	sta := ScalableTargetAdapter{Incarnation: *i}
+	c, ok := sta.computeFleetReplicasRequiredForRamp(30)
+	assert.True(t, ok)
+	assert.NotNil(t, c)
+	assert.True(t, c.hasUnscaledRevision)
+	assert.EqualValues(t, 40, c.baseCapacity)
+}
+
 func TestComputeFleetReplicasRequiredForRamp_noOtherRevisionsUsesScaleMin(t *ttesting.T) {
 	i := createTestIncarnation("new", releasing, 10, testClusters{Clusters: 4})
 
