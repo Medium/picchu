@@ -509,6 +509,16 @@ func CreateOrUpdate(
 				return nil
 			}
 			keda.Spec = typed.Spec
+			// Only manage the pause annotation; leave other annotations (KEDA, users) alone.
+			const paused = "autoscaling.keda.sh/paused-replicas"
+			if v, ok := typed.Annotations[paused]; ok {
+				if keda.Annotations == nil {
+					keda.Annotations = map[string]string{}
+				}
+				keda.Annotations[paused] = v
+			} else {
+				delete(keda.Annotations, paused)
+			}
 			return nil
 		})
 		LogSync(log, op, err, keda)

@@ -24,6 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// kedaPausedReplicasAnnotation pins a ScaledObject's target at the given replica count.
+const kedaPausedReplicasAnnotation = "autoscaling.keda.sh/paused-replicas"
+
 type ScaleRevision struct {
 	Tag                string
 	Namespace          string
@@ -62,10 +65,14 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		return e
 	}
 
-	if cluster.Spec.DisableEventDriven && p.EventDriven {
+	eventDrivenDisabled := cluster.Spec.DisableEventDriven && p.EventDriven
+	if eventDrivenDisabled {
 		log.Info(fmt.Sprintf("Event driven scaling is disabled for this cluster:%s, ignoring event driven scaling for %s, Namespace: %s", cluster.Name, p.Tag, p.Namespace))
-		f := 0.0
-		scalingFactor = &f
+		if p.Worker != nil {
+			// KEDA keeps its normal max (it rejects 0) and is paused instead; see kedaDisabledSettings.
+			f := 0.0
+			scalingFactor = &f
+		}
 	}
 
 	scaledMin := int32(math.Ceil(float64(p.Min) * *scalingFactor))
@@ -79,7 +86,7 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		if err := p.applyKedaTriggerAuth(ctx, cli, log); err != nil {
 			return err
 		}
-		return p.applyKeda(ctx, cli, cluster, log, scaledMin, scaledMax)
+		return p.applyKeda(ctx, cli, cluster, log, scaledMin, scaledMax, eventDrivenDisabled)
 	}
 
 	if p.AmbientMesh && p.RequestsRateTarget != nil && p.PrometheusAddress != "" {
@@ -94,10 +101,28 @@ func (p *ScaleRevision) Apply(ctx context.Context, cli client.Client, cluster *p
 		if err := utils.DeleteIfExists(ctx, cli, hpa); err != nil {
 			return err
 		}
-		return p.applyAmbientKeda(ctx, cli, log, scaledMin, scaledMax)
+		return p.applyAmbientKeda(ctx, cli, log, scaledMin, scaledMax, eventDrivenDisabled)
 	}
 
+	if eventDrivenDisabled {
+		// HPA can't be paused and rejects maxReplicas < 1; remove it so the ReplicaSet stays at 0.
+		return p.deleteHPA(ctx, cli)
+	}
 	return p.applyHPA(ctx, cli, cluster, log, scaledMin, scaledMax)
+}
+
+func (p *ScaleRevision) deleteHPA(ctx context.Context, cli client.Client) error {
+	hpa := &autoscaling.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Name: p.hpaName(), Namespace: p.Namespace}}
+	return utils.DeleteIfExists(ctx, cli, hpa)
+}
+
+// kedaDisabledSettings returns the replica bounds and annotations for a ScaledObject. A disabled
+// ScaledObject keeps its max (KEDA rejects maxReplicaCount < 1) and is paused at 0 replicas.
+func kedaDisabledSettings(scaledMin, scaledMax int32, disabled bool) (int32, int32, map[string]string) {
+	if !disabled {
+		return scaledMin, scaledMax, nil
+	}
+	return 0, scaledMax, map[string]string{kedaPausedReplicasAnnotation: "0"}
 }
 
 // if tag name is greater than 54 it will not accomodate the prefix that will be added "keda-hpa-"
@@ -190,7 +215,8 @@ func (p *ScaleRevision) applyHPA(ctx context.Context, cli client.Client, cluster
 	return plan.CreateOrUpdate(ctx, log, cli, hpa)
 }
 
-func (p *ScaleRevision) applyAmbientKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32) error {
+func (p *ScaleRevision) applyAmbientKeda(ctx context.Context, cli client.Client, log logr.Logger, scaledMin int32, scaledMax int32, paused bool) error {
+	scaledMin, scaledMax, annotations := kedaDisabledSettings(scaledMin, scaledMax, paused)
 	query := fmt.Sprintf(
 		`sum(rate(istio_requests_total{destination_workload="%s", destination_workload_namespace="%s"}[2m]))`,
 		p.Tag, p.Namespace,
@@ -198,9 +224,10 @@ func (p *ScaleRevision) applyAmbientKeda(ctx context.Context, cli client.Client,
 
 	keda := &kedav1.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.hpaName(),
-			Namespace: p.Namespace,
-			Labels:    p.Labels,
+			Name:        p.hpaName(),
+			Namespace:   p.Namespace,
+			Labels:      p.Labels,
+			Annotations: annotations,
 		},
 		Spec: kedav1.ScaledObjectSpec{
 			ScaleTargetRef: &kedav1.ScaleTarget{
@@ -256,7 +283,8 @@ func (p *ScaleRevision) applyWPA(ctx context.Context, cli client.Client, log log
 	return plan.CreateOrUpdate(ctx, log, cli, wpa)
 }
 
-func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger, scaledMin int32, scaledMax int32) error {
+func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, cluster *picchuv1alpha1.Cluster, log logr.Logger, scaledMin int32, scaledMax int32, paused bool) error {
+	scaledMin, scaledMax, annotations := kedaDisabledSettings(scaledMin, scaledMax, paused)
 	//If a trigger doesn't have an auth defined, fall back to the identity of the pod.
 	clonedTriggers := deepCopyTriggers(p.KedaWorker.Triggers)
 	for i := range clonedTriggers {
@@ -272,9 +300,10 @@ func (p *ScaleRevision) applyKeda(ctx context.Context, cli client.Client, cluste
 	}
 	keda := &kedav1.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      p.hpaName(),
-			Namespace: p.Namespace,
-			Labels:    p.Labels,
+			Name:        p.hpaName(),
+			Namespace:   p.Namespace,
+			Labels:      p.Labels,
+			Annotations: annotations,
 		},
 		Spec: kedav1.ScaledObjectSpec{
 			ScaleTargetRef: &kedav1.ScaleTarget{
