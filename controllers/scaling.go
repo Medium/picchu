@@ -49,7 +49,7 @@ func (s *ScalableTargetAdapter) computeFleetReplicasRequiredForRamp(desiredPerce
 			if rev.CurrentPercent > 0 && rev.Scale.Current > 0 {
 				totalPods += int32(rev.Scale.Current)
 				totalTrafficPercent += rev.CurrentPercent
-				if rev.PeakPercent == 100 && rev.CurrentPercent < 100 {
+				if rev.CurrentPercent < rev.PeakPercent {
 					hasUnscaledRevision = true
 				}
 			}
