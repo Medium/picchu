@@ -92,6 +92,16 @@ func (n *NoopPromAPI) IsRevisionTriggered(ctx context.Context, name, tag string,
 	return false, nil, nil
 }
 
+type DatadogEventsAPI interface {
+	IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, *datadogV2.EventAttributes, error)
+}
+
+type NoopDatadogEventsAPI struct{}
+
+func (n *NoopDatadogEventsAPI) IsRevisionTriggered(ctx context.Context, app string, tag string) (bool, *datadogV2.EventAttributes, error) {
+	return false, nil, nil
+}
+
 type SlackAPI interface {
 	PostMessage(ctx context.Context, app string, tag string, eventAttributes *datadogV2.EventAttributes) error
 }
@@ -209,6 +219,28 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 				}
 				mirrorFailureCounter.With(mLabels).Inc()
 			}
+		}
+	}
+
+	var canary_monitor_triggered bool
+	var ddogEventAttributes *datadogV2.EventAttributes
+
+	prod_datadogcanarying := false
+	for _, t := range status.Targets {
+		// if we are in thist this, ddogmonitoring is enabled
+		if strings.Contains(t.Name, "production") && t.State == "canaryingdatadog" {
+			// one or more prod targets are canarying
+			prod_datadogcanarying = true
+			log.Info("Production target is canarying with datadog monitors", "Target", t.Name)
+		}
+	}
+
+	// check if canary monitor are triggered
+	if prod_datadogcanarying {
+		canary_monitor_triggered, ddogEventAttributes, err = r.DatadogEventsAPI.IsRevisionTriggered(context.TODO(), instance.Spec.App.Name, instance.Spec.App.Tag)
+		if err != nil {
+			log.Error(err, "Datadog events api IsRevisionTriggered error", "Error", err)
+			return r.Requeue(log, err)
 		}
 	}
 
