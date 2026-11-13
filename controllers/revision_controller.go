@@ -255,7 +255,7 @@ func (r *RevisionReconciler) Reconcile(ctx context.Context, request reconcile.Re
 	for _, statusTarget := range status.Targets {
 		if statusTarget.State == "timingout" {
 			revisionFailing = true
-			revisionFailingReason = "test timing out"
+			revisionFailingReason = "revision timing out"
 		}
 	}
 
