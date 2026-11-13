@@ -32,6 +32,7 @@ import (
 	clientgoscheme "go.medium.engineering/picchu/client/scheme"
 	"go.medium.engineering/picchu/controllers"
 	"go.medium.engineering/picchu/controllers/utils"
+	datadogapi "go.medium.engineering/picchu/datadog"
 	promapi "go.medium.engineering/picchu/prometheus"
 	slackapi "go.medium.engineering/picchu/slack"
 	istio "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -75,6 +76,7 @@ func main() {
 	prometheusQueryAddress := flag.String("prometheus-query-address", "", "The (usually thanos) address that picchu should query to SLO alerts")
 	prometheusQueryTTL := flag.Duration("prometheus-query-ttl", time.Duration(10)*time.Second, "How long to cache SLO alerts")
 	slackQueryTTL := flag.Duration("slack-query-ttl", time.Duration(120)*time.Second, "How long to cache SLO alerts")
+	datadogEventsQueryTTL := flag.Duration("datadog-events-query-ttl", time.Duration(30)*time.Second, "How long to cache Datadog canary monitor events")
 	humaneReleasesEnabled := flag.Bool("humane-releases-enabled", true, "Release apps on the humane schedule")
 	prometheusEnabled := flag.Bool("prometheus-enabled", true, "Prometheus integration for SLO alerts is enabled")
 	serviceLevelsNamespace := flag.String("service-levels-namespace", "service-level-objectives", "The namespace to use when creating ServiceLevel resources in the delivery cluster")
@@ -102,6 +104,7 @@ func main() {
 		PrometheusQueryTTL:        *prometheusQueryTTL,
 		ServiceLevelsNamespace:    *serviceLevelsNamespace,
 		SlackQueryTTL:             *slackQueryTTL,
+		DatadogEventsQueryTTL:     *datadogEventsQueryTTL,
 		ServiceLevelsFleet:        *serviceLevelsFleet,
 		ConcurrentRevisions:       *concurrentRevisions,
 		ConcurrentReleaseManagers: *concurrentReleaseManagers,
@@ -121,6 +124,19 @@ func main() {
 	}
 	if errPromAPI != nil {
 		panic(errPromAPI)
+	}
+
+	// datadog events api client (canary monitors). Without credentials the
+	// client can only fail, so fall back to a noop that never triggers.
+	var datadog_events_api controllers.DatadogEventsAPI = &controllers.NoopDatadogEventsAPI{}
+	if os.Getenv("DD_API_KEY") != "" && os.Getenv("DD_APP_KEY") != "" {
+		ddogEventsAPI, errDdogEventsAPI := datadogapi.NewEventsAPI(config.DatadogEventsQueryTTL)
+		if errDdogEventsAPI != nil {
+			panic(errDdogEventsAPI)
+		}
+		datadog_events_api = ddogEventsAPI
+	} else {
+		setupLog.Info("DD_API_KEY/DD_APP_KEY not set, Datadog canary monitors will not be respected")
 	}
 
 	// slack api client
@@ -204,12 +220,13 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.RevisionReconciler{
-		Client:       mgr.GetClient(),
-		CustomLogger: ctrl.Log.WithName("controllers").WithName("Revision"),
-		Scheme:       mgr.GetScheme(),
-		Config:       config,
-		PromAPI:      api,
-		SlackAPI:     slack_api,
+		Client:           mgr.GetClient(),
+		CustomLogger:     ctrl.Log.WithName("controllers").WithName("Revision"),
+		Scheme:           mgr.GetScheme(),
+		Config:           config,
+		PromAPI:          api,
+		DatadogEventsAPI: datadog_events_api,
+		SlackAPI:         slack_api,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Revision")
 		os.Exit(1)

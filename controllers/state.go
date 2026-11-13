@@ -5,51 +5,56 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/rs/zerolog/log"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 )
 
 var (
 	handlers = map[string]StateHandler{
-		string(created):        Created,
-		string(deploying):      Deploying,
-		string(deployed):       Deployed,
-		string(pendingrelease): PendingRelease,
-		string(releasing):      Releasing,
-		string(released):       Released,
-		string(retiring):       Retiring,
-		string(retired):        Retired,
-		string(deleting):       Deleting,
-		string(deleted):        Deleted,
-		string(failing):        Failing,
-		string(failed):         Failed,
-		string(pendingtest):    PendingTest,
-		string(testing):        Testing,
-		string(tested):         Tested,
-		string(canarying):      Canarying,
-		string(canaried):       Canaried,
-		string(timingout):      Timingout,
+		string(created):          Created,
+		string(deploying):        Deploying,
+		string(deployed):         Deployed,
+		string(pendingrelease):   PendingRelease,
+		string(releasing):        Releasing,
+		string(released):         Released,
+		string(retiring):         Retiring,
+		string(retired):          Retired,
+		string(deleting):         Deleting,
+		string(deleted):          Deleted,
+		string(failing):          Failing,
+		string(failed):           Failed,
+		string(pendingtest):      PendingTest,
+		string(testing):          Testing,
+		string(tested):           Tested,
+		string(canarying):        Canarying,
+		string(canaried):         Canaried,
+		string(canaryingdatadog): CanaryingDatadog,
+		string(canarieddatadog):  CanariedDatadog,
+		string(timingout):        Timingout,
 	}
 )
 
 const (
-	created        State = "created"
-	deploying      State = "deploying"
-	deployed       State = "deployed"
-	pendingrelease State = "pendingrelease"
-	releasing      State = "releasing"
-	released       State = "released"
-	retiring       State = "retiring"
-	retired        State = "retired"
-	deleting       State = "deleting"
-	deleted        State = "deleted"
-	failing        State = "failing"
-	failed         State = "failed"
-	pendingtest    State = "pendingtest"
-	testing        State = "testing"
-	tested         State = "tested"
-	canarying      State = "canarying"
-	canaried       State = "canaried"
-	timingout      State = "timingout"
+	created          State = "created"
+	deploying        State = "deploying"
+	deployed         State = "deployed"
+	pendingrelease   State = "pendingrelease"
+	releasing        State = "releasing"
+	released         State = "released"
+	retiring         State = "retiring"
+	retired          State = "retired"
+	deleting         State = "deleting"
+	deleted          State = "deleted"
+	failing          State = "failing"
+	failed           State = "failed"
+	pendingtest      State = "pendingtest"
+	testing          State = "testing"
+	tested           State = "tested"
+	canarying        State = "canarying"
+	canaried         State = "canaried"
+	canaryingdatadog State = "canaryingdatadog"
+	canarieddatadog  State = "canarieddatadog"
+	timingout        State = "timingout"
 
 	DeployingTimeout = (time.Minute * 15)
 	CreatedTimeout   = time.Hour
@@ -85,6 +90,7 @@ type Deployment interface {
 	currentPercent() uint32
 	peakPercent() uint32
 	isCanaryPending() bool
+	datadogMonitoring() bool
 	isTimingOut() bool
 	isExpired() bool
 }
@@ -168,7 +174,7 @@ func Created(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 		return deleting, nil
 	}
 	if lastUpdated != nil && lastUpdated.Add(CreatedTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "created")
+		log.Info().Msg("State timed out - created")
 		return timingout, nil
 	}
 	return deploying, nil
@@ -188,7 +194,7 @@ func Deploying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 		return deployed, nil
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "deploying")
+		log.Info().Msg("State timed out - deploying")
 		return timingout, nil
 	}
 	return deploying, nil
@@ -217,9 +223,12 @@ func Deployed(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 	}
 	if deployment.isReleaseEligible() {
 		if deployment.isCanaryPending() {
-
-			return canarying, nil
-
+			// check if datadog or prometheus is enabled
+			if deployment.datadogMonitoring() {
+				return canaryingdatadog, nil
+			} else {
+				return canarying, nil
+			}
 		}
 		return pendingrelease, nil
 	}
@@ -250,7 +259,7 @@ func PendingTest(ctx context.Context, deployment Deployment, lastUpdated *time.T
 		return pendingtest, err
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "pending test")
+		log.Info().Msg("State timed out - pending test")
 		return timingout, nil
 	}
 	return pendingtest, nil
@@ -281,7 +290,7 @@ func Testing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 		return testing, err
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "testing")
+		log.Info().Msg("State timed out - testing")
 		return timingout, nil
 	}
 	return testing, nil
@@ -303,13 +312,17 @@ func Tested(ctx context.Context, deployment Deployment, lastUpdated *time.Time) 
 	}
 	if deployment.isReleaseEligible() {
 		if deployment.isCanaryPending() {
-			return canarying, nil
-
+			// check if datadog or prometheus is enabled
+			if deployment.datadogMonitoring() {
+				return canaryingdatadog, nil
+			} else {
+				return canarying, nil
+			}
 		}
 		return pendingrelease, nil
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "tested")
+		log.Info().Msg("State timed out - tested")
 		return timingout, nil
 	}
 	return tested, nil
@@ -415,7 +428,7 @@ func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return deleted, deployment.del(ctx)
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "deleting")
+		log.Info().Msg("State timed out - deleting")
 		return timingout, nil
 	}
 	return deleting, nil
@@ -483,6 +496,22 @@ func Canarying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 	return canarying, nil
 }
 
+func CanaryingDatadog(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if deployment.markedAsFailed() {
+		return failing, nil
+	}
+	if err := deployment.sync(ctx); err != nil {
+		return canaryingdatadog, err
+	}
+	if !deployment.isCanaryPending() {
+		return canarieddatadog, nil
+	}
+	return canaryingdatadog, nil
+}
+
 func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
 	if !deployment.hasRevision() {
 		return deleting, nil
@@ -500,6 +529,22 @@ func Canaried(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return pendingrelease, nil
 	}
 	return canaried, nil
+}
+
+func CanariedDatadog(ctx context.Context, deployment Deployment, lastUpdated *time.Time) (State, error) {
+	if !deployment.hasRevision() {
+		return deleting, nil
+	}
+	if deployment.markedAsFailed() {
+		return failing, nil
+	}
+	if err := deployment.sync(ctx); err != nil {
+		return canarieddatadog, err
+	}
+	if deployment.isReleaseEligible() {
+		return pendingrelease, nil
+	}
+	return canarieddatadog, nil
 }
 
 // Timingout state is responsible for cleaning up a timing out release

@@ -329,3 +329,99 @@ func Test_IsExpired(t *ttesting.T) {
 		})
 	}
 }
+
+func TestIncarnation_datadogMonitoring(t *ttesting.T) {
+	i := createTestIncarnation("test", deployed, 0)
+	assert.False(t, i.datadogMonitoring(), "defaults to prometheus monitoring")
+
+	i.revision.Spec.Targets[0].DatadogMonitoring.Enabled = true
+	assert.True(t, i.datadogMonitoring())
+
+	// no matching target (or no revision) must not panic and defaults to false
+	i.revision.Spec.Targets[0].Name = "other"
+	assert.False(t, i.datadogMonitoring())
+	i.revision = nil
+	assert.False(t, i.datadogMonitoring())
+}
+
+func TestIncarnation_isRoutable_canaryStates(t *ttesting.T) {
+	for state, expected := range map[State]bool{
+		canarying:        true,
+		canaryingdatadog: true,
+		canaried:         false,
+		canarieddatadog:  false,
+		pendingrelease:   false,
+		releasing:        true,
+		released:         true,
+	} {
+		i := createTestIncarnation("test", state, 0)
+		assert.Equal(t, expected, i.isRoutable(), "state %s", state)
+	}
+}
+
+func TestIncarnation_canaryingDatadogUsesCanaryPercent(t *ttesting.T) {
+	// Both canary flavors cap traffic at the canary percent, and must behave
+	// identically to each other.
+	results := map[State]uint32{}
+	for _, state := range []State{canarying, canaryingdatadog} {
+		i := createTestIncarnation("test", state, 0)
+		i.revision.Spec.Targets[0].Canary.Percent = 5
+		results[state] = i.currentPercentTarget(100)
+		assert.LessOrEqual(t, results[state], uint32(5), "state %s", state)
+	}
+	assert.Equal(t, results[canarying], results[canaryingdatadog])
+
+	// divideReplicas uses the canary percent for both
+	for _, state := range []State{canarying, canaryingdatadog} {
+		i := createTestIncarnation("test", state, 0)
+		i.revision.Spec.Targets[0].Canary.Percent = 10
+		assert.Equal(t, i.controller.divideReplicas(100, 10), i.divideReplicas(100), "state %s", state)
+	}
+}
+
+func TestIncarnation_setState_canaryingdatadogStartsCanaryTimer(t *ttesting.T) {
+	// no traffic yet: timer must not start
+	i := createTestIncarnation("test", deployed, 0)
+	i.setState("canaryingdatadog")
+	assert.Nil(t, i.status.CanaryStartTimestamp)
+
+	// traffic > 0: timer starts once and is not reset
+	i = createTestIncarnation("test", deployed, 5)
+	i.setState("canaryingdatadog")
+	if assert.NotNil(t, i.status.CanaryStartTimestamp) {
+		first := *i.status.CanaryStartTimestamp
+		i.setState("canaryingdatadog")
+		assert.Equal(t, first, *i.status.CanaryStartTimestamp)
+	}
+}
+
+func TestIncarnationCollection_datadogCanaryStates(t *ttesting.T) {
+	ic := &IncarnationCollection{itemSet: map[string]*Incarnation{}}
+	for _, s := range []State{canarying, canaried, canaryingdatadog, canarieddatadog, pendingrelease, released, failed} {
+		ic.itemSet[string(s)] = createTestIncarnation(string(s), s, 0)
+	}
+
+	tags := func(incs []*Incarnation) map[string]bool {
+		m := map[string]bool{}
+		for _, i := range incs {
+			m[i.tag] = true
+		}
+		return m
+	}
+
+	deployedTags := tags(ic.deployed())
+	assert.True(t, deployedTags["canaryingdatadog"])
+	assert.True(t, deployedTags["canarieddatadog"])
+	assert.False(t, deployedTags["failed"])
+
+	alertableTags := tags(ic.alertable())
+	assert.True(t, alertableTags["canaryingdatadog"])
+	assert.True(t, alertableTags["canarieddatadog"])
+	assert.True(t, alertableTags["released"], "released incarnations are alertable too")
+	assert.False(t, alertableTags["failed"])
+
+	// only the "-ing" canary states are releasable canaries
+	releasableTags := tags(ic.releasable())
+	assert.True(t, releasableTags["canaryingdatadog"])
+	assert.False(t, releasableTags["canarieddatadog"])
+}

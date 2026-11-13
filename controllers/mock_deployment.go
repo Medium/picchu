@@ -154,6 +154,20 @@ func (mr *MockDeploymentMockRecorder) hasRevision() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasRevision", reflect.TypeOf((*MockDeployment)(nil).hasRevision))
 }
 
+// datadogMonitoring mocks base method.
+func (m *MockDeployment) datadogMonitoring() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "datadogMonitoring")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// datadogMonitoring indicates an expected call of datadogMonitoring.
+func (mr *MockDeploymentMockRecorder) datadogMonitoring() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "datadogMonitoring", reflect.TypeOf((*MockDeployment)(nil).datadogMonitoring))
+}
+
 // isCanaryPending mocks base method.
 func (m *MockDeployment) isCanaryPending() bool {
 	m.ctrl.T.Helper()
