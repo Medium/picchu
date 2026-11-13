@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/rs/zerolog/log"
 	picchuv1alpha1 "go.medium.engineering/picchu/api/v1alpha1"
 )
 
@@ -173,7 +174,7 @@ func Created(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 		return deleting, nil
 	}
 	if lastUpdated != nil && lastUpdated.Add(CreatedTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "created")
+		log.Info().Msg("State timed out - created")
 		return timingout, nil
 	}
 	return deploying, nil
@@ -193,7 +194,7 @@ func Deploying(ctx context.Context, deployment Deployment, lastUpdated *time.Tim
 		return deployed, nil
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "deploying")
+		log.Info().Msg("State timed out - deploying")
 		return timingout, nil
 	}
 	return deploying, nil
@@ -258,7 +259,7 @@ func PendingTest(ctx context.Context, deployment Deployment, lastUpdated *time.T
 		return pendingtest, err
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "pending test")
+		log.Info().Msg("State timed out - pending test")
 		return timingout, nil
 	}
 	return pendingtest, nil
@@ -289,7 +290,7 @@ func Testing(ctx context.Context, deployment Deployment, lastUpdated *time.Time)
 		return testing, err
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "testing")
+		log.Info().Msg("State timed out - testing")
 		return timingout, nil
 	}
 	return testing, nil
@@ -321,7 +322,7 @@ func Tested(ctx context.Context, deployment Deployment, lastUpdated *time.Time) 
 		return pendingrelease, nil
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "tested")
+		log.Info().Msg("State timed out - tested")
 		return timingout, nil
 	}
 	return tested, nil
@@ -427,7 +428,7 @@ func Deleting(ctx context.Context, deployment Deployment, lastUpdated *time.Time
 		return deleted, deployment.del(ctx)
 	}
 	if lastUpdated != nil && lastUpdated.Add(DeployingTimeout).Before(time.Now()) {
-		deployment.getLog().Error(nil, "State timed out", "state", "deleting")
+		log.Info().Msg("State timed out - deleting")
 		return timingout, nil
 	}
 	return deleting, nil
