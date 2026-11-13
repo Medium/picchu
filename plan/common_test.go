@@ -357,11 +357,11 @@ func TestCreateOrUpdateReplicaSetKarpenterDoNotDisrupt(t *testing.T) {
 	}
 
 	for _, test := range []struct {
-		Name             string
-		Existing         *appsv1.ReplicaSet
-		Updated          *appsv1.ReplicaSet
+		Name              string
+		Existing          *appsv1.ReplicaSet
+		Updated           *appsv1.ReplicaSet
 		ExpectedKarpenter string
-		ExpectedImage    string
+		ExpectedImage     string
 	}{
 		{
 			Name:              "removes annotation after deploying",

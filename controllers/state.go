@@ -538,7 +538,7 @@ func CanariedDatadog(ctx context.Context, deployment Deployment, lastUpdated *ti
 		return failing, nil
 	}
 	if err := deployment.sync(ctx); err != nil {
-		return canaryingdatadog, err
+		return canarieddatadog, err
 	}
 	if deployment.isReleaseEligible() {
 		return pendingrelease, nil

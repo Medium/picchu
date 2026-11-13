@@ -107,6 +107,10 @@ func (a DDOGEVENTSAPI) IsRevisionTriggered(ctx context.Context, app string, tag 
 	e := datadogV2.EVENTSTATUSTYPE_ERROR
 	// Look through all event responses for alerts with status ERROR
 	for _, d := range val.Data {
+		// events can come back without attributes or a status; don't panic
+		if d.Attributes == nil || d.Attributes.Attributes == nil || d.Attributes.Attributes.Status == nil {
+			continue
+		}
 		if *d.Attributes.Attributes.Status == e {
 			return true, d.Attributes.Attributes, nil
 		}
