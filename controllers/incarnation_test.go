@@ -417,7 +417,8 @@ func TestIncarnationCollection_datadogCanaryStates(t *ttesting.T) {
 	alertableTags := tags(ic.alertable())
 	assert.True(t, alertableTags["canaryingdatadog"])
 	assert.True(t, alertableTags["canarieddatadog"])
-	assert.False(t, alertableTags["released"])
+	assert.True(t, alertableTags["released"], "released incarnations are alertable too")
+	assert.False(t, alertableTags["failed"])
 
 	// only the "-ing" canary states are releasable canaries
 	releasableTags := tags(ic.releasable())
