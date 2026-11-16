@@ -47,12 +47,13 @@ type RevisionSpec struct {
 	Targets []RevisionTarget `json:"targets"`
 	Failed  bool             `json:"failed"`
 	// These are required for --fast-release
-	IgnoreSLOs         bool       `json:"ignoreSLOs,omitempty"`
-	CanaryWithSLIRules bool       `json:"canaryWithSLIRules,omitempty"`
-	Sentry             SentryInfo `json:"sentry,omitempty"`
-	TagRoutingHeader   string     `json:"tagRoutingHeader,omitempty"`
-	DisableMirroring   bool       `json:"disableMirroring,omitempty"`
-	EventDriven        bool       `json:"eventDriven,omitempty"`
+	IgnoreSLOs          bool       `json:"ignoreSLOs,omitempty"`
+	CanaryWithSLIRules  bool       `json:"canaryWithSLIRules,omitempty"`
+	IgnoreDatadogCanary bool       `json:"ignoreDatadogCanary,omitempty"`
+	Sentry              SentryInfo `json:"sentry,omitempty"`
+	TagRoutingHeader    string     `json:"tagRoutingHeader,omitempty"`
+	DisableMirroring    bool       `json:"disableMirroring,omitempty"`
+	EventDriven         bool       `json:"eventDriven,omitempty"`
 }
 
 type RevisionApp struct {

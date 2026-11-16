@@ -4,6 +4,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	tt "testing"
 	"time"
 
@@ -452,6 +453,158 @@ func TestCanaried(t *tt.T) {
 	testcase(failing, m(true, true, true))
 }
 
+// Deployed and Tested choose between prometheus (canarying) and datadog
+// (canaryingdatadog) canarying based on datadogMonitoring().
+func TestDeployedAndTestedCanaryChoosesMonitoring(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	for _, handler := range []string{"deployed", "tested"} {
+		for _, tc := range []struct {
+			name              string
+			datadogMonitoring bool
+			isCanaryPending   bool
+			isReleaseEligible bool
+			expected          State
+		}{
+			{"datadog canary pending", true, true, true, canaryingdatadog},
+			{"prometheus canary pending", false, true, true, canarying},
+			{"datadog but no canary pending", true, false, true, pendingrelease},
+			{"prometheus but no canary pending", false, false, true, pendingrelease},
+		} {
+			t.Run(handler+"/"+tc.name, func(t *tt.T) {
+				// Deployed only reaches the canary branch when no external
+				// test is configured; Tested requires a finished test.
+				testStatus := ExternalTestSucceeded
+				if handler == "deployed" {
+					testStatus = ExternalTestDisabled
+				}
+				mock := createMockDeployment(ctrl, responses{
+					hasRevision:        true,
+					isDeployed:         true,
+					isReleaseEligible:  tc.isReleaseEligible,
+					isCanaryPending:    tc.isCanaryPending,
+					datadogMonitoring:  tc.datadogMonitoring,
+					externalTestStatus: testStatus,
+				})
+				if handler == "deployed" {
+					mock = expectSync(mock)
+				}
+				testHandler(ctx, t, handler, tc.expected, mock, nil)
+			})
+		}
+	}
+}
+
+func TestCanaryingDatadog(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, markedAsFailed, isCanaryPending bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			markedAsFailed:    markedAsFailed,
+			isCanaryPending:   isCanaryPending,
+			datadogMonitoring: true,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "canaryingdatadog", expected, mock, nil)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(canarieddatadog, expectSync(m(true, false, false)))
+	testcase(canaryingdatadog, expectSync(m(true, false, true)))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
+// The datadog canary states must not touch prometheus canary rules or tagged
+// service levels; the mock fails the test on any unexpected call.
+func TestCanaryingDatadogDoesNotSyncPrometheusRules(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	mock := expectSync(createMockDeployment(ctrl, responses{
+		hasRevision:     true,
+		isCanaryPending: true,
+	}))
+	// syncCanaryRules / deleteTaggedServiceLevels / deleteCanaryRules have no
+	// expectations set, so calling any of them fails the test.
+	state, err := CanaryingDatadog(ctx, mock, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, canaryingdatadog, state)
+
+	mock = expectSync(createMockDeployment(ctrl, responses{
+		hasRevision:       true,
+		isReleaseEligible: false,
+	}))
+	state, err = CanariedDatadog(ctx, mock, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, canarieddatadog, state)
+}
+
+func TestCanaryingDatadogSyncError(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	syncErr := errors.New("sync failed")
+
+	canarying := createMockDeployment(ctrl, responses{hasRevision: true})
+	canarying.EXPECT().sync(gomock.Any()).Return(syncErr).Times(1)
+	state, err := CanaryingDatadog(ctx, canarying, nil)
+	assert.ErrorIs(t, err, syncErr)
+	assert.Equal(t, canaryingdatadog, state)
+
+	canaried := createMockDeployment(ctrl, responses{hasRevision: true})
+	canaried.EXPECT().sync(gomock.Any()).Return(syncErr).Times(1)
+	state, err = CanariedDatadog(ctx, canaried, nil)
+	assert.ErrorIs(t, err, syncErr)
+	assert.Equal(t, canarieddatadog, state)
+}
+
+func TestCanariedDatadog(t *tt.T) {
+	ctrl := gomock.NewController(t)
+	ctx := context.TODO()
+	defer ctrl.Finish()
+
+	m := func(hasRevision, markedAsFailed, isReleaseEligible bool) *MockDeployment {
+		return createMockDeployment(ctrl, responses{
+			hasRevision:       hasRevision,
+			markedAsFailed:    markedAsFailed,
+			isReleaseEligible: isReleaseEligible,
+			datadogMonitoring: true,
+		})
+	}
+
+	testcase := func(expected State, mock *MockDeployment) {
+		testHandler(ctx, t, "canarieddatadog", expected, mock, nil)
+	}
+
+	testcase(deleting, m(false, false, false))
+	testcase(deleting, m(false, false, true))
+	testcase(deleting, m(false, true, false))
+	testcase(deleting, m(false, true, true))
+	testcase(canarieddatadog, expectSync(m(true, false, false)))
+	testcase(pendingrelease, expectSync(m(true, false, true)))
+	testcase(failing, m(true, true, false))
+	testcase(failing, m(true, true, true))
+}
+
+func TestDatadogCanaryStatesHaveHandlers(t *tt.T) {
+	for _, s := range []State{canaryingdatadog, canarieddatadog} {
+		assert.NotNil(t, handlers[string(s)], "missing handler for %s", s)
+	}
+}
+
 func TestPendingRelease(t *tt.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.TODO()
@@ -786,6 +939,7 @@ type responses struct {
 	isReleaseEligible         bool
 	externalTestStatus        ExternalTestStatus
 	isCanaryPending           bool
+	datadogMonitoring         bool
 	isDeployed                bool
 	schedulePermitsRelease    bool
 	currentPercent            uint32
@@ -830,6 +984,11 @@ func createMockDeployment(ctrl *gomock.Controller, r responses) *MockDeployment 
 		EXPECT().
 		isCanaryPending().
 		Return(r.isCanaryPending).
+		AnyTimes()
+	m.
+		EXPECT().
+		datadogMonitoring().
+		Return(r.datadogMonitoring).
 		AnyTimes()
 	m.
 		EXPECT().

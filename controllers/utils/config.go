@@ -9,6 +9,7 @@ type Config struct {
 	PrometheusQueryAddress    string
 	PrometheusQueryTTL        time.Duration
 	SlackQueryTTL             time.Duration
+	DatadogEventsQueryTTL     time.Duration
 	ServiceLevelsNamespace    string
 	ServiceLevelsFleet        string
 	ConcurrentRevisions       int

@@ -81,7 +81,7 @@ var (
 				Effect: corev1.TaintEffectNoExecute,
 			},
 		},
-		IAMRole:            "testrole",
+		IAMRole: "testrole",
 		PodAnnotations: map[string]string{
 			"sidecar.istio.io/statsInclusionPrefixes": "listener,cluster.outbound",
 		},
@@ -131,7 +131,7 @@ var (
 			MaxSkew:           3,
 			WhenUnsatisfiable: "ScheduleAnyway",
 		},
-		SchedulerName:      "my-scheduler",
+		SchedulerName: "my-scheduler",
 	}
 
 	retiredRevisionPlan = &SyncRevision{
@@ -322,7 +322,7 @@ var (
 							},
 						},
 					},
-					SchedulerName:       "my-scheduler",
+					SchedulerName:     "my-scheduler",
 					PriorityClassName: "default",
 					Tolerations: []corev1.Toleration{
 						{
