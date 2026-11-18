@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/Medium/picchu/compare/v1.7.0...v1.8.0) (2026-11-18)
+
+
+### Features
+
+* **deps:** bump keda/v2 from 2.20.1 to 2.21.0 ([#655](https://github.com/Medium/picchu/issues/655)) ([265d348](https://github.com/Medium/picchu/commit/265d34862022975c682221fd1a9c8dad5b294f08))
+
 ## [1.7.0](https://github.com/Medium/picchu/compare/v1.6.1...v1.7.0) (2026-11-18)
 
 
