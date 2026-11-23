@@ -65,6 +65,29 @@ func TestCanaryTestPending(t *testing.T) {
 	assert.False(t, target.IsCanaryPending(&lastSecond))
 }
 
+func TestCanaryTestPendingDatadog(t *testing.T) {
+	target := &RevisionTarget{}
+	target.Canary.Percent = 1
+	target.Canary.TTL = 1
+
+	// no SLOs and no datadog monitoring: not pending
+	now := metav1.Now()
+	assert.False(t, target.IsCanaryPending(&now))
+
+	// datadog monitoring enabled without sloth SLOs: pending
+	target.DatadogMonitoring.Enabled = true
+	assert.True(t, target.IsCanaryPending(nil))
+	assert.True(t, target.IsCanaryPending(&now))
+
+	// TTL elapsed: no longer pending
+	lastSecond := metav1.Time{Time: time.Now().Add(-time.Second)}
+	assert.False(t, target.IsCanaryPending(&lastSecond))
+
+	// datadog still requires canary values
+	target.Canary.Percent = 0
+	assert.False(t, target.IsCanaryPending(&now))
+}
+
 func TestValidateKarpenterDoNotDisrupt(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
